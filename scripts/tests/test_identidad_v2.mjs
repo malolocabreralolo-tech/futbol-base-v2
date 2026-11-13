@@ -24,13 +24,14 @@ test('manifiesto de v2', () => {
   const m = JSON.parse(read('manifest.json'));
   assert.equal(m.id, '/futbol-base-v2/index.html');
   assert.equal(m.name, 'Fútbol Base Las Palmas v2');
-  assert.equal(m.short_name, 'Fútbol Base v2');
+  // «v2» delante: si el móvil recorta la etiqueta de la app instalada, la de v1 («Fútbol Base LP») empieza igual.
+  assert.equal(m.short_name, 'v2 Fútbol Base');
 });
 
 test('título y cabecera de v2', () => {
   const page = read('index.html');
   assert.match(page, /<title>Fútbol Base Las Palmas v2<\/title>/);
-  assert.match(page, /<meta name="apple-mobile-web-app-title" content="Fútbol Base v2">/);
+  assert.match(page, /<meta name="apple-mobile-web-app-title" content="v2 Fútbol Base">/);
   assert.match(page, /<span class="brand-place">Las Palmas<\/span> <span class="brand-version">v2<\/span>/);
   // La cabecera que pinta la app es la misma que la de index.html, con la marca.
   assert.match(String(renderHeader()), /<a class="brand" href="#\/">Fútbol base <span class="brand-place">Las Palmas<\/span> <span class="brand-version">v2<\/span><\/a>/);

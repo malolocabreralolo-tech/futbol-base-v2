@@ -37,7 +37,7 @@ test('manifest.json: el nombre, la descripción y los colores de index.html, arr
     background_color: meta(/<meta name="theme-color" content="(#[0-9A-F]{6})" media="\(prefers-color-scheme: light\)">/),
     theme_color: meta(/<meta name="theme-color" content="(#[0-9A-F]{6})" media="\(prefers-color-scheme: light\)">/),
   });
-  assert.deepEqual([fields.name, fields.short_name, fields.theme_color], ['Fútbol Base Las Palmas v2', 'Fútbol Base v2', '#FFFFFF']);
+  assert.deepEqual([fields.name, fields.short_name, fields.theme_color], ['Fútbol Base Las Palmas v2', 'v2 Fútbol Base', '#FFFFFF']);
 });
 
 // La identidad de una PWA: su id resuelto contra el ORIGEN de start_url, sin fragmento (sin id, start_url
