@@ -1,4 +1,4 @@
-"""Dónde y cómo se guardan las bases: versiones comprimidas, la actual, la cuarentena y la restauración."""
+"""Dónde y cómo se guardan las bases: versiones comprimidas, la actual, la cuarentena, la retención, los volcados y la restauración."""
 
 import hashlib
 import json
@@ -6,21 +6,27 @@ import lzma
 import os
 import re
 import shutil
+import sqlite3
 import tempfile
 from collections.abc import Iterator, Mapping, Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from urllib.parse import quote
 
 from .rutas import raiz
 from .verificar import comprobar
 
 PRESET = 6
 CONSERVAR_CUARENTENA = 10
+CONSERVAR_VOLCADOS = 12
+VENTANA_DIARIA = timedelta(days=30)
+VENTANA_SEMANAL = timedelta(weeks=26)
 _BLOQUE = 1 << 20
 _SELLO = "%Y%m%d-%H%M%S"
 _NOMBRE = re.compile(r"futbolbase-(\d{8}-\d{6})\.db\.xz")
+_VOLCADO = re.compile(r"futbolbase-\d{4}-S\d{2}\.sql\.xz")
 
 
 class CopiaDanada(Exception):
@@ -58,6 +64,10 @@ def aceptar(origen: str, db: Path, recuentos: Mapping[str, int], ahora: datetime
         return None
     momento = _en_utc(ahora)
     xz = raiz() / "versiones" / origen / f"{momento:%Y}" / f"futbolbase-{momento:{_SELLO}}.db.xz"
+    for previa in previas:
+        # Una copia nunca se sobrescribe, ni con otra base guardada en el mismo segundo.
+        if previa.momento == momento and previa.sha256 != huella:
+            raise FileExistsError(f"ya hay otra versión de {origen} del {momento.isoformat()}: {previa.ruta}")
     ficha = {"sha256": huella, "bytes": db.stat().st_size, "recuentos": dict(recuentos)}
     _guardar(db, xz, _ficha(xz), json.dumps(ficha, ensure_ascii=False, indent=2) + "\n")
     # La actual se toca la última: si algo falla antes, sigue siendo la buena anterior.
@@ -80,6 +90,65 @@ def apartar(origen: str, db: Path, motivos: Sequence[str], ahora: datetime) -> P
         _motivo(vieja).unlink(missing_ok=True)
         vieja.unlink()
     return xz
+
+
+def a_conservar(momentos: Sequence[datetime], ahora: datetime) -> set[datetime]:
+    """La más nueva de cada día (30 días), de cada semana ISO (26 semanas) y de cada mes (siempre), y la última."""
+    mas_nueva: dict[tuple, datetime] = {}
+    for m in momentos:
+        utc = m.astimezone(timezone.utc)
+        periodos = [("mes", utc.year, utc.month)]
+        if ahora - m < VENTANA_DIARIA:
+            periodos.append(("día", utc.date()))
+        if ahora - m < VENTANA_SEMANAL:
+            iso = utc.isocalendar()
+            periodos.append(("semana", iso.year, iso.week))
+        for periodo in periodos:
+            if periodo not in mas_nueva or m > mas_nueva[periodo]:
+                mas_nueva[periodo] = m
+    conservar = set(mas_nueva.values())
+    if momentos:
+        conservar.add(max(momentos))
+    return conservar
+
+
+def podar(origen: str, ahora: datetime) -> list[Path]:
+    todas = versiones(origen)
+    quedan = a_conservar([v.momento for v in todas], ahora)
+    borradas = []
+    for v in todas:
+        if v.momento in quedan:
+            continue
+        # Primero el .xz: si algo corta entre los dos, lo que queda suelto es el .json, que no ocupa nada.
+        v.ruta.unlink(missing_ok=True)
+        _ficha(v.ruta).unlink(missing_ok=True)
+        borradas.append(v.ruta)
+    return borradas
+
+
+def volcar(origen: str, ahora: datetime) -> Path | None:
+    actual = raiz() / "actual" / origen / "futbolbase.db"
+    if not actual.is_file():
+        return None
+    iso = _en_utc(ahora).isocalendar()
+    carpeta = raiz() / "volcados" / origen
+    destino = carpeta / f"futbolbase-{iso.year}-S{iso.week:02d}.sql.xz"
+    if destino.exists():
+        return None
+    # immutable=1, como en verificar: lee sin dejar -wal ni -shm junto a la actual.
+    con = sqlite3.connect(f"file:{quote(str(actual.absolute()))}?mode=ro&immutable=1", uri=True)
+    try:
+        # Se comprime al vuelo: el volcado de la base real son unos 60 MB de texto que no hace falta tener en memoria.
+        with _atomico(destino) as temporal, lzma.open(temporal, "wt", encoding="utf-8", preset=PRESET) as salida:
+            for sentencia in con.iterdump():
+                salida.write(sentencia + "\n")
+    finally:
+        con.close()
+    # Año y semana van con cifras fijas en el nombre: el orden alfabético es el del tiempo.
+    volcados = sorted(p for p in carpeta.glob("futbolbase-*.sql.xz") if _VOLCADO.fullmatch(p.name))
+    for viejo in volcados[:-CONSERVAR_VOLCADOS]:
+        viejo.unlink()
+    return destino
 
 
 def restaurar(origen: str, destino: Path, momento: datetime | None = None) -> Path:
