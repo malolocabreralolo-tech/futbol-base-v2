@@ -323,6 +323,62 @@ def test_una_cuarentena_de_antes_se_acepta_a_mano(raiz, remoto, monkeypatch):
     assert c["resultado"] == "aceptada" and "aceptado a mano: matches 40 → 10" in c["detalle"]
 
 
+def test_lo_aceptado_a_mano_sigue_perdonado_mientras_siga_igual(raiz, remoto, tmp_path):
+    o = _origen(remoto)
+    ejecutar([o], AHORA)
+    _subir(remoto, _base(tmp_path / "a.db", 40, "DROP TABLE scorers"))
+    assert ejecutar([o], AHORA + timedelta(days=1)) == 1
+    assert ejecutar([o], AHORA + timedelta(days=2), aceptar_mengua={"v1"}) == 0
+    e = _estado(raiz)["v1"]
+    assert e["ultima_buena"]["excepciones"] == ["falta la tabla scorers"]
+    assert "con excepciones: falta la tabla scorers" in e["ultima_comprobacion"]["detalle"]
+    # (a) La misma base, sin bandera: sin cambios, no cuarentena.
+    assert ejecutar([o], AHORA + timedelta(days=3)) == 0
+    c = _estado(raiz)["v1"]["ultima_comprobacion"]
+    assert c["resultado"] == "sin cambios" and "con excepciones: falta la tabla scorers" in c["detalle"]
+    texto, codigo = estado(AHORA + timedelta(days=3, hours=1))
+    assert codigo == 0 and "con excepciones: falta la tabla scorers" in texto.splitlines()[0]
+    # (b) Una nueva que sigue sin scorers y con un partido más: aceptada sin bandera, y la excepción sigue.
+    _subir(remoto, _base(tmp_path / "b.db", 41, "DROP TABLE scorers"))
+    assert ejecutar([o], AHORA + timedelta(days=4)) == 0
+    e = _estado(raiz)["v1"]
+    assert e["ultima_comprobacion"]["resultado"] == "aceptada" and e["ultima_buena"]["recuentos"]["matches"] == 41
+    assert e["ultima_buena"]["excepciones"] == ["falta la tabla scorers"]
+    assert not any(d.startswith("aceptado a mano") for d in e["ultima_comprobacion"]["detalle"])
+    # (c) Una que recupera scorers: aceptada, y ya no hay excepciones.
+    commit_base(remoto, 42)
+    assert ejecutar([o], AHORA + timedelta(days=5)) == 0
+    e = _estado(raiz)["v1"]
+    assert e["ultima_comprobacion"]["resultado"] == "aceptada" and e["ultima_buena"].get("excepciones", []) == []
+    assert not any(d.startswith("con excepciones") for d in e["ultima_comprobacion"]["detalle"])
+    assert "con excepciones" not in estado(AHORA + timedelta(days=5, hours=1))[0]
+    # (d) Si vuelve a faltar, es cuarentena otra vez.
+    _subir(remoto, _base(tmp_path / "c.db", 42, "DROP TABLE scorers"))
+    assert ejecutar([o], AHORA + timedelta(days=6)) == 1
+    c = _estado(raiz)["v1"]["ultima_comprobacion"]
+    assert c["resultado"] == "cuarentena" and c["detalle"][0] == "falta la tabla scorers"
+    assert comprobar(raiz / "actual/v1/futbolbase.db").recuentos["scorers"] == 1
+
+
+def test_las_excepciones_no_tapan_otros_motivos(raiz, remoto, tmp_path):
+    o = _origen(remoto)
+    ejecutar([o], AHORA)
+    _subir(remoto, _base(tmp_path / "a.db", 40, "DELETE FROM goals"))
+    assert ejecutar([o], AHORA + timedelta(days=1)) == 1
+    assert ejecutar([o], AHORA + timedelta(days=2), aceptar_mengua={"v1"}) == 0
+    assert _estado(raiz)["v1"]["ultima_buena"]["excepciones"] == ["goals está vacía"]
+    # Con goals aún vacía, que además falte otra tabla, o que la base esté dañada, sigue siendo cuarentena.
+    _subir(remoto, _base(tmp_path / "b.db", 40, "DELETE FROM goals; DROP TABLE scorers"))
+    assert ejecutar([o], AHORA + timedelta(days=3)) == 1
+    assert _estado(raiz)["v1"]["ultima_comprobacion"]["detalle"][0] == "falta la tabla scorers"
+    datos = bytearray(_base(tmp_path / "c.db", 40, "DELETE FROM goals"))
+    datos[4096:8192] = b"\xff" * 4096
+    _subir(remoto, bytes(datos))
+    assert ejecutar([o], AHORA + timedelta(days=4)) == 1
+    assert _estado(raiz)["v1"]["ultima_comprobacion"]["detalle"][0].startswith(("integridad:", "no se puede abrir:"))
+    assert _estado(raiz)["v1"]["ultima_buena"]["excepciones"] == ["goals está vacía"]
+
+
 def test_misma_rechazada_no_se_repite(raiz, remoto):
     o = _origen(remoto)
     ejecutar([o], AHORA); commit_base(remoto, 10)

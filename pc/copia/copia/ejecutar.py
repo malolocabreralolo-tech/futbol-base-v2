@@ -85,6 +85,8 @@ def _pasada(origen: Origen, ahora: datetime, entrada: dict, a_mano: bool) -> tup
         commit = actualizar_espejo(origen, ahora)
         avisos = [f"espejo incompleto: {aviso}" for aviso in avisos_del_espejo(origen)]
         anterior = _anterior(origen.nombre, entrada)
+        # Lo que se aceptó a mano en la última buena (una tabla que falta o vacía) no cuenta mientras siga así.
+        excepciones = list((entrada.get("ultima_buena") or {}).get("excepciones") or [])
         apartada = entrada.get("ultima_apartada") if a_mano else None
         with tempfile.TemporaryDirectory(prefix=_TEMPORAL, dir=raiz()) as carpeta:
             db = extraer_base(origen, commit, Path(carpeta) / "futbolbase.db")
@@ -92,11 +94,12 @@ def _pasada(origen: Origen, ahora: datetime, entrada: dict, a_mano: bool) -> tup
                 # Aceptar a mano es aceptar la base que se apartó, o una prácticamente igual: se mide contra ella, y lo
                 # que ella no pudo contar (no se abría, le faltaba la tabla), contra la última buena.
                 r = comprobar(db, {**(anterior or {}), **apartada["recuentos"]})
-                motivos = [m for m in r.motivos if not _perdonable(m, apartada["motivos"])]
+                ya_vistos = [*excepciones, *apartada["motivos"]]
             else:
                 # Pedido por adelantado, sin nada apartado con que comparar, no se mide la mengua; lo demás sí.
                 r = comprobar(db, None if a_mano else anterior)
-                motivos = list(r.motivos)
+                ya_vistos = excepciones
+            motivos = [m for m in r.motivos if not _perdonable(m, ya_vistos)]
             if motivos:
                 ruta = almacen.apartar(origen.nombre, db, motivos, ahora)
                 entrada["ultima_apartada"] = {
@@ -119,10 +122,19 @@ def _pasada(origen: Origen, ahora: datetime, entrada: dict, a_mano: bool) -> tup
                 "version": _relativa(ultima.ruta),
                 "commit": commit,
             }
+        # Lo que queda en r.motivos son tablas que faltan o vacías, todas perdonadas: siguen siéndolo mientras sigan
+        # pasando, y la que vuelve a estar con filas deja de serlo.
+        if r.motivos:
+            entrada["ultima_buena"]["excepciones"] = list(r.motivos)
+        else:
+            entrada["ultima_buena"].pop("excepciones", None)
         detalle = [f"{t} {r.recuentos[t]}" for t in ("matches", "players")] + [f"versión {_relativa(ultima.ruta)}"]
-        # Lo que se ha perdonado, contra la última buena: lo que queda en r.motivos son tablas que faltan o vacías.
-        if a_mano and (perdonado := [*menguas(anterior or {}, r.recuentos), *r.motivos]):
+        # Lo que se ha perdonado esta vez, contra la última buena.
+        nuevas = [m for m in r.motivos if m not in excepciones]
+        if a_mano and (perdonado := [*menguas(anterior or {}, r.recuentos), *nuevas]):
             detalle.append("aceptado a mano: " + "; ".join(perdonado))
+        if r.motivos:
+            detalle.append("con excepciones: " + "; ".join(r.motivos))
         if volcado := almacen.volcar(origen.nombre, ahora):
             detalle.append(f"volcado en {_relativa(volcado)}")
         if podadas := almacen.podar(origen.nombre, ahora):
@@ -133,12 +145,12 @@ def _pasada(origen: Origen, ahora: datetime, entrada: dict, a_mano: bool) -> tup
         return ERROR, [texto if isinstance(e, FuenteError) else f"{type(e).__name__}: {texto}", *avisos], commit
 
 
-def _perdonable(motivo: str, de_la_apartada: Sequence[str]) -> bool:
-    # Que falte una tabla o esté vacía se perdona si ya pasaba en la base apartada; un daño, una clave rota o una
-    # mengua respecto a ella, nunca.
+def _perdonable(motivo: str, ya_vistos: Sequence[str]) -> bool:
+    # Que falte una tabla o esté vacía se perdona si ya pasaba en la base apartada o se aceptó a mano en la última
+    # buena; un daño, una clave rota o una mengua, nunca.
     if motivo.startswith(_NUNCA_SE_PERDONA):
         return False
-    return (motivo.startswith("falta la tabla ") or motivo.endswith(" está vacía")) and motivo in de_la_apartada
+    return (motivo.startswith("falta la tabla ") or motivo.endswith(" está vacía")) and motivo in ya_vistos
 
 
 def _anterior(nombre: str, entrada: Mapping) -> Mapping[str, int] | None:
@@ -158,6 +170,8 @@ def _resumen(nombre: str, entrada: Mapping, ahora: datetime) -> tuple[str, bool]
     if buena:
         recuentos = buena["recuentos"]
         partes.append(f"última buena {buena['momento']} (matches {recuentos.get('matches')}, players {recuentos.get('players')})")
+        if buena.get("excepciones"):
+            partes.append("con excepciones: " + "; ".join(buena["excepciones"]))
     else:
         avisos.append("sin copia buena")
     if resultado not in _BUENOS:
