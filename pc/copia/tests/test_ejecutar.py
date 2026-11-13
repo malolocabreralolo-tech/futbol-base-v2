@@ -1,0 +1,309 @@
+import fcntl
+import json
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
+
+import pytest
+
+from conftest import commit_base, git
+from copia import ejecutar as ejecutar_mod
+from copia import rutas
+from copia.almacen import versiones
+from copia.ejecutar import ejecutar, estado
+from copia.fuentes import Origen, actualizar_espejo, extraer_base
+from copia.verificar import comprobar
+
+AHORA = datetime(2026, 11, 13, 5, 0, tzinfo=timezone.utc)
+
+
+def _origen(remoto: Path, nombre: str = "v1", base: str = "futbolbase.db") -> Origen:
+    return Origen(nombre, str(remoto), "main", base)
+
+
+def _estado(raiz: Path) -> dict:
+    return json.loads((raiz / "estado.json").read_text(encoding="utf-8"))
+
+
+def _registro(raiz: Path) -> list[str]:
+    return (raiz / "registro.log").read_text(encoding="utf-8").splitlines()
+
+
+def _temporales(raiz: Path) -> list[Path]:
+    return list(raiz.glob(".pasada-*"))
+
+
+def _subir(remoto: Path, datos: bytes) -> str:
+    (remoto / "futbolbase.db").write_bytes(datos)
+    git(remoto, "commit", "--quiet", "-am", "otra base")
+    return git(remoto, "rev-parse", "HEAD")
+
+
+def test_pasada_buena(raiz, remoto, capsys, monkeypatch):
+    o = _origen(remoto)
+    sacadas = []
+
+    def espia(origen, commit, destino):
+        sacadas.append(destino)
+        return extraer_base(origen, commit, destino)
+
+    with monkeypatch.context() as m:
+        m.setattr(ejecutar_mod, "extraer_base", espia)
+        assert ejecutar([o], AHORA) == 0
+    # La base sale a un temporal en la propia raíz (mismo disco que actual/ y versiones/) y no se queda allí.
+    destino, = sacadas
+    assert destino.parent.parent == raiz and destino.parent.name.startswith(".pasada-")
+    assert not destino.parent.exists()
+    e = json.loads((raiz / "estado.json").read_text())["v1"]
+    assert e["ultima_comprobacion"]["resultado"] == "aceptada"
+    assert e["ultima_buena"]["recuentos"]["matches"] == 40
+    assert e["ultima_buena"]["commit"] == git(remoto, "rev-parse", "main")
+    assert (raiz / "actual/v1/futbolbase.db").exists()
+    assert (raiz / "volcados/v1/futbolbase-2026-S46.sql.xz").exists()
+    linea, = (raiz / "registro.log").read_text().splitlines()
+    assert " v1 aceptada" in linea
+    v, = versiones("v1")
+    assert e["ultima_buena"] == {
+        "momento": "2026-11-13T05:00:00+00:00",
+        "sha256": v.sha256,
+        "recuentos": v.recuentos,
+        "version": "versiones/v1/2026/futbolbase-20261113-050000.db.xz",
+        "commit": git(remoto, "rev-parse", "main"),
+    }
+    assert e["ultima_comprobacion"]["momento"] == "2026-11-13T05:00:00+00:00"
+    assert e["ultima_comprobacion"]["commit"] == e["ultima_buena"]["commit"]
+    assert (raiz / "actual/v1/futbolbase.db").read_bytes() == (remoto / "futbolbase.db").read_bytes()
+    assert linea.startswith("2026-11-13T05:00:00+00:00 v1 aceptada matches 40; players 1; ")
+    # Lo que sale por pantalla (el journal de systemd) es la misma línea del registro.
+    assert capsys.readouterr().out.splitlines() == [linea]
+    # La base sacada del espejo no se queda en la raíz.
+    assert _temporales(raiz) == []
+
+
+def test_sin_cambios(raiz, remoto):
+    o = _origen(remoto)
+    ejecutar([o], AHORA)
+    buena = _estado(raiz)["v1"]["ultima_buena"]
+    assert ejecutar([o], AHORA + timedelta(hours=1)) == 0
+    e = _estado(raiz)["v1"]
+    assert e["ultima_comprobacion"]["resultado"] == "sin cambios"
+    assert e["ultima_comprobacion"]["momento"] == "2026-11-13T06:00:00+00:00"
+    assert e["ultima_buena"] == buena
+    assert len(versiones("v1")) == 1
+    assert [l.split(" ", 1)[1].startswith("v1 sin cambios ") for l in _registro(raiz)] == [False, True]
+    # Un commit nuevo que no toca la base tampoco cambia la última buena.
+    (remoto / "scripts/x_raw.json").write_text(json.dumps({"a": 2}))
+    git(remoto, "commit", "--quiet", "-am", "a vale 2")
+    assert ejecutar([o], AHORA + timedelta(hours=2)) == 0
+    e = _estado(raiz)["v1"]
+    assert e["ultima_comprobacion"]["resultado"] == "sin cambios"
+    assert e["ultima_comprobacion"]["commit"] == git(remoto, "rev-parse", "main") != buena["commit"]
+    assert e["ultima_buena"] == buena
+
+
+def test_sin_cambios_tambien_vuelca_y_poda(raiz, remoto):
+    o = _origen(remoto)
+    ejecutar([o], AHORA)
+    commit_base(remoto, 41)
+    ejecutar([o], AHORA + timedelta(days=1))
+    assert len(versiones("v1")) == 2
+    # Días sin cambios en la base: el volcado de la semana sale igual y la retención sigue corriendo.
+    assert ejecutar([o], AHORA + timedelta(days=40)) == 0
+    assert _estado(raiz)["v1"]["ultima_comprobacion"]["resultado"] == "sin cambios"
+    assert sorted(p.name for p in (raiz / "volcados/v1").iterdir()) == ["futbolbase-2026-S46.sql.xz", "futbolbase-2026-S52.sql.xz"]
+    assert [v.momento for v in versiones("v1")] == [AHORA + timedelta(days=1)]
+    assert _registro(raiz)[-1].endswith("; volcado en volcados/v1/futbolbase-2026-S52.sql.xz; versiones viejas borradas: 1")
+
+
+def test_base_menguada_va_a_cuarentena(raiz, remoto):
+    o = _origen(remoto)
+    ejecutar([o], AHORA); commit_base(remoto, 10)
+    buena = _estado(raiz)["v1"]["ultima_buena"]
+    assert ejecutar([o], AHORA + timedelta(days=1)) == 1
+    e = json.loads((raiz / "estado.json").read_text())["v1"]
+    assert e["ultima_comprobacion"]["resultado"] == "cuarentena"
+    assert "mengua: matches 40 → 10" in e["ultima_comprobacion"]["detalle"]
+    assert e["ultima_buena"]["recuentos"]["matches"] == 40
+    assert comprobar(raiz / "actual/v1/futbolbase.db").recuentos["matches"] == 40
+    assert e["ultima_buena"] == buena and len(versiones("v1")) == 1
+    assert e["ultima_comprobacion"]["commit"] == git(remoto, "rev-parse", "main")
+    assert len(list((raiz / "cuarentena/v1").glob("*.db.xz"))) == 1
+    assert " v1 cuarentena mengua: matches 40 → 10; " in _registro(raiz)[-1]
+    assert _temporales(raiz) == []
+
+
+def test_base_corrupta_va_a_cuarentena(raiz, remoto):
+    o = _origen(remoto)
+    buena = (remoto / "futbolbase.db").read_bytes()
+    ejecutar([o], AHORA)
+    datos = bytearray(buena)
+    datos[4096:8192] = b"\xff" * 4096
+    _subir(remoto, bytes(datos))
+    assert ejecutar([o], AHORA + timedelta(days=1)) == 1
+    e = _estado(raiz)["v1"]
+    assert e["ultima_comprobacion"]["resultado"] == "cuarentena"
+    assert e["ultima_comprobacion"]["detalle"][0].startswith(("integridad:", "no se puede abrir:"))
+    assert (raiz / "actual/v1/futbolbase.db").read_bytes() == buena
+    assert len(versiones("v1")) == 1
+    # Aceptar una mengua no se salta el resto de las comprobaciones.
+    assert ejecutar([o], AHORA + timedelta(days=2), aceptar_mengua={"v1"}) == 1
+    assert _estado(raiz)["v1"]["ultima_comprobacion"]["resultado"] == "cuarentena"
+    assert (raiz / "actual/v1/futbolbase.db").read_bytes() == buena
+
+
+def test_aceptar_mengua(raiz, remoto):
+    o = _origen(remoto)
+    ejecutar([o], AHORA); commit_base(remoto, 10)
+    assert ejecutar([o], AHORA + timedelta(days=1)) == 1
+    assert ejecutar([o], AHORA + timedelta(days=2), aceptar_mengua={"v1"}) == 0
+    e = _estado(raiz)["v1"]
+    assert e["ultima_comprobacion"]["resultado"] == "aceptada"
+    assert e["ultima_buena"]["recuentos"]["matches"] == 10
+    assert e["ultima_buena"]["momento"] == "2026-11-15T05:00:00+00:00"
+    assert comprobar(raiz / "actual/v1/futbolbase.db").recuentos["matches"] == 10
+    assert len(versiones("v1")) == 2
+    # Desde ahí la mengua se mide contra la nueva: la siguiente pasada ya no la ve.
+    assert ejecutar([o], AHORA + timedelta(days=3)) == 0
+    assert _estado(raiz)["v1"]["ultima_comprobacion"]["resultado"] == "sin cambios"
+
+
+def test_misma_rechazada_no_se_repite(raiz, remoto):
+    o = _origen(remoto)
+    ejecutar([o], AHORA); commit_base(remoto, 10)
+    assert ejecutar([o], AHORA + timedelta(days=1)) == 1
+    assert ejecutar([o], AHORA + timedelta(days=2)) == 1
+    assert len(list((raiz / "cuarentena/v1").glob("*.db.xz"))) == 1
+    assert [l.split(" ")[2] for l in _registro(raiz)] == ["aceptada", "cuarentena", "cuarentena"]
+    assert _estado(raiz)["v1"]["ultima_comprobacion"]["momento"] == "2026-11-15T05:00:00+00:00"
+
+
+def test_un_origen_caido_no_para_al_otro(raiz, remoto, tmp_path, monkeypatch):
+    caido = _origen(tmp_path / "no-existe", "v2")
+    sin_base = _origen(remoto, "v3", base="no-esta.db")      # falla ya con la base a medio sacar
+    o = _origen(remoto)
+    # El estado se escribe al acabar cada origen, no solo al final de la pasada.
+    vistos = []
+
+    def espia(origen, ahora):
+        vistos.append(sorted(_estado(raiz)) if (raiz / "estado.json").exists() else [])
+        return actualizar_espejo(origen, ahora)
+
+    with monkeypatch.context() as m:
+        m.setattr(ejecutar_mod, "actualizar_espejo", espia)
+        assert ejecutar([caido, sin_base, o], AHORA) == 1
+    assert vistos == [[], ["v2"], ["v2", "v3"]]
+    e = _estado(raiz)
+    assert e["v1"]["ultima_comprobacion"]["resultado"] == "aceptada"
+    assert e["v2"]["ultima_comprobacion"]["resultado"] == "error"
+    assert e["v3"]["ultima_comprobacion"]["resultado"] == "error"
+    assert "ultima_buena" not in e["v2"] and "ultima_buena" not in e["v3"]
+    assert e["v2"]["ultima_comprobacion"]["commit"] is None
+    assert e["v3"]["ultima_comprobacion"]["commit"] == git(remoto, "rev-parse", "main")
+    assert "no-esta.db" in e["v3"]["ultima_comprobacion"]["detalle"][0]
+    assert all(e[n]["ultima_comprobacion"]["detalle"][0] for n in ("v2", "v3"))
+    assert [l.split(" ")[1:3] for l in _registro(raiz)] == [["v2", "error"], ["v3", "error"], ["v1", "aceptada"]]
+    assert (raiz / "actual/v1/futbolbase.db").exists() and not (raiz / "actual/v3").exists()
+    assert _temporales(raiz) == []
+    # Si cae el que ya tenía copia, su última buena y su actual siguen como estaban.
+    buena, actual = e["v1"]["ultima_buena"], (raiz / "actual/v1/futbolbase.db").read_bytes()
+    remoto.rename(tmp_path / "apagado")
+    assert ejecutar([o], AHORA + timedelta(days=1)) == 1
+    e = _estado(raiz)
+    assert e["v1"]["ultima_comprobacion"]["resultado"] == "error"
+    assert e["v1"]["ultima_buena"] == buena
+    assert (raiz / "actual/v1/futbolbase.db").read_bytes() == actual
+    assert e["v2"]["ultima_comprobacion"]["momento"] == "2026-11-13T05:00:00+00:00"   # los demás no se tocan
+
+
+def test_cualquier_fallo_de_un_origen_es_su_error(raiz, remoto, tmp_path):
+    o, otro = _origen(remoto), _origen(remoto, "v2")
+    ejecutar([o], AHORA)
+    commit_base(remoto, 41)
+    # Otra base en el mismo segundo que la versión guardada: almacen no la pisa y lanza FileExistsError.
+    assert ejecutar([o, otro], AHORA) == 1
+    e = _estado(raiz)
+    assert e["v1"]["ultima_comprobacion"]["resultado"] == "error"
+    assert e["v1"]["ultima_comprobacion"]["detalle"][0].startswith("FileExistsError: ya hay otra versión de v1")
+    assert e["v1"]["ultima_buena"]["recuentos"]["matches"] == 40
+    assert e["v2"]["ultima_comprobacion"]["resultado"] == "aceptada"
+    assert comprobar(raiz / "actual/v1/futbolbase.db").recuentos["matches"] == 40
+    assert _temporales(raiz) == []
+
+
+def test_cerrojo(raiz, remoto, capsys):
+    o = _origen(remoto)
+    with open(rutas.raiz() / ".cerrojo", "w") as otra_pasada:
+        fcntl.flock(otra_pasada, fcntl.LOCK_EX | fcntl.LOCK_NB)
+        assert ejecutar([o], AHORA) == 2
+        assert sorted(p.name for p in raiz.iterdir()) == [".cerrojo"]
+        assert not (raiz / "estado.json").exists()
+        assert "cerrojo" in capsys.readouterr().err
+    assert ejecutar([o], AHORA) == 0
+    # Al acabar la suelta, también cuando la pasada revienta fuera de un origen.
+    with open(raiz / ".cerrojo") as f:
+        fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    (raiz / "estado.json").unlink()
+    (raiz / "estado.json").mkdir()
+    with pytest.raises(OSError): ejecutar([o], AHORA + timedelta(days=1))
+    with open(raiz / ".cerrojo") as f:
+        fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
+
+
+def test_limpia_lo_que_dejo_una_pasada_cortada(raiz, remoto):
+    cortada = rutas.raiz() / ".pasada-cortada"
+    cortada.mkdir()
+    (cortada / "futbolbase.db").write_bytes(b"medio sacada")
+    assert ejecutar([_origen(remoto)], AHORA) == 0
+    assert _temporales(raiz) == []
+
+
+def test_estado(raiz, remoto):
+    o = _origen(remoto)
+    assert "sin copias" in estado(AHORA)[0] and estado(AHORA)[1] == 1
+    ejecutar([o], AHORA)
+    texto, codigo = estado(AHORA + timedelta(hours=1)); assert codigo == 0 and "v1" in texto and "40" in texto
+    assert estado(AHORA + timedelta(days=4))[1] == 1
+    linea, ocupa = texto.splitlines()
+    assert linea.startswith("v1") and "matches 40" in linea and "players 1" in linea and "aceptada" in linea
+    assert ocupa.startswith("ocupa ") and str(raiz) in ocupa
+    # Menos de 3 días.
+    assert estado(AHORA + timedelta(days=3) - timedelta(seconds=1))[1] == 0
+    texto, codigo = estado(AHORA + timedelta(days=3))
+    assert codigo == 1 and "3 días" in texto
+    # El último resultado tiene que ser bueno, aunque haya una copia buena de antes.
+    commit_base(remoto, 10)
+    ejecutar([o], AHORA + timedelta(days=1))
+    texto, codigo = estado(AHORA + timedelta(days=1, hours=1))
+    assert codigo == 1 and "cuarentena" in texto and "mengua: matches 40 → 10" in texto
+    # Y todos los orígenes tienen que tener una copia buena.
+    ejecutar([o], AHORA + timedelta(days=2), aceptar_mengua={"v1"})
+    assert estado(AHORA + timedelta(days=2, hours=1))[1] == 0
+    ejecutar([o, _origen(remoto, "v2", base="no-esta.db")], AHORA + timedelta(days=3))
+    texto, codigo = estado(AHORA + timedelta(days=3, hours=1))
+    assert codigo == 1 and len(texto.splitlines()) == 3 and "sin copia buena" in texto
+
+
+def test_estado_perdido_o_atrasado(raiz, remoto):
+    o = _origen(remoto)
+    ejecutar([o], AHORA)
+    buena = _estado(raiz)["v1"]["ultima_buena"]
+    # Sin estado.json, la misma base vuelve a dar su última buena, sacada de la versión guardada.
+    (raiz / "estado.json").unlink()
+    assert ejecutar([o], AHORA + timedelta(days=1)) == 0
+    assert _estado(raiz)["v1"]["ultima_buena"] == buena
+    assert estado(AHORA + timedelta(days=1, hours=1))[1] == 0
+    # Un estado.json de antes de la última versión (la pasada se cortó tras guardarla) se pone al día.
+    atrasado = (raiz / "estado.json").read_text(encoding="utf-8")
+    commit_base(remoto, 41)
+    assert ejecutar([o], AHORA + timedelta(days=2)) == 0
+    nueva = _estado(raiz)["v1"]["ultima_buena"]
+    (raiz / "estado.json").write_text(atrasado, encoding="utf-8")
+    assert ejecutar([o], AHORA + timedelta(days=3)) == 0
+    assert _estado(raiz)["v1"]["ultima_buena"] == nueva
+    # Con un estado.json ilegible, estado lo dice y la mengua se sigue midiendo contra la última versión guardada.
+    (raiz / "estado.json").write_text("no es json", encoding="utf-8")
+    texto, codigo = estado(AHORA + timedelta(days=3, hours=1))
+    assert codigo == 1 and "ilegible" in texto
+    commit_base(remoto, 10)
+    assert ejecutar([o], AHORA + timedelta(days=4)) == 1
+    assert _estado(raiz)["v1"]["ultima_comprobacion"]["detalle"][0] == "mengua: matches 41 → 10"
+    assert comprobar(raiz / "actual/v1/futbolbase.db").recuentos["matches"] == 41
