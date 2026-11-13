@@ -1,6 +1,9 @@
 import json
 import lzma
+import re
+import shlex
 import sqlite3
+import subprocess
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -11,6 +14,7 @@ from copia.almacen import a_conservar, aceptar, podar, versiones, volcar
 from copia.verificar import TABLAS, comprobar
 
 AHORA = datetime(2026, 11, 13, 5, 0, tzinfo=timezone.utc)
+README = Path(__file__).resolve().parent.parent / "README.md"
 
 
 def _ficheros(carpeta: Path) -> list[str]:
@@ -92,6 +96,20 @@ def test_volcar(raiz, tmp_path):
     assert _ficheros(raiz / "actual") == ["v1/futbolbase.db"]
     assert volcar("v1", AHORA + timedelta(days=1)) is None          # misma semana ISO
     assert _ficheros(raiz / "volcados") == ["v1/futbolbase-2026-S46.sql.xz"]
+
+
+def test_el_volcado_se_recupera_con_la_orden_del_readme(raiz, tmp_path):
+    db = crear_base(tmp_path / "a.db", partidos=123)
+    aceptar("v1", db, comprobar(db).recuentos, AHORA)
+    volcado = volcar("v1", AHORA)
+    # La orden tal como está en el README, con este volcado: sin la orden sqlite3, que no está en este PC.
+    linea, = [l.strip() for l in README.read_text(encoding="utf-8").splitlines() if l.strip().startswith("xz -dc ")]
+    orden = re.sub(r"^xz -dc \S+", lambda _: f"xz -dc {shlex.quote(str(volcado))}", linea)
+    carpeta = tmp_path / "recuperar"
+    carpeta.mkdir()
+    subprocess.run(["bash", "-c", orden], cwd=carpeta, check=True)
+    r = comprobar(carpeta / "recuperada.db")
+    assert r.ok and r.recuentos == comprobar(db).recuentos
 
 
 def test_volcar_sin_actual(raiz):

@@ -22,7 +22,7 @@ Las otras carpetas que hay ahí (`correcciones-2026-09-09`, `mejoras-completas-2
 
 ## Cada cuánto y qué se conserva
 
-- Una pasada al día, a las 04:40 (con hasta 10 minutos de margen al azar). Si el PC estaba apagado a esa hora, la hace al encenderlo.
+- Una pasada al día, a las 04:40 (con hasta 10 minutos de margen al azar). Si el PC estaba apagado a esa hora, la hace al iniciar sesión en el PC.
 - Versiones: la más nueva de cada día durante 30 días, la más nueva de cada semana durante 26 semanas, la más nueva de cada mes para siempre, y siempre la última. Si la base no ha cambiado, no se guarda otra vez.
 - Volcados en texto: uno por semana; se conservan los 12 más nuevos.
 - Cuarentena: la misma base rechazada se guarda una sola vez; se conservan las 10 más nuevas.
@@ -32,7 +32,7 @@ Las otras carpetas que hay ahí (`correcciones-2026-09-09`, `mejoras-completas-2
 
     futbol-base-copia estado
 
-Escribe una línea por web y lo que ocupa la carpeta. Va bien si pone `(aceptada)` o `(sin cambios)` y no sale la palabra `AVISO`. Por ejemplo:
+Escribe una línea por web, lo que ocupa la carpeta y de qué commit es la copia instalada. Va bien si pone `(aceptada)` o `(sin cambios)` y no sale la palabra `AVISO`. Por ejemplo:
 
     v1: comprobada 2026-11-14T04:43:05+00:00 (aceptada) · última buena 2026-11-14T04:43:05+00:00 (matches 37850, players 17402)
     ocupa 352,8 MB en /home/manolo/backups/futbol-base
@@ -65,6 +65,15 @@ Antes de dártela comprueba que es idéntica a la que se guardó; si no lo es, l
 También comprueba que está sana; si es idéntica pero no pasa las comprobaciones de hoy (por ejemplo, porque se guardó cuando se vigilaban otras tablas), te la da igual y avisa de qué le pasa.
 Nunca escribe dentro de `actual/`.
 
+## Cómo recuperar la base del volcado en texto
+
+Si el fichero de una base no sirve, los volcados de `volcados/v1/` la tienen entera en texto, uno por semana. Este PC no tiene la orden `sqlite3`; se carga con Python.
+En una carpeta donde no haya ya un `recuperada.db` (cambia el nombre del volcado por el de la semana que quieras):
+
+    xz -dc ~/backups/futbol-base/volcados/v1/futbolbase-2026-S46.sql.xz | python3 -c "import sqlite3,sys; sqlite3.connect('recuperada.db').executescript(sys.stdin.read())"
+
+Deja allí `recuperada.db`, con todas las tablas y filas de esa semana.
+
 ## Cómo sacar un fichero original del repositorio
 
     futbol-base-copia extraer v1 scripts/fiflp_2425_raw.json ~/fiflp_2425_raw.json
@@ -75,6 +84,16 @@ Cada pasada deja marcado cómo estaba el repositorio ese día (fecha en UTC). Pa
     git --git-dir ~/backups/futbol-base/repos/v1.git show refs/copia/main/20261113:scripts/fiflp_2425_raw.json > ~/fiflp_2425_raw.json
 
 Los días que hay: `git --git-dir ~/backups/futbol-base/repos/v1.git for-each-ref refs/copia`.
+
+Solo la rama `main` tiene esa marca de cada día. Las otras ramas también se copian, y lo que se reescriba en ellas no se pierde (el espejo no borra nada), pero sus estados anteriores solo se encuentran buscándolos con `git --git-dir ~/backups/futbol-base/repos/v1.git fsck --unreachable`.
+
+## Si se pierde el repositorio de GitHub
+
+`repos/v1.git` tiene todas sus ramas y etiquetas. Para devolverlas a GitHub (por ejemplo, a un repositorio nuevo y vacío), con `URL` la dirección de ese repositorio:
+
+    git --git-dir ~/backups/futbol-base/repos/v1.git push URL 'refs/heads/*:refs/heads/*' 'refs/tags/*:refs/tags/*'
+
+No ejecutes nunca `git remote prune` ni `git fetch --prune` en el espejo, aunque git lo sugiera en un mensaje (puede salir en los avisos de `espejo incompleto`): borrarían las ramas que GitHub ya no tiene, que es justo lo que el espejo guarda.
 
 ## Si algo va a cuarentena
 
@@ -102,7 +121,7 @@ Después de cambiar algo aquí (también `origenes.json`, por ejemplo para añad
     python3 -m pytest tests -q
     bash instalar.sh
 
-`instalar.sh` sustituye entera la copia instalada (sin dejar ningún momento sin ella) y vuelve a escribir la orden `~/.local/bin/futbol-base-copia` y el temporizador (`~/.config/systemd/user/futbol-base-copia.service` y `.timer`).
+`instalar.sh` sustituye entera la copia instalada (aparta la vieja, pone la nueva en su sitio y solo entonces borra la vieja) y vuelve a escribir la orden `~/.local/bin/futbol-base-copia` y el temporizador (`~/.config/systemd/user/futbol-base-copia.service` y `.timer`).
 No toca las copias ni hace ninguna. Al acabar dice qué ha instalado y cómo comprobarlo.
 Para dejar de hacer la copia diaria: `systemctl --user disable --now futbol-base-copia.timer`.
 
