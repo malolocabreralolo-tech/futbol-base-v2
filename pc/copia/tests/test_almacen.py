@@ -216,6 +216,26 @@ def test_restaurar_no_escribe_en_actual(raiz, tmp_path):
     assert (raiz / "actual/v1/futbolbase.db").read_bytes() == db.read_bytes()
 
 
+def test_lo_guardado_se_relee_antes_de_darlo_por_bueno(raiz, tmp_path, monkeypatch):
+    db = crear_base(tmp_path / "a.db"); r = comprobar(db)
+
+    def otra_cosa(entrada, salida, *args):
+        salida.write(b"otra cosa")
+
+    def a_medias(entrada, salida, *args):
+        salida.write(entrada.read(1000))
+
+    # La compresión escribe un .xz bueno, pero de otra cosa o de solo una parte de la base.
+    for falsa in (otra_cosa, a_medias):
+        with monkeypatch.context() as m:
+            m.setattr(shutil, "copyfileobj", falsa)
+            with pytest.raises(CopiaDanada): aceptar("v1", db, r.recuentos, AHORA)
+            with pytest.raises(CopiaDanada): apartar("v1", db, ["x"], AHORA)
+        assert _ficheros(raiz) == [], falsa.__name__        # ni la versión, ni la apartada, ni la actual, ni temporales
+    assert aceptar("v1", db, r.recuentos, AHORA) is not None
+    assert lzma.open(versiones("v1")[0].ruta).read() == db.read_bytes()
+
+
 def test_escritura_interrumpida_no_deja_version(raiz, tmp_path, monkeypatch):
     db = crear_base(tmp_path / "a.db"); r = comprobar(db)
     # monkeypatch.context() y no monkeypatch.undo(), que desharía también FB_COPIA_RAIZ y escribiría en ~/backups.

@@ -81,7 +81,7 @@ def aceptar(origen: str, db: Path, recuentos: Mapping[str, int], ahora: datetime
         if previa.momento == momento and previa.sha256 != huella:
             raise FileExistsError(f"ya hay otra versión de {origen} del {momento.isoformat()}: {previa.ruta}")
     ficha = {"sha256": huella, "bytes": db.stat().st_size, "recuentos": dict(recuentos)}
-    _guardar(db, xz, _ficha(xz), json.dumps(ficha, ensure_ascii=False, indent=2) + "\n")
+    _guardar(db, xz, _ficha(xz), json.dumps(ficha, ensure_ascii=False, indent=2) + "\n", huella)
     # La actual se toca la última: si algo falla antes, sigue siendo la buena anterior.
     _copiar(db, actual)
     return Version(origen, momento, xz, huella, dict(recuentos))
@@ -97,7 +97,7 @@ def apartar(origen: str, db: Path, motivos: Sequence[str], ahora: datetime) -> P
     momento = _en_utc(ahora)
     xz = carpeta / f"futbolbase-{momento:{_SELLO}}.db.xz"
     lineas = [huella, *(" ".join(str(m).splitlines()) for m in motivos)]
-    _guardar(db, xz, _motivo(xz), "\n".join(lineas) + "\n")
+    _guardar(db, xz, _motivo(xz), "\n".join(lineas) + "\n", huella)
     for vieja in _apartadas(carpeta)[:-CONSERVAR_CUARENTENA]:
         _motivo(vieja).unlink(missing_ok=True)
         vieja.unlink()
@@ -235,10 +235,13 @@ def _huella(ruta: Path) -> str:
         return hashlib.file_digest(f, "sha256").hexdigest()
 
 
-def _guardar(db: Path, xz: Path, ficha: Path, texto: str) -> None:
+def _guardar(db: Path, xz: Path, ficha: Path, texto: str, huella: str) -> None:
     with _atomico(xz) as temporal:
         with db.open("rb") as entrada, lzma.open(temporal, "wb", preset=PRESET) as salida:
             shutil.copyfileobj(entrada, salida, _BLOQUE)
+        # Antes de ponerlo en su sitio se relee: tiene que descomprimirse en la misma base, byte a byte.
+        if _huella_xz(temporal) != huella:
+            raise CopiaDanada(f"{xz}: lo escrito no se descomprime en la base que se quería guardar")
     try:
         with _atomico(ficha) as temporal:
             temporal.write_text(texto, encoding="utf-8")
@@ -246,6 +249,17 @@ def _guardar(db: Path, xz: Path, ficha: Path, texto: str) -> None:
         # Un .xz sin su ficha no cuenta como copia y nadie lo borraría después.
         xz.unlink(missing_ok=True)
         raise
+
+
+def _huella_xz(xz: Path) -> str | None:
+    huella = hashlib.sha256()
+    try:
+        with lzma.open(xz) as entrada:
+            while bloque := entrada.read(_BLOQUE):
+                huella.update(bloque)
+    except (lzma.LZMAError, EOFError):
+        return None
+    return huella.hexdigest()
 
 
 def _copiar(db: Path, destino: Path) -> None:
