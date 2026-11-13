@@ -62,6 +62,8 @@ def test_unidades(tmp_path):
     temporizado = {"OnCalendar": "*-*-* 04:40:00", "Persistent": "true", "RandomizedDelaySec": "600"}
     assert temporizado.items() <= dict(temporizador["Timer"]).items()
     assert temporizador["Install"]["WantedBy"] == "timers.target"
+    # Con la sesión de usuario activa sin iniciar sesión (linger), la pasada que se saltó se hace al arrancar el PC.
+    assert temporizador["Unit"]["Description"].endswith("(04:40, o al arrancar si se la saltó)")
 
 
 def test_reinstalar_sustituye_la_copia_entera(tmp_path):

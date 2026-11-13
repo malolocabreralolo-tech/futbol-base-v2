@@ -22,7 +22,7 @@ Las otras carpetas que hay ahí (`correcciones-2026-09-09`, `mejoras-completas-2
 
 ## Cada cuánto y qué se conserva
 
-- Una pasada al día, a las 04:40 (con hasta 10 minutos de margen al azar). Si el PC estaba apagado a esa hora, la hace al iniciar sesión en el PC.
+- Una pasada al día, a las 04:40 (con hasta 10 minutos de margen al azar). Si el PC estaba apagado a esa hora, la hace al arrancar.
 - Versiones: la más nueva de cada día durante 30 días, la más nueva de cada semana durante 26 semanas, la más nueva de cada mes para siempre, y siempre la última. Si la base no ha cambiado, no se guarda otra vez.
 - Volcados en texto: uno por semana; se conservan los 12 más nuevos.
 - Cuarentena: la misma base rechazada se guarda una sola vez; se conservan las 10 más nuevas.
