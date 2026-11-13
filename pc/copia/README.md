@@ -57,7 +57,8 @@ Cada línea empieza por el momento de la versión, `AAAAMMDD-HHMMSS`, en hora UT
     futbol-base-copia restaurar v1 ~/recuperada --momento 20261113-044012
 
 Sin `--momento` saca la última. Deja en esa carpeta `futbolbase-20261113-044012.db` y escribe dónde la ha dejado.
-Antes de dártela comprueba que es idéntica a la que se guardó y que está sana; si no, lo dice y no deja nada.
+Antes de dártela comprueba que es idéntica a la que se guardó; si no lo es, lo dice y no deja nada.
+También comprueba que está sana; si es idéntica pero no pasa las comprobaciones de hoy (por ejemplo, porque se guardó cuando se vigilaban otras tablas), te la da igual y avisa de qué le pasa.
 Nunca escribe dentro de `actual/`.
 
 ## Cómo sacar un fichero original del repositorio

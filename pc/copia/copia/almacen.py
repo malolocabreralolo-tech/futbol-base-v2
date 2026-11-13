@@ -191,7 +191,10 @@ def restaurar(origen: str, destino: Path, momento: datetime | None = None) -> Pa
             raise CopiaDanada(f"{v.ruta}: la huella no coincide con la guardada")
         r = comprobar(temporal)
         if not r.ok:
-            raise CopiaDanada(f"{v.ruta}: " + "; ".join(r.motivos))
+            # Es byte a byte la que se guardó (quizá cuando se vigilaban otras tablas): se entrega, diciendo qué le pasa.
+            motivos = "; ".join(" ".join(m.splitlines()) for m in r.motivos)
+            print(f"aviso: {v.ruta} es idéntica a la que se guardó, pero hoy no pasa las comprobaciones: {motivos}",
+                  file=sys.stderr, flush=True)
     return final
 
 

@@ -4,6 +4,7 @@ import json
 import lzma
 import os
 import shutil
+import sqlite3
 import stat
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -197,13 +198,28 @@ def test_restaurar_detecta_copia_danada(raiz, tmp_path):
     for contenido in (lzma.compress(otra.read_bytes()), b"esto no es xz", buena[:-100]):
         v.ruta.write_bytes(contenido)
         with pytest.raises(CopiaDanada): restaurar("v1", tmp_path / "r")
-    # Una base dañada con su huella apuntada en el .json: la para comprobar().
-    datos = bytearray(db.read_bytes())
-    datos[4096:8192] = b"\xff" * 4096
-    v.ruta.write_bytes(lzma.compress(bytes(datos)))
-    _ficha(v.ruta).write_text(json.dumps({"sha256": hashlib.sha256(datos).hexdigest(), "bytes": len(datos), "recuentos": v.recuentos}))
-    with pytest.raises(CopiaDanada): restaurar("v1", tmp_path / "r")
     assert _ficheros(tmp_path / "r") == []
+
+
+def test_restaurar_entrega_la_identica_aunque_no_pase_las_comprobaciones(raiz, tmp_path, capsys):
+    _, v = _aceptar(tmp_path, "a.db", 40, AHORA)
+    # Guardada cuando se vigilaban otras tablas (le falta una de las de hoy), o dañada ya al guardarla.
+    sin_tabla = crear_base(tmp_path / "sin.db", wal=False)
+    con = sqlite3.connect(sin_tabla)
+    con.execute("DROP TABLE scorers")
+    con.commit()
+    con.close()
+    danada = bytearray(crear_base(tmp_path / "danada.db").read_bytes())
+    danada[4096:8192] = b"\xff" * 4096
+    for datos, motivos in ((sin_tabla.read_bytes(), ("falta la tabla scorers",)), (bytes(danada), ("integridad: ", "no se puede abrir: "))):
+        v.ruta.write_bytes(lzma.compress(datos))
+        _ficha(v.ruta).write_text(json.dumps({"sha256": hashlib.sha256(datos).hexdigest(), "bytes": len(datos), "recuentos": v.recuentos}))
+        capsys.readouterr()
+        # Es byte a byte la que se guardó: se entrega, con un aviso que dice por qué no pasa.
+        assert restaurar("v1", tmp_path / "r").read_bytes() == datos
+        err = capsys.readouterr().err
+        assert str(v.ruta) in err and any(m in err for m in motivos), err
+    assert _ficheros(tmp_path / "r") == ["futbolbase-20261113-050000.db"]
 
 
 def test_restaurar_no_escribe_en_actual(raiz, tmp_path):
