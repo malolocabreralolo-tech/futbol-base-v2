@@ -24,6 +24,7 @@ CONSERVAR_CUARENTENA = 10
 CONSERVAR_VOLCADOS = 12
 VENTANA_DIARIA = timedelta(days=30)
 VENTANA_SEMANAL = timedelta(weeks=26)
+MAX_PODA = 7
 _BLOQUE = 1 << 20
 _SELLO = "%Y%m%d-%H%M%S"
 _NOMBRE = re.compile(r"futbolbase-(\d{8}-\d{6})\.db\.xz")
@@ -130,6 +131,9 @@ def podar(origen: str, ahora: datetime) -> list[Path]:
     for v in todas:
         if v.momento in quedan:
             continue
+        # Con tope, de la más vieja a la más nueva: un reloj adelantado no se lleva casi todo de golpe.
+        if len(borradas) >= MAX_PODA:
+            break
         # Primero el .xz: si algo corta entre los dos, lo que queda suelto es el .json, que no ocupa nada.
         v.ruta.unlink(missing_ok=True)
         _ficha(v.ruta).unlink(missing_ok=True)

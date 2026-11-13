@@ -1,3 +1,4 @@
+import json
 import lzma
 import sqlite3
 from datetime import datetime, timedelta, timezone
@@ -53,6 +54,23 @@ def test_podar_borra_y_nunca_la_ultima(raiz, tmp_path):
     assert [v.momento.date().isoformat() for v in versiones("v1")] == ["2026-06-30", "2027-05-30", "2027-06-30"]
     assert not any(p.exists() or p.with_suffix("").with_suffix(".db.json").exists() for p in borradas)
     assert podar("v1", ahora) == []
+
+
+def test_podar_borra_como_mucho_siete(raiz):
+    # 74 diarias puestas a mano (podar no abre las bases) y un reloj que de repente va un año adelantado.
+    dias = [datetime(2026, 9, 1, 5, 0, tzinfo=timezone.utc) + timedelta(days=i) for i in range(74)]
+    for d in dias:
+        xz = raiz / f"versiones/v1/{d:%Y}/futbolbase-{d:%Y%m%d-%H%M%S}.db.xz"
+        xz.parent.mkdir(parents=True, exist_ok=True)
+        xz.write_bytes(b"xz")
+        xz.with_name(xz.name.removesuffix(".xz") + ".json").write_text(json.dumps({"sha256": "0" * 64, "recuentos": {}}))
+    ahora = dias[-1] + timedelta(days=365)
+    assert len(dias) - len(a_conservar(dias, ahora)) > 7       # sin el tope se llevaría casi todas
+    borradas = podar("v1", ahora)
+    assert [p.name for p in borradas] == [f"futbolbase-{d:%Y%m%d-%H%M%S}.db.xz" for d in dias[:7]]    # las más viejas
+    assert [v.momento for v in versiones("v1")] == dias[7:]
+    # Un atraso de verdad se pone al día en unas pocas pasadas.
+    assert [p.name for p in podar("v1", ahora)] == [f"futbolbase-{d:%Y%m%d-%H%M%S}.db.xz" for d in dias[7:14]]
 
 
 def test_volcar(raiz, tmp_path):
