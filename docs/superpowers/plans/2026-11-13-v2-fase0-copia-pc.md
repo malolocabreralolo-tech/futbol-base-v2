@@ -17,7 +17,7 @@
 - Solo biblioteca estándar de Python 3.12. Nada de `pip install`.
 - Las pruebas no usan red ni tocan `~/backups`: la raíz va por la variable `FB_COPIA_RAIZ` a un directorio temporal, y los «remotos» son repositorios git locales.
 - Raíz real: `~/backups/futbol-base/`, con permisos `0o700`.
-- Tablas que se vigilan: `matches`, `players`, `appearances`, `goals`, `standings`, `match_events`, `teams`, `groups`, `scorers`.
+- Tablas que se vigilan: `matches`, `players`, `appearances`, `goals`, `standings`, `match_events`, `teams`, `groups`, `scorers` y, desde la revisión final, `match_staff_all` (diez).
 - Margen de mengua: 2 % (`0.02`).
 - Retención de versiones: la más nueva de cada día durante 30 días, la más nueva de cada semana ISO durante 26 semanas, la más nueva de cada mes para siempre, y siempre la última.
 - Volcados en texto: uno por semana ISO; se conservan los 12 más nuevos.
