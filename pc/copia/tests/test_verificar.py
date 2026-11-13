@@ -1,0 +1,88 @@
+import os
+import sqlite3
+from pathlib import Path
+
+from conftest import crear_base
+from copia.verificar import TABLAS, comprobar
+
+
+def _modificar(db: Path, sql: str) -> None:
+    con = sqlite3.connect(db)
+    try:
+        con.executescript(sql)
+        con.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+    finally:
+        con.close()
+
+
+def test_base_sana(tmp_path):
+    r = comprobar(crear_base(tmp_path / "a.db"))
+    assert r.ok and r.motivos == ()
+    assert r.recuentos["matches"] == 40 and set(r.recuentos) == set(TABLAS)
+
+
+def test_no_deja_ficheros_al_lado(tmp_path):
+    comprobar(crear_base(tmp_path / "a.db"))
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["a.db"]
+
+
+def test_corrupta(tmp_path):          # bytes 4096-8192 a 0xff
+    db = crear_base(tmp_path / "a.db")
+    datos = bytearray(db.read_bytes())
+    datos[4096:8192] = b"\xff" * 4096
+    db.write_bytes(bytes(datos))
+    r = comprobar(db)
+    assert not r.ok and r.motivos[0].startswith(("integridad:", "no se puede abrir:"))
+
+
+def test_truncada(tmp_path):          # recortada a 1000 bytes
+    db = crear_base(tmp_path / "a.db")
+    os.truncate(db, 1000)
+    r = comprobar(db)
+    assert not r.ok and r.recuentos == {}
+    assert len(r.motivos) == 1 and r.motivos[0].startswith("no se puede abrir: ")
+
+
+def test_no_es_sqlite(tmp_path):      # un fichero de texto
+    db = tmp_path / "a.db"
+    db.write_text("esto no es una base de datos\n", encoding="utf-8")
+    r = comprobar(db)
+    assert not r.ok and r.recuentos == {}
+    assert len(r.motivos) == 1 and r.motivos[0].startswith("no se puede abrir: ")
+
+
+def test_falta_tabla(tmp_path):       # DROP TABLE scorers
+    db = crear_base(tmp_path / "a.db")
+    _modificar(db, "DROP TABLE scorers")
+    r = comprobar(db)
+    assert not r.ok and "falta la tabla scorers" in r.motivos
+    assert "scorers" not in r.recuentos and r.recuentos["matches"] == 40
+
+
+def test_tabla_vacia(tmp_path):       # DELETE FROM goals
+    db = crear_base(tmp_path / "a.db")
+    _modificar(db, "DELETE FROM goals")
+    r = comprobar(db)
+    assert not r.ok and "goals está vacía" in r.motivos
+    assert r.recuentos["goals"] == 0
+
+
+def test_clave_foranea(tmp_path):     # un partido con group_id=999999 metido con foreign_keys=OFF
+    db = crear_base(tmp_path / "a.db")
+    _modificar(db, "PRAGMA foreign_keys=OFF; INSERT INTO matches (group_id) VALUES (999999)")
+    r = comprobar(db)
+    assert not r.ok and "claves foráneas: 1 filas" in r.motivos
+
+
+def test_mengua(tmp_path):
+    r = comprobar(crear_base(tmp_path / "a.db", partidos=40), anterior={"matches": 100})
+    assert not r.ok and "mengua: matches 100 → 40" in r.motivos
+
+
+def test_mengua_en_el_margen(tmp_path):
+    assert comprobar(crear_base(tmp_path / "a.db", partidos=98), anterior={"matches": 100}).ok
+    assert not comprobar(crear_base(tmp_path / "b.db", partidos=97), anterior={"matches": 100}).ok
+
+
+def test_crecer_no_es_mengua(tmp_path):
+    assert comprobar(crear_base(tmp_path / "a.db"), anterior={"matches": 10}).ok
