@@ -28,6 +28,14 @@ def _copias(espejo: Path) -> list[str]:
     return git(espejo, "for-each-ref", "--format=%(refname)", "refs/copia").splitlines()
 
 
+def _reescribir(remoto: Path, partidos: int) -> str:
+    # main del remoto pasa a ser un historial huérfano nuevo, con una base de `partidos` partidos.
+    git(remoto, "checkout", "--quiet", "--orphan", "huerfana")
+    sha = commit_base(remoto, partidos)
+    git(remoto, "branch", "--quiet", "-M", "main")
+    return sha
+
+
 def test_cargar_origenes(tmp_path):
     f = tmp_path / "origenes.json"
     f.write_text(json.dumps({"v1": {"repo": "https://x/y.git", "rama": "main", "base": "futbolbase.db"}}))
@@ -55,25 +63,27 @@ def test_espejo_y_extraer(raiz, remoto, tmp_path, monkeypatch):
     # Lo que dejó un clon cortado a medias se limpia; lo de otro origen no se toca.
     (raiz / "repos/.v1.git.cortado.tmp/objects").mkdir(parents=True)
     (raiz / "repos/.v2.git.cortado.tmp").mkdir()
-    # Mientras git clona, el nombre definitivo no existe: si lo matan a medias no queda un espejo que parezca bueno.
-    durante_el_clon = []
+    # Mientras git descarga, el nombre definitivo no existe: si lo matan a medias no queda un espejo que parezca bueno.
+    durante_la_descarga = []
     run = subprocess.run
 
     def espia(args, **kwargs):
         r = run(args, **kwargs)
-        if "clone" in args:
-            durante_el_clon.append(espejo.exists())
+        if "fetch" in args:
+            durante_la_descarga.append(espejo.exists())
         return r
 
     with monkeypatch.context() as m:
         m.setattr(subprocess, "run", espia)
         sha = actualizar_espejo(o, AHORA)
-    assert durante_el_clon == [False]
+    assert durante_la_descarga == [False]
     assert sha == git(remoto, "rev-parse", "main")
     assert espejo.is_dir()
     assert _nombres(raiz / "repos") == [".v2.git.cortado.tmp", "v1.git"]
     assert git(espejo, "rev-parse", "--is-bare-repository") == "true"
-    assert git(espejo, "config", "remote.origin.mirror") == "true"
+    # Sin remoto configurado: nada en el espejo puede volcar las referencias del remoto sobre las suyas.
+    assert git(espejo, "remote") == ""
+    assert git(espejo, "symbolic-ref", "HEAD") == "refs/heads/main"
     assert git(espejo, "config", "gc.pruneExpire") == "never"
     assert extraer_base(o, sha, tmp_path / "x.db").read_bytes() == (remoto / "futbolbase.db").read_bytes()
     assert git(espejo, "rev-parse", "refs/copia/main/20261113") == sha
@@ -127,6 +137,53 @@ def test_reescritura_no_pierde_lo_anterior(raiz, remoto, tmp_path, monkeypatch):
     # Ni una limpieza a fondo del espejo lo pierde: las referencias lo mantienen alcanzable.
     git(espejo, "gc", "--quiet", "--prune=now")
     assert extraer_base(o, viejo, tmp_path / "v2.db").read_bytes() == base_vieja
+
+
+def test_el_remoto_no_puede_tocar_refs_copia(raiz, remoto):
+    o = _origen(remoto)
+    intruso = git(remoto, "commit-tree", "HEAD^{tree}", "-m", "intruso")
+    # Una referencia de copia que el remoto ya tenía antes de la primera pasada no entra en el espejo.
+    git(remoto, "update-ref", "refs/copia/main/20191231", intruso)
+    a = actualizar_espejo(o, AHORA)
+    espejo = raiz / "repos/v1.git"
+    assert _copias(espejo) == ["refs/copia/main/20261113"]
+    # Ni las que crea después, aunque se llamen como una nuestra.
+    git(remoto, "update-ref", "refs/copia/main/20261113", intruso)
+    git(remoto, "update-ref", "refs/copia/main/20200101", intruso)
+    assert actualizar_espejo(o, AHORA + timedelta(hours=1)) == a
+    assert git(espejo, "rev-parse", "refs/copia/main/20261113") == a
+    assert _copias(espejo) == ["refs/copia/main/20261113"]
+    assert not _existe(espejo, intruso)
+
+
+def test_dos_reescrituras_el_mismo_dia_no_pierden_nada(raiz, remoto):
+    o = _origen(remoto)
+    ayer = actualizar_espejo(o, AHORA - timedelta(days=1))
+    espejo = raiz / "repos/v1.git"
+    # Un avance normal el mismo día mueve la referencia del día y no crea ninguna más.
+    commit_base(remoto, 45)
+    actualizar_espejo(o, AHORA)
+    a = commit_base(remoto, 50)
+    assert actualizar_espejo(o, AHORA + timedelta(hours=1)) == a
+    assert _copias(espejo) == ["refs/copia/main/20261112", "refs/copia/main/20261113"]
+    # Dos reescrituras el mismo día: lo que señalaba la referencia del día se guarda aparte antes de moverla.
+    b = _reescribir(remoto, 30)
+    assert actualizar_espejo(o, AHORA + timedelta(hours=2)) == b
+    c = _reescribir(remoto, 20)
+    assert actualizar_espejo(o, AHORA + timedelta(hours=3)) == c
+    assert git(espejo, "rev-parse", "refs/copia/main/20261113") == c
+    assert git(espejo, "rev-parse", f"refs/copia/main/20261113-{a[:12]}") == a
+    assert git(espejo, "rev-parse", f"refs/copia/main/20261113-{b[:12]}") == b
+    assert git(espejo, "rev-parse", "refs/copia/main/20261112") == ayer       # la de un día pasado no se toca
+    assert sorted(_copias(espejo)) == sorted([
+        "refs/copia/main/20261112",
+        "refs/copia/main/20261113",
+        f"refs/copia/main/20261113-{a[:12]}",
+        f"refs/copia/main/20261113-{b[:12]}",
+    ])
+    # Siguen alcanzables: ni una limpieza a fondo del espejo los pierde.
+    git(espejo, "gc", "--quiet", "--prune=now")
+    assert _existe(espejo, a) and _existe(espejo, b)
 
 
 def test_remoto_caido(raiz, remoto, tmp_path):

@@ -17,6 +17,8 @@ from .rutas import raiz
 _NOMBRE = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]*")
 # Los repositorios son públicos: git no debe enviar credenciales guardadas ni quedarse esperando a que alguien teclee.
 _SIN_CREDENCIALES = {"GIT_TERMINAL_PROMPT": "0", "GIT_ASKPASS": ""}
+# Solo ramas y etiquetas, cada una a su sitio: refs/copia/* es nuestro y el remoto no puede escribir en él.
+_REFSPECS = ("+refs/heads/*:refs/heads/*", "+refs/tags/*:refs/tags/*")
 
 
 class FuenteError(Exception):
@@ -46,14 +48,12 @@ def cargar_origenes(ruta: Path) -> list[Origen]:
 def actualizar_espejo(origen: Origen, ahora: datetime) -> str:
     espejo = _espejo(origen)
     if espejo.is_dir():
-        # Sin podar, aunque la configuración de git lo pida: lo que el remoto borre o reescriba se queda aquí. La rama va
-        # pedida aparte para que el fetch falle si el remoto la ha perdido, en vez de dar por buena la que ya teníamos.
-        _git(espejo, "fetch", "--quiet", "--no-prune", "--", origen.repo, "+refs/*:refs/*", f"refs/heads/{origen.rama}")
+        _traer(espejo, origen)
     else:
-        _clonar(origen, espejo)
+        _crear(origen, espejo)
     sha = _punta(espejo, origen)
     # Una referencia por día mantiene alcanzable cada estado de la rama aunque el remoto reescriba su historial.
-    _git(espejo, "update-ref", f"refs/copia/{origen.rama}/{ahora.astimezone(timezone.utc):%Y%m%d}", sha)
+    _fijar_copia(espejo, f"refs/copia/{origen.rama}/{ahora.astimezone(timezone.utc):%Y%m%d}", sha)
     return sha
 
 
@@ -91,24 +91,48 @@ def _espejo(origen: Origen) -> Path:
     return raiz() / "repos" / f"{origen.nombre}.git"
 
 
-def _clonar(origen: Origen, espejo: Path) -> None:
+def _crear(origen: Origen, espejo: Path) -> None:
     repos = espejo.parent
     repos.mkdir(mode=0o700, exist_ok=True)
     prefijo = f".{espejo.name}."
-    # Un clon cortado a medias (el temporizador lo mata, un apagón) no llegó a borrar su temporal.
+    # Una descarga cortada a medias (el temporizador la mata, un apagón) no llegó a borrar su temporal.
     for resto in repos.iterdir():
         if resto.name.startswith(prefijo) and resto.name.endswith(".tmp"):
             shutil.rmtree(resto, ignore_errors=True)
     temporal = Path(tempfile.mkdtemp(prefix=prefijo, suffix=".tmp", dir=repos))
     try:
-        _git(repos, "clone", "--mirror", "--quiet", "--", origen.repo, str(temporal))
-        _punta(temporal, origen)
+        # Un repositorio vacío y el mismo fetch de cada día, no `clone --mirror`, que trae también el refs/copia/* del remoto.
+        _git(repos, "init", "--quiet", "--bare", f"--initial-branch={origen.rama}", str(temporal))
         # Que ningún gc borre nunca un objeto, aunque se quede sin referencia (otra rama reescrita en el remoto).
         _git(temporal, "config", "gc.pruneExpire", "never")
+        _traer(temporal, origen)
         os.rename(temporal, espejo)
     except BaseException:
         shutil.rmtree(temporal, ignore_errors=True)
         raise
+
+
+def _traer(repo: Path, origen: Origen) -> None:
+    # Sin podar, aunque la configuración de git lo pida: lo que el remoto borre o reescriba se queda aquí. La rama va
+    # pedida aparte para que el fetch falle si el remoto la ha perdido, en vez de dar por buena la que ya teníamos.
+    _git(repo, "fetch", "--quiet", "--no-prune", "--", origen.repo, *_REFSPECS, f"refs/heads/{origen.rama}")
+
+
+def _fijar_copia(repo: Path, ref: str, sha: str) -> None:
+    previo = _git(repo, "for-each-ref", "--format=%(objectname)", ref)
+    # Si el remoto reescribió la rama desde la pasada anterior del mismo día, lo que señalaba se guarda antes de moverla.
+    if previo and previo != sha and not _es_antepasado(repo, previo, sha):
+        _git(repo, "update-ref", f"{ref}-{previo[:12]}", previo)
+    _git(repo, "update-ref", ref, sha)
+
+
+def _es_antepasado(repo: Path, viejo: str, nuevo: str) -> bool:
+    args = ("merge-base", "--is-ancestor", viejo, nuevo)
+    r = _ejecutar(repo, *args)
+    # 1 es «no»; cualquier otro código distinto de 0 es un fallo de git.
+    if r.returncode not in (0, 1):
+        raise FuenteError(_fallo(args, r))
+    return r.returncode == 0
 
 
 def _punta(repo: Path, origen: Origen) -> str:
@@ -119,8 +143,15 @@ def _punta(repo: Path, origen: Origen) -> str:
 
 
 def _git(carpeta: Path, *args: str, salida: BinaryIO | None = None) -> str:
+    r = _ejecutar(carpeta, *args, salida=salida)
+    if r.returncode:
+        raise FuenteError(_fallo(args, r))
+    return "" if salida is not None else r.stdout.decode(errors="replace").strip()
+
+
+def _ejecutar(carpeta: Path, *args: str, salida: BinaryIO | None = None) -> subprocess.CompletedProcess:
     try:
-        r = subprocess.run(
+        return subprocess.run(
             ["git", "-c", "credential.helper=", "-C", str(carpeta), *args],
             env={**os.environ, **_SIN_CREDENCIALES},
             stdout=subprocess.PIPE if salida is None else salida,
@@ -128,7 +159,8 @@ def _git(carpeta: Path, *args: str, salida: BinaryIO | None = None) -> str:
         )
     except OSError as e:
         raise FuenteError(f"no se puede ejecutar git: {e}") from e
-    if r.returncode:
-        detalle = "; ".join(linea.strip() for linea in r.stderr.decode(errors="replace").splitlines() if linea.strip())
-        raise FuenteError(f"git {args[0]}: {detalle or f'código {r.returncode}'}")
-    return "" if salida is not None else r.stdout.decode(errors="replace").strip()
+
+
+def _fallo(args: tuple[str, ...], r: subprocess.CompletedProcess) -> str:
+    detalle = "; ".join(linea.strip() for linea in r.stderr.decode(errors="replace").splitlines() if linea.strip())
+    return f"git {args[0]}: {detalle or f'código {r.returncode}'}"
