@@ -1,0 +1,59 @@
+{
+  "season": "2026-2027",
+  "groups": [
+    {
+      "id": "CGC1",
+      "cat": "benjamin",
+      "name": "Eliminatoria previa",
+      "phase": "Copa Gran Canaria",
+      "island": "grancanaria",
+      "fullName": "BENJAMIN COPA GRAN CANARIA - GRUPO 1",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=55331982&CodGrupo=55331983"
+    },
+    {
+      "id": "PFV1",
+      "cat": "prebenjamin",
+      "name": "Grupo 1",
+      "phase": "Fuerteventura",
+      "island": "fuerteventura",
+      "fullName": "PREBENJAMIN FUERTEVENTURA - GRUPO 1",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54977026&CodGrupo=55200930"
+    },
+    {
+      "id": "PFV2",
+      "cat": "prebenjamin",
+      "name": "Grupo 2",
+      "phase": "Fuerteventura",
+      "island": "fuerteventura",
+      "fullName": "PREBENJAMIN FUERTEVENTURA - GRUPO 2",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54977026&CodGrupo=55200942"
+    },
+    {
+      "id": "PFV3",
+      "cat": "prebenjamin",
+      "name": "Grupo 3",
+      "phase": "Fuerteventura",
+      "island": "fuerteventura",
+      "fullName": "PREBENJAMIN FUERTEVENTURA - GRUPO 3",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54977026&CodGrupo=55200975"
+    },
+    {
+      "id": "PLZ1",
+      "cat": "prebenjamin",
+      "name": "Grupo 1",
+      "phase": "Lanzarote",
+      "island": "lanzarote",
+      "fullName": "PREBENJAMIN LANZAROTE - GRUPO 1",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54977161&CodGrupo=55167531"
+    },
+    {
+      "id": "PLZ2",
+      "cat": "prebenjamin",
+      "name": "Grupo 2",
+      "phase": "Lanzarote",
+      "island": "lanzarote",
+      "fullName": "PREBENJAMIN LANZAROTE - GRUPO 2",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54977161&CodGrupo=55167731"
+    }
+  ]
+}
