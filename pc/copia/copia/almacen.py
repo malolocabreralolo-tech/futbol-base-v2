@@ -7,6 +7,7 @@ import os
 import re
 import shutil
 import sqlite3
+import sys
 import tempfile
 from collections.abc import Iterator, Mapping, Sequence
 from contextlib import contextmanager
@@ -23,6 +24,7 @@ CONSERVAR_CUARENTENA = 10
 CONSERVAR_VOLCADOS = 12
 VENTANA_DIARIA = timedelta(days=30)
 VENTANA_SEMANAL = timedelta(weeks=26)
+MAX_PODA = 7
 _BLOQUE = 1 << 20
 _SELLO = "%Y%m%d-%H%M%S"
 _NOMBRE = re.compile(r"futbolbase-(\d{8}-\d{6})\.db\.xz")
@@ -46,11 +48,21 @@ def versiones(origen: str) -> list[Version]:
     lista = []
     for xz in (raiz() / "versiones" / origen).glob("*/futbolbase-*.db.xz"):
         momento = _momento(xz)
+        ficha = _ficha(xz)
         # Sin su .json la versión no llegó a guardarse entera.
-        if momento is None or not _ficha(xz).is_file():
+        if momento is None or not ficha.is_file():
             continue
-        datos = json.loads(_ficha(xz).read_text(encoding="utf-8"))
-        lista.append(Version(origen, momento, xz, datos["sha256"], datos["recuentos"]))
+        try:
+            datos = json.loads(ficha.read_text(encoding="utf-8"))
+            sha256, recuentos = datos["sha256"], datos["recuentos"]
+            if not isinstance(sha256, str) or not isinstance(recuentos, dict):
+                raise TypeError("sha256 o recuentos no son del tipo esperado")
+        except (ValueError, KeyError, TypeError, OSError) as e:
+            # Una ficha estropeada deja fuera solo su versión: las demás siguen sirviendo para restaurar y comparar.
+            texto = " ".join(str(e).splitlines())
+            print(f"aviso: {ficha} ilegible ({type(e).__name__}: {texto}); no se cuenta esa versión", file=sys.stderr, flush=True)
+            continue
+        lista.append(Version(origen, momento, xz, sha256, recuentos))
     return sorted(lista, key=lambda v: v.momento)
 
 
@@ -69,7 +81,7 @@ def aceptar(origen: str, db: Path, recuentos: Mapping[str, int], ahora: datetime
         if previa.momento == momento and previa.sha256 != huella:
             raise FileExistsError(f"ya hay otra versión de {origen} del {momento.isoformat()}: {previa.ruta}")
     ficha = {"sha256": huella, "bytes": db.stat().st_size, "recuentos": dict(recuentos)}
-    _guardar(db, xz, _ficha(xz), json.dumps(ficha, ensure_ascii=False, indent=2) + "\n")
+    _guardar(db, xz, _ficha(xz), json.dumps(ficha, ensure_ascii=False, indent=2) + "\n", huella)
     # La actual se toca la última: si algo falla antes, sigue siendo la buena anterior.
     _copiar(db, actual)
     return Version(origen, momento, xz, huella, dict(recuentos))
@@ -85,7 +97,7 @@ def apartar(origen: str, db: Path, motivos: Sequence[str], ahora: datetime) -> P
     momento = _en_utc(ahora)
     xz = carpeta / f"futbolbase-{momento:{_SELLO}}.db.xz"
     lineas = [huella, *(" ".join(str(m).splitlines()) for m in motivos)]
-    _guardar(db, xz, _motivo(xz), "\n".join(lineas) + "\n")
+    _guardar(db, xz, _motivo(xz), "\n".join(lineas) + "\n", huella)
     for vieja in _apartadas(carpeta)[:-CONSERVAR_CUARENTENA]:
         _motivo(vieja).unlink(missing_ok=True)
         vieja.unlink()
@@ -119,6 +131,9 @@ def podar(origen: str, ahora: datetime) -> list[Path]:
     for v in todas:
         if v.momento in quedan:
             continue
+        # Con tope, de la más vieja a la más nueva: un reloj adelantado no se lleva casi todo de golpe.
+        if len(borradas) >= MAX_PODA:
+            break
         # Primero el .xz: si algo corta entre los dos, lo que queda suelto es el .json, que no ocupa nada.
         v.ruta.unlink(missing_ok=True)
         _ficha(v.ruta).unlink(missing_ok=True)
@@ -176,7 +191,10 @@ def restaurar(origen: str, destino: Path, momento: datetime | None = None) -> Pa
             raise CopiaDanada(f"{v.ruta}: la huella no coincide con la guardada")
         r = comprobar(temporal)
         if not r.ok:
-            raise CopiaDanada(f"{v.ruta}: " + "; ".join(r.motivos))
+            # Es byte a byte la que se guardó (quizá cuando se vigilaban otras tablas): se entrega, diciendo qué le pasa.
+            motivos = "; ".join(" ".join(m.splitlines()) for m in r.motivos)
+            print(f"aviso: {v.ruta} es idéntica a la que se guardó, pero hoy no pasa las comprobaciones: {motivos}",
+                  file=sys.stderr, flush=True)
     return final
 
 
@@ -220,10 +238,13 @@ def _huella(ruta: Path) -> str:
         return hashlib.file_digest(f, "sha256").hexdigest()
 
 
-def _guardar(db: Path, xz: Path, ficha: Path, texto: str) -> None:
+def _guardar(db: Path, xz: Path, ficha: Path, texto: str, huella: str) -> None:
     with _atomico(xz) as temporal:
         with db.open("rb") as entrada, lzma.open(temporal, "wb", preset=PRESET) as salida:
             shutil.copyfileobj(entrada, salida, _BLOQUE)
+        # Antes de ponerlo en su sitio se relee: tiene que descomprimirse en la misma base, byte a byte.
+        if _huella_xz(temporal) != huella:
+            raise CopiaDanada(f"{xz}: lo escrito no se descomprime en la base que se quería guardar")
     try:
         with _atomico(ficha) as temporal:
             temporal.write_text(texto, encoding="utf-8")
@@ -231,6 +252,17 @@ def _guardar(db: Path, xz: Path, ficha: Path, texto: str) -> None:
         # Un .xz sin su ficha no cuenta como copia y nadie lo borraría después.
         xz.unlink(missing_ok=True)
         raise
+
+
+def _huella_xz(xz: Path) -> str | None:
+    huella = hashlib.sha256()
+    try:
+        with lzma.open(xz) as entrada:
+            while bloque := entrada.read(_BLOQUE):
+                huella.update(bloque)
+    except (lzma.LZMAError, EOFError):
+        return None
+    return huella.hexdigest()
 
 
 def _copiar(db: Path, destino: Path) -> None:

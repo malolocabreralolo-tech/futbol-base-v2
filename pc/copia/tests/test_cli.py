@@ -69,8 +69,8 @@ def test_cli_fallos_previstos(raiz, remoto, origenes, tmp_path, monkeypatch, cap
     # Una copia que no cuadra se dice y no deja nada.
     v.ruta.write_bytes(b"esto no es xz")
     assert main(["restaurar", "v1", str(tmp_path / "r")]) == 1 and list((tmp_path / "r").glob("*")) == []
-    # Un fichero de orígenes que falta o no se entiende.
-    for contenido in (None, "no es json"):
+    # Un fichero de orígenes que falta, no se entiende o no tiene ninguno.
+    for contenido in (None, "no es json", "{}"):
         f = tmp_path / "otros.json"
         if contenido is not None:
             f.write_text(contenido)
@@ -83,6 +83,22 @@ def test_cli_fallos_previstos(raiz, remoto, origenes, tmp_path, monkeypatch, cap
     with pytest.raises(SystemExit) as salida:
         main(["restaurar", "v1", str(tmp_path / "r"), "--momento", "ayer"])
     assert salida.value.code == 2
+
+
+def test_extraer_no_escribe_dentro_de_la_raiz(raiz, remoto, origenes, tmp_path, capsys):
+    assert main(["ejecutar"]) == 0
+    actual = raiz / "actual/v1/futbolbase.db"
+    antes = sorted(p for p in raiz.rglob("*"))
+    buena = actual.read_bytes()
+    (tmp_path / "enlace").symlink_to(raiz)
+    for destino in (actual, raiz / "actual/v1/x.json", raiz / "x.json", raiz / "versiones/../x.json", tmp_path / "enlace/x.json"):
+        capsys.readouterr()
+        assert main(["extraer", "v1", "scripts/x_raw.json", str(destino)]) == 1, destino
+        salida = capsys.readouterr()
+        assert salida.out == "" and salida.err.startswith("error: ") and str(raiz) in salida.err, destino
+    assert actual.read_bytes() == buena and sorted(p for p in raiz.rglob("*")) == antes
+    # Fuera de la raíz, sí.
+    assert main(["extraer", "v1", "scripts/x_raw.json", str(tmp_path / "x.json")]) == 0
 
 
 def test_cli_cuarentena_y_cerrojo(raiz, remoto, origenes, capsys):
@@ -99,6 +115,29 @@ def test_cli_cuarentena_y_cerrojo(raiz, remoto, origenes, capsys):
         assert main(["ejecutar"]) == 2
     salida = capsys.readouterr()
     assert salida.out == "" and "cerrojo" in salida.err
+
+
+def test_estado_sabe_que_origenes_deberia_haber(raiz, remoto, origenes, capsys):
+    assert main(["ejecutar"]) == 0
+    assert main(["estado"]) == 0
+    capsys.readouterr()
+    # Se añade v2 a origenes.json: hasta su primera copia, estado avisa.
+    datos = json.loads(origenes.read_text())
+    origenes.write_text(json.dumps({**datos, "v2": datos["v1"]}))
+    assert main(["estado"]) == 1
+    v1, v2, _ = capsys.readouterr().out.splitlines()
+    assert v1.startswith("v1: comprobada ") and v2.startswith("v2: sin copias") and "AVISO" in v2
+    # Se quita v1: se sigue viendo lo suyo, marcado, y lo que cuenta es v2.
+    origenes.write_text(json.dumps({"v2": datos["v1"]}))
+    assert main(["estado"]) == 1
+    assert "v1 (ya no está en origenes.json): " in capsys.readouterr().out
+    assert main(["ejecutar"]) == 0 and main(["estado"]) == 0
+    # Si origenes.json no se puede leer, estado dice igual lo que hay.
+    capsys.readouterr()
+    origenes.write_text("no es json")
+    assert main(["estado"]) == 0
+    v1, v2, _ = capsys.readouterr().out.splitlines()
+    assert v1.startswith("v1: comprobada ") and v2.startswith("v2: comprobada ")
 
 
 def test_origenes_junto_al_paquete(raiz, monkeypatch, capsys):

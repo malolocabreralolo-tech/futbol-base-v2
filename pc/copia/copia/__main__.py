@@ -10,6 +10,7 @@ from pathlib import Path
 from . import almacen
 from .ejecutar import ejecutar, estado
 from .fuentes import FuenteError, Origen, cargar_origenes, extraer_fichero
+from .rutas import raiz
 
 _SELLO = "%Y%m%d-%H%M%S"
 
@@ -36,9 +37,24 @@ def _ejecutar(args: argparse.Namespace, ahora: datetime) -> int:
 
 
 def _estado(args: argparse.Namespace, ahora: datetime) -> int:
-    texto, codigo = estado(ahora)
+    try:
+        esperados = [o.nombre for o in cargar_origenes(_ruta_origenes())]
+    except FuenteError:
+        # Sin un origenes.json legible se dice igual lo que hay guardado, aunque no se sepa qué falta.
+        esperados = None
+    texto, codigo = estado(ahora, esperados)
     print(texto)
+    if instalado := _instalado():
+        print(f"instalado: {instalado}")
     return codigo
+
+
+def _instalado() -> str | None:
+    # instalar.sh deja junto al paquete de qué commit es la copia instalada; en el repositorio no hay.
+    try:
+        return (Path(__file__).parent.parent / "INSTALADO").read_text(encoding="utf-8").strip() or None
+    except (OSError, ValueError):
+        return None
 
 
 def _versiones(args: argparse.Namespace, ahora: datetime) -> int:
@@ -64,6 +80,10 @@ def _restaurar(args: argparse.Namespace, ahora: datetime) -> int:
 
 def _extraer(args: argparse.Namespace, ahora: datetime) -> int:
     origen = _origen(_origenes(), args.origen)
+    copias = raiz()
+    # La carpeta de las copias solo la escribe la pasada: un fichero extraído podría pisar la actual o una versión.
+    if Path(args.destino).resolve().is_relative_to(copias.resolve()):
+        raise _Fallo(f"no se extrae dentro de {copias}: elige un destino fuera de esa carpeta")
     try:
         final = extraer_fichero(origen, args.ruta, args.destino)
     except (FuenteError, OSError) as e:
@@ -108,7 +128,7 @@ def _analizador() -> argparse.ArgumentParser:
 
     p = ordenes.add_parser("ejecutar", help="una pasada por todos los orígenes")
     p.add_argument("--aceptar-mengua", action="append", default=[], metavar="ORIGEN",
-                   help="acepta esta vez la base de ORIGEN aunque haya menguado (se puede repetir)")
+                   help="acepta la base de ORIGEN que se apartó, o una prácticamente igual (se puede repetir)")
     p.set_defaults(orden=_ejecutar)
 
     p = ordenes.add_parser("estado", help="cómo fue la última pasada de cada origen")

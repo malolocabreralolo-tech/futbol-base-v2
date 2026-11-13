@@ -31,15 +31,35 @@ trap 'rm -rf -- "$nueva"' EXIT
 mkdir -- "$nueva/copia"
 cp -- "$aqui"/copia/*.py "$nueva/copia/"
 cp -- "$aqui/origenes.json" "$nueva/"
+# De qué commit sale la copia (+cambios si pc/copia tiene algo sin commit) y cuándo se instaló: lo dice `estado`.
+if commit=$(git -C "$aqui" rev-parse HEAD 2> /dev/null); then
+    if [[ -n $(git --no-optional-locks -C "$aqui" status --porcelain -- . 2> /dev/null) ]]; then
+        commit+="+cambios"
+    fi
+else
+    commit="desconocido (no es un repositorio git)"
+fi
+printf 'commit %s, %s\n' "$commit" "$(date -Iseconds)" > "$nueva/INSTALADO"
 chmod 755 -- "$nueva"
 if ! PYTHONPATH=$nueva PYTHONDONTWRITEBYTECODE=1 python3 -P -s -m copia --help > /dev/null; then
     echo "instalar.sh: la copia nueva no arranca con $(command -v python3 || echo python3); no se ha cambiado nada" >&2
     exit 1
 fi
-# Entera: que no quede ningún módulo ni __pycache__ de la versión anterior.
-rm -rf -- "$destino"
-mv -T -- "$nueva" "$destino"
+# Entera (que no quede ningún módulo ni __pycache__ de la versión anterior) y sin hueco: la vieja se aparta con un
+# cambio de nombre, la nueva ocupa su sitio con otro y solo después se borra la vieja.
+vieja=$compartida/.futbol-base-copia.vieja
+if [[ -e $destino ]]; then
+    mv -T -- "$destino" "$vieja"
+fi
+if ! mv -T -- "$nueva" "$destino"; then
+    if [[ -e $vieja ]]; then
+        mv -T -- "$vieja" "$destino"
+    fi
+    echo "instalar.sh: no se pudo poner la copia nueva en $destino; se deja la que había" >&2
+    exit 1
+fi
 trap - EXIT
+rm -rf -- "$vieja"
 
 {
     echo '#!/bin/bash'

@@ -4,6 +4,7 @@ import json
 import lzma
 import os
 import shutil
+import sqlite3
 import stat
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -111,6 +112,31 @@ def test_versiones_ordenadas_y_por_origen(raiz, tmp_path):
     assert len(versiones("v1")) == 3
 
 
+def test_una_ficha_danada_deja_fuera_solo_su_version(raiz, tmp_path, capsys):
+    hechas = [_aceptar(tmp_path, f"{i}.db", 40 + i, AHORA + timedelta(days=i))[1] for i in range(3)]
+    vieja = _ficha(hechas[0].ruta)
+    # Vacía, sin ser JSON, sin ser un objeto, sin una clave o con una de otro tipo.
+    for contenido in ("", "no es json", "[]", '{"sha256": "x"}', '{"sha256": 1, "recuentos": {}}', '{"sha256": "x", "recuentos": []}'):
+        vieja.write_text(contenido, encoding="utf-8")
+        capsys.readouterr()
+        assert versiones("v1") == hechas[1:], contenido
+        assert str(vieja) in capsys.readouterr().err, contenido
+    # La que no se puede leer, tampoco.
+    vieja.chmod(0)
+    try:
+        if not os.access(vieja, os.R_OK):      # como root se lee igual
+            assert versiones("v1") == hechas[1:]
+            assert str(vieja) in capsys.readouterr().err
+    finally:
+        vieja.chmod(0o600)
+    vieja.write_text("", encoding="utf-8")
+    assert restaurar("v1", tmp_path / "r").read_bytes() == (tmp_path / "2.db").read_bytes()
+    assert restaurar("v1", tmp_path / "r", hechas[1].momento).read_bytes() == (tmp_path / "1.db").read_bytes()
+    assert aceptar("v1", crear_base(tmp_path / "3.db", partidos=43), comprobar(tmp_path / "3.db").recuentos, AHORA + timedelta(days=3))
+    assert len(versiones("v1")) == 3
+    assert hechas[0].ruta.exists() and vieja.exists()       # lo que no se entiende no se borra
+
+
 def test_apartar(raiz, tmp_path):
     db = crear_base(tmp_path / "a.db")
     p = apartar("v1", db, ["mengua: matches 100 → 40"], AHORA)
@@ -172,13 +198,28 @@ def test_restaurar_detecta_copia_danada(raiz, tmp_path):
     for contenido in (lzma.compress(otra.read_bytes()), b"esto no es xz", buena[:-100]):
         v.ruta.write_bytes(contenido)
         with pytest.raises(CopiaDanada): restaurar("v1", tmp_path / "r")
-    # Una base dañada con su huella apuntada en el .json: la para comprobar().
-    datos = bytearray(db.read_bytes())
-    datos[4096:8192] = b"\xff" * 4096
-    v.ruta.write_bytes(lzma.compress(bytes(datos)))
-    _ficha(v.ruta).write_text(json.dumps({"sha256": hashlib.sha256(datos).hexdigest(), "bytes": len(datos), "recuentos": v.recuentos}))
-    with pytest.raises(CopiaDanada): restaurar("v1", tmp_path / "r")
     assert _ficheros(tmp_path / "r") == []
+
+
+def test_restaurar_entrega_la_identica_aunque_no_pase_las_comprobaciones(raiz, tmp_path, capsys):
+    _, v = _aceptar(tmp_path, "a.db", 40, AHORA)
+    # Guardada cuando se vigilaban otras tablas (le falta una de las de hoy), o dañada ya al guardarla.
+    sin_tabla = crear_base(tmp_path / "sin.db", wal=False)
+    con = sqlite3.connect(sin_tabla)
+    con.execute("DROP TABLE scorers")
+    con.commit()
+    con.close()
+    danada = bytearray(crear_base(tmp_path / "danada.db").read_bytes())
+    danada[4096:8192] = b"\xff" * 4096
+    for datos, motivos in ((sin_tabla.read_bytes(), ("falta la tabla scorers",)), (bytes(danada), ("integridad: ", "no se puede abrir: "))):
+        v.ruta.write_bytes(lzma.compress(datos))
+        _ficha(v.ruta).write_text(json.dumps({"sha256": hashlib.sha256(datos).hexdigest(), "bytes": len(datos), "recuentos": v.recuentos}))
+        capsys.readouterr()
+        # Es byte a byte la que se guardó: se entrega, con un aviso que dice por qué no pasa.
+        assert restaurar("v1", tmp_path / "r").read_bytes() == datos
+        err = capsys.readouterr().err
+        assert str(v.ruta) in err and any(m in err for m in motivos), err
+    assert _ficheros(tmp_path / "r") == ["futbolbase-20261113-050000.db"]
 
 
 def test_restaurar_no_escribe_en_actual(raiz, tmp_path):
@@ -189,6 +230,26 @@ def test_restaurar_no_escribe_en_actual(raiz, tmp_path):
         with pytest.raises(ValueError): restaurar("v1", destino)
     assert _ficheros(raiz / "actual") == ["v1/futbolbase.db"]
     assert (raiz / "actual/v1/futbolbase.db").read_bytes() == db.read_bytes()
+
+
+def test_lo_guardado_se_relee_antes_de_darlo_por_bueno(raiz, tmp_path, monkeypatch):
+    db = crear_base(tmp_path / "a.db"); r = comprobar(db)
+
+    def otra_cosa(entrada, salida, *args):
+        salida.write(b"otra cosa")
+
+    def a_medias(entrada, salida, *args):
+        salida.write(entrada.read(1000))
+
+    # La compresión escribe un .xz bueno, pero de otra cosa o de solo una parte de la base.
+    for falsa in (otra_cosa, a_medias):
+        with monkeypatch.context() as m:
+            m.setattr(shutil, "copyfileobj", falsa)
+            with pytest.raises(CopiaDanada): aceptar("v1", db, r.recuentos, AHORA)
+            with pytest.raises(CopiaDanada): apartar("v1", db, ["x"], AHORA)
+        assert _ficheros(raiz) == [], falsa.__name__        # ni la versión, ni la apartada, ni la actual, ni temporales
+    assert aceptar("v1", db, r.recuentos, AHORA) is not None
+    assert lzma.open(versiones("v1")[0].ruta).read() == db.read_bytes()
 
 
 def test_escritura_interrumpida_no_deja_version(raiz, tmp_path, monkeypatch):

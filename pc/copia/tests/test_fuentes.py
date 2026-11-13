@@ -6,7 +6,9 @@ from pathlib import Path
 import pytest
 
 from conftest import commit_base, git
-from copia.fuentes import FuenteError, Origen, actualizar_espejo, cargar_origenes, extraer_base, extraer_fichero
+from copia.fuentes import (
+    FuenteError, Origen, actualizar_espejo, avisos_del_espejo, cargar_origenes, extraer_base, extraer_fichero,
+)
 
 AHORA = datetime(2026, 11, 13, 5, 0, tzinfo=timezone.utc)
 ORIGENES = Path(__file__).resolve().parent.parent / "origenes.json"
@@ -55,6 +57,9 @@ def test_cargar_origenes(tmp_path):
     ):
         f.write_text(texto)
         with pytest.raises(FuenteError): cargar_origenes(f)
+    # Sin ningún origen no habría nada que copiar y la pasada parecería buena.
+    f.write_text("{}")
+    with pytest.raises(FuenteError, match="no hay ningún origen"): cargar_origenes(f)
 
 
 def test_espejo_y_extraer(raiz, remoto, tmp_path, monkeypatch):
@@ -76,7 +81,7 @@ def test_espejo_y_extraer(raiz, remoto, tmp_path, monkeypatch):
     with monkeypatch.context() as m:
         m.setattr(subprocess, "run", espia)
         sha = actualizar_espejo(o, AHORA)
-    assert durante_la_descarga == [False]
+    assert durante_la_descarga == [False, False]        # la rama de la base y luego todo lo demás
     assert sha == git(remoto, "rev-parse", "main")
     assert espejo.is_dir()
     assert _nombres(raiz / "repos") == [".v2.git.cortado.tmp", "v1.git"]
@@ -184,6 +189,84 @@ def test_dos_reescrituras_el_mismo_dia_no_pierden_nada(raiz, remoto):
     # Siguen alcanzables: ni una limpieza a fondo del espejo los pierde.
     git(espejo, "gc", "--quiet", "--prune=now")
     assert _existe(espejo, a) and _existe(espejo, b)
+
+
+def _espiar_git(monkeypatch, llamadas: list[tuple[list[str], dict[str, str]]]) -> None:
+    # Apunta en `llamadas` cada llamada a git (sus argumentos y su entorno) y la deja seguir.
+    run = subprocess.run
+
+    def espia(args, **kwargs):
+        llamadas.append((list(args), dict(kwargs.get("env") or {})))
+        return run(args, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", espia)
+
+
+def _ajustes(args: list[str], orden: str) -> list[str]:
+    # Los `-c clave=valor` que van antes de la orden de git.
+    previos = args[: args.index(orden)]
+    return [previos[i + 1] for i in range(len(previos) - 1) if previos[i] == "-c"]
+
+
+def test_fetch_sin_gc_en_segundo_plano_y_con_limite_de_velocidad(raiz, remoto, monkeypatch):
+    o = _origen(remoto)
+    llamadas = []
+    with monkeypatch.context() as m:
+        _espiar_git(m, llamadas)
+        actualizar_espejo(o, AHORA)                             # lo crea
+    commit_base(remoto, 41)
+    with monkeypatch.context() as m:
+        _espiar_git(m, llamadas)
+        actualizar_espejo(o, AHORA + timedelta(days=1))         # lo actualiza
+    fetches = [args for args, _ in llamadas if "fetch" in args]
+    assert len(fetches) == 4
+    for args in fetches:
+        assert {"gc.autoDetach=false", "http.lowSpeedLimit=1000", "http.lowSpeedTime=120"} <= set(_ajustes(args, "fetch")), args
+
+
+def test_git_nunca_usa_credenciales(raiz, remoto, tmp_path, monkeypatch):
+    o = _origen(remoto)
+    # Aunque quien lance la orden tenga un programa que da la contraseña o deje a git preguntarla.
+    monkeypatch.setenv("GIT_ASKPASS", "/bin/echo")
+    monkeypatch.setenv("GIT_TERMINAL_PROMPT", "1")
+    llamadas = []
+    with monkeypatch.context() as m:
+        _espiar_git(m, llamadas)
+        primero = actualizar_espejo(o, AHORA)
+    commit_base(remoto, 41)
+    with monkeypatch.context() as m:
+        _espiar_git(m, llamadas)
+        actualizar_espejo(o, AHORA + timedelta(days=1))
+        extraer_base(o, primero, tmp_path / "x.db")
+        extraer_fichero(o, "scripts/x_raw.json", tmp_path / "x.json")
+    ordenes = {next(a for a in args[1:] if not a.startswith("-") and "=" not in a) for args, _ in llamadas}
+    assert {"init", "config", "fetch", "rev-parse", "for-each-ref", "update-ref", "cat-file"} <= ordenes
+    for args, env in llamadas:
+        assert args[:3] == ["git", "-c", "credential.helper="], args
+        assert env["GIT_TERMINAL_PROMPT"] == "0" and env["GIT_ASKPASS"] == "", args
+
+
+def test_ramas_que_chocan_no_paran_la_base(raiz, remoto, tmp_path):
+    o = _origen(remoto)
+    git(remoto, "branch", "claude/arreglo")
+    viejo = actualizar_espejo(o, AHORA)
+    assert avisos_del_espejo(o) == []
+    # El remoto borra claude/arreglo y crea claude: en el espejo, que no poda, los dos nombres chocan.
+    git(remoto, "branch", "--quiet", "-D", "claude/arreglo")
+    git(remoto, "branch", "claude")
+    nuevo = commit_base(remoto, 50)
+    assert actualizar_espejo(o, AHORA + timedelta(days=1)) == nuevo
+    assert extraer_base(o, nuevo, tmp_path / "n.db").read_bytes() == (remoto / "futbolbase.db").read_bytes()
+    aviso, = avisos_del_espejo(o)
+    assert aviso.startswith("git fetch: ") and "refs/heads/claude" in aviso and "\n" not in aviso
+    espejo = raiz / "repos/v1.git"
+    assert git(espejo, "rev-parse", "refs/copia/main/20261114") == nuevo
+    assert git(espejo, "rev-parse", "refs/heads/claude/arreglo") == viejo        # lo que había no se pierde
+    # Cuando deja de chocar, el aviso desaparece y la otra rama llega.
+    git(remoto, "branch", "--quiet", "-m", "claude", "otra")
+    assert actualizar_espejo(o, AHORA + timedelta(days=2)) == nuevo
+    assert avisos_del_espejo(o) == []
+    assert git(espejo, "rev-parse", "refs/heads/otra") == viejo
 
 
 def test_remoto_caido(raiz, remoto, tmp_path):

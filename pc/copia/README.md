@@ -22,7 +22,7 @@ Las otras carpetas que hay ahí (`correcciones-2026-09-09`, `mejoras-completas-2
 
 ## Cada cuánto y qué se conserva
 
-- Una pasada al día, a las 04:40 (con hasta 10 minutos de margen al azar). Si el PC estaba apagado a esa hora, la hace al encenderlo.
+- Una pasada al día, a las 04:40 (con hasta 10 minutos de margen al azar). Si el PC estaba apagado a esa hora, la hace al arrancar.
 - Versiones: la más nueva de cada día durante 30 días, la más nueva de cada semana durante 26 semanas, la más nueva de cada mes para siempre, y siempre la última. Si la base no ha cambiado, no se guarda otra vez.
 - Volcados en texto: uno por semana; se conservan los 12 más nuevos.
 - Cuarentena: la misma base rechazada se guarda una sola vez; se conservan las 10 más nuevas.
@@ -32,12 +32,16 @@ Las otras carpetas que hay ahí (`correcciones-2026-09-09`, `mejoras-completas-2
 
     futbol-base-copia estado
 
-Escribe una línea por web y lo que ocupa la carpeta. Va bien si pone `(aceptada)` o `(sin cambios)` y no sale la palabra `AVISO`. Por ejemplo:
+Escribe una línea por web, lo que ocupa la carpeta y de qué commit es la copia instalada. Va bien si pone `(aceptada)` o `(sin cambios)` y no sale la palabra `AVISO`. Por ejemplo:
 
     v1: comprobada 2026-11-14T04:43:05+00:00 (aceptada) · última buena 2026-11-14T04:43:05+00:00 (matches 37850, players 17402)
     ocupa 352,8 MB en /home/manolo/backups/futbol-base
+    instalado: commit 0123abcd…, 2026-11-13T15:02:11+01:00
 
-Sale `AVISO` si la última pasada falló, si la base fue a cuarentena o si lleva 3 días o más sin comprobarse.
+La última línea dice de qué commit del repositorio es la copia instalada y cuándo se instaló (con `+cambios` si `pc/copia` tenía cambios sin commit).
+
+Sale `AVISO` si la última pasada falló, si la base fue a cuarentena, si lleva 3 días o más sin comprobarse o si una web de `origenes.json` no tiene todavía ninguna copia (`sin copias`).
+Si quitas una web de `origenes.json`, sus copias se quedan y `estado` la sigue enseñando con `(ya no está en origenes.json)`, sin avisar por ella.
 `(error)` quiere decir que la pasada no pudo terminar (por ejemplo, sin internet): se vuelve a intentar al día siguiente.
 Para ver cuándo fue la última pasada automática y cuándo toca la próxima:
 
@@ -57,8 +61,18 @@ Cada línea empieza por el momento de la versión, `AAAAMMDD-HHMMSS`, en hora UT
     futbol-base-copia restaurar v1 ~/recuperada --momento 20261113-044012
 
 Sin `--momento` saca la última. Deja en esa carpeta `futbolbase-20261113-044012.db` y escribe dónde la ha dejado.
-Antes de dártela comprueba que es idéntica a la que se guardó y que está sana; si no, lo dice y no deja nada.
+Antes de dártela comprueba que es idéntica a la que se guardó; si no lo es, lo dice y no deja nada.
+También comprueba que está sana; si es idéntica pero no pasa las comprobaciones de hoy (por ejemplo, porque se guardó cuando se vigilaban otras tablas), te la da igual y avisa de qué le pasa.
 Nunca escribe dentro de `actual/`.
+
+## Cómo recuperar la base del volcado en texto
+
+Si el fichero de una base no sirve, los volcados de `volcados/v1/` la tienen entera en texto, uno por semana. Este PC no tiene la orden `sqlite3`; se carga con Python.
+En una carpeta donde no haya ya un `recuperada.db` (cambia el nombre del volcado por el de la semana que quieras):
+
+    xz -dc ~/backups/futbol-base/volcados/v1/futbolbase-2026-S46.sql.xz | python3 -c "import sqlite3,sys; sqlite3.connect('recuperada.db').executescript(sys.stdin.read())"
+
+Deja allí `recuperada.db`, con todas las tablas y filas de esa semana.
 
 ## Cómo sacar un fichero original del repositorio
 
@@ -71,6 +85,16 @@ Cada pasada deja marcado cómo estaba el repositorio ese día (fecha en UTC). Pa
 
 Los días que hay: `git --git-dir ~/backups/futbol-base/repos/v1.git for-each-ref refs/copia`.
 
+Solo la rama `main` tiene esa marca de cada día. Las otras ramas también se copian, y lo que se reescriba en ellas no se pierde (el espejo no borra nada), pero sus estados anteriores solo se encuentran buscándolos con `git --git-dir ~/backups/futbol-base/repos/v1.git fsck --unreachable`.
+
+## Si se pierde el repositorio de GitHub
+
+`repos/v1.git` tiene todas sus ramas y etiquetas. Para devolverlas a GitHub (por ejemplo, a un repositorio nuevo y vacío), con `URL` la dirección de ese repositorio:
+
+    git --git-dir ~/backups/futbol-base/repos/v1.git push URL 'refs/heads/*:refs/heads/*' 'refs/tags/*:refs/tags/*'
+
+No ejecutes nunca `git remote prune` ni `git fetch --prune` en el espejo, aunque git lo sugiera en un mensaje (puede salir en los avisos de `espejo incompleto`): borrarían las ramas que GitHub ya no tiene, que es justo lo que el espejo guarda.
+
 ## Si algo va a cuarentena
 
 Quiere decir que la base de GitHub no pasó las comprobaciones: está dañada, tiene filas que apuntan a otras que no existen, le falta una tabla o tiene alguna vacía, o una de las tablas principales (partidos, jugadores, alineaciones, goles, clasificaciones…) ha perdido más del 2 % de sus filas desde la última buena.
@@ -78,11 +102,15 @@ No se ha perdido nada: la buena anterior sigue en `actual/` y en `versiones/`. `
 
 Qué hacer:
 
-- Si el cambio era querido (por ejemplo, se borraron a propósito partidos repetidos), acéptalo una vez:
+- Si el cambio era querido (por ejemplo, se borraron a propósito partidos repetidos), acéptalo:
 
       futbol-base-copia ejecutar --aceptar-mengua v1
 
-  Desde ese momento esa base es la buena, y las pérdidas se miden contra ella. Esto solo perdona que haya menos filas: una base dañada sigue yendo a cuarentena.
+  Acepta la base que se apartó, o una prácticamente igual: la que hay en GitHub en ese momento se compara con la apartada (con el mismo margen del 2 %), no con la última buena; solo lo que la apartada no pudo contar (porque no se abría o le faltaba esa tabla) se compara con la última buena. Si desde que la viste ha perdido más filas, no la acepta: va otra vez a cuarentena con su motivo, y decides viendo esa.
+  Perdona también que falte una tabla o que esté vacía, pero solo si ya le pasaba a la base apartada. Una base dañada o con filas que apuntan a otras que no existen va siempre a cuarentena.
+  Lo que se perdona así sigue perdonado en las pasadas siguientes mientras siga pasando: la línea de la pasada y `estado` lo dicen con `con excepciones: falta la tabla scorers`. Si la tabla vuelve, y con filas, deja de estar perdonado, y si después vuelve a faltar, es cuarentena otra vez.
+  La línea de la pasada dice lo que se ha perdonado comparando con la última buena, por ejemplo `aceptado a mano: matches 40 → 38`. Desde ese momento esa base es la buena, y las pérdidas se miden contra ella.
+  Si la pasas sin que haya nada apartado (por adelantado, sabiendo que viene una base con menos filas), acepta la que llegue sin medir cuánto ha menguado; lo demás lo comprueba igual.
 - Si no era querido, la base de la web está estropeada. La buena está en `~/backups/futbol-base/actual/v1/futbolbase.db` (o en una versión anterior, con `restaurar`), y con ella se arregla la de la web.
 
 ## Reinstalar después de cambiar el código
@@ -94,7 +122,7 @@ Después de cambiar algo aquí (también `origenes.json`, por ejemplo para añad
     python3 -m pytest tests -q
     bash instalar.sh
 
-`instalar.sh` sustituye entera la copia instalada y vuelve a escribir la orden `~/.local/bin/futbol-base-copia` y el temporizador (`~/.config/systemd/user/futbol-base-copia.service` y `.timer`).
+`instalar.sh` sustituye entera la copia instalada (aparta la vieja, pone la nueva en su sitio y solo entonces borra la vieja) y vuelve a escribir la orden `~/.local/bin/futbol-base-copia` y el temporizador (`~/.config/systemd/user/futbol-base-copia.service` y `.timer`).
 No toca las copias ni hace ninguna. Al acabar dice qué ha instalado y cómo comprobarlo.
 Para dejar de hacer la copia diaria: `systemctl --user disable --now futbol-base-copia.timer`.
 
