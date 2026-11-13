@@ -7,6 +7,7 @@ import os
 import re
 import shutil
 import sqlite3
+import sys
 import tempfile
 from collections.abc import Iterator, Mapping, Sequence
 from contextlib import contextmanager
@@ -46,11 +47,21 @@ def versiones(origen: str) -> list[Version]:
     lista = []
     for xz in (raiz() / "versiones" / origen).glob("*/futbolbase-*.db.xz"):
         momento = _momento(xz)
+        ficha = _ficha(xz)
         # Sin su .json la versión no llegó a guardarse entera.
-        if momento is None or not _ficha(xz).is_file():
+        if momento is None or not ficha.is_file():
             continue
-        datos = json.loads(_ficha(xz).read_text(encoding="utf-8"))
-        lista.append(Version(origen, momento, xz, datos["sha256"], datos["recuentos"]))
+        try:
+            datos = json.loads(ficha.read_text(encoding="utf-8"))
+            sha256, recuentos = datos["sha256"], datos["recuentos"]
+            if not isinstance(sha256, str) or not isinstance(recuentos, dict):
+                raise TypeError("sha256 o recuentos no son del tipo esperado")
+        except (ValueError, KeyError, TypeError, OSError) as e:
+            # Una ficha estropeada deja fuera solo su versión: las demás siguen sirviendo para restaurar y comparar.
+            texto = " ".join(str(e).splitlines())
+            print(f"aviso: {ficha} ilegible ({type(e).__name__}: {texto}); no se cuenta esa versión", file=sys.stderr, flush=True)
+            continue
+        lista.append(Version(origen, momento, xz, sha256, recuentos))
     return sorted(lista, key=lambda v: v.momento)
 
 

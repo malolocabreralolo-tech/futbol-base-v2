@@ -111,6 +111,31 @@ def test_versiones_ordenadas_y_por_origen(raiz, tmp_path):
     assert len(versiones("v1")) == 3
 
 
+def test_una_ficha_danada_deja_fuera_solo_su_version(raiz, tmp_path, capsys):
+    hechas = [_aceptar(tmp_path, f"{i}.db", 40 + i, AHORA + timedelta(days=i))[1] for i in range(3)]
+    vieja = _ficha(hechas[0].ruta)
+    # Vacía, sin ser JSON, sin ser un objeto, sin una clave o con una de otro tipo.
+    for contenido in ("", "no es json", "[]", '{"sha256": "x"}', '{"sha256": 1, "recuentos": {}}', '{"sha256": "x", "recuentos": []}'):
+        vieja.write_text(contenido, encoding="utf-8")
+        capsys.readouterr()
+        assert versiones("v1") == hechas[1:], contenido
+        assert str(vieja) in capsys.readouterr().err, contenido
+    # La que no se puede leer, tampoco.
+    vieja.chmod(0)
+    try:
+        if not os.access(vieja, os.R_OK):      # como root se lee igual
+            assert versiones("v1") == hechas[1:]
+            assert str(vieja) in capsys.readouterr().err
+    finally:
+        vieja.chmod(0o600)
+    vieja.write_text("", encoding="utf-8")
+    assert restaurar("v1", tmp_path / "r").read_bytes() == (tmp_path / "2.db").read_bytes()
+    assert restaurar("v1", tmp_path / "r", hechas[1].momento).read_bytes() == (tmp_path / "1.db").read_bytes()
+    assert aceptar("v1", crear_base(tmp_path / "3.db", partidos=43), comprobar(tmp_path / "3.db").recuentos, AHORA + timedelta(days=3))
+    assert len(versiones("v1")) == 3
+    assert hechas[0].ruta.exists() and vieja.exists()       # lo que no se entiende no se borra
+
+
 def test_apartar(raiz, tmp_path):
     db = crear_base(tmp_path / "a.db")
     p = apartar("v1", db, ["mengua: matches 100 → 40"], AHORA)

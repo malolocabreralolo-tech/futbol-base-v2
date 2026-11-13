@@ -8,6 +8,7 @@ import pytest
 from conftest import commit_base, git
 from copia import ejecutar as ejecutar_mod
 from copia import rutas
+from copia.__main__ import main
 from copia.almacen import versiones
 from copia.ejecutar import ejecutar, estado
 from copia.fuentes import Origen, actualizar_espejo, extraer_base
@@ -254,6 +255,30 @@ def test_limpia_lo_que_dejo_una_pasada_cortada(raiz, remoto):
     (cortada / "futbolbase.db").write_bytes(b"medio sacada")
     assert ejecutar([_origen(remoto)], AHORA) == 0
     assert _temporales(raiz) == []
+
+
+def test_una_ficha_danada_no_para_la_copia(raiz, remoto, tmp_path, capsys):
+    o = _origen(remoto)
+    ejecutar([o], AHORA)
+    for dia, partidos in ((1, 41), (2, 42)):
+        commit_base(remoto, partidos)
+        assert ejecutar([o], AHORA + timedelta(days=dia)) == 0
+    vieja, *_ = versiones("v1")
+    ficha = vieja.ruta.with_name(vieja.ruta.name.removesuffix(".xz") + ".json")
+    ficha.write_text("", encoding="utf-8")
+    capsys.readouterr()
+    assert [v.recuentos["matches"] for v in versiones("v1")] == [41, 42]
+    assert str(ficha) in capsys.readouterr().err
+    # La orden lista y restaura las sanas, también la última.
+    assert main(["versiones", "v1"]) == 0 and len(capsys.readouterr().out.splitlines()) == 2
+    assert main(["restaurar", "v1", str(tmp_path / "r")]) == 0
+    restaurada, = (tmp_path / "r").glob("*.db")
+    assert restaurada.read_bytes() == (remoto / "futbolbase.db").read_bytes()
+    # Y las pasadas siguientes guardan.
+    commit_base(remoto, 43)
+    assert ejecutar([o], AHORA + timedelta(days=3)) == 0
+    assert _estado(raiz)["v1"]["ultima_comprobacion"]["resultado"] == "aceptada"
+    assert [v.recuentos["matches"] for v in versiones("v1")] == [41, 42, 43]
 
 
 def test_estado(raiz, remoto):
