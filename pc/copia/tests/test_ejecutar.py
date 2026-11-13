@@ -379,6 +379,35 @@ def test_las_excepciones_no_tapan_otros_motivos(raiz, remoto, tmp_path):
     assert _estado(raiz)["v1"]["ultima_buena"]["excepciones"] == ["goals está vacía"]
 
 
+@pytest.mark.parametrize("tabla, otra, cuantas", [("players", "matches", 40), ("matches", "players", 1)])
+def test_aceptar_a_mano_una_base_sin_una_tabla_del_detalle(raiz, remoto, tmp_path, tabla, otra, cuantas):
+    o = _origen(remoto)
+    ejecutar([o], AHORA)
+    _subir(remoto, _base(tmp_path / "a.db", 40, f"DROP TABLE {tabla}"))
+    assert ejecutar([o], AHORA + timedelta(days=1)) == 1
+    assert _estado(raiz)["v1"]["ultima_comprobacion"]["resultado"] == "cuarentena"
+    assert ejecutar([o], AHORA + timedelta(days=2), aceptar_mengua={"v1"}) == 0
+    e = _estado(raiz)["v1"]
+    assert e["ultima_comprobacion"]["resultado"] == "aceptada"
+    assert e["ultima_buena"]["excepciones"] == [f"falta la tabla {tabla}"]
+    # El detalle dice lo que hay y no se inventa un recuento de la tabla que falta.
+    detalle = e["ultima_comprobacion"]["detalle"]
+    assert detalle[0] == f"{otra} {cuantas}" and detalle[1].startswith("versión ")
+    assert f"con excepciones: falta la tabla {tabla}" in detalle
+    # La misma base, sin bandera y en otra semana: sin cambios, y el volcado de la semana se hace.
+    assert ejecutar([o], AHORA + timedelta(days=3)) == 0
+    assert _estado(raiz)["v1"]["ultima_comprobacion"]["resultado"] == "sin cambios"
+    assert (raiz / "volcados/v1/futbolbase-2026-S47.sql.xz").exists()
+    # Una nueva que sigue sin esa tabla: aceptada, y también su volcado.
+    _subir(remoto, _base(tmp_path / "b.db", 40, f"DROP TABLE {tabla}; INSERT INTO teams VALUES (2, 'Equipo B')"))
+    assert ejecutar([o], AHORA + timedelta(days=10)) == 0
+    e = _estado(raiz)["v1"]
+    assert e["ultima_comprobacion"]["resultado"] == "aceptada" and e["ultima_buena"]["recuentos"]["teams"] == 2
+    assert (raiz / "volcados/v1/futbolbase-2026-S48.sql.xz").exists()
+    texto, codigo = estado(AHORA + timedelta(days=10, hours=1), ["v1"])
+    assert codigo == 0 and f"con excepciones: falta la tabla {tabla}" in texto.splitlines()[0]
+
+
 def test_misma_rechazada_no_se_repite(raiz, remoto):
     o = _origen(remoto)
     ejecutar([o], AHORA); commit_base(remoto, 10)

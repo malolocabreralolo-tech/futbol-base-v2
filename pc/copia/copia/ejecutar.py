@@ -128,7 +128,9 @@ def _pasada(origen: Origen, ahora: datetime, entrada: dict, a_mano: bool) -> tup
             entrada["ultima_buena"]["excepciones"] = list(r.motivos)
         else:
             entrada["ultima_buena"].pop("excepciones", None)
-        detalle = [f"{t} {r.recuentos[t]}" for t in ("matches", "players")] + [f"versión {_relativa(ultima.ruta)}"]
+        # Una tabla aceptada a mano puede faltar: se dice lo que hay, y lo que falta ya sale en las excepciones.
+        cuentas = [f"{t} {r.recuentos[t]}" for t in ("matches", "players") if t in r.recuentos]
+        detalle = [*cuentas, f"versión {_relativa(ultima.ruta)}"]
         # Lo que se ha perdonado esta vez, contra la última buena.
         nuevas = [m for m in r.motivos if m not in excepciones]
         if a_mano and (perdonado := [*menguas(anterior or {}, r.recuentos), *nuevas]):
