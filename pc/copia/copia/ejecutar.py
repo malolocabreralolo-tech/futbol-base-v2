@@ -53,18 +53,26 @@ def ejecutar(origenes: Sequence[Origen], ahora: datetime, aceptar_mengua: Collec
         return codigo
 
 
-def estado(ahora: datetime) -> tuple[str, int]:
+def estado(ahora: datetime, esperados: Sequence[str] | None = None) -> tuple[str, int]:
+    """`esperados` son los orígenes de origenes.json; sin ellos solo se sabe de los que ya tienen alguna pasada."""
     ruta = raiz() / "estado.json"
     ocupa = f"ocupa {_tamano(_ocupa(raiz()))} en {raiz()}"
     try:
         datos = _leer_estado(ruta)
-        if not datos:
+        if not datos and not esperados:
             return f"sin copias en {raiz()}\n{ocupa}", 1
         lineas, codigo = [], 0
-        for nombre, entrada in datos.items():
-            linea, bien = _resumen(nombre, entrada, ahora)
+        nombres = list(datos) if esperados is None else [*esperados, *(n for n in datos if n not in esperados)]
+        for nombre in nombres:
+            if nombre not in datos:
+                lineas.append(f"{nombre}: sin copias · AVISO: está en origenes.json y ninguna pasada lo ha copiado todavía")
+                codigo = 1
+                continue
+            # Lo de un origen que se quitó de origenes.json se enseña, pero ya no se espera que vaya bien.
+            sobra = esperados is not None and nombre not in esperados
+            linea, bien = _resumen(f"{nombre} (ya no está en origenes.json)" if sobra else nombre, datos[nombre], ahora)
             lineas.append(linea)
-            codigo = codigo if bien else 1
+            codigo = codigo if bien or sobra else 1
     except (ValueError, KeyError, TypeError, AttributeError) as e:
         return f"{ruta} ilegible: {e}\n{ocupa}", 1
     return "\n".join([*lineas, ocupa]), codigo

@@ -527,6 +527,30 @@ def test_estado(raiz, remoto):
     assert codigo == 1 and len(texto.splitlines()) == 3 and "sin copia buena" in texto
 
 
+def test_estado_con_los_origenes_esperados(raiz, remoto):
+    o = _origen(remoto)
+    # Antes de la primera pasada, cada origen de origenes.json sale sin copias.
+    texto, codigo = estado(AHORA, ["v1", "v2"])
+    v1, v2, ocupa = texto.splitlines()
+    assert codigo == 1 and ocupa.startswith("ocupa ")
+    assert all(l.startswith(f"{n}: sin copias") and "AVISO" in l for n, l in (("v1", v1), ("v2", v2)))
+    ejecutar([o], AHORA)
+    assert estado(AHORA + timedelta(hours=1), ["v1"])[1] == 0
+    # Uno que está en origenes.json y no tiene ninguna pasada (se añadió y no se ha copiado nunca) es un aviso.
+    texto, codigo = estado(AHORA + timedelta(hours=1), ["v1", "v2"])
+    v1, v2, _ = texto.splitlines()
+    assert codigo == 1 and v1.startswith("v1: comprobada ") and "AVISO" not in v1
+    assert v2.startswith("v2: sin copias") and "AVISO" in v2
+    # Uno que ya no está en origenes.json se sigue mostrando, pero lo suyo no cuenta para el código.
+    ejecutar([_origen(remoto, "v9", base="no-esta.db")], AHORA + timedelta(hours=1))
+    texto, codigo = estado(AHORA + timedelta(hours=2), ["v1"])
+    v1, v9, _ = texto.splitlines()
+    assert codigo == 0 and v1.startswith("v1: comprobada ")
+    assert v9.startswith("v9 (ya no está en origenes.json): comprobada ") and "(error)" in v9 and "AVISO" in v9
+    # Sin saber cuáles se esperan (origenes.json ilegible), cuenta todo lo que hay, como antes.
+    assert estado(AHORA + timedelta(hours=2))[1] == 1
+
+
 def test_estado_perdido_o_atrasado(raiz, remoto):
     o = _origen(remoto)
     ejecutar([o], AHORA)

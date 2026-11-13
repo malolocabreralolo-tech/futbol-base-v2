@@ -37,7 +37,8 @@ Escribe una línea por web y lo que ocupa la carpeta. Va bien si pone `(aceptada
     v1: comprobada 2026-11-14T04:43:05+00:00 (aceptada) · última buena 2026-11-14T04:43:05+00:00 (matches 37850, players 17402)
     ocupa 352,8 MB en /home/manolo/backups/futbol-base
 
-Sale `AVISO` si la última pasada falló, si la base fue a cuarentena o si lleva 3 días o más sin comprobarse.
+Sale `AVISO` si la última pasada falló, si la base fue a cuarentena, si lleva 3 días o más sin comprobarse o si una web de `origenes.json` no tiene todavía ninguna copia (`sin copias`).
+Si quitas una web de `origenes.json`, sus copias se quedan y `estado` la sigue enseñando con `(ya no está en origenes.json)`, sin avisar por ella.
 `(error)` quiere decir que la pasada no pudo terminar (por ejemplo, sin internet): se vuelve a intentar al día siguiente.
 Para ver cuándo fue la última pasada automática y cuándo toca la próxima:
 

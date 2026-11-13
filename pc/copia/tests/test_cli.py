@@ -117,6 +117,29 @@ def test_cli_cuarentena_y_cerrojo(raiz, remoto, origenes, capsys):
     assert salida.out == "" and "cerrojo" in salida.err
 
 
+def test_estado_sabe_que_origenes_deberia_haber(raiz, remoto, origenes, capsys):
+    assert main(["ejecutar"]) == 0
+    assert main(["estado"]) == 0
+    capsys.readouterr()
+    # Se añade v2 a origenes.json: hasta su primera copia, estado avisa.
+    datos = json.loads(origenes.read_text())
+    origenes.write_text(json.dumps({**datos, "v2": datos["v1"]}))
+    assert main(["estado"]) == 1
+    v1, v2, _ = capsys.readouterr().out.splitlines()
+    assert v1.startswith("v1: comprobada ") and v2.startswith("v2: sin copias") and "AVISO" in v2
+    # Se quita v1: se sigue viendo lo suyo, marcado, y lo que cuenta es v2.
+    origenes.write_text(json.dumps({"v2": datos["v1"]}))
+    assert main(["estado"]) == 1
+    assert "v1 (ya no está en origenes.json): " in capsys.readouterr().out
+    assert main(["ejecutar"]) == 0 and main(["estado"]) == 0
+    # Si origenes.json no se puede leer, estado dice igual lo que hay.
+    capsys.readouterr()
+    origenes.write_text("no es json")
+    assert main(["estado"]) == 0
+    v1, v2, _ = capsys.readouterr().out.splitlines()
+    assert v1.startswith("v1: comprobada ") and v2.startswith("v2: comprobada ")
+
+
 def test_origenes_junto_al_paquete(raiz, monkeypatch, capsys):
     # Sin la variable se usan los del origenes.json que va junto al paquete; nada sale a la red.
     monkeypatch.delenv("FB_COPIA_ORIGENES", raising=False)

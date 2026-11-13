@@ -37,7 +37,12 @@ def _ejecutar(args: argparse.Namespace, ahora: datetime) -> int:
 
 
 def _estado(args: argparse.Namespace, ahora: datetime) -> int:
-    texto, codigo = estado(ahora)
+    try:
+        esperados = [o.nombre for o in cargar_origenes(_ruta_origenes())]
+    except FuenteError:
+        # Sin un origenes.json legible se dice igual lo que hay guardado, aunque no se sepa qué falta.
+        esperados = None
+    texto, codigo = estado(ahora, esperados)
     print(texto)
     return codigo
 
