@@ -219,6 +219,21 @@ def test_aceptar_mengua_no_acepta_lo_que_llegue_despues(raiz, remoto):
     assert "aceptado a mano: matches 40 → 3" in _estado(raiz)["v1"]["ultima_comprobacion"]["detalle"]
 
 
+def test_aceptar_mengua_mide_contra_la_ultima_buena_lo_que_la_apartada_no_conto(raiz, remoto):
+    o = _origen(remoto)
+    ejecutar([o], AHORA)
+    # Llega una base que no se puede abrir: se aparta sin poder contar nada.
+    _subir(remoto, b"esto no es una base de datos\n")
+    assert ejecutar([o], AHORA + timedelta(days=1)) == 1
+    assert _estado(raiz)["v1"]["ultima_apartada"]["recuentos"] == {}
+    # Después el remoto sube una sana con 3 partidos: lo que la apartada no contó se mide contra la última buena.
+    commit_base(remoto, 3)
+    assert ejecutar([o], AHORA + timedelta(days=2), aceptar_mengua={"v1"}) == 1
+    c = _estado(raiz)["v1"]["ultima_comprobacion"]
+    assert c["resultado"] == "cuarentena" and c["detalle"][0] == "mengua: matches 40 → 3"
+    assert comprobar(raiz / "actual/v1/futbolbase.db").recuentos["matches"] == 40 and len(versiones("v1")) == 1
+
+
 def test_aceptar_mengua_por_adelantado(raiz, remoto, tmp_path):
     o = _origen(remoto)
     ejecutar([o], AHORA); commit_base(remoto, 10)

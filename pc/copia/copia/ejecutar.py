@@ -89,8 +89,9 @@ def _pasada(origen: Origen, ahora: datetime, entrada: dict, a_mano: bool) -> tup
         with tempfile.TemporaryDirectory(prefix=_TEMPORAL, dir=raiz()) as carpeta:
             db = extraer_base(origen, commit, Path(carpeta) / "futbolbase.db")
             if apartada:
-                # Aceptar a mano es aceptar la base que se apartó, o una prácticamente igual: se mide contra ella.
-                r = comprobar(db, apartada["recuentos"])
+                # Aceptar a mano es aceptar la base que se apartó, o una prácticamente igual: se mide contra ella, y lo
+                # que ella no pudo contar (no se abría, le faltaba la tabla), contra la última buena.
+                r = comprobar(db, {**(anterior or {}), **apartada["recuentos"]})
                 motivos = [m for m in r.motivos if not _perdonable(m, apartada["motivos"])]
             else:
                 # Pedido por adelantado, sin nada apartado con que comparar, no se mide la mengua; lo demás sí.
