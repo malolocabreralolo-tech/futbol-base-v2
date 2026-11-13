@@ -164,7 +164,7 @@ test('sin un dato inmediato de la temporada, la caja de error con «Reintentar»
 test('sin los datos inmediatos, la caja de error actualiza también la barra y el título de la ruta pedida (M4)', async () => {
   const { page } = await load(new Map(), { today: '2026-03-01', hash: '#/tabla', without: ['BENJAMIN'] });
   assert.deepEqual(page.marks(), [['#/tabla', 'page']], 'la barra marca Tabla, no Mi equipo');
-  assert.equal(page.doc.title, 'Tabla · Fútbol Base Las Palmas');
+  assert.equal(page.doc.title, 'Tabla · Fútbol Base Las Palmas v2');
 });
 
 test('un dato mal formado que hace fallar el guardado al arrancar no impide que el router arranque (registra y no guarda)', async (t) => {

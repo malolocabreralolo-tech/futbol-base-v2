@@ -260,7 +260,7 @@ test('una temporada pasada sin cargar: el router la carga y Récords la pinta, s
   assert.match(b.root.innerHTML, /<span class="rc-name">Las Palmas – Telde C<\/span><\/span><span class="rc-figure">25–0<\/span>/);
   assert.doesNotMatch(b.root.innerHTML, /No se pudieron cargar|route-notice/);
   assert.deepEqual(b.marks(), [['#/explorar', 'true']]);
-  assert.equal(b.doc.title, 'Récords · Fútbol Base Las Palmas');
+  assert.equal(b.doc.title, 'Récords · Fútbol Base Las Palmas v2');
   assert.deepEqual(screen.needs({ s: '2024-2025' }, datasets, { portalSeason: PORTAL_SEASON }), [], 'la pantalla no pide su temporada');
 });
 

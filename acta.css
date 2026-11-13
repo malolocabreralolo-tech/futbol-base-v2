@@ -514,9 +514,13 @@ abbr[title] { text-decoration: none; }
     margin: 0 auto;
     padding: 0 var(--gutter);
   }
+  /* Las partes de la marca, en la misma línea base y centradas en la barra: align-content solo centra con
+   * flex-wrap, que no llega a partir la marca porque desde 1024 px marca y pestañas caben con holgura. */
   .brand {
     display: flex;
-    align-items: center;
+    flex-wrap: wrap;
+    align-content: center;
+    align-items: baseline;
     gap: 6px;
     min-height: 44px;
     font-size: 17px;
@@ -525,6 +529,8 @@ abbr[title] { text-decoration: none; }
     text-decoration: none;
   }
   .brand-place { font-weight: 600; color: var(--mute); }
+  /* «v2» distingue esta web de v1, abiertas una al lado de otra: pequeña, en la tinta del tema. */
+  .brand-version { font-size: 12.5px; font-weight: 600; color: var(--ink); }
   .shell-bar .tabbar { margin-left: auto; }
   .shell-offline .notice { max-width: 1120px; }
 }

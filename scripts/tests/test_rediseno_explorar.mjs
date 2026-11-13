@@ -370,7 +370,7 @@ test('mount con el router: escribir filtra la lista y apunta la búsqueda con re
   b.click({ href: '#/explorar#buscar' });
   await router.idle();
   assert.deepEqual(b.marks(), [['#/explorar', 'page']], 'un destino principal: Explorar marcado con aria-current="page"');
-  assert.equal(b.doc.title, 'Explorar · Fútbol Base Las Palmas');
+  assert.equal(b.doc.title, 'Explorar · Fútbol Base Las Palmas v2');
   const input = b.doc.getElementById('buscar');
   assert.equal(input.focused, 1, 'el ancla #buscar: el router enfoca el buscador (mount no lo hace)');
   const painted = b.root.innerHTML;

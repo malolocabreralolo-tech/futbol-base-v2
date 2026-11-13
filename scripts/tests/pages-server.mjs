@@ -3,8 +3,8 @@
 // - gzip en los ficheros de texto (HTML, CSS, JavaScript, JSON, SVG y el manifiesto) si el navegador
 //   lo acepta, como GitHub Pages; las imágenes y la fuente, tal cual;
 // - Cache-Control: max-age=600 en cada respuesta, como GitHub Pages;
-// - el sitio en la raíz y también bajo /futbol-base/, la ruta de la web publicada; «/» y
-//   «/futbol-base/» son index.html, y la ?v= no cuenta;
+// - el sitio en la raíz y también bajo /futbol-base-v2/, la ruta de la web publicada; «/» y
+//   «/futbol-base-v2/» son index.html, y la ?v= no cuenta;
 // - solo GET y HEAD, y nada fuera de `root` (404).
 // startPagesServer(root, { port }) → { url, close() }: url es la raíz, con la barra final.
 import { createServer } from 'node:http';
@@ -12,7 +12,7 @@ import { readFile, stat } from 'node:fs/promises';
 import { extname, join, normalize, resolve, sep } from 'node:path';
 import { gzipSync } from 'node:zlib';
 
-const PREFIX = '/futbol-base';
+const PREFIX = '/futbol-base-v2';
 const TYPES = {
   '.html': 'text/html; charset=utf-8',
   '.css': 'text/css; charset=utf-8',

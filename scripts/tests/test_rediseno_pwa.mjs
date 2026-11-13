@@ -1,7 +1,7 @@
 // Plan B4, tarea 3: el manifiesto y los iconos de la PWA (spec §5.5; decisión 7 de B4) y sus <link> en
 // index.html. Los iconos son los PNG de icons/ (scripts/build_icons.py); sus píxeles salen de la cabecera
-// PNG, sin dependencias. La app instalada en los móviles tiene que seguir siendo la misma: su identidad
-// (id) es la de hoy. Solo lee index.html, manifest.json e icons/: nunca los data-*.js vivos.
+// PNG, sin dependencias. La app instalada de v2 es otra que la de v1, al lado: su identidad (id) es la
+// de su ruta, /futbol-base-v2/. Solo lee index.html, manifest.json e icons/: nunca los data-*.js vivos.
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
 import { existsSync, readFileSync } from 'node:fs';
@@ -12,7 +12,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const INDEX = readFileSync(join(ROOT, 'index.html'), 'utf8');
 const MANIFEST = JSON.parse(readFileSync(join(ROOT, 'manifest.json'), 'utf8'));
 // Donde vive el manifiesto publicado: index.html lo enlaza con ./manifest.json.
-const MANIFEST_URL = 'https://malolocabreralolo-tech.github.io/futbol-base/manifest.json';
+const MANIFEST_URL = 'https://malolocabreralolo-tech.github.io/futbol-base-v2/manifest.json';
 
 // Los píxeles de un PNG, de su cabecera: la firma y el bloque IHDR, el primero.
 function pngSize(file) {
@@ -27,7 +27,7 @@ test('manifest.json: el nombre, la descripción y los colores de index.html, arr
   const { icons, ...fields } = MANIFEST;
   assert.ok(Array.isArray(icons));
   assert.deepEqual(fields, {
-    id: '/futbol-base/index.html',
+    id: '/futbol-base-v2/index.html',
     name: meta(/<title>([^<]+)<\/title>/),
     short_name: meta(/<meta name="apple-mobile-web-app-title" content="([^"]+)">/),
     description: meta(/<meta name="description" content="([^"]+)">/),
@@ -37,20 +37,22 @@ test('manifest.json: el nombre, la descripción y los colores de index.html, arr
     background_color: meta(/<meta name="theme-color" content="(#[0-9A-F]{6})" media="\(prefers-color-scheme: light\)">/),
     theme_color: meta(/<meta name="theme-color" content="(#[0-9A-F]{6})" media="\(prefers-color-scheme: light\)">/),
   });
-  assert.deepEqual([fields.name, fields.short_name, fields.theme_color], ['Fútbol Base Las Palmas', 'Fútbol Base LP', '#FFFFFF']);
+  assert.deepEqual([fields.name, fields.short_name, fields.theme_color], ['Fútbol Base Las Palmas v2', 'Fútbol Base v2', '#FFFFFF']);
 });
 
 // La identidad de una PWA: su id resuelto contra el ORIGEN de start_url, sin fragmento (sin id, start_url
-// sin su fragmento). La de hoy, la del manifiesto de antes de B4 (start_url ./index.html, sin id), es
-// https://malolocabreralolo-tech.github.io/futbol-base/index.html. Con id "./index.html" sería la de la
-// raíz del origen, /index.html: otra app (lo calcula así Chrome, Page.getAppId, en la Tarea 3 de B4).
-test('la app instalada sigue siendo la misma: la identidad de hoy, y abre en #/', () => {
+// sin su fragmento). v1 y v2 comparten origen: con la identidad de v1,
+// https://malolocabreralolo-tech.github.io/futbol-base/index.html, el móvil tomaría v2 por la app de v1
+// ya instalada. Con id "./index.html" sería la de la raíz del origen, /index.html: otra app (lo calcula así
+// Chrome, Page.getAppId).
+test('la app instalada de v2 es otra que la de v1: la identidad de su ruta, y abre en #/', () => {
   const start = new URL(MANIFEST.start_url, MANIFEST_URL);
   const id = new URL(MANIFEST.id, start.origin);
   id.hash = '';
   assert.equal(id.href, new URL('./index.html', MANIFEST_URL).href);
-  assert.equal(id.href, 'https://malolocabreralolo-tech.github.io/futbol-base/index.html');
-  assert.equal(start.href, 'https://malolocabreralolo-tech.github.io/futbol-base/index.html#/');
+  assert.equal(id.href, 'https://malolocabreralolo-tech.github.io/futbol-base-v2/index.html');
+  assert.notEqual(id.href, 'https://malolocabreralolo-tech.github.io/futbol-base/index.html', 'la identidad de v1');
+  assert.equal(start.href, 'https://malolocabreralolo-tech.github.io/futbol-base-v2/index.html#/');
 });
 
 test('los iconos del manifiesto: 192 y 512 (any) y la maskable de 512, PNG con esos píxeles', () => {

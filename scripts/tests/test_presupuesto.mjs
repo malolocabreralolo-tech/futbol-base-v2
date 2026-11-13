@@ -43,10 +43,10 @@ async function withSite(fn) {
   }
 }
 
-test('pages-server: index.html en la raíz y bajo /futbol-base/, con max-age=600 como GitHub Pages', async () => {
+test('pages-server: index.html en la raíz y bajo /futbol-base-v2/, con max-age=600 como GitHub Pages', async () => {
   await withSite(async (url, { html }) => {
     assert.match(url, /^http:\/\/127\.0\.0\.1:\d+\/$/);
-    for (const path of ['', 'index.html', 'futbol-base/', 'futbol-base/index.html?v=20991231a']) {
+    for (const path of ['', 'index.html', 'futbol-base-v2/', 'futbol-base-v2/index.html?v=20991231a']) {
       const res = await get(url + path);
       assert.equal(res.status, 200, path);
       assert.equal(res.headers['content-type'], 'text/html; charset=utf-8');
@@ -58,7 +58,7 @@ test('pages-server: index.html en la raíz y bajo /futbol-base/, con max-age=600
 
 test('pages-server: gzip en el texto si el navegador lo acepta; las imágenes, tal cual', async () => {
   await withSite(async (url, { js, png }) => {
-    const gz = await get(`${url}futbol-base/data-x.js?v=1`, { headers: { 'accept-encoding': 'gzip, deflate, br' } });
+    const gz = await get(`${url}futbol-base-v2/data-x.js?v=1`, { headers: { 'accept-encoding': 'gzip, deflate, br' } });
     assert.equal(gz.headers['content-encoding'], 'gzip');
     assert.equal(gz.headers['content-type'], 'application/javascript; charset=utf-8');
     assert.equal(Number(gz.headers['content-length']), gz.body.length);
@@ -76,7 +76,7 @@ test('pages-server: gzip en el texto si el navegador lo acepta; las imágenes, t
 
 test('pages-server: 404 fuera del sitio o si no existe; HEAD sin cuerpo; solo GET y HEAD', async () => {
   await withSite(async (url) => {
-    for (const path of ['escudos/s/a.png', 'escudos', '..%2f..%2fetc%2fpasswd', 'futbol-base/..%2f..%2fetc%2fhosts', '%E0%A4%A']) {
+    for (const path of ['escudos/s/a.png', 'escudos', '..%2f..%2fetc%2fpasswd', 'futbol-base-v2/..%2f..%2fetc%2fhosts', '%E0%A4%A', 'futbol-base/', 'futbol-base/index.html']) {
       assert.equal((await get(url + path)).status, 404, path);
     }
     const head = await get(`${url}index.html`, { method: 'HEAD' });

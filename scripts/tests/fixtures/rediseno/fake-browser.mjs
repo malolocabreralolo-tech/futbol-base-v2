@@ -15,6 +15,10 @@
 // ('a[href],[data-action]', '[data-action="retry"]'), que es lo que usan el router y app.js.
 // Para el mount de una pantalla, fakeSection (Plan B5, Tarea 4): la sección pintada, con la delegación
 // de sus clics y sus bloques por id.
+import { readFileSync } from 'node:fs';
+
+// El <title> de index.html: el router y app.js componen el de cada pantalla sobre él.
+const INDEX_TITLE = readFileSync(new URL('../../../../index.html', import.meta.url), 'utf8').match(/<title>([^<]*)<\/title>/)[1];
 
 // ¿Cumple el elemento el selector? Una lista separada por comas de etiqueta y atributos:
 // 'a', '[href]', 'a[href]', '[data-action="retry"]'.
@@ -49,7 +53,7 @@ export function fakeBrowser(hash = '#/', { storage = new Map(), deferBack = fals
   const hashOf = (url) => (String(url).includes('#') ? String(url).slice(String(url).indexOf('#')) : String(url));
   const reloads = [];
 
-  const doc = { title: 'Fútbol Base Las Palmas', activeElement: null, addEventListener: on(listeners.document) };
+  const doc = { title: INDEX_TITLE, activeElement: null, addEventListener: on(listeners.document) };
   function element(tag, attrs = {}) {
     const el = {
       tagName: tag.toUpperCase(), attrs: { ...attrs }, focused: 0, scrolled: 0, listeners: {},

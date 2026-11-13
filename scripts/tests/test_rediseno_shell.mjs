@@ -36,7 +36,7 @@ function fakeDoc() {
 const marks = (doc) => doc.tabs.map((t) => [t.attrs.href, t.attrs['aria-current'] ?? null]);
 
 test('renderHeader: la marca lleva a Mi equipo; dentro, la barra de ui.js y el hueco del aviso', () => {
-  assert.equal(s(renderHeader()), '<div class="shell-bar"><a class="brand" href="#/">Fútbol base <span class="brand-place">Las Palmas</span></a>'
+  assert.equal(s(renderHeader()), '<div class="shell-bar"><a class="brand" href="#/">Fútbol base <span class="brand-place">Las Palmas</span> <span class="brand-version">v2</span></a>'
     + `${tabbar('miequipo')}</div><div class="shell-offline" role="status"></div>`);
   assert.ok(s(renderHeader({ active: 'tabla', current: 'true' })).includes(s(tabbar('tabla', { current: 'true' }))));
   assert.equal((s(renderHeader()).match(/<nav /g) || []).length, 1);

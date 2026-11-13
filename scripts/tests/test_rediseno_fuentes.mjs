@@ -149,7 +149,7 @@ test('needs pide data-health si no está, también si ya falló; el «Reintentar
     assert.equal(datasets.health.season, '2025-2026');
     assert.equal(rowsOf(b.root.innerHTML).length, 45);
     assert.deepEqual(b.marks(), [['#/explorar', 'true']]);
-    assert.equal(b.doc.title, 'Datos y fuentes · Fútbol Base Las Palmas');
+    assert.equal(b.doc.title, 'Datos y fuentes · Fútbol Base Las Palmas v2');
     assert.deepEqual(screen.needs({}, datasets), [], 'y ya no lo vuelve a pedir');
   } finally {
     globalThis.fetch = saved;

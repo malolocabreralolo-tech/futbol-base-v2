@@ -1,7 +1,7 @@
 {
-  "id": "/futbol-base/index.html",
-  "name": "Fútbol Base Las Palmas",
-  "short_name": "Fútbol Base LP",
+  "id": "/futbol-base-v2/index.html",
+  "name": "Fútbol Base Las Palmas v2",
+  "short_name": "Fútbol Base v2",
   "description": "Tu equipo de fútbol base en Canarias: próximo partido, resultados, clasificación y goleadores. Sin publicidad.",
   "start_url": "./index.html#/",
   "display": "standalone",

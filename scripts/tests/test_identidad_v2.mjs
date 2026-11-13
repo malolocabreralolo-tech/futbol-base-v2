@@ -1,0 +1,105 @@
+// v2 se ve igual que v1 y vive a su lado, en el mismo origen: su nombre con «v2» la distingue en la
+// pestaña, en la app instalada y en la cabecera, y lo que la anuncia apunta a su enlace.
+// Ejecutar: node --test scripts/tests/test_identidad_v2.mjs
+import { test } from 'node:test';
+import { strict as assert } from 'node:assert';
+import { existsSync, readFileSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { fixture } from './fixtures/rediseno/load.mjs';
+import { fakeBrowser } from './fixtures/rediseno/fake-browser.mjs';
+import { html } from '../../src/html.js';
+import { buildSeason, buildCups } from '../../src/model.js';
+import { buildClubIndex } from '../../src/myteam.js';
+import { alevinData } from '../../src/state.js';
+import { startRouter } from '../../src/router.js';
+import { renderHeader } from '../../src/shell.js';
+
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
+const read = (path) => readFileSync(join(ROOT, path), 'utf8');
+const V2 = 'https://malolocabreralolo-tech.github.io/futbol-base-v2/';
+const V1 = 'https://malolocabreralolo-tech.github.io/futbol-base/';
+
+test('manifiesto de v2', () => {
+  const m = JSON.parse(read('manifest.json'));
+  assert.equal(m.id, '/futbol-base-v2/index.html');
+  assert.equal(m.name, 'Fútbol Base Las Palmas v2');
+  assert.equal(m.short_name, 'Fútbol Base v2');
+});
+
+test('título y cabecera de v2', () => {
+  const page = read('index.html');
+  assert.match(page, /<title>Fútbol Base Las Palmas v2<\/title>/);
+  assert.match(page, /<meta name="apple-mobile-web-app-title" content="Fútbol Base v2">/);
+  assert.match(page, /<span class="brand-place">Las Palmas<\/span> <span class="brand-version">v2<\/span>/);
+  // La cabecera que pinta la app es la misma que la de index.html, con la marca.
+  assert.match(String(renderHeader()), /<a class="brand" href="#\/">Fútbol base <span class="brand-place">Las Palmas<\/span> <span class="brand-version">v2<\/span><\/a>/);
+});
+
+// «v2» va dentro de la marca de la cabecera (que, como en v1, solo se ve desde 1024 px): más pequeña que el
+// nombre, en la tinta del tema (sin colores a mano, para el claro y el oscuro) y en su misma línea base.
+test('la marca «v2»: pequeña, en la tinta del tema y en la línea base del nombre', () => {
+  const css = read('acta.css').replace(/\/\*[\s\S]*?\*\//g, '');
+  const rule = (selector) => (css.match(new RegExp(`(?:^|\\n)\\s*${selector.replace('.', '\\.')}\\s*\\{([^}]*)\\}`, 'g')) || [])
+    .map((r) => r.slice(r.indexOf('{') + 1, -1)).join(';');
+  const version = rule('.brand-version');
+  assert.ok(version, 'falta la regla de .brand-version');
+  assert.match(version, /color:\s*var\(--ink\)/);
+  assert.doesNotMatch(version, /#[0-9a-f]{3,8}\b|rgb|hsl/i, 'sin colores a mano');
+  const px = (body, prop) => Number((body.match(new RegExp(`${prop}:\\s*([\\d.]+)px`)) || [])[1]);
+  const brand = rule('.brand').split(';').filter((d) => !/display:\s*none/.test(d)).join(';');
+  assert.ok(px(version, 'font-size') < px(brand, 'font-size'), 'más pequeña que el nombre');
+  assert.ok(Number((version.match(/font-weight:\s*(\d+)/) || [])[1]) < Number((brand.match(/font-weight:\s*(\d+)/) || [])[1]), 'con menos peso');
+  assert.match(brand, /align-items:\s*baseline/, 'las partes de la marca, en la misma línea base');
+});
+
+// El router de verdad, con el título de index.html, sobre las fixtures congeladas.
+const PORTAL = '2025-2026';
+const raw = fixture('current-2025-2026');
+const current = buildSeason({ name: raw.season, current: true, ...raw });
+const cups = buildCups({ season: PORTAL, ...fixture('cups-2025-2026') });
+const PG2 = current.groups.find((g) => g.id === 'PG2');
+const context = () => ({
+  portal: { season: PORTAL, defaultTeam: { cat: 'prebenjamin', groupId: 'PG2', name: 'Las Mesas Hu.' } },
+  model: {
+    season: (name) => (name === PORTAL ? current : null),
+    group: (season, id) => (season === PORTAL ? current.groups.find((g) => g.id === id) || null : null),
+    cups: () => cups,
+    clubIndex: () => buildClubIndex([], fixture('shields')),
+  },
+  resolution: { status: 'ok', group: PG2, name: 'Las Mesas Hu.', cat: 'prebenjamin' },
+  myTeam: { name: 'Las Mesas Hu.', season: PORTAL, cat: 'prebenjamin', groupId: 'PG2' },
+  today: '2026-09-23',
+  health: null,
+  datasets: { seasons: [{ name: PORTAL, current: true }], seasonRaw: {}, alevin: alevinData({}), seasonAlevin: {} },
+});
+const screen = (id) => ({ id, render: () => html`<section data-screen="${id}"><h1>${id}</h1></section>` });
+
+test('el título de cada pantalla acaba en «v2»', async () => {
+  for (const [hash, title] of [['#/', 'Fútbol Base Las Palmas v2'], ['#/jornada', 'Jornada · Fútbol Base Las Palmas v2']]) {
+    const b = fakeBrowser(hash);
+    const router = startRouter({ screens: { '': screen('home'), jornada: screen('jornada') }, root: b.root, getContext: context, window: b.win });
+    await router.idle();
+    assert.equal(b.doc.title, title, hash);
+  }
+});
+
+test('update.sh anuncia el enlace de v2, nunca el de v1', () => {
+  const sh = read('scripts/update.sh');
+  assert.ok(sh.includes(`Publicado en ${V2}`), 'update.sh no anuncia el enlace de v2');
+  assert.ok(!sh.includes(V1), 'update.sh nombra el enlace de v1');
+});
+
+test('README: el primer párrafo dice que esto es v2, enlaza v2 y v1 y apunta al diseño y a la copia del PC', () => {
+  const readme = read('README.md');
+  const first = readme.split(/\n\s*\n/).find((p) => !p.startsWith('#'));
+  assert.match(first, /\bv2\b/);
+  assert.ok(first.includes(`(${V2})`), 'falta el enlace a v2');
+  assert.ok(first.includes(`(${V1})`), 'falta el enlace a v1');
+  assert.match(first, /no se toca/);
+  for (const doc of ['docs/superpowers/specs/2026-11-13-futbol-base-v2-design.md', 'pc/copia/README.md']) {
+    assert.ok(first.includes(`(${doc})`), `falta el enlace a ${doc}`);
+    assert.ok(existsSync(join(ROOT, doc)), `${doc} no existe`);
+  }
+  assert.match(readme, new RegExp(`\\[Ver el portal\\]\\(${V2.replace(/[.]/g, '\\.')}\\)`));
+});

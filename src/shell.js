@@ -29,7 +29,7 @@ export function routeTitle(screen) {
 // ancho máximo (spec §4.8). .shell-offline es el hueco del aviso sin conexión (§4.10), que
 // rellena app.js. index.html lleva esta misma cabecera, con Mi equipo activo.
 export function renderHeader({ active = 'miequipo', current = 'page' } = {}) {
-  return html`<div class="shell-bar"><a class="brand" href="#/">Fútbol base <span class="brand-place">Las Palmas</span></a>${tabbar(active, { current })}</div><div class="shell-offline" role="status"></div>`;
+  return html`<div class="shell-bar"><a class="brand" href="#/">Fútbol base <span class="brand-place">Las Palmas</span> <span class="brand-version">v2</span></a>${tabbar(active, { current })}</div><div class="shell-offline" role="status"></div>`;
 }
 
 // El destino de una pestaña de la barra por su enlace, sea el de siempre («#/tabla») o uno con su grupo

@@ -287,7 +287,7 @@ test('la ruta inicial pasa por needs, render y mount; marca la barra y no mueve 
   assert.match(b.root.innerHTML, /<h1>home<\/h1>/);
   assert.equal(b.h1().focused, 0, 'la carga inicial no mueve el foco');
   assert.deepEqual(b.marks(), [['#/', 'page']]);
-  assert.equal(b.doc.title, 'Fútbol Base Las Palmas');
+  assert.equal(b.doc.title, 'Fútbol Base Las Palmas v2');
   assert.equal(b.win.history.scrollRestoration, 'manual');
   assert.deepEqual(router.current(), { screen: '', params: {} });
 });

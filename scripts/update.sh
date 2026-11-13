@@ -58,7 +58,7 @@ git commit -q -m "Actualización $(date '+%d/%m/%Y %H:%M')"
 if [ "$PUBLICAR" = "1" ]; then
   git pull --rebase -q origin main
   git push -q
-  echo "  ✓ Publicado en https://malolocabreralolo-tech.github.io/futbol-base/"
+  echo "  ✓ Publicado en https://malolocabreralolo-tech.github.io/futbol-base-v2/"
 else
   echo "  ✓ Commit local hecho (sin push, --local)."
 fi

@@ -1,6 +1,8 @@
 # Fútbol Base Las Palmas
 
-[Ver el portal](https://malolocabreralolo-tech.github.io/futbol-base/)
+Esto es la **v2** del portal, [en su propio enlace](https://malolocabreralolo-tech.github.io/futbol-base-v2/), al lado de la [v1](https://malolocabreralolo-tech.github.io/futbol-base/), la web de siempre, que no se toca: v2 tiene su repositorio, sus cachés y sus claves, y de v1 solo lee, una vez, «mi equipo», los vistos y los jugadores seguidos. Qué cambia y por qué, en el [diseño de v2](docs/superpowers/specs/2026-11-13-futbol-base-v2-design.md); la copia de seguridad en el PC, en [pc/copia/README.md](pc/copia/README.md).
+
+[Ver el portal](https://malolocabreralolo-tech.github.io/futbol-base-v2/)
 
 Resultados y seguimiento de Benjamín y Prebenjamín de Gran Canaria, Lanzarote y Fuerteventura. Sin publicidad.
 
