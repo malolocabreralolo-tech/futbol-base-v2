@@ -29,7 +29,11 @@ SHARE=${XDG_DATA_HOME:-$HOME/.local/share}/futbol-base-v2-reloj
 fail() { echo "error: $*" >&2; exit 1; }
 first() { head -c "${2:-200}" "$1" | tr '\n' ' ' | sed 's/ *$//'; }
 
-# v1 tiene su propio reloj y no se toca: a su repositorio, este no le pregunta ni le lanza nada.
+# v1 tiene su propio reloj y no se toca: a su repositorio, este no le pregunta ni le lanza nada. Solo vale la forma
+# dueño/nombre (sin .git al final), para que otra forma del de v1 (github.com/…, ….git, la URL entera) no se cuele
+# por la comparación. Los caracteres, uno a uno y sin rangos: en es_ES.UTF-8, [a-z] también casa con «á».
+ascii='[abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-]'
+[[ $R =~ ^$ascii+/$ascii+$ && ${R,,} != *.git ]] || fail "FBR2_REPO ($R) no tiene la forma dueño/nombre"
 [ "${R,,}" != malolocabreralolo-tech/futbol-base ] || fail "FBR2_REPO es el repositorio de v1 ($R): este reloj es solo para v2"
 
 [ -s "$TOKEN_FILE" ] || fail "falta el token de GitHub en $TOKEN_FILE (es el del reloj de v1; FBR2_TOKEN_FILE para leer otro)"

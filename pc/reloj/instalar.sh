@@ -3,7 +3,8 @@
 # temporizador cada 5 min. No lanza nada, no lee el token y no toca nada del reloj de v1 (futbol-base-reloj).
 # Volver a ejecutarlo sustituye lo instalado: es lo que hay que hacer tras revisar un cambio de reloj_pasadas.py.
 #
-#   FBR2_HOME=/otra/carpeta   instala bajo otra carpeta en vez de $HOME (para las pruebas)
+#   FBR2_HOME=/otra/carpeta   instala bajo otra carpeta en vez de $HOME (para las pruebas); la copia revisada va,
+#                             como la busca el ejecutable, en ${XDG_DATA_HOME:-$FBR2_HOME/.local/share}
 #   FBR2_SIN_SYSTEMD=1        no llama a systemctl
 set -euo pipefail
 
@@ -20,7 +21,8 @@ fi
 
 logica=$repo/scripts/reloj_pasadas.py
 ejecutable=$aqui/futbol-base-v2-reloj
-datos=$home/.local/share/futbol-base-v2-reloj
+# La misma regla que el ejecutable (SHARE), con $home haciendo de HOME: si no, con XDG_DATA_HOME definida no la encuentra.
+datos=${XDG_DATA_HOME:-$home/.local/share}/futbol-base-v2-reloj
 bin=$home/.local/bin
 unidades=$home/.config/systemd/user
 

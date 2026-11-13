@@ -25,7 +25,8 @@ LANZAR_V2 = ["workflow", "run", "reloj.yml", "-R", V2, "--ref", "main"]
 DATOS = Path(".local/share/futbol-base-v2-reloj")
 INSTALADO = Path(".local/bin/futbol-base-v2-reloj")
 UNIDADES = Path(".config/systemd/user")
-TOKEN = "gho_tokenDeMentiraSoloParaLasPruebas0123"
+# Con otra forma que la de un token de GitHub (gho_ y 36 caracteres), para que ningún escáner lo tome por uno.
+TOKEN = "token-de-prueba-no-es-real"
 NUEVOS = {
     INSTALADO.as_posix(),
     (DATOS / "reloj_pasadas.py").as_posix(),
@@ -299,6 +300,22 @@ def test_nunca_el_repositorio_de_v1(entorno, repo):
     assert entorno.llamadas() == []
 
 
+@pytest.mark.parametrize("repo", [
+    "github.com/malolocabreralolo-tech/futbol-base",
+    "malolocabreralolo-tech/futbol-base.git",
+    "MALOLOCABRERALOLO-TECH/Futbol-Base.GIT",
+    "https://github.com/malolocabreralolo-tech/futbol-base",
+    "pruebas/fútbol",
+])
+def test_fbr2_repo_solo_con_la_forma_dueno_nombre(entorno, repo):
+    # Otra forma del repositorio de v1 (con el servidor, con .git o la URL entera) no se cuela por la guarda: solo
+    # vale dueño/nombre, con letras sin tilde, cifras, «.», «_» y «-». No le pregunta ni le lanza nada a nadie.
+    entorno.responder("pasadas", _pasada(timedelta(hours=3)))
+    r = entorno.ejecutar(FBR2_REPO=repo)
+    assert r.returncode != 0 and "FBR2_REPO" in r.stderr and "dueño/nombre" in r.stderr, r.stderr
+    assert entorno.llamadas() == []
+
+
 # ── El token ──────────────────────────────────────────────────────────────────
 
 @pytest.mark.parametrize("caso", ["inexistente", "vacío", "solo un salto de línea"])
@@ -320,10 +337,10 @@ def test_token_por_defecto_el_de_v1(entorno):
     entorno.responder("pasadas", _pasada(timedelta(hours=3)))
     de_v1 = entorno.home / ".config/futbol-base-reloj/token"
     de_v1.parent.mkdir(parents=True)
-    de_v1.write_text("gho_otroTokenDeMentiraEnElSitioDeV1\n")
+    de_v1.write_text("token-de-prueba-de-v1-no-es-real\n")
     r = entorno.ejecutar(quitar=("FBR2_TOKEN_FILE",))
     assert r.returncode == 0, r.stderr
-    assert {c["token"] for c in entorno.llamadas()} == {_huella("gho_otroTokenDeMentiraEnElSitioDeV1")}
+    assert {c["token"] for c in entorno.llamadas()} == {_huella("token-de-prueba-de-v1-no-es-real")}
     assert entorno.lanzamientos() == [LANZAR_V2]
 
 
@@ -440,6 +457,22 @@ def test_instalar_en_un_home_de_prueba(tmp_path):
     assert e.lanzamientos() == [LANZAR_V2]
     assert {c["token"] for c in e.llamadas()} == {_huella(TOKEN)}
     assert _ficheros(e.home) == hay
+
+
+def test_instalar_con_xdg_data_home(tmp_path):
+    # Con XDG_DATA_HOME definida, el instalador deja la copia revisada donde la busca el ejecutable: los dos, en
+    # ${XDG_DATA_HOME:-$HOME/.local/share}/futbol-base-v2-reloj (en el instalador, FBR2_HOME hace de HOME).
+    e = Entorno(tmp_path, copia=False)
+    xdg = tmp_path / "xdg-data"
+    r = _instalar(_env_instalar(tmp_path, FBR2_HOME=str(e.home), XDG_DATA_HOME=str(xdg)))
+    assert r.returncode == 0, r.stderr
+    assert (xdg / "futbol-base-v2-reloj" / "reloj_pasadas.py").read_bytes() == LOGICA.read_bytes()
+    assert not (e.home / DATOS).exists()
+    e.responder("pasadas", _pasada(timedelta(hours=3)))
+    r = e.ejecutar(programa=e.home / INSTALADO, XDG_DATA_HOME=str(xdg))
+    assert r.returncode == 0, r.stderr
+    assert "Lanzado reloj.yml." in r.stdout and "AVISO" not in r.stdout
+    assert e.lanzamientos() == [LANZAR_V2]
 
 
 def test_unidades(tmp_path):
