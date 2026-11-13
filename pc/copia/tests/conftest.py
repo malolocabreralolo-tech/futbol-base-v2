@@ -1,6 +1,9 @@
-"""Útiles comunes de las pruebas: una raíz de copias temporal y bases de prueba."""
+"""Útiles comunes de las pruebas: una raíz de copias temporal, bases de prueba y un remoto git local."""
 
+import json
+import os
 import sqlite3
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -33,6 +36,16 @@ INSERT INTO "groups" VALUES (1, 'G1', 'Grupo 1');
 INSERT INTO scorers VALUES (1, 1, 'Jugador Uno', 1);
 """
 
+# Una identidad de prueba y nada de la configuración del usuario: los commits de prueba no llevan su nombre ni su correo.
+_GIT_PRUEBAS = {
+    "GIT_AUTHOR_NAME": "Pruebas",
+    "GIT_AUTHOR_EMAIL": "pruebas@example.invalid",
+    "GIT_COMMITTER_NAME": "Pruebas",
+    "GIT_COMMITTER_EMAIL": "pruebas@example.invalid",
+    "GIT_CONFIG_GLOBAL": os.devnull,
+    "GIT_CONFIG_NOSYSTEM": "1",
+}
+
 
 @pytest.fixture
 def raiz(tmp_path, monkeypatch) -> Path:
@@ -58,3 +71,36 @@ def crear_base(ruta: Path, partidos: int = 40, wal: bool = True) -> Path:
     finally:
         con.close()
     return ruta
+
+
+def git(repo: Path, *args: str) -> str:
+    r = subprocess.run(
+        ["git", "-C", str(repo), *args],
+        env={**os.environ, **_GIT_PRUEBAS},
+        check=True,
+        capture_output=True,
+        text=True,
+    )
+    return r.stdout.strip()
+
+
+@pytest.fixture
+def remoto(tmp_path) -> Path:
+    repo = tmp_path / "remoto"
+    repo.mkdir()
+    git(repo, "init", "--quiet", "--initial-branch=main")
+    crear_base(repo / "futbolbase.db")
+    (repo / "scripts").mkdir()
+    (repo / "scripts" / "x_raw.json").write_text(json.dumps({"a": 1}), encoding="utf-8")
+    git(repo, "add", "futbolbase.db", "scripts/x_raw.json")
+    git(repo, "commit", "--quiet", "-m", "base inicial")
+    return repo
+
+
+def commit_base(remoto: Path, partidos: int) -> str:
+    base = remoto / "futbolbase.db"
+    base.unlink()
+    crear_base(base, partidos=partidos)
+    git(remoto, "add", "futbolbase.db")
+    git(remoto, "commit", "--quiet", "-m", f"base con {partidos} partidos")
+    return git(remoto, "rev-parse", "HEAD")
