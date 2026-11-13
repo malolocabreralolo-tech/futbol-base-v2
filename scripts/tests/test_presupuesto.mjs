@@ -25,21 +25,28 @@ function get(url, { method = 'GET', headers = {} } = {}) {
   });
 }
 
-async function withSite(fn) {
+// `options` va tal cual a startPagesServer; `other`, si se da, es la carpeta de un segundo sitio (v1), con
+// su index.html y su sw.js, que la prueba monta donde quiera (options(other)).
+async function withSite(fn, options = () => ({})) {
   const root = mkdtempSync(join(tmpdir(), 'pages-'));
+  const other = mkdtempSync(join(tmpdir(), 'pages-v1-'));
   const html = '<!DOCTYPE html><title>sitio</title>' + 'x'.repeat(2000);
   const js = `const DATOS = ${JSON.stringify('y'.repeat(3000))};\n`;
   const png = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1, 2, 3, 4]);
+  const v1 = { html: '<!DOCTYPE html><title>v1</title>' + 'z'.repeat(2000), sw: "const CACHE_NAME = 'futbolbase-v20261113b';\n" };
   writeFileSync(join(root, 'index.html'), html);
   writeFileSync(join(root, 'data-x.js'), js);
   mkdirSync(join(root, 'escudos'));
   writeFileSync(join(root, 'escudos', 'a.png'), png);
-  const server = await startPagesServer(root);
+  writeFileSync(join(other, 'index.html'), v1.html);
+  writeFileSync(join(other, 'sw.js'), v1.sw);
+  const server = await startPagesServer(root, options(other));
   try {
-    await fn(server.url, { html, js, png });
+    await fn(server.url, { html, js, png, v1 });
   } finally {
     await server.close();
     rmSync(root, { recursive: true, force: true });
+    rmSync(other, { recursive: true, force: true });
   }
 }
 
@@ -84,6 +91,55 @@ test('pages-server: 404 fuera del sitio o si no existe; HEAD sin cuerpo; solo GE
     assert.equal(head.body.length, 0);
     assert.equal((await get(`${url}index.html`, { method: 'POST' })).status, 405);
   });
+});
+
+// v1 y v2 en el mismo origen, como en malolocabreralolo-tech.github.io (aislamiento-smoke.mjs): cada uno
+// bajo su prefijo, y nada de uno se sirve bajo el otro.
+test('pages-server: un segundo sitio bajo /futbol-base/, en el mismo origen que /futbol-base-v2/', async () => {
+  await withSite(async (url, { html, js, v1 }) => {
+    for (const path of ['futbol-base/', 'futbol-base', 'futbol-base/index.html?v=20261113b']) {
+      const res = await get(url + path);
+      assert.equal(res.status, 200, path);
+      assert.equal(res.headers['content-type'], 'text/html; charset=utf-8');
+      assert.equal(res.headers['cache-control'], 'max-age=600');
+      assert.equal(res.body.toString(), v1.html, path);
+    }
+    assert.equal((await get(`${url}futbol-base/sw.js`)).body.toString(), v1.sw);
+    for (const path of ['', 'index.html', 'futbol-base-v2/', 'futbol-base-v2/index.html']) {
+      assert.equal((await get(url + path)).body.toString(), html, path);
+    }
+    assert.equal((await get(`${url}futbol-base-v2/data-x.js`)).body.toString(), js);
+    // Lo de un sitio no está en el otro, ni fuera de su carpeta; y un prefijo parecido no es el sitio.
+    for (const path of ['futbol-base/data-x.js', 'futbol-base-v2/sw.js', 'futbol-base/..%2f..%2fetc%2fhosts', 'futbol-basex/', 'futbol-base-v1/']) {
+      assert.equal((await get(url + path)).status, 404, path);
+    }
+  }, (other) => ({ sites: { '/futbol-base': other } }));
+});
+
+test('pages-server: transform cambia lo que sirve un sitio en cada petición (una subida), también con gzip', async () => {
+  let version = '20261113b';
+  const calls = [];
+  const transform = ({ site, path, body }) => {
+    calls.push(`${site} ${path}`);
+    return site === '/futbol-base' && path === 'sw.js' ? body.toString().replaceAll('20261113b', version) : undefined;
+  };
+  await withSite(async (url, { html, v1 }) => {
+    assert.equal((await get(`${url}futbol-base/sw.js`)).body.toString(), v1.sw);
+    version = '20991231a';
+    const after = v1.sw.replace('20261113b', '20991231a');
+    const plain = await get(`${url}futbol-base/sw.js`);
+    assert.equal(plain.body.toString(), after);
+    assert.equal(Number(plain.headers['content-length']), Buffer.byteLength(after));
+    const gz = await get(`${url}futbol-base/sw.js`, { headers: { 'accept-encoding': 'gzip' } });
+    assert.equal(gz.headers['content-encoding'], 'gzip');
+    assert.equal(gunzipSync(gz.body).toString(), after);
+    // Lo que transform deja (undefined), tal cual.
+    assert.equal((await get(`${url}futbol-base/`)).body.toString(), v1.html);
+    assert.equal((await get(url)).body.toString(), html);
+    assert.equal((await get(`${url}futbol-base-v2/index.html`)).body.toString(), html);
+    assert.deepEqual(calls, ['/futbol-base sw.js', '/futbol-base sw.js', '/futbol-base sw.js', '/futbol-base index.html',
+      '/futbol-base-v2 index.html', '/futbol-base-v2 index.html']);
+  }, (other) => ({ sites: { '/futbol-base': other }, transform }));
 });
 
 test('presupuesto: argumentos, mediana y el informe con sus umbrales (spec §5.4)', () => {

@@ -90,3 +90,17 @@ jobs:
         run: node scripts/tests/interaction-smoke.mjs
       - name: PWA update and offline smoke
         run: node scripts/tests/pwa-smoke.mjs
+
+  # v1 y v2 en el mismo origen, con sus SW de verdad: ninguna toca las cachés ni las claves de la otra,
+  # tampoco al actualizarse. Saca v1 de su commit con git archive (y lo trae si el clon no lo tiene).
+  aislamiento-smoke:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Install browser test runner
+        run: npm install --no-save --package-lock=false playwright@1.58.0
+      - name: v1 y v2 en el mismo origen (headless Chrome)
+        run: node scripts/tests/aislamiento-smoke.mjs

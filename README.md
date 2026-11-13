@@ -32,9 +32,10 @@ node scripts/tests/render-smoke.mjs
 npm install --no-save --package-lock=false playwright@1.58.0
 node scripts/tests/interaction-smoke.mjs
 node scripts/tests/pwa-smoke.mjs
+node scripts/tests/aislamiento-smoke.mjs
 ```
 
-Las pruebas de navegador usan Chrome instalado; se puede indicar su ruta con `CHROME`.
+Las pruebas de navegador usan Chrome instalado; se puede indicar su ruta con `CHROME`. `aislamiento-smoke.mjs` abre v1 (sacada de su commit con `git archive`) y v2 en el mismo origen, con sus service workers, y comprueba que ninguna borra ni cambia las cachés o las claves de la otra, tampoco al actualizarse; sin Chrome, falla.
 
 ```text
 src/                         La app, en módulos planos sin compilar: arranque, rutas, modelo, mi equipo y pantallas

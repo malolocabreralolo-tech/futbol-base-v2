@@ -423,6 +423,14 @@ def test_tests_yml_render_smoke_intact():
     assert "node scripts/tests/render-smoke.mjs" in runs
 
 
+def test_tests_yml_aislamiento_smoke_job():
+    """v1 y v2 en el mismo origen, con sus SW de verdad (aislamiento-smoke.mjs): su propio job, con
+    Playwright y Chrome como los demás smokes de navegador."""
+    runs = _runs(_load("tests.yml"), "aislamiento-smoke")
+    assert "npm install --no-save --package-lock=false playwright@1.58.0" in runs
+    assert "node scripts/tests/aislamiento-smoke.mjs" in runs
+
+
 def test_tests_yml_pytest_installs_pyyaml():
     runs = " ".join(_runs(_load("tests.yml"), "pytest"))
     assert re.search(r"pip install[^\n]*\bpyyaml\b", runs), (

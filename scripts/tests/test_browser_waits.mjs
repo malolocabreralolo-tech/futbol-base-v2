@@ -6,7 +6,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
 import { inspect } from 'node:util';
-import { labeled, waitForAsync } from './browser-wait.mjs';
+import { labeled, takeOver, waitForAsync } from './browser-wait.mjs';
 
 const dir = new URL('./', import.meta.url);
 
@@ -83,6 +83,33 @@ test('labeled pone la etiqueta del paso delante del error de un clic o de una es
   assert.equal(dollarCaught.message, dollarExpected);
   assert.notEqual(dollarCaught.stack, dollarStackBefore);
   assert.equal(dollarCaught.stack.split('\n')[0], `Error: ${dollarExpected}`);
+});
+
+// takeOver (pwa-smoke y aislamiento-smoke): v1 y v2 comparten el origen, y la espera del SW nuevo de una
+// mira solo las cachés de datos de esa app (futbolbase-v… o futbolbase2-v…), nunca las de la otra.
+test('takeOver espera a que quede una sola caché de datos de la app de `cache`, sin contar las de la otra app', async () => {
+  // Un contexto falso: cada página nueva es una vuelta, y su evaluate devuelve lo que se ve en ella.
+  const run = async (looks, probeUrl, cache) => {
+    const urls = [];
+    const context = {
+      newPage: async () => {
+        const n = urls.length;
+        return { goto: async (url) => { urls.push(url); }, evaluate: async () => looks[Math.min(n, looks.length - 1)], close: async () => {} };
+      },
+    };
+    return { seen: await takeOver(context, probeUrl, cache, 'prueba'), urls };
+  };
+  const look = (caches) => ({ caches, installing: null, waiting: null, active: 'activated', controlled: true });
+  const v1Old = 'futbolbase-v20261113b';
+  const v1New = 'futbolbase-v20991231a';
+  const v2 = ['futbolbase2-v20261113b', 'futbolbase2-escudos-21f9b5f8'];
+  // v1: mientras su caché vieja sigue, todavía no; las de v2 y la de sus escudos no cuentan.
+  let r = await run([look([v1Old, v1New, ...v2]), look([v1New, 'futbolbase-escudos-c1c1c1c1', ...v2])], 'http://o/futbol-base/manifest.json', v1New);
+  assert.deepEqual(r.seen.caches, [v1New, 'futbolbase-escudos-c1c1c1c1', ...v2]);
+  assert.deepEqual(r.urls, ['http://o/futbol-base/manifest.json', 'http://o/futbol-base/manifest.json']);
+  // v2: las de v1 no cuentan.
+  r = await run([look([v1New, 'futbolbase-escudos-c1c1c1c1', 'futbolbase2-v20991231b'])], 'http://o/futbol-base-v2/manifest.json', 'futbolbase2-v20991231b');
+  assert.equal(r.urls.length, 1);
 });
 
 test('cada clic, espera de localizador y navegación de interaction-smoke y capturas lleva su etiqueta (labeled)', () => {

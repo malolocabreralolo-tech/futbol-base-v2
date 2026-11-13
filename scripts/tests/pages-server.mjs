@@ -6,7 +6,12 @@
 // - el sitio en la raíz y también bajo /futbol-base-v2/, la ruta de la web publicada; «/» y
 //   «/futbol-base-v2/» son index.html, y la ?v= no cuenta;
 // - solo GET y HEAD, y nada fuera de `root` (404).
-// startPagesServer(root, { port }) → { url, close() }: url es la raíz, con la barra final.
+// startPagesServer(root, { port, sites, transform }) → { url, close() }: url es la raíz, con la barra final.
+// - sites: { '/futbol-base': carpeta }, más sitios en el mismo origen, cada uno bajo su prefijo, como v1
+//   y v2 en malolocabreralolo-tech.github.io (aislamiento-smoke.mjs); fuera de su carpeta, 404.
+// - transform({ site, path, body }): lo que se sirve en lugar de `body` (un Buffer), o undefined para
+//   servirlo tal cual; site es el prefijo ('/futbol-base-v2' para `root`) y path, la ruta dentro del
+//   sitio. Se llama en cada petición: así una prueba publica otra versión sin tocar los ficheros.
 import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
 import { extname, join, normalize, resolve, sep } from 'node:path';
@@ -30,18 +35,28 @@ const TYPES = {
 };
 const COMPRESSIBLE = /^(?:text\/|application\/(?:javascript|json|manifest\+json)|image\/svg\+xml)/;
 
-// El fichero de `root` que sirve una ruta de la URL, o null si queda fuera.
-function fileFor(root, pathname) {
+// El sitio y el fichero que sirven una ruta de la URL ({ site, path, file }), o null si queda fuera.
+// `sites` va del prefijo a su carpeta; el de `root`, PREFIX, también sirve en la raíz.
+function fileFor(sites, pathname) {
   let path;
   try { path = decodeURIComponent(pathname); } catch { return null; }
-  if (path === PREFIX || path.startsWith(`${PREFIX}/`)) path = path.slice(PREFIX.length) || '/';
+  let site = PREFIX;
+  for (const prefix of Object.keys(sites)) {
+    if (path === prefix || path.startsWith(`${prefix}/`)) {
+      site = prefix;
+      path = path.slice(prefix.length) || '/';
+      break;
+    }
+  }
   if (path.endsWith('/')) path += 'index.html';
+  const root = sites[site];
   const file = normalize(join(root, path));
-  return file.startsWith(root + sep) ? file : null;
+  return file.startsWith(root + sep) ? { site, path: file.slice(root.length + 1).split(sep).join('/'), file } : null;
 }
 
-export async function startPagesServer(root, { port = 0 } = {}) {
-  const base = resolve(root);
+export async function startPagesServer(root, { port = 0, sites = {}, transform = null } = {}) {
+  const roots = { [PREFIX]: resolve(root) };
+  for (const [prefix, dir] of Object.entries(sites)) roots[prefix] = resolve(dir);
   const gzipped = new Map();
   const server = createServer(async (req, res) => {
     try {
@@ -50,20 +65,24 @@ export async function startPagesServer(root, { port = 0 } = {}) {
         res.end();
         return;
       }
-      const file = fileFor(base, new URL(req.url, 'http://pages.local').pathname);
-      const info = file ? await stat(file).catch(() => null) : null;
+      const found = fileFor(roots, new URL(req.url, 'http://pages.local').pathname);
+      const info = found ? await stat(found.file).catch(() => null) : null;
       if (!info || !info.isFile()) {
         res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'max-age=600' });
         res.end(req.method === 'HEAD' ? undefined : 'no está en el sitio');
         return;
       }
+      const { file } = found;
       const type = TYPES[extname(file).toLowerCase()] || 'application/octet-stream';
       const headers = { 'Content-Type': type, 'Cache-Control': 'max-age=600', Vary: 'Accept-Encoding' };
       let body = await readFile(file);
+      const changed = transform ? transform({ site: found.site, path: found.path, body }) : undefined;
+      if (changed !== undefined) body = Buffer.from(changed);
       if (COMPRESSIBLE.test(type) && /\bgzip\b/.test(req.headers['accept-encoding'] || '')) {
+        // Lo que cambia transform no se guarda: puede ser otro en la petición siguiente.
         const key = `${file}\0${info.mtimeMs}\0${info.size}`;
-        if (!gzipped.has(key)) gzipped.set(key, gzipSync(body));
-        body = gzipped.get(key);
+        if (changed === undefined && !gzipped.has(key)) gzipped.set(key, gzipSync(body));
+        body = changed === undefined ? gzipped.get(key) : gzipSync(body);
         headers['Content-Encoding'] = 'gzip';
       }
       headers['Content-Length'] = body.length;
