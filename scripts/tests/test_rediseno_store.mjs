@@ -1,12 +1,13 @@
 // Almacén «fb2:almacen» y migración desde v1 (Plan B1, Tarea 10; spec §6.5 y §11), y
-// «Borrar datos de esta app» (Plan B3, Tarea 1: removeItem y clearStore).
+// «Borrar datos de esta app» (Plan B3, Tarea 1: removeItem y clearStore). Lo de v1 entra solo
+// por importFromV1, una vez: el detalle de la importación está en test_importar_v1.mjs.
 // Usa Storage falsos en memoria y la fixture congelada favorites-v1: nunca
 // localStorage ni los data-*.js, ni depende de los valores de src/config.js.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  STORE_KEY, FOLLOWED_KEY, V1_STORE_KEY, V1_FOLLOWED_KEY, LEGACY_KEY, MAX_RECENT, safeStorage, migrateV1, loadStore, saveStore,
-  addRecent, clearStore,
+  STORE_KEY, FOLLOWED_KEY, V1_STORE_KEY, V1_FOLLOWED_KEY, LEGACY_KEY, IMPORTED_KEY, MAX_RECENT, safeStorage, migrateV1, loadStore,
+  saveStore, addRecent, clearStore, importFromV1,
 } from '../../src/store.js';
 import { fixture } from './fixtures/rediseno/load.mjs';
 
@@ -73,10 +74,12 @@ test('safeStorage acepta una función que devuelve el Storage y captura el error
   assert.equal(safeStorage(blocked).setItem('a', '1'), false);
   assert.deepEqual(loadStore(blocked, OPTIONS), { myTeam: DEFAULT_TEAM, recent: [] });
   assert.equal(saveStore(blocked, { myTeam: DEFAULT_TEAM, recent: [] }), false);
-  // Y con v1 guardado, la migración funciona igual a través de la función.
+  // Y con v1 guardado, la migración (importFromV1) funciona igual a través de la función.
   const withV1 = new MemoryStorage({ [LEGACY_KEY]: JSON.stringify(fixture('favorites-v1')) });
+  assert.deepEqual(importFromV1(() => withV1, OPTIONS), { store: true, followed: false });
   assert.deepEqual(loadStore(() => withV1, OPTIONS), MIGRATED);
   assert.deepEqual(JSON.parse(withV1.getItem(STORE_KEY)), MIGRATED);
+  assert.deepEqual(importFromV1(blocked, OPTIONS), { store: false, followed: false });
 });
 
 test('migrateV1: el favorito v1 real pasa a mi equipo con 2025-2026 literal, y el resto a vistos', () => {
@@ -174,15 +177,20 @@ test('loadStore: almacén vacío → equipo por defecto con la temporada del por
   assert.equal(storage.data.size, 0);
 });
 
-test('loadStore: con solo v1 migra una vez, escribe v2 y conserva v1 intacto', () => {
+test('importFromV1 y loadStore: con solo v1 migra una vez, escribe v2 y conserva v1 intacto', () => {
   const v1 = JSON.stringify(fixture('favorites-v1'));
   const storage = new MemoryStorage({ [LEGACY_KEY]: v1 });
+  // loadStore no mira v1: sin la importación, el equipo por defecto y sin escribir nada.
+  assert.deepEqual(loadStore(storage, OPTIONS), { myTeam: DEFAULT_TEAM, recent: [] });
+  assert.equal(storage.data.size, 1);
   // Con 2026/27 ya activada, mi equipo conserva 2025-2026: resolveMyTeam aplicará el paso 1.
+  assert.deepEqual(importFromV1(storage, { portalSeason: '2026-2027' }), { store: true, followed: false });
   assert.deepEqual(loadStore(storage, { ...OPTIONS, portalSeason: '2026-2027' }), MIGRATED);
   assert.deepEqual(JSON.parse(storage.getItem(STORE_KEY)), MIGRATED);
   assert.equal(storage.getItem(LEGACY_KEY), v1);
   // Segunda carga: manda v2 y v1 ya no se consulta.
   storage.setItem(LEGACY_KEY, JSON.stringify({ teams: [{ name: 'Moya', cat: 'benjamin', groupId: 'A1' }] }));
+  assert.deepEqual(importFromV1(storage, OPTIONS), { store: false, followed: false });
   assert.deepEqual(loadStore(storage, OPTIONS), MIGRATED);
 });
 
@@ -200,11 +208,13 @@ test('loadStore y saveStore: si el almacenamiento falla, valores por defecto en 
   }
 });
 
-test('loadStore: v2 ilegible → migra v1 si existe; si no, por defecto', () => {
+test('loadStore: v2 ilegible → por defecto, aunque v1 tenga favoritos: importFromV1 solo rellena un fb2:almacen que falta', () => {
   const v1 = JSON.stringify(fixture('favorites-v1'));
   const withV1 = new MemoryStorage({ [STORE_KEY]: '{roto', [LEGACY_KEY]: v1 });
-  assert.deepEqual(loadStore(withV1, OPTIONS), MIGRATED);
-  assert.deepEqual(JSON.parse(withV1.getItem(STORE_KEY)), MIGRATED);
+  assert.deepEqual(importFromV1(withV1, OPTIONS), { store: false, followed: false });
+  assert.deepEqual(loadStore(withV1, OPTIONS), { myTeam: DEFAULT_TEAM, recent: [] });
+  assert.equal(withV1.getItem(STORE_KEY), '{roto', 'ni la importación ni loadStore lo pisan');
+  assert.equal(withV1.getItem(LEGACY_KEY), v1);
   for (const text of ['null', '[]', '"texto"', '{roto']) {
     assert.deepEqual(loadStore(new MemoryStorage({ [STORE_KEY]: text }), OPTIONS), { myTeam: DEFAULT_TEAM, recent: [] }, text);
   }
@@ -276,22 +286,23 @@ test('safeStorage.removeItem: borra la clave y nunca lanza', () => {
   }
 });
 
-test('clearStore: borra las dos claves de v2 y nada más; sin la clave de favoritos, la carga siguiente no migra', () => {
+test('clearStore: borra el almacén y los seguidos y nada más (la marca de la importación se queda); la carga siguiente no escribe nada', () => {
   const mine = { name: 'Las Mesas B', season: '2025-2026', cat: 'benjamin', groupId: 'B2' };
   const storage = new MemoryStorage({
     [STORE_KEY]: JSON.stringify({ myTeam: mine, recent: [{ s: '2025-2026', g: 'PG2', t: 'AD Huracán' }] }),
     [FOLLOWED_KEY]: JSON.stringify([{ id: '1', n: 'Ana' }]),
+    [IMPORTED_KEY]: '1',
     'otra-app': 'x',
   });
   assert.equal(clearStore(storage), true);
-  assert.deepEqual(Object.fromEntries(storage.data), { 'otra-app': 'x' }, 'el origen es de más proyectos: nunca clear()');
+  assert.deepEqual(Object.fromEntries(storage.data), { [IMPORTED_KEY]: '1', 'otra-app': 'x' }, 'el origen es de más proyectos: nunca clear()');
   assert.deepEqual(loadStore(storage, OPTIONS), { myTeam: DEFAULT_TEAM, recent: [] });
-  assert.equal(storage.getItem(STORE_KEY), null, 'sin LEGACY_KEY no hay migración: loadStore no escribe nada');
+  assert.equal(storage.getItem(STORE_KEY), null, 'loadStore no escribe nada');
 });
 
-test('clearStore: las claves de v1 y las antiguas season, cat y theme se quedan intactas; LEGACY_KEY se vuelve a migrar', () => {
-  // v1 comparte el origen: v2 nunca borra lo suyo. Como LEGACY_KEY sigue ahí, la carga siguiente la
-  // migra otra vez (y sigue sin tocarla); las V1_* no las lee loadStore.
+test('clearStore: las claves de v1 y las antiguas season, cat y theme se quedan intactas, y lo de v1 no vuelve tras borrar', () => {
+  // v1 comparte el origen: v2 nunca borra lo suyo. Lo trae una vez importFromV1; tras borrar, la
+  // marca de la importación sigue ahí y la carga siguiente da el equipo por defecto.
   const mine = { name: 'Las Mesas B', season: '2025-2026', cat: 'benjamin', groupId: 'B2' };
   const v1 = {
     [V1_STORE_KEY]: JSON.stringify({ myTeam: mine, recent: [] }),
@@ -299,16 +310,14 @@ test('clearStore: las claves de v1 y las antiguas season, cat y theme se quedan 
     [LEGACY_KEY]: JSON.stringify(fixture('favorites-v1')),
     season: '2024-2025', cat: 'benjamin', theme: 'light',
   };
-  const storage = new MemoryStorage({
-    ...v1,
-    [STORE_KEY]: JSON.stringify({ myTeam: mine, recent: [] }),
-    [FOLLOWED_KEY]: JSON.stringify([{ id: '1', n: 'Ana' }]),
-  });
+  const storage = new MemoryStorage(v1);
+  assert.deepEqual(importFromV1(storage, OPTIONS), { store: true, followed: true });
+  assert.deepEqual(loadStore(storage, OPTIONS), { myTeam: mine, recent: [] });
   assert.equal(clearStore(storage), true);
-  assert.deepEqual(Object.fromEntries(storage.data), v1, 'lo de v1, byte a byte');
-  assert.deepEqual(loadStore(storage, OPTIONS), MIGRATED);
-  assert.deepEqual(JSON.parse(storage.getItem(STORE_KEY)), MIGRATED);
-  assert.equal(storage.getItem(LEGACY_KEY), v1[LEGACY_KEY]);
+  assert.deepEqual(Object.fromEntries(storage.data), { ...v1, [IMPORTED_KEY]: '1' }, 'lo de v1, byte a byte, y la marca');
+  assert.deepEqual(importFromV1(storage, OPTIONS), { store: false, followed: false });
+  assert.deepEqual(loadStore(storage, OPTIONS), { myTeam: DEFAULT_TEAM, recent: [] });
+  assert.deepEqual(Object.fromEntries(storage.data), { ...v1, [IMPORTED_KEY]: '1' }, 'y la carga siguiente no escribe nada');
 });
 
 test('clearStore: con el almacenamiento bloqueado no lanza y dice que no pudo', () => {

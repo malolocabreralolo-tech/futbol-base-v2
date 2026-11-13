@@ -13,7 +13,7 @@ import { currentAt, nextSeasonRaw, teamNames } from './fixtures/rediseno/simulat
 import { buildSeason } from '../../src/model.js';
 import { buildClubIndex, resolveMyTeam, myTeamToSave } from '../../src/myteam.js';
 import { SCREENS } from '../../src/links.js';
-import { STORE_KEY, LEGACY_KEY } from '../../src/store.js';
+import { STORE_KEY, FOLLOWED_KEY, LEGACY_KEY, V1_STORE_KEY, V1_FOLLOWED_KEY, IMPORTED_KEY } from '../../src/store.js';
 import { SCREEN_MAP } from '../../src/screens.js';
 import { start, startContext } from '../../src/app.js';
 import { SESSION_KEY } from '../../src/router.js';
@@ -179,7 +179,7 @@ test('un dato mal formado que hace fallar el guardado al arrancar no impide que 
   const storage = new Map();
   const { page, router } = await load(storage, { season: broken, today: '2026-03-01' });
   assert.ok(router, 'el router arranca igual, aunque el guardado al arrancar haya fallado');
-  assert.equal(storage.size, 0, 'no guarda nada: el fallo se registra, no se guarda a medias');
+  assert.deepEqual([...storage], [[IMPORTED_KEY, '1']], 'solo la marca de la importación, que va antes: el fallo se registra, no se guarda a medias');
   assert.equal(stateOf(page), 'error', 'el mismo fallo vuelve a aparecer al pintar, y el router enseña su caja de error');
   const logged = errorSpy.mock.calls.some((call) => String(call.arguments[0]).includes('[app] guardado al arrancar'));
   assert.ok(logged, 'registra el fallo del guardado al arrancar con console.error');
@@ -270,7 +270,7 @@ test('aviso sin conexión en vivo: aparece al arrancar sin conexión, se va con 
 
 // El cableado de app.js con el navegador, por su conducta (B5, decisión 7; antes se leía su código):
 // lo que start() escucha y guarda antes del primer pintado, la sesión y «Hacer mi equipo».
-test('start: la cadena de los escudos, en captura, y el cambio de fase guardado, los dos antes del primer pintado', async () => {
+test('start: la cadena de los escudos, en captura, la importación de v1 y el cambio de fase guardado, antes del primer pintado', async () => {
   const ff5 = { name: 'Las Mesas Hu.', season: '2025-2026', cat: 'benjamin', groupId: 'FF5' };
   const storage = new Map([[STORE_KEY, JSON.stringify({ myTeam: ff5, recent: [] })]]);
   installData(currentAt('2026-03-01'));
@@ -291,8 +291,9 @@ test('start: la cadena de los escudos, en captura, y el cambio de fase guardado,
   };
   const router = start(page.doc, page.win, PORTAL_2526, { now: () => new Date('2026-03-01T12:00:00Z') });
   await router.idle();
-  assert.deepEqual(seen.slice(0, 3), [['escucha', 'error', true, true], ['guarda', STORE_KEY, true], ['escucha', 'click', false, true]],
-    'los escudos (en captura) y el cambio de fase (FF5 → A2), antes de que el router pinte');
+  assert.deepEqual(seen.slice(0, 4), [['escucha', 'error', true, true], ['guarda', IMPORTED_KEY, true], ['guarda', STORE_KEY, true],
+    ['escucha', 'click', false, true]],
+    'los escudos (en captura), la importación de v1 (aquí, solo la marca) y el cambio de fase (FF5 → A2), antes de que el router pinte');
   assert.equal(saved(storage).groupId, 'A2');
   assert.equal(stateOf(page), 'A');
   // La escucha de los errores de imagen es la cadena de los escudos: miniatura → original → monograma.
@@ -376,7 +377,7 @@ test('ctx.recent sale del almacén en startContext, en ctxFor y en start(); nav.
   assert.deepEqual(lastCtx().recent, [acodetti, ...seen], 'y tras recargar, del almacén');
 });
 
-test('«Borrar datos»: nav.clearData borra las claves de v2 y el destino de la sesión, deja las de v1 como están y abre Mi equipo con el equipo por defecto; al recargar, la clave de favoritos de v1, que sigue ahí, se vuelve a migrar (decisión 6 de B3)', async (t) => {
+test('«Borrar datos»: nav.clearData borra el almacén, los seguidos y el destino de la sesión, deja las claves de v1 y la marca de la importación como están y abre Mi equipo con el equipo por defecto; al recargar, sigue el equipo por defecto: lo de v1 no se vuelve a traer (decisión 6 de B3)', async (t) => {
   const huracan = { name: 'AD Huracán', season: '2025-2026', cat: 'prebenjamin', groupId: 'PG2' };
   const v1 = { teams: [{ name: 'AD Huracán', cat: 'prebenjamin', groupId: 'PG2' }], selected: 'prebenjamin|PG2|huracan' };
   // Lo de v1, que comparte el origen: la clave de favoritos y las antiguas season, cat y theme.
@@ -394,16 +395,39 @@ test('«Borrar datos»: nav.clearData borra las claves de v2 y el destino de la 
   await router.idle();
   const removed = t.mock.method(page.win.sessionStorage, 'removeItem');
   await router.nav.clearData();
-  assert.deepEqual([...storage], fromV1, 'se va lo de v2; lo de v1, intacto');
+  // La primera carga ya puso la marca de la importación (con fb2:almacen puesto, no copió nada).
+  assert.deepEqual([...storage], [...fromV1, [IMPORTED_KEY, '1']], 'se va el almacén; lo de v1 y la marca, intactos');
   assert.deepEqual(removed.mock.calls.map((call) => call.arguments[0]), ['fb2:destino']);
   assert.deepEqual(page.entries(), ['#/', '#/tabla', '#/ajustes', '#/']);
   assert.match(page.main.innerHTML, /<h1>Las Mesas Hu\.<\/h1>/, 'Mi equipo, con el equipo por defecto');
-  // Al recargar, la clave de favoritos de v1 sigue ahí (v2 no la borra) y loadStore la migra otra vez:
-  // AD Huracán, guardado en STORE_KEY, y lo de v1 sin tocar.
+  // Al recargar, la clave de favoritos de v1 sigue ahí (v2 no la borra), pero la marca también: no se
+  // vuelve a importar y sale el equipo por defecto, sin guardar nada y con lo de v1 sin tocar.
+  const again = await load(storage, { today: '2026-03-01' });
+  assert.match(again.page.main.innerHTML, /<h1>Las Mesas Hu\.<\/h1>/);
+  assert.doesNotMatch(again.page.main.innerHTML, /<h1>AD Huracán<\/h1>/);
+  assert.deepEqual([...storage], [...fromV1, [IMPORTED_KEY, '1']]);
+});
+
+test('primera vez en v2: start() trae mi equipo y los seguidos de v1, sin tocarlos, y no vuelve a mirar v1', async () => {
+  const huracan = { name: 'AD Huracán', season: '2025-2026', cat: 'prebenjamin', groupId: 'PG2' };
+  // Lo que v1 tiene guardado en el mismo origen; v2 aún no tiene nada.
+  const fromV1 = [
+    [V1_STORE_KEY, JSON.stringify({ myTeam: huracan, recent: [{ s: '2025-2026', g: 'PG2', t: 'Acodetti' }] })],
+    [V1_FOLLOWED_KEY, JSON.stringify([{ id: '7', n: 'Luis Pérez' }])],
+    [LEGACY_KEY, JSON.stringify(fixture('favorites-v1'))],
+  ];
+  const storage = new Map(fromV1);
+  const { page } = await load(storage, { today: '2026-03-01' });
+  assert.match(page.main.innerHTML, /<h1>AD Huracán<\/h1>/, 'mi equipo de v1, sin volver a elegirlo');
+  assert.match(page.main.innerHTML, /Jugadores que sigues/);
+  assert.match(page.main.innerHTML, /href="#\/jugador\?id=7"/, 'y los seguidos de v1');
+  assert.deepEqual([...storage], [...fromV1, [IMPORTED_KEY, '1'], [STORE_KEY, fromV1[0][1]], [FOLLOWED_KEY, fromV1[1][1]]],
+    'lo de v1, intacto; en v2, la marca y la copia tal cual');
+  // El dueño cambia de equipo en v1: v2 ya no lo mira.
+  storage.set(V1_STORE_KEY, JSON.stringify({ myTeam: { ...huracan, name: 'Acodetti' }, recent: [] }));
   const again = await load(storage, { today: '2026-03-01' });
   assert.match(again.page.main.innerHTML, /<h1>AD Huracán<\/h1>/);
-  assert.deepEqual([...storage].filter(([key]) => key !== STORE_KEY), fromV1);
-  assert.deepEqual(JSON.parse(storage.get(STORE_KEY)), { myTeam: huracan, recent: [] });
+  assert.equal(storage.get(STORE_KEY), fromV1[0][1]);
 });
 
 // ── Plan B3, tarea 11: «Borrar datos de esta app» desde la pantalla Ajustes, con start() ──
@@ -431,18 +455,16 @@ test('Ajustes con start(): mi equipo guardado, y «Borrar» (tras desplegar el a
   ajustes.mount({ matches: () => false, querySelector: () => section }, {}, router.nav);
   onClick({ target: { closest: () => toggle } });
   assert.match(panel.innerHTML, /data-action="confirmar-borrado">Borrar<\/button>/);
-  assert.equal(storage.size, 2, 'desplegar no borra nada');
+  assert.equal(storage.size, 3, 'desplegar no borra nada (el almacén, la clave de v1 y la marca de la importación)');
   onClick({ target: { closest: () => ({ getAttribute: (n) => (n === 'data-action' ? 'confirmar-borrado' : null) }) } });
   await router.idle();
-  assert.deepEqual([...storage], [[LEGACY_KEY, JSON.stringify(fixture('favorites-v1'))]], 'se va lo de v2; la clave de v1, intacta');
+  assert.deepEqual([...storage], [[LEGACY_KEY, JSON.stringify(fixture('favorites-v1'))], [IMPORTED_KEY, '1']],
+    'se va el almacén; la clave de v1 y la marca de la importación, intactas');
   assert.deepEqual(page.entries(), ['#/ajustes', '#/']);
   assert.match(page.main.innerHTML, /<h1>Las Mesas Hu\.<\/h1>/, 'Mi equipo, con el equipo por defecto');
-  // Al recargar: la clave de v1 sigue ahí y se vuelve a migrar; su equipo elegido es Las Mesas Hu. de PG2.
+  // Al recargar: la clave de v1 sigue ahí, pero no se vuelve a migrar (lo dice la marca): el equipo
+  // por defecto, que no se guarda solo.
   const again = await load(storage, { today: '2026-03-01' });
   assert.match(again.page.main.innerHTML, /<h1>Las Mesas Hu\.<\/h1>/);
-  assert.equal(storage.get(LEGACY_KEY), JSON.stringify(fixture('favorites-v1')));
-  assert.deepEqual(JSON.parse(storage.get(STORE_KEY)), {
-    myTeam: { name: 'Las Mesas Hu.', season: '2025-2026', cat: 'prebenjamin', groupId: 'PG2' },
-    recent: [{ s: '2025-2026', g: 'PG2', t: 'AD Huracán' }],
-  });
+  assert.deepEqual([...storage], [[LEGACY_KEY, JSON.stringify(fixture('favorites-v1'))], [IMPORTED_KEY, '1']]);
 });

@@ -7,7 +7,7 @@ import { PORTAL } from './config.js';
 import { readGlobals, ensureHealth } from './state.js';
 import { createModel, seasonLabel } from './model.js';
 import { buildClubIndex, resolveMyTeam, myTeamToSave } from './myteam.js';
-import { loadStore, saveStore, safeStorage, addRecent, clearStore } from './store.js';
+import { loadStore, saveStore, safeStorage, addRecent, clearStore, importFromV1 } from './store.js';
 import { loadFollowed, saveFollowed, toggleFollowed } from './followed.js';
 import { canaryTodayISO, parseRoute } from './links.js';
 import { crestFallback } from './ui.js';
@@ -25,6 +25,7 @@ function contextFor({ model, myTeam, recent = [], followed = [], portal, dataset
 
 // El mismo contexto desde un almacén y con el día que se le pida: la base de las pruebas de las
 // pantallas. Con el almacén vacío o bloqueado, loadStore da el equipo por defecto, sin preguntas.
+// Solo lee el almacén: lo de v1 lo trae start, con importFromV1.
 export function startContext({ storage, portal, datasets, today }) {
   const store = loadStore(storage, { defaultTeam: portal.defaultTeam, portalSeason: portal.season });
   const model = createModel(datasets, { portalSeason: portal.season, buildClubIndex });
@@ -88,6 +89,8 @@ export function start(doc, win, config = PORTAL, { now = () => new Date() } = {}
   }
 
   const model = createModel(datasets, { portalSeason: portal.season, buildClubIndex });
+  // La primera vez en este navegador, mi equipo y los seguidos de v1 (mismo origen) pasan a v2.
+  importFromV1(storage, { portalSeason: portal.season });
   let store = loadStore(storage, { defaultTeam: portal.defaultTeam, portalSeason: portal.season });
   let followed = loadFollowed(storage);
   const getContext = () => contextFor({
@@ -130,9 +133,10 @@ export function start(doc, win, config = PORTAL, { now = () => new Date() } = {}
         store = addRecent(store, entry);
         return saveStore(storage, store);
       },
-      // «Borrar datos de esta app» (§4.7 y §4.9): las claves de v2 (las de v1 se quedan, clearStore) y
-      // el último destino de la sesión; en memoria, lo de un almacén vacío (loadStore sin almacenamiento
-      // da el equipo por defecto), aunque el navegador no deje borrar.
+      // «Borrar datos de esta app» (§4.7 y §4.9): el almacén y los seguidos (clearStore: las claves de v1
+      // y la marca de la importación se quedan) y el último destino de la sesión; en memoria, lo de un
+      // almacén vacío (loadStore sin almacenamiento da el equipo por defecto), aunque el navegador no
+      // deje borrar.
       // «Seguir a este jugador» (la ficha de jugador): entra el primero o sale; se guarda o, si el
       // almacenamiento falla, queda en memoria.
       toggleFollow(player) {

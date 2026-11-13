@@ -11,7 +11,7 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { fixture } from './fixtures/rediseno/load.mjs';
 import { currentAt, nextSeasonRaw, datasetsFrom } from './fixtures/rediseno/simulate.mjs';
-import { STORE_KEY, LEGACY_KEY } from '../../src/store.js';
+import { STORE_KEY, LEGACY_KEY, importFromV1 } from '../../src/store.js';
 import { startContext } from '../../src/app.js';
 import { screen } from '../../src/screen-home.js';
 
@@ -134,6 +134,8 @@ test('primera visita y almacenamiento roto: la portada del equipo por defecto, s
 
 test('favoritos v1: la migración y el paso 0, sin preguntas (foco 3)', () => {
   const storage = memoryStorage({ [LEGACY_KEY]: JSON.stringify(fixture('favorites-v1')) });
+  // Lo de v1 entra por importFromV1, como en start(); startContext solo lee el almacén.
+  assert.deepEqual(importFromV1(storage, { portalSeason: PORTAL.season }), { store: true, followed: false });
   const { ctx, out } = page({ today: '2026-09-23', storage });
   assert.deepEqual(ctx.myTeam, LAS_MESAS_2526);
   assert.equal(ctx.resolution.status, 'ok');

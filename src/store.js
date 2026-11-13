@@ -8,15 +8,17 @@
 // bloqueadas, cuota agotada o ninguno) deja la app con los valores por defecto
 // en memoria. Solo borra con «Borrar datos de esta app» (clearStore), y solo
 // claves de v2: v1 comparte el origen, y sus claves (las V1_* y LEGACY_KEY)
-// nunca se escriben ni se borran; las antiguas `season`, `cat` y `theme`, ni se
-// leen.
+// nunca se escriben ni se borran, y solo las lee, una vez, importFromV1; las
+// antiguas `season`, `cat` y `theme`, ni se leen.
 import { normalizeTeamName } from './state.js';
 import { CATEGORIES } from './model.js';
 
 export const STORE_KEY = 'fb2:almacen';
 // Los jugadores seguidos (followed.js) van en su propia clave: «Borrar datos» también la borra.
 export const FOLLOWED_KEY = 'fb2:jugadores';
-// Las de v1, en el mismo origen: solo se leen.
+// La marca de que ya se leyó v1 en este navegador: «Borrar datos» no la quita, para que no vuelva lo de v1.
+export const IMPORTED_KEY = 'fb2:importado';
+// Las de v1, en el mismo origen: solo las lee importFromV1, una vez.
 export const V1_STORE_KEY = 'futbol-base:v2';            // solo lectura
 export const V1_FOLLOWED_KEY = 'futbol-base:jugadores';  // solo lectura
 export const LEGACY_KEY = 'futbol-base:favorites:v1';    // solo lectura, como hasta ahora
@@ -62,8 +64,7 @@ export function safeStorage(storage) {
   };
 }
 
-function readJSON(store, key) {
-  const text = store.getItem(key);
+function parseJSON(text) {
   if (text === null) return undefined;
   try {
     return JSON.parse(text);
@@ -71,6 +72,7 @@ function readJSON(store, key) {
     return undefined;
   }
 }
+const readJSON = (store, key) => parseJSON(store.getItem(key));
 
 // Equipo de favorites.js (v1) y su clave `selected` (favoriteKey); mi equipo de la v2.
 const isV1Team = team => isObject(team) && isText(team.name) && V1_CATS.includes(team.cat) && isText(team.groupId);
@@ -121,13 +123,32 @@ export function loadStore(storage, { defaultTeam, portalSeason }) {
       recent: cleanRecent(saved.recent),
     };
   }
-  // Migración: se escribe STORE_KEY y LEGACY_KEY, de v1, no se toca.
-  const migrated = migrateV1(readJSON(store, LEGACY_KEY));
-  if (migrated) {
-    saveStore(storage, migrated);
-    return migrated;
-  }
   return { myTeam: fallback, recent: [] };
+}
+
+// Lee v1 una sola vez en este navegador, para no volver a elegir mi equipo ni los seguidos: copia tal
+// cual lo que a v2 le falte (loadStore y loadFollowed lo validan al leerlo). La marca va antes de
+// copiar, porque es mejor quedarse con el equipo por defecto que releer v1 a medias en cada carga.
+// Devuelve qué copió y nunca lanza. portalSeason no cambia nada: los favoritos antiguos llevan su
+// propia temporada (migrateV1).
+export function importFromV1(storage, { portalSeason } = {}) {
+  const store = safeStorage(storage);
+  const copied = { store: false, followed: false };
+  if (store.getItem(IMPORTED_KEY) !== null || !store.setItem(IMPORTED_KEY, '1')) return copied;
+  if (store.getItem(STORE_KEY) === null) {
+    const v1Store = store.getItem(V1_STORE_KEY);
+    if (isObject(parseJSON(v1Store))) {
+      copied.store = store.setItem(STORE_KEY, v1Store);
+    } else {
+      const migrated = migrateV1(readJSON(store, LEGACY_KEY));
+      if (migrated) copied.store = saveStore(storage, migrated);
+    }
+  }
+  if (store.getItem(FOLLOWED_KEY) === null) {
+    const v1Followed = store.getItem(V1_FOLLOWED_KEY);
+    if (Array.isArray(parseJSON(v1Followed))) copied.followed = store.setItem(FOLLOWED_KEY, v1Followed);
+  }
+  return copied;
 }
 
 // Devuelve false si no se pudo guardar (la app sigue con el estado en memoria).
@@ -140,9 +161,9 @@ export function addRecent(state, entry) {
   return { ...state, recent: cleanRecent([{ s: entry.s, g: entry.g, t: entry.t }, ...(state.recent || [])]) };
 }
 
-// «Borrar datos de esta app»: el almacén y los jugadores seguidos, las dos claves de v2. Las de v1 y
-// las antiguas `season`, `cat` y `theme` son de v1, que comparte el origen, y se quedan: si LEGACY_KEY
-// sigue ahí, la carga siguiente vuelve a migrarla.
+// «Borrar datos de esta app»: el almacén y los jugadores seguidos. Las claves de v1 y las antiguas
+// `season`, `cat` y `theme` son de v1, que comparte el origen, y se quedan; IMPORTED_KEY también, para
+// que tras borrar y recargar salga el equipo por defecto y no otra vez el de v1.
 // Nunca storage.clear(): el origen (malolocabreralolo-tech.github.io) es de más proyectos. Devuelve
 // false si alguna no se pudo borrar; nunca lanza.
 export function clearStore(storage) {

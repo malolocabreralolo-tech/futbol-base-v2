@@ -11,7 +11,7 @@ import { currentAt, nextSeasonRaw, datasetsFrom } from './fixtures/rediseno/simu
 import { buildSeason, createModel, teamFixtures } from '../../src/model.js';
 import { buildClubIndex, resolveMyTeam } from '../../src/myteam.js';
 import { shareLink, copyText, weekdayDate, dayMonth, dayMonthLong, monthName } from '../../src/links.js';
-import { loadStore, LEGACY_KEY } from '../../src/store.js';
+import { loadStore, importFromV1, STORE_KEY, LEGACY_KEY } from '../../src/store.js';
 import { ctxFor } from './fixtures/rediseno/screens.mjs';
 import { standingsTable } from '../../src/ui.js';
 import { screen } from '../../src/screen-home.js';
@@ -362,9 +362,13 @@ test('primera visita y almacén roto: la portada de PORTAL.defaultTeam sin pregu
   const defaultTeam = { cat: 'prebenjamin', groupId: 'PG2', name: 'Las Mesas Hu.' };
   const empty = { getItem: () => null, setItem: () => {} };
   const blocked = () => { throw new DOMException('bloqueado', 'SecurityError'); };
-  const v1 = { getItem: key => (key === LEGACY_KEY ? JSON.stringify(fixture('favorites-v1')) : null), setItem: () => {} };
+  const saved = new Map([[LEGACY_KEY, JSON.stringify(fixture('favorites-v1'))]]);
+  const v1 = { getItem: key => saved.get(key) ?? null, setItem: (key, value) => { saved.set(key, String(value)); } };
   for (const [label, storage] of [['vacío', empty], ['bloqueado', blocked], ['favoritos v1', v1]]) {
+    // Como en start(): lo de v1 entra por importFromV1, antes de loadStore.
+    importFromV1(storage, { portalSeason: '2025-2026' });
     const { myTeam } = loadStore(storage, { defaultTeam, portalSeason: '2025-2026' });
+    if (storage === v1) assert.deepEqual(JSON.parse(saved.get(STORE_KEY)).myTeam, myTeam, 'el elegido en los favoritos v1, migrado');
     for (const [options, state] of [[CASES.D, 'D'], [CASES.A, 'A']]) {
       const out = render({ ...options, myTeam });
       assert.match(out, new RegExp(`data-state="${state}"`), `${label} ${state}`);
