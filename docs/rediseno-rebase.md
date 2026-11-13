@@ -15,7 +15,7 @@ Siempre se queda **la estructura de la rama con las marcas de versión de `main`
 ## Antes de rebasar
 
 ```bash
-cd /home/manolo/claude/futbol-base
+cd /home/manolo/claude/futbol-base-v2
 git status --short
 git fetch origin
 git switch rediseno-acta
@@ -28,21 +28,21 @@ python3 scripts/sync_versions.py --from origin/main --since "$(git merge-base HE
 ## Rebasar
 
 ```bash
-cd /home/manolo/claude/futbol-base
+cd /home/manolo/claude/futbol-base-v2
 git rebase origin/main
 ```
 
 Si se para con un conflicto:
 
 ```bash
-cd /home/manolo/claude/futbol-base
+cd /home/manolo/claude/futbol-base-v2
 git diff --name-only --diff-filter=U
 ```
 
 Si los únicos ficheros en conflicto son `index.html`, `sw.js` o los dos:
 
 ```bash
-cd /home/manolo/claude/futbol-base
+cd /home/manolo/claude/futbol-base-v2
 git checkout --theirs -- $(git diff --name-only --diff-filter=U -- index.html sw.js)
 python3 scripts/sync_versions.py --from origin/main
 git add index.html sw.js
@@ -57,7 +57,7 @@ Se repite en cada parada hasta que termine el rebase. Un conflicto en cualquier 
 ## Después de rebasar
 
 ```bash
-cd /home/manolo/claude/futbol-base
+cd /home/manolo/claude/futbol-base-v2
 python3 scripts/sync_versions.py --from origin/main --check
 python3 -m pytest scripts/tests/ -q
 node --test scripts/tests/test_*.mjs
@@ -74,14 +74,14 @@ node scripts/tests/pwa-smoke.mjs
 **Nunca se empuja con un workflow en marcha.**
 
 ```bash
-cd /home/manolo/claude/futbol-base
-gh run list --limit 3
+cd /home/manolo/claude/futbol-base-v2
+gh run list -R malolocabreralolo-tech/futbol-base-v2 --limit 3
 git push --force-with-lease origin rediseno-acta
 ```
 
-`gh run list` no debe mostrar ninguna ejecución `in_progress` ni `queued`. `--force-with-lease` no pisa la rama remota si alguien la movió después del último `fetch`.
+`gh run list -R malolocabreralolo-tech/futbol-base-v2` no debe mostrar ninguna ejecución `in_progress` ni `queued`. `--force-with-lease` no pisa la rama remota si alguien la movió después del último `fetch`.
 
-El PR borrador #2 hacia `main` quedó cerrado al publicar B2, y un push a la rama no lanza `tests.yml`: se lanza a mano, `gh workflow run tests.yml --ref rediseno-acta`, con las suites y los tres smoke.
+El PR borrador #2 hacia `main` quedó cerrado al publicar B2, y un push a la rama no lanza `tests.yml`: se lanza a mano, `gh workflow run tests.yml -R malolocabreralolo-tech/futbol-base-v2 --ref rediseno-acta`, con las suites y los tres smoke.
 
 ## Publicar una fase
 
@@ -91,12 +91,12 @@ Con el visto bueno del usuario, sin ningún workflow en marcha y con el árbol l
 2. **Subir la versión** con `scripts/publicar.py`: las `?v=` de `index.html` y `CACHE_NAME` de `sw.js` a la vez, con la fecha UTC (o la letra siguiente, si no es mayor que la vigente), y `CODIGO`, sin tocar «Última actualización»:
 
    ```bash
-   cd /home/manolo/claude/futbol-base
+   cd /home/manolo/claude/futbol-base-v2
    python3 scripts/publicar.py
    git diff --stat
    ```
 
    Sale `versión <V> (antes, <la vigente>): <N> ?v= en index.html y futbolbase-v<V> en sw.js; «Última actualización: <la de los datos>», sin tocar` y la línea de `CODIGO`, y en el `diff`, solo `index.html` y `sw.js`. Si la vigente ya lleva la `z`, se para sin escribir nada.
 3. **Suites y los tres smoke**, en verde, y el commit `Publica Bn del rediseño «Acta»: versión <V>` con `index.html` y `sw.js`.
-4. **Empujar la rama, su CI y después `main`**: `git push origin rediseno-acta`, `gh workflow run tests.yml --ref rediseno-acta` y, con esa ejecución en verde, `git push origin rediseno-acta:main` (avance rápido). Cada push, sin ningún workflow en marcha (`gh run list --limit 5`). Si `main` avanzó mientras tanto, el push se rechaza: se vuelve al paso 1.
+4. **Empujar la rama, su CI y después `main`**: `git push origin rediseno-acta`, `gh workflow run tests.yml -R malolocabreralolo-tech/futbol-base-v2 --ref rediseno-acta` y, con esa ejecución en verde, `git push origin rediseno-acta:main` (avance rápido). Cada push, sin ningún workflow en marcha (`gh run list -R malolocabreralolo-tech/futbol-base-v2 --limit 5`). Si `main` avanzó mientras tanto, el push se rechaza: se vuelve al paso 1.
 5. **Comprobar la web** con el perfil de un móvil que tenía la versión anterior, apertura a apertura, como en el paso de publicar del plan.

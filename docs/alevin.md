@@ -73,14 +73,14 @@ Lo que la activación de la Fase Previa dejó mal en la base lo corrige el bot e
 
 ## Activar alevín de Gran Canaria 2026-27
 
-Sin ningún workflow en marcha (`gh run list --limit 5`) antes de empujar nada: `futbolbase.db` es binario y un conflicto obliga a repetirlo todo. Mejor con la rama de la web ya en `main` (si no, los datos se publican pero la web no los enseña).
+Sin ningún workflow en marcha (`gh run list -R malolocabreralolo-tech/futbol-base-v2 --limit 5`) antes de empujar nada: `futbolbase.db` es binario y un conflicto obliga a repetirlo todo. Mejor con la rama de la web ya en `main` (si no, los datos se publican pero la web no los enseña).
 
 ```bash
 # 1. (opcional) Catálogo al día: ¿hay ya Segunda Fase o eliminatorias de alevín?
-gh workflow run discover-fiflp.yml
+gh workflow run discover-fiflp.yml -R malolocabreralolo-tech/futbol-base-v2
 # 2. Grupos, clasificaciones y calendarios de la Fase Previa alevín de Gran Canaria (54976940)
-gh workflow run fetch-fiflp-islas.yml -f temporada=22al      # → scripts/fiflp_islas_22al_raw.json
-gh run watch                                                 # ~20-25 min; después:
+gh workflow run fetch-fiflp-islas.yml -R malolocabreralolo-tech/futbol-base-v2 -f temporada=22al   # → scripts/fiflp_islas_22al_raw.json
+gh run watch -R malolocabreralolo-tech/futbol-base-v2                                               # ~20-25 min; después:
 git pull
 # 3. Manifiesto: AL1…AL32, cat alevin, «Primera Fase GC»
 python3 scripts/fiflp_manifest.py scripts/fiflp_islas_22al_raw.json 2026-2027 --comps 54976940 > docs/temporadas/2026-2027-alevin.json
@@ -97,23 +97,23 @@ Lo que pasa después, solo:
 
 - `activate_season` guarda el código del acta de cada partido si el raw lo trae (`fiflp_acta`) y marca los grupos nuevos en `fiflp_full_pending`: en su **primera pasada** el bot lee **todas** sus jornadas ya jugadas (no solo las de los últimos 10 días, `BACK_DAYS`) y así tiene el código de las actas de la jornada 1. Al quitar la marca deja el fichero `FIFLP_DB_MARK` (en `runner.temp`) y `update.yml` sube la base aunque no cambie nada publicado; si no, la pasada siguiente repetiría la lectura completa. Las actas se leen justo después de su calendario (cada grupo, completo), hasta el cupo de la pasada; las que no caben, en las pasadas siguientes (las nuevas, las primeras tras los prioritarios).
 - El bot (`update_fiflp.run_passes`, [federacion.md](federacion.md)) hace desde el 16/10/2026 pasadas **cortas cada 2 h** (desde el 17/10/2026, cada hora en las ventanas de partidos: `reloj.yml`; 16 min de plazo; una espera del freno de la federación y, en el segundo, nada más: ~30 páginas por pasada), cada grupo **completo** antes del siguiente (su calendario, sus goleadores si tocan y sus actas pendientes), con una rotación **sin estado**: los grupos prioritarios (los cuatro alevín de Las Mesas Huracán, entre ellos) **cuando toca** (en su pasada, una de cada tres, o si pasarían de 6 h sin leerse, o con un partido suyo recién jugado sin resultado o con su acta por leer, durante 12 h); después el turno de cada nivel (cada nivel tiene cuatro turnos fijos de un cuarto de sus grupos), con la **cuota de alevín** (`FIFLP_ALEVIN_MIN`, 8 por defecto y nunca menos que su turno) intercalada con el turno de prebenjamín y el de benjamín, cada nivel con la fase de su turno en esa pasada (hasta el 15/10/2026 la cuota iba delante de ellos: con el cupo de la federación, ~15 páginas por IP, se llevaba todos los grupos no prioritarios de la pasada y benjamín y prebenjamín no se leían; con la fase 0, el primero de cada nivel iba siempre delante y prebenjamín se leía cada 12 h); después el turno siguiente de cada nivel; y con lo que quede, el resto, intercalados. El turno lo elige el número de la ejecución de `update.yml` (`GITHUB_RUN_NUMBER`, `run_number`: el turno `número % 4`), no nada guardado en la base ni en `data-health.json`, que `update.yml` solo sube si cambia algo publicado: cada ejecución lee primero otro turno, haga commit o no, y dentro del turno empieza en cada época (4 pasadas) por otro sitio. Con el cupo, cada pasada lee los prioritarios que tocan y ~2 grupos más, y la información completa de un grupo alevín no prioritario llega a tener ~4 días de mediana ([federacion.md](federacion.md), «Lo que da una pasada»). Los que no se leen conservan su última entrada en `data-health.json`. Si un día no basta, `FIFLP_CATS` (`benjamin,prebenjamin` / `alevin`) permite repartir las categorías en dos workflows con la misma `concurrency: update-data`: el de solo alevín lee todos los grupos alevín que quepan en su plazo, empezando cada vez por otro turno, y cada workflow deja en `data-health.json` la última entrada de los grupos de las categorías que no lee.
-- Para traer de una vez las actas antiguas de alevín, en lugar de esperar al bot: `gh workflow run actas-federacion.yml -f temporada=22 -f categorias=alevin -f tandas=3` (van a `scripts/fiflp_actas_2026-2027_alevin_raw.json`, aparte: ver «Las actas de alevín, en su propio raw»; el raw no borra las actas que ha leído el bot, ni ahora ni cuando la temporada se archive: la purga de huérfanas no toca las de `cod_acta = fiflp_acta`).
+- Para traer de una vez las actas antiguas de alevín, en lugar de esperar al bot: `gh workflow run actas-federacion.yml -R malolocabreralolo-tech/futbol-base-v2 -f temporada=22 -f categorias=alevin -f tandas=3` (van a `scripts/fiflp_actas_2026-2027_alevin_raw.json`, aparte: ver «Las actas de alevín, en su propio raw»; el raw no borra las actas que ha leído el bot, ni ahora ni cuando la temporada se archive: la purga de huérfanas no toca las de `cod_acta = fiflp_acta`).
 
-Cuando la federación publique la Segunda Fase alevín (o sus eliminatorias), lo mismo con sus ids: `gh workflow run discover-fiflp.yml` (la tanda `22al` toma las competiciones alevín del catálogo), `gh workflow run fetch-fiflp-islas.yml -f temporada=22al -f ids=<ids>` (se añaden al mismo raw), `fiflp_manifest … --comps <ids>` (códigos `ALA1`…, `ALEL1`…), `activate_season … --add` y `--add --apply`.
+Cuando la federación publique la Segunda Fase alevín (o sus eliminatorias), lo mismo con sus ids: `gh workflow run discover-fiflp.yml -R malolocabreralolo-tech/futbol-base-v2` (la tanda `22al` toma las competiciones alevín del catálogo), `gh workflow run fetch-fiflp-islas.yml -R malolocabreralolo-tech/futbol-base-v2 -f temporada=22al -f ids=<ids>` (se añaden al mismo raw), `fiflp_manifest … --comps <ids>` (códigos `ALA1`…, `ALEL1`…), `activate_season … --add` y `--add --apply`.
 
 ## Benjamín de Fuerteventura 2026-27 (1.ª Fase, 54977017)
 
 Apareció en el catálogo después del raw del 3/10. Se baja sola y se añade al raw de la tanda `22`:
 
 ```bash
-gh workflow run fetch-fiflp-islas.yml -f temporada=22 -f ids=54977017   # → scripts/fiflp_islas_22_raw.json
-gh run watch && git pull
+gh workflow run fetch-fiflp-islas.yml -R malolocabreralolo-tech/futbol-base-v2 -f temporada=22 -f ids=54977017   # → scripts/fiflp_islas_22_raw.json
+gh run watch -R malolocabreralolo-tech/futbol-base-v2 && git pull
 python3 scripts/fiflp_manifest.py scripts/fiflp_islas_22_raw.json 2026-2027 --comps 54977017 > docs/temporadas/2026-2027-fv.json
 python3 scripts/activate_season.py docs/temporadas/2026-2027-fv.json --fiflp-raw scripts/fiflp_islas_22_raw.json --add
 python3 scripts/activate_season.py docs/temporadas/2026-2027-fv.json --fiflp-raw scripts/fiflp_islas_22_raw.json --add --apply
 ```
 
-Códigos `FV11`…, fase «Fuerteventura Fase 1». Sus actas de antes, como las de alevín: primera pasada completa del bot o `gh workflow run actas-federacion.yml -f temporada=22 -f comps=54977017`.
+Códigos `FV11`…, fase «Fuerteventura Fase 1». Sus actas de antes, como las de alevín: primera pasada completa del bot o `gh workflow run actas-federacion.yml -R malolocabreralolo-tech/futbol-base-v2 -f temporada=22 -f comps=54977017`.
 
 ## La app de futbolaspalmas
 
@@ -124,9 +124,9 @@ La app publica alevín (ligas 77-109 y 120, «Alevin eliminatorias»), pero `fet
 Los workflows de la federación llevan la entrada `categorias` (por defecto `benjamin,prebenjamin`), que pasa a las tandas encadenadas y, en las actas, a la cola de temporadas:
 
 ```bash
-gh workflow run goleadores-federacion.yml -f temporadas=12,13,14,15,16,17,18,19,20,21 -f categorias=alevin
-gh workflow run detalle-federacion.yml -f temporadas=12,13,14,15,16,17,18,19,20,21 -f jornadas=12,13,14,15,16,17,18,19,20,21 -f categorias=alevin
-gh workflow run actas-federacion.yml -f temporada=21 -f cola=20,19,18,17,16,15 -f categorias=alevin
+gh workflow run goleadores-federacion.yml -R malolocabreralolo-tech/futbol-base-v2 -f temporadas=12,13,14,15,16,17,18,19,20,21 -f categorias=alevin
+gh workflow run detalle-federacion.yml -R malolocabreralolo-tech/futbol-base-v2 -f temporadas=12,13,14,15,16,17,18,19,20,21 -f jornadas=12,13,14,15,16,17,18,19,20,21 -f categorias=alevin
+gh workflow run actas-federacion.yml -R malolocabreralolo-tech/futbol-base-v2 -f temporada=21 -f cola=20,19,18,17,16,15 -f categorias=alevin
 ```
 
 El bot los importa solo (`import_past_seasons`): los grupos alevín se crean con los códigos de arriba (`meta_by_name` también fuera de las temporadas archivadas) y su calendario es el de la federación en todas las temporadas pasadas (no hay portal). Después, `python3 scripts/score_deviation.py --write-baseline` y los escudos (`escudos_federacion.py`, `check_missing_shields.py`, que ya leen alevín).

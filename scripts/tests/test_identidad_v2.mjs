@@ -3,7 +3,7 @@
 // Ejecutar: node --test scripts/tests/test_identidad_v2.mjs
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { fixture } from './fixtures/rediseno/load.mjs';
@@ -154,4 +154,40 @@ test('README: el primer párrafo dice que esto es v2, enlaza v2 y v1 y apunta al
     assert.ok(existsSync(join(ROOT, doc)), `${doc} no existe`);
   }
   assert.match(readme, new RegExp(`\\[Ver el portal\\]\\(${V2.replace(/[.]/g, '\\.')}\\)`));
+});
+
+// En este repositorio conviven la historia de v1 y la de v2: una orden de gh sin -R actúa sobre el
+// repositorio por defecto de la carpeta donde se teclea, que puede ser v1, y v1 no se toca. Los documentos
+// vivos: el README, los de docs/ y los de pc/. Los planes y los diseños (docs/superpowers/, docs/plans/) son
+// historia, y la revisión del 13/11 (docs/revision-2026-11-13.md) es el registro de lo que había en v1.
+const V2_REPO = 'malolocabreralolo-tech/futbol-base-v2';
+function livingDocs() {
+  const docs = readdirSync(join(ROOT, 'docs')).filter((name) => name.endsWith('.md') && name !== 'revision-2026-11-13.md');
+  const pc = readdirSync(join(ROOT, 'pc')).filter((name) => existsSync(join(ROOT, 'pc', name, 'README.md')));
+  return ['README.md', ...docs.map((name) => `docs/${name}`), ...pc.map((name) => `pc/${name}/README.md`)];
+}
+
+test('las órdenes de gh de los documentos van al repositorio de v2, nunca al de v1', () => {
+  const docs = livingDocs();
+  for (const doc of ['docs/federacion.md', 'docs/temporada-nueva.md', 'pc/reloj/README.md', 'pc/copia/README.md']) {
+    assert.ok(docs.includes(doc), `${doc}, fuera de los documentos que se miran`);
+  }
+  const wrong = [];
+  let commands = 0;
+  for (const doc of docs) {
+    read(doc).split('\n').forEach((line, i) => {
+      const where = `${doc}:${i + 1}`;
+      // Una orden llega hasta el final de su código en línea (`), hasta su comentario (#) o hasta el final de la línea.
+      for (const [command, verb] of line.matchAll(/\bgh (workflow|run|issue|api)\b[^`#\n]*/g)) {
+        commands += 1;
+        const toV2 = verb === 'api' ? !command.includes('repos/') || command.includes(`repos/${V2_REPO}/`) : command.includes(`-R ${V2_REPO}`);
+        if (!toV2) wrong.push(`${where}: ${command.trim()}`);
+      }
+      // Ninguna orden apunta a v1: ni su repositorio (por -R, --repo, la API o la URL de git) ni su carpeta del PC.
+      if (/(?:-R\s+|--repo[\s=]+|repos\/|github\.com[/:])malolocabreralolo-tech\/futbol-base(?!-v2\b)/.test(line)) wrong.push(`${where}: apunta a v1: ${line.trim()}`);
+      if (/\bcd\s+(?:\/home\/manolo|~)\/claude\/futbol-base(?![\w-])/.test(line)) wrong.push(`${where}: entra en la carpeta de v1: ${line.trim()}`);
+    });
+  }
+  assert.ok(commands > 20, `solo ${commands} órdenes de gh en los documentos: ¿se leen?`);
+  assert.deepEqual(wrong, [], `órdenes sin -R ${V2_REPO} (o que apuntan a v1):\n  ${wrong.join('\n  ')}`);
 });

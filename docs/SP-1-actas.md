@@ -58,7 +58,7 @@ En la base del 14/10/2026, las 65.262 filas de `match_staff` y las 412.520 de `a
 Solo desde GitHub Actions (FIFLP bloquea la IP local):
 
 ```
-gh workflow run fetch-fiflp-actas.yml --ref main \
+gh workflow run fetch-fiflp-actas.yml -R malolocabreralolo-tech/futbol-base-v2 --ref main \
    -f temporada=21 \
    -f comps=54422888 \
    -f do_import=true \
