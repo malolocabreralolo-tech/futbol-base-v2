@@ -327,22 +327,19 @@ def test_update_prints_the_runner_ip_before_the_bot_and_never_fails():
     assert "${{" not in step["run"] and not step.get("env") and "secrets" not in step["run"]
 
 
-def test_update_opens_one_issue_per_new_competition_without_stopping_the_bot():
-    """Las competiciones nuevas de la federación (newCompetitions de data-health.json, que escribe
-    update_fiflp.check_competitions) abren una issue cada una (avisar_competiciones.py, que no las
-    repite). Corre aunque falle el paso del bot y un fallo suyo no tumba el job ni el commit."""
+def test_update_no_abre_issues():
+    """Sin aviso por issue de las competiciones nuevas (13/11/2026): el repositorio tiene las issues
+    desactivadas, el paso (avisar_competiciones.py) fallaba en cada pasada tapado por continue-on-error y
+    no se quieren avisos fuera de la web. Las nuevas siguen en newCompetitions de data-health.json, que
+    enseña «Datos y fuentes» (update_fiflp.check_competitions)."""
     data = _load("update.yml")
-    assert data["permissions"].get("issues") == "write"
-    assert data["permissions"].get("contents") == "write"
-    steps = _steps(data, "update")
-    runs = [(s.get("run") or "") for s in steps]
-    fetch_idx = next(i for i, r in enumerate(runs) if "fetch_futbolaspalmas" in r)
-    idx = next(i for i, r in enumerate(runs) if "avisar_competiciones.py" in r)
-    step = steps[idx]
-    assert idx > fetch_idx
-    assert step.get("continue-on-error") is True and step.get("if") == "${{ !cancelled() }}"
-    assert step["env"].get("GH_TOKEN") == "${{ github.token }}"
-    assert "${{" not in step["run"], "nada interpolado en el guion"
+    assert data["permissions"] == {"contents": "write"}
+    assert "permissions" not in data["jobs"]["update"], "los del job sustituirían a los del workflow"
+    for step in _steps(data, "update"):
+        assert "avisar_competiciones" not in (step.get("run") or ""), step.get("name")
+        assert "gh issue" not in (step.get("run") or ""), step.get("name")
+        assert "GH_TOKEN" not in (step.get("env") or {}), step.get("name")
+    assert not (ROOT / "scripts" / "avisar_competiciones.py").exists()
 
 
 def test_update_stages_all_generate_js_outputs():

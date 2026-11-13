@@ -606,7 +606,7 @@ COMPETITIONS_JS = """() => {
         .map(o => ({id: o.value, name: o.text.trim()}));
 }"""
 # Competiciones de las categorías de la web que no se van a añadir ({id: motivo}): dejan de salir en
-# newCompetitions (Datos y fuentes). Para que no vuelva a abrirse su issue basta con cerrarla.
+# newCompetitions (Datos y fuentes).
 IGNORED_COMPETITIONS = {}
 
 
@@ -647,8 +647,8 @@ def new_competitions(options, known, previous=(), today=None, ignored=None):
 
 def check_competitions(page, F, conn, season_id, today, log=print):
     """Lee el desplegable de competiciones de la temporada en curso y apunta en data-health.json las
-    nuevas (newCompetitions; update.yml abre una issue por cada una con avisar_competiciones.py). Si
-    la página no carga o sale vacía, se queda lo que había. Devuelve las nuevas, o None si no leyó."""
+    nuevas (newCompetitions, que enseña «Datos y fuentes»; sin aviso fuera de la web). Si la página no
+    carga o sale vacía, se queda lo que había. Devuelve las nuevas, o None si no leyó."""
     season = season_code(conn, season_id)
     if not season:
         return None

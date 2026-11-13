@@ -1,13 +1,14 @@
-"""Competiciones nuevas de la federación: el bot las ve solo y avisa (octubre de 2026).
+"""Competiciones nuevas de la federación: el bot las ve solo y las apunta (octubre de 2026).
 
 La Segunda Fase de benjamín llega a mediados de noviembre y «LIGA BENJAMIN F-7 DE FUERTEVENTURA 1ª
 FASE» (54977017) ya se había escapado: nada miraba el desplegable de competiciones. Ahora, en cada
 pasada, update_fiflp.check_competitions lee ese desplegable de la temporada en curso (el mismo JS que
 discover_fiflp_comps.py), se queda con benjamín, prebenjamín y alevín de Gran Canaria (sin fútbol sala
 ni alevín de Lanzarote y Fuerteventura), quita las que la temporada ya tiene y las ignoradas, y lo
-apunta en data-health.json (newCompetitions). update.yml abre una issue por competición, sin
-repetirla (avisar_competiciones.py). Sin red: el catálogo de 2026-27 congelado en fixtures/ (el
-vivo lo cambia discover-fiflp.yml y estas pruebas corren en el bot antes de publicar) y un gh falso.
+apunta en data-health.json (newCompetitions), que enseña «Datos y fuentes». Sin aviso fuera de la web:
+la issue por competición (avisar_competiciones.py) se quitó el 13/11/2026. Sin red: el catálogo de
+2026-27 congelado en fixtures/ (el vivo lo cambia discover-fiflp.yml y estas pruebas corren en el bot
+antes de publicar).
 """
 from datetime import date, datetime, timedelta, timezone
 import json
@@ -20,7 +21,6 @@ import pytest
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 from db import SCHEMA  # noqa: E402
-import avisar_competiciones as A  # noqa: E402
 import source_health  # noqa: E402
 import update_fiflp as U  # noqa: E402
 
@@ -177,88 +177,3 @@ def test_a_new_season_starts_without_the_old_ones(health):
     source_health.begin("2026-2027")                 # sin pasar por la federación (FIFLP_UPDATE): se conservan
     assert [c["id"] for c in source_health.new_competitions()] == ["1"]
 
-
-# ── El aviso: una issue por competición, sin repetirla ─────────────────────────
-
-FV = {"id": "54977017", "name": "LIGA BENJAMIN F-7 DE FUERTEVENTURA 1ª FASE", "firstSeen": "2026-10-07"}
-AL = {"id": "54976940", "name": "LIGA ALEVIN GRAN CANARIA FASE PREVIA", "firstSeen": "2026-10-14"}
-
-
-class Gh:
-    """gh falso: las issues que ya hay (abiertas o cerradas) y las que se crean."""
-    def __init__(self, titles=()):
-        self.titles, self.calls = list(titles), []
-
-    def __call__(self, args):
-        self.calls.append(args)
-        if args[:2] == ["issue", "list"]:
-            assert "--state" in args and args[args.index("--state") + 1] == "all"
-            return json.dumps([{"number": n, "title": t} for n, t in enumerate(self.titles, 1)])
-        if args[:2] == ["issue", "create"]:
-            self.titles.append(args[args.index("--title") + 1])
-            return "https://github.com/x/y/issues/9\n"
-        raise AssertionError(args)
-
-
-def write(path, comps):
-    path.write_text(json.dumps({"season": "2026-2027", "groups": {}, "newCompetitions": comps}))
-    return path
-
-
-def test_one_issue_per_new_competition_and_never_twice(tmp_path):
-    path = write(tmp_path / "data-health.json", [FV, AL])
-    gh = Gh(titles=["Competición nueva en la federación: LIGA ALEVIN GRAN CANARIA FASE PREVIA (54976940)"])
-    assert A.main([str(path)], gh=gh, log=lambda *_: None) == 0
-    created = [c for c in gh.calls if c[:2] == ["issue", "create"]]
-    assert len(created) == 1
-    title = created[0][created[0].index("--title") + 1]
-    body = created[0][created[0].index("--body") + 1]
-    assert title == "Competición nueva en la federación: LIGA BENJAMIN F-7 DE FUERTEVENTURA 1ª FASE (54977017)"
-    assert "54977017" in body and "2026-2027" in body and "fiflp_manifest.py" in body and "--add" in body
-    assert "-f temporada=22 -f ids=54977017" in body and "fiflp_islas_22_raw.json" in body
-    assert "alevín" not in body and "alevín" in A.body(AL, "2026-2027")
-    # La siguiente pasada la encuentra (también si se cerró) y no abre otra.
-    A.main([str(path)], gh=gh, log=lambda *_: None)
-    assert len([c for c in gh.calls if c[:2] == ["issue", "create"]]) == 1
-
-
-def test_the_issue_steps_refresh_the_catalog_first_and_pull_before_the_manifest():
-    """fetch-fiflp-islas saca las competiciones de 2026-27 del catálogo del repositorio
-    (el que escribe discover-fiflp.yml): una competición publicada después no se descarga hasta
-    que ese workflow la apunta. Y el raw lo sube el workflow: git pull antes del manifiesto."""
-    lines = A.body(FV, "2026-2027").splitlines()
-    step = lambda text: next(i for i, line in enumerate(lines) if text in line)
-    discover, fetch = step("gh workflow run discover-fiflp.yml"), step("gh workflow run fetch-fiflp-islas.yml")
-    pull, manifest = step("git pull"), step("fiflp_manifest.py")
-    assert discover < fetch < pull < manifest
-    for launched, workflow in ((discover, "discover-fiflp.yml"), (fetch, "fetch-fiflp-islas.yml")):
-        assert "gh run watch" in lines[launched + 1] and workflow in lines[launched + 1]   # a que acabe
-
-
-def test_an_alevin_competition_goes_with_the_alevin_batch():
-    """Alevín de Gran Canaria tiene su propia tanda y su propio raw (22al, docs/alevin.md); la categoría,
-    con el category_of de todos (categorias.py)."""
-    body = A.body(AL, "2026-2027")
-    assert "-f temporada=22al -f ids=54976940" in body and "fiflp_islas_22al_raw.json" in body
-    assert "docs/alevin.md" in body
-    assert "22al" not in A.body(FV, "2026-2027")
-
-
-def test_the_issue_only_carries_the_competition(tmp_path):
-    """El repositorio es público: ni equipos ni personas; solo el nombre y el código de la competición."""
-    path = write(tmp_path / "data-health.json", [FV])
-    gh = Gh()
-    A.main([str(path)], gh=gh, log=lambda *_: None)
-    args = next(c for c in gh.calls if c[:2] == ["issue", "create"])
-    text = " ".join(args)
-    for personal in ("Mesas", "Huracán", "@"):
-        assert personal not in text
-
-
-def test_nothing_to_announce_and_odd_entries_are_skipped(tmp_path):
-    gh = Gh()
-    assert A.main([str(tmp_path / "no-existe.json")], gh=gh, log=lambda *_: None) == 0
-    assert A.main([str(write(tmp_path / "h.json", []))], gh=gh, log=lambda *_: None) == 0
-    odd = [{"id": "12; rm -rf /", "name": "LIGA BENJAMIN X"}, {"id": "55", "name": ""}, "54977017"]
-    assert A.main([str(write(tmp_path / "h.json", odd))], gh=gh, log=lambda *_: None) == 0
-    assert gh.calls == []
