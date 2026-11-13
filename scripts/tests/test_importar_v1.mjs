@@ -160,7 +160,7 @@ test('test_importar_ignora_lo_corrupto', () => {
   }
 });
 
-test('un equipo de v1 que ya no existe acaba en el equipo por defecto', () => {
+test('un equipo de v1 de una categoría que v2 no tiene acaba en el equipo por defecto', () => {
   // Un equipo de una categoría que v2 no tiene y un seguido mal formado: se copian tal cual, y la
   // validación fina la hacen loadStore y loadFollowed.
   const viejo = { name: 'CD Viejo', season: '2025-2026', cat: 'infantil', groupId: 'I1' };
@@ -178,6 +178,32 @@ test('un equipo de v1 que ya no existe acaba en el equipo por defecto', () => {
   assert.equal(ctx.resolution.name, POR_DEFECTO.name);
   assert.equal(ctx.resolution.group.id, POR_DEFECTO.groupId);
   assert.deepEqual(ctx.followed, [{ id: '7', n: 'Luis' }]);
+});
+
+// Un equipo de v1 bien formado que no está en los datos (su nombre no sale en ningún grupo, o su grupo ya no
+// existe) se trae tal cual y se resuelve como en v1, que arranca con el mismo startContext y la misma
+// resolución (myteam.js): sin candidatos, ausente; con otro equipo de su club, se pregunta. Es decir, como si
+// v2 lo hubiera guardado ella misma, y sin lanzar.
+test('un equipo de v1 bien formado que no está en los datos acaba como en v1: ausente o preguntar', () => {
+  const portal = { season: '2025-2026', defaultTeam: POR_DEFECTO };
+  const datasets = datasetsFrom(fixture('current-2025-2026'));
+  const arrancar = (storage) => startContext({ storage, portal, datasets, today: '2026-03-01' });
+  const estado = (ctx) => ({ myTeam: ctx.myTeam, status: ctx.resolution.status,
+    candidates: (ctx.resolution.candidates || []).map((c) => `${c.cat}|${c.group.id}|${c.name}`) });
+  for (const [equipo, esperado] of [
+    [{ name: 'CD Inexistente', season: '2025-2026', cat: 'prebenjamin', groupId: 'PG2' }, { status: 'absent', candidates: [] }],
+    [{ name: 'Las Mesas Hu. B', season: '2025-2026', cat: 'prebenjamin', groupId: 'PG9' },
+      { status: 'ask', candidates: ['prebenjamin|PG2|Las Mesas Hu.'] }],
+  ]) {
+    const almacen = JSON.stringify({ myTeam: equipo, recent: [] });
+    const s = almacenDePrueba({ 'futbol-base:v2': almacen });
+    assert.deepEqual(importFromV1(s, { portalSeason: '2025-2026' }), { store: true, followed: false }, equipo.name);
+    let ctx;
+    assert.doesNotThrow(() => { ctx = arrancar(s); }, equipo.name);
+    // Sigue siendo su equipo (no el de por defecto), ausente o con la pregunta.
+    assert.deepEqual(estado(ctx), { myTeam: equipo, ...esperado }, equipo.name);
+    assert.deepEqual(estado(ctx), estado(arrancar(almacenDePrueba({ 'fb2:almacen': almacen }))), equipo.name);
+  }
 });
 
 test('test_importar_con_almacenamiento_que_falla', () => {
