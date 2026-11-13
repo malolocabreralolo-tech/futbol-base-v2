@@ -259,7 +259,7 @@ def test_ramas_que_chocan_no_paran_la_base(raiz, remoto, tmp_path):
     assert actualizar_espejo(o, AHORA + timedelta(days=1)) == nuevo
     assert extraer_base(o, nuevo, tmp_path / "n.db").read_bytes() == (remoto / "futbolbase.db").read_bytes()
     aviso, = avisos_del_espejo(o)
-    assert aviso.startswith("git fetch: ") and "refs/heads/claude" in aviso and "\n" not in aviso
+    assert aviso.startswith("git fetch: ") and "\n" not in aviso   # el texto de git cambia con su versión e idioma
     espejo = raiz / "repos/v1.git"
     assert git(espejo, "rev-parse", "refs/copia/main/20261114") == nuevo
     assert git(espejo, "rev-parse", "refs/heads/claude/arreglo") == viejo        # lo que había no se pierde

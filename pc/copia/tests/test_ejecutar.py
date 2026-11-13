@@ -429,7 +429,7 @@ def test_espejo_incompleto_no_para_la_pasada(raiz, remoto):
     assert ejecutar([o], AHORA + timedelta(days=1)) == 0
     c = _estado(raiz)["v1"]["ultima_comprobacion"]
     assert c["resultado"] == "aceptada" and c["commit"] == git(remoto, "rev-parse", "main")
-    assert c["detalle"][-1].startswith("espejo incompleto: git fetch: ") and "refs/heads/claude" in c["detalle"][-1]
+    assert c["detalle"][-1].startswith("espejo incompleto: git fetch: ")   # el texto de git cambia con su versión e idioma
     assert comprobar(raiz / "actual/v1/futbolbase.db").recuentos["matches"] == 41
     assert " v1 aceptada matches 41; " in _registro(raiz)[-1] and "; espejo incompleto: " in _registro(raiz)[-1]
     # estado lo enseña, corto, sin que cuente como aviso; también los días siguientes sin cambios.
@@ -441,7 +441,7 @@ def test_espejo_incompleto_no_para_la_pasada(raiz, remoto):
         linea = texto.splitlines()[0]
         nota = linea.split(" · ")[-1]
         assert codigo == 0 and "AVISO" not in linea
-        assert nota.startswith("espejo incompleto: git fetch: ") and "refs/heads/claude" in nota and len(nota) <= 160
+        assert nota.startswith("espejo incompleto: git fetch: ") and len(nota) <= 160
     # Con un resultado malo sale una sola vez, y el aviso es lo demás.
     commit_base(remoto, 10)
     assert ejecutar([o], AHORA + timedelta(days=3)) == 1
