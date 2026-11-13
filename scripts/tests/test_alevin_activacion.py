@@ -10,6 +10,7 @@
     actas de las jornadas de más de tres semanas (BACK_DAYS) no se leían nunca.
 """
 from datetime import date
+import json
 import os
 import sqlite3
 import sys
@@ -103,6 +104,45 @@ def test_build_gives_alevin_its_own_codes_category_and_full_name():
 def test_build_refuses_alevin_of_other_islands():
     with pytest.raises(ValueError):
         M.build([group("54976933", "LIGA ALEVIN LANZAROTE FASE 1", 1, TEAMS)], "2026-2027", "22")
+
+
+# ── Copa Benjamín de Gran Canaria (2026-27) ────────────────────────────────────
+# CGC, fase «Copa Gran Canaria»; nunca BC ni PCC, que son la Copa de Campeones: synth_copa_campeones.py
+# reescribe la tabla de todos esos grupos, de todas las temporadas.
+
+def test_copa_benjamin_de_gran_canaria_tiene_codigo():
+    assert M.comp_meta("COPA BENJAMÍN GRAN CANARIA") == ("CGC", "Copa Gran Canaria")
+    assert M.comp_meta("COPA  BENJAMIN GRAN CANARIA") == ("CGC", "Copa Gran Canaria")
+    assert M.comp_meta(" Copa Benjamín  Gran Canaria ") == ("CGC", "Copa Gran Canaria")
+    for nombre in ("COPA CAMPEONES BENJAMÍN", "COPA CAMPEONES PREBENJAMIN", "COPA BENJAMIN FUTBOL SALA GRAN CANARIA",
+                   "COPA DE CAMPEONES BENJAMIN GRAN CANARIA", "COPA PREBENJAMIN GRAN CANARIA", "COPA ALEVIN GRAN CANARIA"):
+        with pytest.raises(ValueError):
+            M.comp_meta(nombre)
+
+
+def test_la_copa_benjamin_de_gran_canaria_es_de_gran_canaria():
+    raw = [group("55331982", "COPA BENJAMÍN GRAN CANARIA", n, TEAMS) for n in (2, 1)]
+    assert [(g["id"], g["cat"], g["island"], g["phase"], g["fullName"]) for g in M.build(raw, "2026-2027", "22")] == [
+        ("CGC1", "benjamin", "grancanaria", "Copa Gran Canaria", "BENJAMIN COPA GRAN CANARIA - GRUPO 1"),
+        ("CGC2", "benjamin", "grancanaria", "Copa Gran Canaria", "BENJAMIN COPA GRAN CANARIA - GRUPO 2")]
+
+
+def test_el_manifiesto_filtrado_no_aborta_por_otra_competicion(tmp_path, monkeypatch, capsys):
+    """build pasa comp_meta a todo el raw para ordenarlo: una competición sin convenio en el raw de la
+    tanda aborta el manifiesto entero, diciendo cuál; con --comps solo cuentan las pedidas."""
+    raw = [group("54977161", "LIGA PREBENJAMIN LANZAROTE", 1, TEAMS), group("99999999", "TORNEO PREBENJAMIN X", 1, TEAMS)]
+    with pytest.raises(ValueError, match="TORNEO PREBENJAMIN X"):
+        M.build(raw, "2026-2027", "22")
+    path = tmp_path / "fiflp_islas_22_raw.json"
+    path.write_text(json.dumps(raw), encoding="utf-8")
+    # main abre la base solo para los nombres de los equipos: una vacía, nunca la de verdad.
+    monkeypatch.setattr(sys.modules["db"], "get_connection", lambda *a, **k: sqlite3.connect(":memory:"))
+    monkeypatch.setattr(sys.modules["activate_season"], "known_names", lambda raw, conn: {})
+    monkeypatch.setattr(sys, "argv", ["fiflp_manifest.py", str(path), "2026-2027", "--comps", "54977161"])
+    M.main()
+    groups = json.loads(capsys.readouterr().out)["groups"]
+    assert [(g["id"], g["cat"], g["phase"], g["island"]) for g in groups] == [
+        ("PLZ1", "prebenjamin", "Lanzarote", "lanzarote")]
 
 
 def test_the_manifest_cli_accepts_alevin_as_team_category():

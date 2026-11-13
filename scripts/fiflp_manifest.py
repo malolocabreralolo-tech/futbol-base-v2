@@ -12,6 +12,9 @@ histórico entre temporadas y el cambio de fase de Mi equipo los traten igual:
     LIGA BENJAMIN ... FASE LIGA X / SEGUNDA FASE X (cualquier letra) -> X1.. «Segunda Fase X»
     LIGA PREBENJAMIN DE GRAN CANARIA         -> PG1..   «Gran Canaria»
     LIGA PREBENJAMIN LANZAROTE|FUERTEVENTURA -> PLZ1.. / PFV1..
+    COPA BENJAMÍN GRAN CANARIA (2026-27)     -> CGC1..  «Copa Gran Canaria» (nunca BC ni PCC: son
+                                                la Copa de Campeones y synth_copa_campeones.py
+                                                les reescribe la tabla)
     ... ELIMINATORIAS (de Gran Canaria)      -> EL1.. (benjamín), PEL1.. (prebenjamín),
                                                 ALEL1.. (alevín)  «Eliminatorias» (copa en la web)
 
@@ -47,6 +50,8 @@ def fold(text):
 ELIMINATORIAS = {"benjamin": "EL", "prebenjamin": "PEL", "alevin": "ALEL"}
 # 'FASE LIGA C' (2025-26) o 'SEGUNDA FASE F': la letra de la Segunda Fase, cualquiera (2026-27 tendrá F).
 SEGUNDA_FASE = re.compile(r"\b(?:FASE LIGA|SEGUNDA FASE|2. FASE)\s+([A-Z])\b")
+# El nombre entero (sin tildes ni espacios de más): otra copa de Gran Canaria (de campeones, final…) aborta.
+COPA_GRAN_CANARIA = re.compile(r"COPA BENJAMIN (?:DE )?GRAN CANARIA")
 
 
 def category(name):
@@ -103,6 +108,8 @@ def comp_meta(name):
         if re.search(r"\b(COPA|CAMPEONES|CLAUSURA|CIERRE|TORNEO)\b", n):
             raise ValueError(f"competición sin convenio de código: {name}")
         return "PG", "Gran Canaria"
+    if COPA_GRAN_CANARIA.fullmatch(" ".join(n.split())):
+        return "CGC", "Copa Gran Canaria"
     m = SEGUNDA_FASE.search(n)
     if m:
         return m.group(1), f"Segunda Fase {m.group(1)}"

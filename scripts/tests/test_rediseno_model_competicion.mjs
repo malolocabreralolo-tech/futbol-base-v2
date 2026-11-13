@@ -10,6 +10,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fixture } from './fixtures/rediseno/load.mjs';
 import { competitionKey, groupLabel, buildSeason, buildCups, phaseLevel } from '../../src/model.js';
+import { isCupGroup } from '../../src/state.js';
 
 const KEY_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 let phasesCache = null;
@@ -231,6 +232,17 @@ test('Fase desconocida: sin clasificar (division null), pero con clave y etiquet
   const torneo = { ...nueva, id: 'TPC1', phase: 'Torneo Cierre' };
   assert.deepEqual([ck(torneo).cup, ck(torneo).key, ck(torneo).label], ['torneo', 'torneo-torneo-cierre', 'Torneo Cierre']);
   assert.equal(label(torneo), 'Prebenjamín, Torneo Cierre, Grupo 1');
+});
+
+// La Copa Benjamín de Gran Canaria de 2026-27 (fiflp_manifest: CGC1…, «Copa Gran Canaria»): la regla de
+// cualquier copa insular, sin regla nueva; nunca «otra-…».
+test('«Copa Gran Canaria» de benjamín (CGC1, 2026-27): copa insular, nunca otra-', () => {
+  const cgc1 = { season: '2026-2027', cat: 'benjamin', id: 'CGC1', phase: 'Copa Gran Canaria', island: 'grancanaria', name: 'Grupo 1' };
+  assert.doesNotMatch(ck(cgc1).key, /otra-/);
+  assert.deepEqual([ck(cgc1).division, ck(cgc1).cup, ck(cgc1).key, ck(cgc1).label], ['unica', 'insular', 'copa', 'Copa Gran Canaria']);
+  assert.equal(label(cgc1), 'Benjamín, Copa Gran Canaria, Grupo 1');
+  assert.equal(isCupGroup(cgc1), true);
+  assert.equal(phaseLevel(cgc1), 1);
 });
 
 // ── Temporadas archivadas, 2017-18 a 2020-21 (phases-archivo.json) ─────────
