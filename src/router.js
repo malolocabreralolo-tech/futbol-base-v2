@@ -38,7 +38,7 @@ const REPLACE_ONLY = { jornada: ['r', 'g', 'c', 'f'], tabla: ['v', 'g', 't'], ex
 const UNDER_EXPLORE = new Set(['equipo', 'copa', 'goleadores', 'ligas', 'temporadas', 'records', 'fuentes', 'ajustes', 'jugador']);
 const MAX_REDIRECTS = 5;
 // El último destino principal, en la sesión (app.js lo borra con «Borrar datos», decisión 6 de B3).
-export const SESSION_KEY = 'futbol-base:destino';
+export const SESSION_KEY = 'fb2:destino';
 // Un ancla que es uno de estos controles se lleva el foco en lugar del h1 (#/explorar#buscar).
 const FORM_CONTROLS = new Set(['INPUT', 'SELECT', 'TEXTAREA', 'BUTTON']);
 // Parámetros de valor cerrado (§4.1): el que no está en su lista se quita, sin aviso, como una vista

@@ -234,8 +234,8 @@ def _sealed_site(tmp_path, seal="00000000"):
     original = b"el original de a"
     (tmp_path / "escudos" / "a.png").write_bytes(original)
     (tmp_path / "escudos" / "s" / "a.png").write_bytes(_png_with_tag(build_crests.source_tag(original)))
-    (tmp_path / "sw.js").write_text("const CACHE_NAME = 'futbolbase-v20260926';\n"
-                                    f"const CRESTS_CACHE = 'futbolbase-escudos-{seal}';\n"
+    (tmp_path / "sw.js").write_text("const CACHE_NAME = 'futbolbase2-v20260926';\n"
+                                    f"const CRESTS_CACHE = 'futbolbase2-escudos-{seal}';\n"
                                     "const OFFLINE_URL = './index.html';\n", encoding="utf-8")
     return tmp_path
 
@@ -257,7 +257,7 @@ def test_the_seal_is_the_sha1_of_the_list_of_every_file_of_escudos_with_its_sha1
     (site / "escudos" / "s" / "a.png").write_bytes(b"otra miniatura")
     assert build_crests.seal(site) != before
     assert build_crests.read_seal((site / "sw.js").read_text(encoding="utf-8")) == "00000000"
-    assert build_crests.read_seal("const CACHE_NAME = 'futbolbase-v20260926';\nconst OFFLINE_URL = './index.html';\n") is None
+    assert build_crests.read_seal("const CACHE_NAME = 'futbolbase2-v20260926';\nconst OFFLINE_URL = './index.html';\n") is None
 
 
 def test_build_writes_the_seal_in_line_2_of_sw_js_and_check_compares_it(tmp_path, capsys, monkeypatch):
@@ -272,7 +272,7 @@ def test_build_writes_the_seal_in_line_2_of_sw_js_and_check_compares_it(tmp_path
     assert build_crests.main(["--root", str(site)]) == 0
     assert capsys.readouterr().out == f"escudos/s: 0 escritas, 1 al día, 0 borradas\nsello de sw.js: {want} (antes, 00000000)\n"
     after = (site / "sw.js").read_text(encoding="utf-8").split("\n")
-    assert after[1] == f"const CRESTS_CACHE = 'futbolbase-escudos-{want}';"
+    assert after[1] == f"const CRESTS_CACHE = 'futbolbase2-escudos-{want}';"
     assert after[:1] + after[2:] == before[:1] + before[2:], "solo cambia la línea 2"
     assert build_crests.main(["--check", "--root", str(site)]) == 0
     assert capsys.readouterr().out == "escudos/s: 1 al día\n"
@@ -281,12 +281,12 @@ def test_build_writes_the_seal_in_line_2_of_sw_js_and_check_compares_it(tmp_path
     assert build_crests.main(["--root", str(site)]) == 0
     assert capsys.readouterr().out == "borrada: escudos/s/b.png\nescudos/s: 0 escritas, 1 al día, 1 borradas\n"
     # Un sw.js sin la línea 2 del contrato: ni se toca ni se arregla solo.
-    (site / "sw.js").write_text("const CACHE_NAME = 'futbolbase-v20260926';\n", encoding="utf-8")
+    (site / "sw.js").write_text("const CACHE_NAME = 'futbolbase2-v20260926';\n", encoding="utf-8")
     assert build_crests.main(["--check", "--root", str(site)]) == 1
     assert capsys.readouterr().out.splitlines()[0] == f"sello de sw.js: falta la línea 2, const CRESTS_CACHE (el de escudos/ es {want})"
     assert build_crests.main(["--root", str(site)]) == 1
     assert capsys.readouterr().out.splitlines()[-1] == "sello de sw.js: falta la línea 2, const CRESTS_CACHE: nada escrito"
-    assert (site / "sw.js").read_text(encoding="utf-8") == "const CACHE_NAME = 'futbolbase-v20260926';\n"
+    assert (site / "sw.js").read_text(encoding="utf-8") == "const CACHE_NAME = 'futbolbase2-v20260926';\n"
 
 
 @LIVE

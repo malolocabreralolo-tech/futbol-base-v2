@@ -24,7 +24,7 @@ FILES = ("index.html", "sw.js")
 # Los mismos patrones que bump_cache_version (generate_js.py).
 VERSION_RE = re.compile(r"\?v=(\d{8}[a-z]?)")
 FOOTER_RE = re.compile(r"Última actualización: (\d{2}/\d{2}/\d{4})")
-CACHE_RE = re.compile(r"futbolbase-v([0-9a-z]+)")
+CACHE_RE = re.compile(r"futbolbase2-v([0-9a-z]+)")
 
 
 class MarksError(ValueError):
@@ -52,7 +52,7 @@ def apply_marks(index_html, sw_js, wanted):
     marks(index_html, sw_js)  # la rama también cumple el contrato del bot
     index = VERSION_RE.sub(f"?v={wanted['v']}", index_html)
     index = FOOTER_RE.sub(f"Última actualización: {wanted['footer']}", index)
-    sw = CACHE_RE.sub(f"futbolbase-v{wanted['cache']}", sw_js, count=1)
+    sw = CACHE_RE.sub(f"futbolbase2-v{wanted['cache']}", sw_js, count=1)
     return index, sw
 
 
@@ -64,7 +64,7 @@ def differences(index_html, sw_js, wanted):
     if have["footer"] != wanted["footer"]:
         out.append(f"Última actualización: {have['footer']} (debería ser {wanted['footer']})")
     if have["cache"] != wanted["cache"]:
-        out.append(f"CACHE_NAME futbolbase-v{have['cache']} (debería ser futbolbase-v{wanted['cache']})")
+        out.append(f"CACHE_NAME futbolbase2-v{have['cache']} (debería ser futbolbase2-v{wanted['cache']})")
     return out
 
 
@@ -114,7 +114,7 @@ def main(argv=None):
         if new != old:
             path.write_text(new, encoding="utf-8")
     print(f"marcas de {args.ref}: ?v={wanted['v']}, Última actualización: {wanted['footer']}, "
-          f"CACHE_NAME futbolbase-v{wanted['cache']}")
+          f"CACHE_NAME futbolbase2-v{wanted['cache']}")
     return 0
 
 

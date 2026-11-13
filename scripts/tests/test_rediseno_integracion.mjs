@@ -376,30 +376,34 @@ test('ctx.recent sale del almacén en startContext, en ctxFor y en start(); nav.
   assert.deepEqual(lastCtx().recent, [acodetti, ...seen], 'y tras recargar, del almacén');
 });
 
-test('«Borrar datos»: nav.clearData borra v2, v1, las claves antiguas y el destino de la sesión, y abre Mi equipo con el equipo por defecto; la recarga no vuelve a migrar (decisión 6 de B3)', async (t) => {
+test('«Borrar datos»: nav.clearData borra las claves de v2 y el destino de la sesión, deja las de v1 como están y abre Mi equipo con el equipo por defecto; al recargar, la clave de favoritos de v1, que sigue ahí, se vuelve a migrar (decisión 6 de B3)', async (t) => {
   const huracan = { name: 'AD Huracán', season: '2025-2026', cat: 'prebenjamin', groupId: 'PG2' };
   const v1 = { teams: [{ name: 'AD Huracán', cat: 'prebenjamin', groupId: 'PG2' }], selected: 'prebenjamin|PG2|huracan' };
+  // Lo de v1, que comparte el origen: la clave de favoritos y las antiguas season, cat y theme.
+  const fromV1 = [[LEGACY_KEY, JSON.stringify(v1)], ['season', '2025-2026'], ['cat', 'prebenjamin'], ['theme', 'light']];
   const storage = new Map([
     [STORE_KEY, JSON.stringify({ myTeam: huracan, recent: [{ s: '2025-2026', g: 'PG2', t: 'Acodetti' }] })],
-    [LEGACY_KEY, JSON.stringify(v1)], ['season', '2025-2026'], ['cat', 'prebenjamin'], ['theme', 'light'],
+    ...fromV1,
   ]);
   const { page, router } = await load(storage, { today: '2026-03-01' });
   assert.match(page.main.innerHTML, /<h1>AD Huracán<\/h1>/);
   page.click({ href: '#/tabla' });
   await router.idle();
-  assert.equal(page.win.sessionStorage.getItem('futbol-base:destino'), 'tabla');
+  assert.equal(page.win.sessionStorage.getItem('fb2:destino'), 'tabla');
   page.click({ href: '#/ajustes' });
   await router.idle();
   const removed = t.mock.method(page.win.sessionStorage, 'removeItem');
   await router.nav.clearData();
-  assert.equal(storage.size, 0, 'ni v2, ni v1, ni season, cat y theme');
-  assert.deepEqual(removed.mock.calls.map((call) => call.arguments[0]), ['futbol-base:destino']);
+  assert.deepEqual([...storage], fromV1, 'se va lo de v2; lo de v1, intacto');
+  assert.deepEqual(removed.mock.calls.map((call) => call.arguments[0]), ['fb2:destino']);
   assert.deepEqual(page.entries(), ['#/', '#/tabla', '#/ajustes', '#/']);
   assert.match(page.main.innerHTML, /<h1>Las Mesas Hu\.<\/h1>/, 'Mi equipo, con el equipo por defecto');
-  // Al recargar: el equipo por defecto, sin migrar otra vez la clave v1 (ya no está) ni escribir nada.
+  // Al recargar, la clave de favoritos de v1 sigue ahí (v2 no la borra) y loadStore la migra otra vez:
+  // AD Huracán, guardado en STORE_KEY, y lo de v1 sin tocar.
   const again = await load(storage, { today: '2026-03-01' });
-  assert.match(again.page.main.innerHTML, /<h1>Las Mesas Hu\.<\/h1>/);
-  assert.equal(storage.size, 0);
+  assert.match(again.page.main.innerHTML, /<h1>AD Huracán<\/h1>/);
+  assert.deepEqual([...storage].filter(([key]) => key !== STORE_KEY), fromV1);
+  assert.deepEqual(JSON.parse(storage.get(STORE_KEY)), { myTeam: huracan, recent: [] });
 });
 
 // ── Plan B3, tarea 11: «Borrar datos de esta app» desde la pantalla Ajustes, con start() ──
@@ -430,11 +434,15 @@ test('Ajustes con start(): mi equipo guardado, y «Borrar» (tras desplegar el a
   assert.equal(storage.size, 2, 'desplegar no borra nada');
   onClick({ target: { closest: () => ({ getAttribute: (n) => (n === 'data-action' ? 'confirmar-borrado' : null) }) } });
   await router.idle();
-  assert.equal(storage.size, 0, 'ni v2 ni v1');
+  assert.deepEqual([...storage], [[LEGACY_KEY, JSON.stringify(fixture('favorites-v1'))]], 'se va lo de v2; la clave de v1, intacta');
   assert.deepEqual(page.entries(), ['#/ajustes', '#/']);
   assert.match(page.main.innerHTML, /<h1>Las Mesas Hu\.<\/h1>/, 'Mi equipo, con el equipo por defecto');
-  // Al recargar: el equipo por defecto, sin volver a migrar la clave v1 (ya no está).
+  // Al recargar: la clave de v1 sigue ahí y se vuelve a migrar; su equipo elegido es Las Mesas Hu. de PG2.
   const again = await load(storage, { today: '2026-03-01' });
   assert.match(again.page.main.innerHTML, /<h1>Las Mesas Hu\.<\/h1>/);
-  assert.equal(storage.size, 0);
+  assert.equal(storage.get(LEGACY_KEY), JSON.stringify(fixture('favorites-v1')));
+  assert.deepEqual(JSON.parse(storage.get(STORE_KEY)), {
+    myTeam: { name: 'Las Mesas Hu.', season: '2025-2026', cat: 'prebenjamin', groupId: 'PG2' },
+    recent: [{ s: '2025-2026', g: 'PG2', t: 'AD Huracán' }],
+  });
 });

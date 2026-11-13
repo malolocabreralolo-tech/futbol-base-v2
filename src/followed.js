@@ -1,4 +1,4 @@
-// Jugadores seguidos (la ficha de jugador, #/jugador?id): «futbol-base:jugadores» = [{ id, n }], el
+// Jugadores seguidos (la ficha de jugador, #/jugador?id): FOLLOWED_KEY = [{ id, n }], el
 // id de la federación (el mismo niño de una temporada a otra) y su nombre, el último seguido primero,
 // sin repetidos y como máximo MAX_FOLLOWED. Puro e importable en Node: recibe el Storage (o una
 // función que lo devuelve) y lo envuelve con safeStorage; si falla, la lista vive en memoria.

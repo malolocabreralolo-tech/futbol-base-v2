@@ -40,7 +40,7 @@ def _tree(tmp_path, version="20260925b"):
         encoding="utf-8",
     )
     (tmp_path / "sw.js").write_text(
-        f"const CACHE_NAME = 'futbolbase-v{version}';\nconst OFFLINE_URL = './index.html';\n", encoding="utf-8")
+        f"const CACHE_NAME = 'futbolbase2-v{version}';\nconst OFFLINE_URL = './index.html';\n", encoding="utf-8")
     return tmp_path
 
 
@@ -73,7 +73,7 @@ def test_bump_cache_version_sin_tocar_el_pie(tmp_path):
     assert VERSION_RE.findall(after) == ["20260930"] * 3
     assert FOOTER in after
     assert after == before.replace("20260925b", "20260930")
-    assert (site / "sw.js").read_text(encoding="utf-8").splitlines()[0] == "const CACHE_NAME = 'futbolbase-v20260930';"
+    assert (site / "sw.js").read_text(encoding="utf-8").splitlines()[0] == "const CACHE_NAME = 'futbolbase2-v20260930';"
 
 
 def test_bump_cache_version_del_bot_mueve_el_pie(tmp_path):
@@ -119,9 +119,9 @@ def test_publicar_sube_las_marcas_y_codigo_sin_tocar_el_pie(tmp_path, monkeypatc
     assert VERSION_RE.findall(index) == ["20260925c"] * 3
     assert FOOTER in index
     assert f"const CODIGO = '{codigo.huella(site)}';" in index
-    assert (site / "sw.js").read_text(encoding="utf-8").splitlines()[0] == "const CACHE_NAME = 'futbolbase-v20260925c';"
+    assert (site / "sw.js").read_text(encoding="utf-8").splitlines()[0] == "const CACHE_NAME = 'futbolbase2-v20260925c';"
     assert capsys.readouterr().out.splitlines() == [
-        f"versión 20260925c (antes, 20260925b): 3 ?v= en index.html y futbolbase-v20260925c en sw.js; «{FOOTER}», sin tocar",
+        f"versión 20260925c (antes, 20260925b): 3 ?v= en index.html y futbolbase2-v20260925c en sw.js; «{FOOTER}», sin tocar",
         f"CODIGO {codigo.huella(site)}: la huella de acta.css y src/*.js, en index.html",
     ]
 
@@ -144,7 +144,7 @@ def test_publicar_se_para_si_cache_name_no_coincide_con_las_v(tmp_path, monkeypa
     # Las tres ?v= van iguales entre sí, pero el CACHE_NAME de sw.js quedó de otra versión.
     site = _tree(tmp_path, version="20260925b")
     sw = (site / "sw.js").read_text(encoding="utf-8")
-    (site / "sw.js").write_text(sw.replace("futbolbase-v20260925b", "futbolbase-v20260925c", 1), encoding="utf-8")
+    (site / "sw.js").write_text(sw.replace("futbolbase2-v20260925b", "futbolbase2-v20260925c", 1), encoding="utf-8")
     before = [(site / name).read_text(encoding="utf-8") for name in ("index.html", "sw.js")]
     monkeypatch.setattr(publicar, "_today_utc", lambda: "20260925")
     assert publicar.main(["--root", str(site)]) == 1
@@ -176,5 +176,5 @@ def test_publicar_sobre_una_copia_del_arbol_solo_cambia_las_marcas(tmp_path, mon
     assert set(VERSION_RE.findall(after)) == {"20991231"}
     assert len(VERSION_RE.findall(after)) == len(VERSION_RE.findall(before))
     sw = (tmp_path / "sw.js").read_text(encoding="utf-8")
-    assert sw.splitlines()[0] == "const CACHE_NAME = 'futbolbase-v20991231';"
+    assert sw.splitlines()[0] == "const CACHE_NAME = 'futbolbase2-v20991231';"
     assert sw.splitlines()[1:] == sw_before.splitlines()[1:]

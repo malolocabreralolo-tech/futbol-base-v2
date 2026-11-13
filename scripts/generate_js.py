@@ -1485,17 +1485,17 @@ def bump_cache_version(root=None, touch_footer=True, version=None):
             f.write(new_content)
         print(f"  index.html cache version bumped to ?v={version}")
 
-    # C3: keep sw.js CACHE_NAME (first line, /futbolbase-v[0-9a-z]+/) in sync
+    # C3: keep sw.js CACHE_NAME (first line, /futbolbase2-v[0-9a-z]+/) in sync
     # with the same version string so the SW cache rotates with the data.
     sw_path = os.path.join(root, "sw.js")
     if os.path.exists(sw_path):
         with open(sw_path, "r", encoding="utf-8") as f:
             sw = f.read()
-        new_sw = re.sub(r"futbolbase-v[0-9a-z]+", f"futbolbase-v{version}", sw, count=1)
+        new_sw = re.sub(r"futbolbase2-v[0-9a-z]+", f"futbolbase2-v{version}", sw, count=1)
         if new_sw != sw:
             with open(sw_path, "w", encoding="utf-8") as f:
                 f.write(new_sw)
-            print(f"  sw.js CACHE_NAME bumped to futbolbase-v{version}")
+            print(f"  sw.js CACHE_NAME bumped to futbolbase2-v{version}")
     else:
         print("  WARNING: sw.js not found, skipping CACHE_NAME bump")
 

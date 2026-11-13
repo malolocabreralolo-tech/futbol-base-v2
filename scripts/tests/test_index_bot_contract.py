@@ -48,7 +48,7 @@ def test_bump_cache_version_sube_todas_las_marcas_y_nada_mas(site):
 
     assert neutral(after) == neutral(before), "el bot solo toca las marcas"
     sw = (site / "sw.js").read_text(encoding="utf-8")
-    assert sw.splitlines()[0] == f"const CACHE_NAME = 'futbolbase-v{version}';"
+    assert sw.splitlines()[0] == f"const CACHE_NAME = 'futbolbase2-v{version}';"
     assert sw.splitlines()[1:] == sw_before.splitlines()[1:]
 
 
@@ -70,7 +70,7 @@ def test_source_health_lee_la_fecha_y_la_version_del_esqueleto(site, monkeypatch
 def test_el_sello_de_los_escudos_no_lo_toca_ni_el_bot_ni_sync_versions_ni_publicar(site, monkeypatch):
     """Plan B5, decisión 1: la línea 2 de sw.js es CRESTS_CACHE, la caché de los escudos, con el sello de
     escudos/, y solo la escribe build_crests.py. La subida del bot (bump_cache_version: la primera
-    futbolbase-v[0-9a-z]+), sync_versions.py (la misma expresión, sin anclar) y publicar.py (la línea 1
+    futbolbase2-v[0-9a-z]+), sync_versions.py (la misma expresión, sin anclar) y publicar.py (la línea 1
     entera) no la alcanzan; y, para sync_versions.py, otro sello no es una marca del bot."""
     import publicar
     import sync_versions
@@ -82,7 +82,7 @@ def test_el_sello_de_los_escudos_no_lo_toca_ni_el_bot_ni_sync_versions_ni_public
         return (site / "sw.js").read_text(encoding="utf-8").splitlines()[1]
 
     seal = line2()
-    assert re.fullmatch(r"const CRESTS_CACHE = 'futbolbase-escudos-[0-9a-f]{8}';", seal), seal
+    assert re.fullmatch(r"const CRESTS_CACHE = 'futbolbase2-escudos-[0-9a-f]{8}';", seal), seal
     generate_js.bump_cache_version(str(site))
     assert line2() == seal
     monkeypatch.setattr(publicar, "_today_utc", lambda: "20991231")
@@ -92,5 +92,5 @@ def test_el_sello_de_los_escudos_no_lo_toca_ni_el_bot_ni_sync_versions_ni_public
     wanted = {"v": "20991231z", "footer": "31/12/2099", "cache": "20991231z"}
     new_index, new_sw = sync_versions.apply_marks(index, sw, wanted)
     assert new_sw.splitlines()[1] == seal and sync_versions.marks(new_index, new_sw) == wanted
-    resealed = sw.replace(seal, "const CRESTS_CACHE = 'futbolbase-escudos-00000000';")
+    resealed = sw.replace(seal, "const CRESTS_CACHE = 'futbolbase2-escudos-00000000';")
     assert resealed != sw and not sync_versions.only_marks_changed(index, sw, index, resealed)

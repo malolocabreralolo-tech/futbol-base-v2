@@ -1,5 +1,5 @@
-const CACHE_NAME = 'futbolbase-v20261113b';
-const CRESTS_CACHE = 'futbolbase-escudos-21f9b5f8';
+const CACHE_NAME = 'futbolbase2-v20261113b';
+const CRESTS_CACHE = 'futbolbase2-escudos-21f9b5f8';
 const OFFLINE_URL = './index.html';
 
 // Los escudos (escudos/, originales y miniaturas) van en su propia caché,
@@ -10,13 +10,13 @@ const OFFLINE_URL = './index.html';
 // ordenada de «<ruta>:<sha1 del fichero>»), que escribe y comprueba
 // scripts/build_crests.py: un escudo nuevo o cambiado da otro sello, y
 // `activate` borra la caché anterior. El bot no toca esta línea: sus
-// expresiones buscan futbolbase-v (test_index_bot_contract.py).
+// expresiones buscan futbolbase2-v (test_index_bot_contract.py).
 
 // La URL de red lleva la versión (?v=), y las claves de la caché, no. GitHub
 // Pages purga su CDN en cada despliegue y su clave no mira la query: la ?v=
 // solo cambia la clave de la caché HTTP del navegador. Los escudos llevan su
 // sello en vez de la versión de los datos (decisión 1 de B5).
-function versionedAssetURL(request, version = CACHE_NAME.replace('futbolbase-v', '')) {
+function versionedAssetURL(request, version = CACHE_NAME.replace('futbolbase2-v', '')) {
   const url = new URL(typeof request === 'string' ? request : request.url, self.location.href);
   url.searchParams.set('v', version);
   return url.href;
@@ -138,7 +138,7 @@ function lineupsToCarry(urls, keep = LINEUPS_KEEP) {
 async function usedLineups() {
   const urls = [];
   for (const name of await caches.keys()) {
-    if (!name.startsWith('futbolbase-v') || name === CACHE_NAME) continue;
+    if (!name.startsWith('futbolbase2-v') || name === CACHE_NAME) continue;
     for (const request of await (await caches.open(name)).keys()) urls.push(request.url);
   }
   return lineupsToCarry(urls);
@@ -231,16 +231,16 @@ self.addEventListener('install', e => {
   self.skipWaiting();
 });
 
-// Solo las cachés de esta app de otras versiones: las futbolbase-v* que no son
-// CACHE_NAME y las futbolbase-escudos-* que no son CRESTS_CACHE (decisión 1 de
-// B5). El origen (malolocabreralolo-tech.github.io) lo comparte otro proyecto
-// de la cuenta, y sus cachés no se tocan (decisión 8 de B4). La limpieza del
-// arranque de index.html solo mira las futbolbase-v* (código y hojas).
+// Solo las cachés de esta app de otras versiones: las futbolbase2-v* que no son
+// CACHE_NAME y las futbolbase2-escudos-* que no son CRESTS_CACHE. El origen
+// (malolocabreralolo-tech.github.io) lo comparten v1, en /futbol-base/, y otros
+// proyectos de la cuenta, y sus cachés no se tocan. La limpieza del arranque de
+// index.html solo mira las futbolbase2-v* (código y hojas).
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys().then(keys =>
-      Promise.all(keys.filter(k => (k.startsWith('futbolbase-v') && k !== CACHE_NAME)
-        || (k.startsWith('futbolbase-escudos-') && k !== CRESTS_CACHE)).map(k => caches.delete(k)))
+      Promise.all(keys.filter(k => (k.startsWith('futbolbase2-v') && k !== CACHE_NAME)
+        || (k.startsWith('futbolbase2-escudos-') && k !== CRESTS_CACHE)).map(k => caches.delete(k)))
     ).then(() => self.clients.claim())
   );
 });
@@ -278,7 +278,7 @@ self.addEventListener('fetch', e => {
       caches.open(CRESTS_CACHE).then(async cache => {
         const cached = await cache.match(e.request);
         if (cached) return cached;
-        const response = await fetchFresh(e.request, 'no-cache', CRESTS_CACHE.replace('futbolbase-escudos-', ''));
+        const response = await fetchFresh(e.request, 'no-cache', CRESTS_CACHE.replace('futbolbase2-escudos-', ''));
         if (response.ok) await cache.put(e.request, response.clone()).catch(() => {});
         return response;
       })

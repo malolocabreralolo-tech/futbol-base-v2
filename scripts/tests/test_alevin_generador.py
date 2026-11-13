@@ -78,7 +78,7 @@ def site(tmp_path, alevin=True):
     root = tmp_path / "site"
     root.mkdir()
     (root / "index.html").write_text('<script src="./data-seasons.js?v=20260101"></script>\n', encoding="utf-8")
-    (root / "sw.js").write_text("const CACHE_NAME = 'futbolbase-v20260101';\nconst SEASON_FILES = [\n];\n",
+    (root / "sw.js").write_text("const CACHE_NAME = 'futbolbase2-v20260101';\nconst SEASON_FILES = [\n];\n",
                                 encoding="utf-8")
     return db, root
 

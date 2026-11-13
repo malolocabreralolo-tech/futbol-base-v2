@@ -11,7 +11,7 @@ import {
   alevinRaw, archive, cupsRaw, currentAt, dataFile, goleadores, groupLineups, lineupGroups, nextSeasonRaw, pastAlevinRaw, withChampions,
 } from './fixtures/rediseno/simulate.mjs';
 
-export const STORE_KEY = 'futbol-base:v2';
+export const STORE_KEY = 'fb2:almacen';
 const DEFAULT_TEAM = { cat: 'prebenjamin', groupId: 'PG2', name: 'Las Mesas Hu.' };
 const LAS_MESAS_2526 = { name: 'Las Mesas Hu.', season: '2025-2026', cat: 'prebenjamin', groupId: 'PG2' };
 // SEASONS con cada temporada del portal: files() sirve el archivo de cada temporada pasada (decisión 31).

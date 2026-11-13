@@ -130,8 +130,8 @@ export function start(doc, win, config = PORTAL, { now = () => new Date() } = {}
         store = addRecent(store, entry);
         return saveStore(storage, store);
       },
-      // «Borrar datos de esta app» (§4.7 y §4.9): el almacén, con la clave v1 y las antiguas, y el
-      // último destino de la sesión; en memoria, lo de un almacén vacío (loadStore sin almacenamiento
+      // «Borrar datos de esta app» (§4.7 y §4.9): las claves de v2 (las de v1 se quedan, clearStore) y
+      // el último destino de la sesión; en memoria, lo de un almacén vacío (loadStore sin almacenamiento
       // da el equipo por defecto), aunque el navegador no deje borrar.
       // «Seguir a este jugador» (la ficha de jugador): entra el primero o sale; se guarda o, si el
       // almacenamiento falla, queda en memoria.

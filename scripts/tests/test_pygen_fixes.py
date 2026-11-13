@@ -824,7 +824,7 @@ def _synth_site(tmp_path):
         encoding="utf-8",
     )
     (tmp_path / "sw.js").write_text(
-        "const CACHE_NAME = 'futbolbase-v20260101';\nconst OFFLINE_URL = './index.html';\n",
+        "const CACHE_NAME = 'futbolbase2-v20260101';\nconst OFFLINE_URL = './index.html';\n",
         encoding="utf-8",
     )
     (tmp_path / "data-foo.js").write_text("const FOO=1;\n", encoding="utf-8")
@@ -855,10 +855,10 @@ class TestConditionalBump:
         assert idx.count(f"?v={today}") == 2, f"todos los ?v= deben pasar a {today}"
         assert f"Última actualización: {date.today().strftime('%d/%m/%Y')}" in idx
         sw = (tmp_path / "sw.js").read_text(encoding="utf-8")
-        assert f"futbolbase-v{today}" in sw, "CACHE_NAME debe llevar el mismo string de versión"
+        assert f"futbolbase2-v{today}" in sw, "CACHE_NAME debe llevar el mismo string de versión"
         # C3: first line keeps the matchable literal
-        assert re.search(r"futbolbase-v[0-9a-z]+", sw.splitlines()[0])
-        assert sw.splitlines()[0] == f"const CACHE_NAME = 'futbolbase-v{today}';"
+        assert re.search(r"futbolbase2-v[0-9a-z]+", sw.splitlines()[0])
+        assert sw.splitlines()[0] == f"const CACHE_NAME = 'futbolbase2-v{today}';"
 
     def test_same_day_second_change_gets_letter_suffix(self, tmp_path):
         from scripts.generate_js import snapshot_data_files, bump_if_changed
@@ -875,7 +875,7 @@ class TestConditionalBump:
         idx = (tmp_path / "index.html").read_text(encoding="utf-8")
         assert idx.count(f"?v={today}b") == 2
         sw = (tmp_path / "sw.js").read_text(encoding="utf-8")
-        assert sw.splitlines()[0] == f"const CACHE_NAME = 'futbolbase-v{today}b';"
+        assert sw.splitlines()[0] == f"const CACHE_NAME = 'futbolbase2-v{today}b';"
 
     def test_new_data_file_counts_as_change(self, tmp_path):
         from scripts.generate_js import snapshot_data_files, bump_if_changed
@@ -890,8 +890,8 @@ class TestSyncSeasonFiles:
     nueva entra en la misma pasada del bot que publica su archivo), de la más nueva a la más vieja,
     con el formato de activate_season.season_files_for; el resto de sw.js, igual."""
 
-    WORKER = ("const CACHE_NAME = 'futbolbase-v20261005';\n"
-              "const CRESTS_CACHE = 'futbolbase-escudos-00000000';\n"
+    WORKER = ("const CACHE_NAME = 'futbolbase2-v20261005';\n"
+              "const CRESTS_CACHE = 'futbolbase2-escudos-00000000';\n"
               "// Season data files\n"
               "const SEASON_FILES = [\n  './data-season-2025-2026.js',\n  './data-season-2024-2025.js',\n];\n\n"
               "const LINEUPS_KEEP = 12;\n")
@@ -926,9 +926,9 @@ class TestSyncSeasonFiles:
     def test_without_the_literal_nothing_is_written(self, tmp_path):
         from scripts.generate_js import sync_season_files
         assert sync_season_files(["2024-2025"], str(tmp_path)) is False          # sin sw.js
-        (tmp_path / "sw.js").write_text("const CACHE_NAME = 'futbolbase-v20260101';\n", encoding="utf-8")
+        (tmp_path / "sw.js").write_text("const CACHE_NAME = 'futbolbase2-v20260101';\n", encoding="utf-8")
         assert sync_season_files(["2024-2025"], str(tmp_path)) is False
-        assert (tmp_path / "sw.js").read_text(encoding="utf-8") == "const CACHE_NAME = 'futbolbase-v20260101';\n"
+        assert (tmp_path / "sw.js").read_text(encoding="utf-8") == "const CACHE_NAME = 'futbolbase2-v20260101';\n"
 
 
 class TestTeamLookupIsCollisionAware:
@@ -1222,7 +1222,7 @@ class TestGeneratorOutputs:
             '<span id="legacyUpdated" hidden>Última actualización: 01/01/2026</span>\n',
             encoding="utf-8",
         )
-        (site / "sw.js").write_text("const CACHE_NAME = 'futbolbase-v20260101';\n", encoding="utf-8")
+        (site / "sw.js").write_text("const CACHE_NAME = 'futbolbase2-v20260101';\n", encoding="utf-8")
         return db, site
 
     def test_main_writes_its_outputs_and_none_retired(self, tmp_path, monkeypatch):

@@ -9,7 +9,7 @@
  *      fixed (pathname never starts with './')
  *   3. old ?v= query entries are purged from the cache on successful put
  *   4. index.html uses standard SW registration (no unregister-on-every-load)
- *   5. C3: CACHE_NAME literal on line 1, matcheable by /futbolbase-v[0-9a-z]+/
+ *   5. C3: CACHE_NAME literal on line 1, matcheable by /futbolbase2-v[0-9a-z]+/
  *   6. activate: solo las cachés de esta app de otras versiones (decisión 8 de B4)
  *   7. los escudos, en su propia caché: CRESTS_CACHE en la línea 2, con el sello de
  *      escudos/, que el bot no toca y activate no borra (decisión 1 de B5)
@@ -54,7 +54,7 @@ const sw = loadSw();
 
 test('network URLs use the active version, retaining other query parameters', () => {
   const url = new URL(sw.versionedAssetURL({ url: 'https://example.test/index.html?lang=es&v=old' }));
-  assert.equal(url.searchParams.get('v'), sw.CACHE_NAME.replace('futbolbase-v', ''));
+  assert.equal(url.searchParams.get('v'), sw.CACHE_NAME.replace('futbolbase2-v', ''));
   assert.equal(url.searchParams.get('lang'), 'es');
   assert.equal(new URL(sw.versionedAssetURL('./src/config.js')).pathname, '/src/config.js');
 });
@@ -272,23 +272,23 @@ test('sw.js lifecycle: skipWaiting on install, clients.claim on activate', () =>
 });
 
 // ─── 5. C3: CACHE_NAME contract for generate_js.py ────────────────────────
-test('C3: CACHE_NAME literal on line 1, bumpable via /futbolbase-v[0-9a-z]+/', () => {
+test('C3: CACHE_NAME literal on line 1, bumpable via /futbolbase2-v[0-9a-z]+/', () => {
   const firstLine = swSrc.split('\n')[0];
-  assert.ok(/^const CACHE_NAME = 'futbolbase-v[0-9a-z]+';\s*$/.test(firstLine),
-    `line 1 must be const CACHE_NAME = 'futbolbase-vXXXX'; — got: ${firstLine}`);
-  assert.ok(/futbolbase-v[0-9a-z]+/.test(sw.CACHE_NAME),
-    'CACHE_NAME value must match futbolbase-v[0-9a-z]+');
+  assert.ok(/^const CACHE_NAME = 'futbolbase2-v[0-9a-z]+';\s*$/.test(firstLine),
+    `line 1 must be const CACHE_NAME = 'futbolbase2-vXXXX'; — got: ${firstLine}`);
+  assert.ok(/futbolbase2-v[0-9a-z]+/.test(sw.CACHE_NAME),
+    'CACHE_NAME value must match futbolbase2-v[0-9a-z]+');
 });
 
 // La línea 2 es la caché de los escudos (decisión 1 de B5): su nombre lleva el sello de escudos/, que
 // escribe scripts/build_crests.py (test_build_crests.py comprueba que es el de escudos/ tal como está), y
-// la expresión con la que el bot sube la versión (futbolbase-v[0-9a-z]+) no la alcanza
+// la expresión con la que el bot sube la versión (futbolbase2-v[0-9a-z]+) no la alcanza
 // (test_index_bot_contract.py lo ejecuta, con sync_versions.py y publicar.py).
 test('CRESTS_CACHE literal on line 2, with the seal of escudos/ and out of reach of the bot', () => {
   const second = swSrc.split('\n')[1];
-  assert.match(second, /^const CRESTS_CACHE = 'futbolbase-escudos-[0-9a-f]{8}';$/);
+  assert.match(second, /^const CRESTS_CACHE = 'futbolbase2-escudos-[0-9a-f]{8}';$/);
   assert.equal(sw.CRESTS_CACHE, second.slice("const CRESTS_CACHE = '".length, -2));
-  assert.doesNotMatch(second, /futbolbase-v[0-9a-z]+/);
+  assert.doesNotMatch(second, /futbolbase2-v[0-9a-z]+/);
 });
 
 test('el SW busca en caché ignorando la ?v=: si no, el precache es basura', () => {
@@ -331,28 +331,28 @@ test('only the active cache is read; exact URLs precede unversioned precache', a
 });
 
 // ─── 6. activate: solo las cachés de esta app (decisión 8 de B4 y 1 de B5) ──
-test('activate solo borra las cachés de esta app de otras versiones, futbolbase-v* y futbolbase-escudos-*: el origen es compartido (decisión 8 de B4 y 1 de B5)', async () => {
-  // malolocabreralolo-tech.github.io lo comparte otro proyecto de la cuenta: sus cachés no se tocan. La
-  // de los escudos se queda mientras su sello sea el de CRESTS_CACHE, aunque cambie CACHE_NAME.
-  assert.match(sw.CRESTS_CACHE ?? '', /^futbolbase-escudos-[0-9a-f]{8}$/);
-  assert.notEqual(sw.CRESTS_CACHE, 'futbolbase-escudos-00000000');
+test('activate solo borra las cachés de esta app de otras versiones, futbolbase2-v* y futbolbase2-escudos-*: el origen es compartido (decisión 8 de B4 y 1 de B5)', async () => {
+  // malolocabreralolo-tech.github.io lo comparten v1 y otros proyectos de la cuenta: sus cachés no se
+  // tocan. La de los escudos se queda mientras su sello sea el de CRESTS_CACHE, aunque cambie CACHE_NAME.
+  assert.match(sw.CRESTS_CACHE ?? '', /^futbolbase2-escudos-[0-9a-f]{8}$/);
+  assert.notEqual(sw.CRESTS_CACHE, 'futbolbase2-escudos-00000000');
   const deleted = [];
   const worker = loadSw({ caches: {
-    keys: async () => ['futbolbase-v20250101', sw.CACHE_NAME, 'futbolbase-v20991231z', 'otro-proyecto-v1', 'workbox-precache-v2', 'futbolbase',
-      sw.CRESTS_CACHE, 'futbolbase-escudos-00000000', 'futbolbase-escudos', 'otro-proyecto-escudos-1'],
+    keys: async () => ['futbolbase2-v20250101', sw.CACHE_NAME, 'futbolbase2-v20991231z', 'otro-proyecto-v1', 'workbox-precache-v2', 'futbolbase2',
+      sw.CRESTS_CACHE, 'futbolbase2-escudos-00000000', 'futbolbase2-escudos', 'otro-proyecto-escudos-1'],
     delete: async (name) => { deleted.push(name); return true; },
   } });
   let done;
   worker.listeners.activate({ waitUntil: (promise) => { done = promise; } });
   await done;
-  assert.deepEqual(deleted.sort(), ['futbolbase-escudos-00000000', 'futbolbase-v20250101', 'futbolbase-v20991231z']);
+  assert.deepEqual(deleted.sort(), ['futbolbase2-escudos-00000000', 'futbolbase2-v20250101', 'futbolbase2-v20991231z']);
 });
 
 // ─── 7. los escudos, en su propia caché (decisión 1 de B5) ──────────────────
 test('los escudos se sirven de CRESTS_CACHE; si no están, de la red con su sello como ?v=, y se guardan allí (decisión 1 de B5)', async () => {
   // El fetch de verdad, con unas cachés y una red falsas: nunca se abre CACHE_NAME, que cambia con cada
   // subida de datos, y la red se pide con el sello como ?v= (la clave de la caché HTTP del navegador).
-  const seal = (sw.CRESTS_CACHE ?? '').replace('futbolbase-escudos-', '');
+  const seal = (sw.CRESTS_CACHE ?? '').replace('futbolbase2-escudos-', '');
   assert.match(seal, /^[0-9a-f]{8}$/);
   const opened = [];
   const stored = new Map();

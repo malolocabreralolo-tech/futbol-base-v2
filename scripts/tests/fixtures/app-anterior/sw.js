@@ -1,11 +1,11 @@
-const CACHE_NAME = 'futbolbase-v20260923j';
+const CACHE_NAME = 'futbolbase2-v20260923j';
 const OFFLINE_URL = './index.html';
 
 // Version the network URL too: a CDN can still serve a cached previous HTML
 // document for the bare path after a deployment. Cache keys remain stable.
 function versionedAssetURL(request) {
   const url = new URL(typeof request === 'string' ? request : request.url, self.location.href);
-  url.searchParams.set('v', CACHE_NAME.replace('futbolbase-v', ''));
+  url.searchParams.set('v', CACHE_NAME.replace('futbolbase2-v', ''));
   return url.href;
 }
 

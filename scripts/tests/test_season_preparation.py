@@ -182,8 +182,8 @@ def test_activation_generates_new_season_and_retains_every_old_sporting_row(tmp_
 
 
 # Un sw.js sintético con la forma del de verdad: CACHE_NAME, CRESTS_CACHE y los dos literales.
-WORKER = ("const CACHE_NAME = 'futbolbase-v20280101';\n"
-          "const CRESTS_CACHE = 'futbolbase-escudos-00000000';\n"
+WORKER = ("const CACHE_NAME = 'futbolbase2-v20280101';\n"
+          "const CRESTS_CACHE = 'futbolbase2-escudos-00000000';\n"
           "const STATIC_ASSETS = [\n  './',\n];\n\n"
           "// Season data files\n"
           "const SEASON_FILES = [\n  './data-season-2027-2028.js',\n  './data-lineups-2028-2029.js',\n];\n\n"
@@ -242,7 +242,7 @@ def test_activation_on_a_synthetic_tree_archives_the_closing_season(tmp_path):
     assert load_config(tmp_path / "src/config.js")["season"] == opening
     worker = (tmp_path / "sw.js").read_text(encoding="utf-8")
     assert "const SEASON_FILES = [\n  './data-season-2028-2029.js',\n  './data-season-2027-2028.js',\n];" in worker
-    assert worker.splitlines()[1] == "const CRESTS_CACHE = 'futbolbase-escudos-00000000';"
+    assert worker.splitlines()[1] == "const CRESTS_CACHE = 'futbolbase2-escudos-00000000';"
     assert (tmp_path / "data-season-2028-2029.js").exists() and (tmp_path / "data-lineups-2028-2029-OLD1.js").exists()
     assert not list(tmp_path.glob("data-lineups-2029-2030*.js"))
 

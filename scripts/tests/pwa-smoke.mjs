@@ -1,5 +1,6 @@
 // PWA smoke (spec §5.5 y §11): el paso de la app anterior al rediseño, con el service worker de verdad.
-// La versión anterior es la app de main 31a15b8 con su sw.js (scripts/tests/fixtures/app-anterior);
+// La versión anterior es la app de main 31a15b8 con su sw.js (scripts/tests/fixtures/app-anterior),
+// con los nombres de caché de v2: hace de una versión anterior de la propia v2, cuyas cachés limpia v2;
 // después se publica el árbol de trabajo con las marcas de versión subidas, como el despliegue de B4 y
 // B5. Las dos versiones reciben los mismos datos y el mismo src/config.js, congelados: los de las
 // fixtures de B1 (23/09/2026), nunca los data-*.js vivos, que cambian con el bot y al activar 2026/27.
@@ -39,12 +40,12 @@ const read = (dir, file) => {
   const path = join(dir, file);
   return existsSync(path) && statSync(path).isFile() ? readFileSync(path, 'utf8') : null;
 };
-const versionOf = (sw) => sw.match(/CACHE_NAME = 'futbolbase-v([^']+)'/)[1];
+const versionOf = (sw) => sw.match(/CACHE_NAME = 'futbolbase2-v([^']+)'/)[1];
 const OLD_VERSION = versionOf(read(PREVIOUS, 'sw.js'));
 const TREE_VERSION = versionOf(read(ROOT, 'sw.js'));
 const PUBLISHED = '20991231a';
-const oldCache = `futbolbase-v${OLD_VERSION}`;
-const expected = `futbolbase-v${PUBLISHED}`;
+const oldCache = `futbolbase2-v${OLD_VERSION}`;
+const expected = `futbolbase2-v${PUBLISHED}`;
 const publish = (file, text) => (file === 'index.html' || file === 'sw.js' ? text.replaceAll(TREE_VERSION, PUBLISHED) : text);
 const NOTICE = 'No se pudo abrir la versión nueva de la app. Comprueba la conexión y pulsa Reintentar.';
 
@@ -204,11 +205,11 @@ async function settle(condition, label, timeout = 15000) {
   }
 }
 // Espera, sin ninguna página de la app abierta, a que mande el SW de la versión cuya caché es `cache`
-// (futbolbase-v…), y devuelve lo que vio la última vuelta, con todas las cachés. En cada vuelta, una
+// (futbolbase2-v…), y devuelve lo que vio la última vuelta, con todas las cachés. En cada vuelta, una
 // página nueva de sonda (manifest.json, que el SW sirve de la red sin tocar su caché) pide la
 // actualización, mira el estado y se cierra en seguida, como quien abre la app y la cierra: con una
 // página de la app abierta, Chrome puede no activar el SW nuevo (codeDeploy). Solo cuentan las
-// futbolbase-v*: la caché de los escudos va aparte (decisión 1 de B5). Si no llega en 30 s, el error
+// futbolbase2-v*: la caché de los escudos va aparte (decisión 1 de B5). Si no llega en 30 s, el error
 // dice cómo quedaron los SW en cada vuelta y lo que añada `diagnose`.
 async function takeOver(context, probeUrl, cache, label, diagnose = () => '') {
   const states = [];
@@ -234,7 +235,7 @@ async function takeOver(context, probeUrl, cache, label, diagnose = () => '') {
     // Cada cambio de estado de los SW, con los ms desde que empezó la espera.
     const state = [seen.installing, seen.waiting, seen.active, seen.controlled, seen.caches.length, seen.error ?? ''].join('/');
     if (states.at(-1)?.endsWith(` ${state}`) !== true) states.push(`${Date.now() - waitStart}ms ${state}`);
-    const versions = seen.caches.filter((name) => name.startsWith('futbolbase-v'));
+    const versions = seen.caches.filter((name) => name.startsWith('futbolbase2-v'));
     if (versions.length === 1 && versions[0] === cache && seen.active === 'activated' && seen.controlled) return seen;
     if (Date.now() - waitStart >= 30000) {
       throw new Error(`${label}: condition not met after 30000ms: ${JSON.stringify({ ...seen, vueltas: states })}${diagnose()}`);
@@ -342,7 +343,7 @@ async function codeDeploy(browser) {
     // ninguna revalidación de «a» queda pendiente cuando se publica «b».
     let o = await open('despliegue de código, «a»', '#/');
     await waitForAsync(o.page, (name) => caches.keys().then((keys) => keys.includes(name) && !!navigator.serviceWorker.controller),
-      `futbolbase-v${CODE_A}`, { label: 'despliegue de código, «a» instalada' });
+      `futbolbase2-v${CODE_A}`, { label: 'despliegue de código, «a» instalada' });
     await o.page.close();
     // Se publica «b». 1.ª apertura: «a» entera; su SW revalida en segundo plano, y state.js da 503.
     phase = 'b';
@@ -354,7 +355,7 @@ async function codeDeploy(browser) {
       const cache = await caches.open(name);
       const text = async (key) => { const response = await cache.match(key); return response ? response.text() : ''; };
       return (await text('./index.html')).includes(b) && (await text(`./src/app.js?v=${a}`)).includes('SIGUIENTE');
-    }, [`futbolbase-v${CODE_A}`, CODE_A, CODE_B], { label: 'despliegue de código, index.html y app.js de «b» en la caché de «a»' });
+    }, [`futbolbase2-v${CODE_A}`, CODE_A, CODE_B], { label: 'despliegue de código, index.html y app.js de «b» en la caché de «a»' });
     await o.page.close();
     failState = false;
     // 2.ª apertura, con el SW de «a» al mando: «b» entera.
@@ -397,7 +398,7 @@ async function codeDeploy(browser) {
       });
     }));
     await racer.close();
-    await takeOver(context, probeUrl, `futbolbase-v${CODE_B}`, 'despliegue de código, el SW de «b» al mando', () => {
+    await takeOver(context, probeUrl, `futbolbase2-v${CODE_B}`, 'despliegue de código, el SW de «b» al mando', () => {
       // Sin las comprobaciones de sw.js de cada vuelta, que taparían el resto.
       const since = requests.slice(releasedAt);
       const others = since.filter((line) => !line.endsWith(' /sw.js'));
@@ -443,8 +444,8 @@ const NEW_SEAL = 'c0c0c0c0';
 async function dataDeploy(browser) {
   let phase = 'a';
   let down = false;          // sin conexión: el servidor corta cada conexión
-  const treeCrests = (read(ROOT, 'sw.js').match(/^const CRESTS_CACHE = '(futbolbase-escudos-[0-9a-f]{8})';$/m) || [])[1];
-  assert.notEqual(treeCrests, `futbolbase-escudos-${NEW_SEAL}`);
+  const treeCrests = (read(ROOT, 'sw.js').match(/^const CRESTS_CACHE = '(futbolbase2-escudos-[0-9a-f]{8})';$/m) || [])[1];
+  assert.notEqual(treeCrests, `futbolbase2-escudos-${NEW_SEAL}`);
   assert.notEqual(statSync(join(ROOT, CHANGED)).size, statSync(join(ROOT, REPLACEMENT)).size);
   const server = createServer(async (req, res) => {
     if (down) { req.socket.destroy(); return; }
@@ -460,7 +461,7 @@ async function dataDeploy(browser) {
       }
       if (file === 'index.html' || file === 'sw.js') {
         let text = read(ROOT, file).replaceAll(TREE_VERSION, DATA[phase]);
-        if (file === 'sw.js' && phase === 'c') text = text.replace(/futbolbase-escudos-[0-9a-f]{8}/, `futbolbase-escudos-${NEW_SEAL}`);
+        if (file === 'sw.js' && phase === 'c') text = text.replace(/futbolbase2-escudos-[0-9a-f]{8}/, `futbolbase2-escudos-${NEW_SEAL}`);
         res.writeHead(200, { 'Content-Type': `${file === 'sw.js' ? 'text/javascript' : 'text/html'}; charset=utf-8`, 'Cache-Control': 'no-store' });
         res.end(text);
         return;
@@ -507,7 +508,7 @@ async function dataDeploy(browser) {
     // «a» instalada: la 1.ª apertura registra su SW, que toma el mando (clients.claim) con su precache.
     let o = await open('sin conexión tras una subida de datos, «a»');
     await waitForAsync(o.page, (name) => caches.keys().then((keys) => keys.includes(name) && !!navigator.serviceWorker.controller),
-      `futbolbase-v${DATA.a}`, { label: 'sin conexión tras una subida de datos, «a» instalada' });
+      `futbolbase2-v${DATA.a}`, { label: 'sin conexión tras una subida de datos, «a» instalada' });
     await o.page.close();
     // Con el SW de «a» al mando, la ficha le pide sus escudos, y él los guarda.
     o = await open('sin conexión tras una subida de datos, «a» con su SW');
@@ -517,7 +518,7 @@ async function dataDeploy(browser) {
     await o.page.close();
     // Se publica «b», solo datos: su SW toma el mando y borra la caché de «a».
     phase = 'b';
-    let seen = await takeOver(context, probeUrl, `futbolbase-v${DATA.b}`, 'sin conexión tras una subida de datos, el SW de «b» al mando');
+    let seen = await takeOver(context, probeUrl, `futbolbase2-v${DATA.b}`, 'sin conexión tras una subida de datos, el SW de «b» al mando');
     // Sin conexión, la misma ficha: los mismos escudos, en miniatura, y su plantilla.
     down = true;
     o = await open('sin conexión tras una subida de datos, «b» sin conexión');
@@ -540,19 +541,19 @@ async function dataDeploy(browser) {
     assert.deepEqual(mineErrors, [], 'sin conexión tras una subida de datos, Mi equipo: sin errores de JavaScript');
     await mine.close();
     down = false;
-    assert.deepEqual(seen.caches.filter((name) => name.startsWith('futbolbase-escudos-')), [treeCrests],
+    assert.deepEqual(seen.caches.filter((name) => name.startsWith('futbolbase2-escudos-')), [treeCrests],
       `la caché de los escudos, tras una subida de datos: ${JSON.stringify(seen.caches)}`);
     // Se publica «c», con un escudo cambiado y su sello nuevo: su SW borra la caché de escudos anterior...
     phase = 'c';
-    seen = await takeOver(context, probeUrl, `futbolbase-v${DATA.c}`, 'un escudo cambiado, el SW de «c» al mando');
-    assert.deepEqual(seen.caches.filter((name) => name.startsWith('futbolbase-escudos-')), [],
+    seen = await takeOver(context, probeUrl, `futbolbase2-v${DATA.c}`, 'un escudo cambiado, el SW de «c» al mando');
+    assert.deepEqual(seen.caches.filter((name) => name.startsWith('futbolbase2-escudos-')), [],
       `con un escudo cambiado, la caché de escudos anterior sigue ahí: ${JSON.stringify(seen.caches)}`);
     // ... y la apertura siguiente guarda el escudo nuevo en la caché nueva.
     o = await open('un escudo cambiado, «c»');
     await waitForAsync(o.page, async ([name, path, size]) => {
       const response = await (await caches.open(name)).match(path);
       return !!response && (await response.arrayBuffer()).byteLength === size;
-    }, [`futbolbase-escudos-${NEW_SEAL}`, `./${CHANGED}`, statSync(join(ROOT, REPLACEMENT)).size], { label: 'un escudo cambiado, el nuevo en la caché nueva' });
+    }, [`futbolbase2-escudos-${NEW_SEAL}`, `./${CHANGED}`, statSync(join(ROOT, REPLACEMENT)).size], { label: 'un escudo cambiado, el nuevo en la caché nueva' });
     await o.page.close();
     console.log(`PASS: sin conexión tras una subida de datos: la ficha pinta sus ${online.mini} escudos en miniatura, como con conexión, porque su caché (${treeCrests}) no cambia con CACHE_NAME, y su plantilla y la de Mi equipo con Unión Viera, con las actas de A1 que el SW nuevo heredó de la caché anterior; con un escudo cambiado, su sello nuevo da otra caché, con el escudo nuevo`);
   } finally {

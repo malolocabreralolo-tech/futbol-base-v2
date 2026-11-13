@@ -42,10 +42,10 @@
     // o con módulos de dos versiones: pantallas sin estilos, o una app que no arranca. CODIGO es la
     // versión del código (la huella de src/*.js y acta.css, que escribe scripts/codigo.py; el bot nunca
     // la cambia). La primera vez que este navegador abre este código con un SW al mando, antes de
-    // importar app.js se quitan src/*.js y las hojas de esta app de las cachés futbolbase-v* que no son
+    // importar app.js se quitan src/*.js y las hojas de esta app de las cachés futbolbase2-v* que no son
     // la de esta versión (la ?v= de data-seasons.js) y, si se quitó algo, la hoja ya aplicada se vuelve
     // a pedir: todo llega de la red, de una sola versión, y el SW lo guarda para abrir sin conexión.
-    // Los datos se quedan. CODIGO se apunta en futbol-base:codigo solo tras start() y solo si un SW
+    // Los datos se quedan. CODIGO se apunta en fb2:codigo solo tras start() y solo si un SW
     // manda en la página: una apertura que se lo salta (Mayús+Recargar, «Bypass for network») con el
     // SW anterior todavía activo no purgó nada, y apuntarlo igual dejaría la limpieza sin hacer para
     // siempre (ronda de arreglos 1). Si el arranque falla, o si no hay SW al mando, la apertura
@@ -58,9 +58,9 @@
     // estilos en línea y «Reintentar»: nunca «Cargando…» para siempre. Es texto fijo, sin datos.
     (async () => {
       try {
-        const CODIGO = '3d77c690';
+        const CODIGO = 'f3e8b1a9';
         let seen = null;
-        try { seen = localStorage.getItem('futbol-base:codigo'); } catch { /* sin almacenamiento */ }
+        try { seen = localStorage.getItem('fb2:codigo'); } catch { /* sin almacenamiento */ }
         if (navigator.serviceWorker?.controller && seen !== CODIGO) {
           try {
             const version = (document.querySelector('script[src*="data-seasons.js"]')?.getAttribute('src').match(/[?&]v=([^&#]+)/) || [])[1];
@@ -68,7 +68,7 @@
             let stale = false;
             for (const name of await caches.keys()) {
               // Solo las cachés de esta app: el origen es de todos los proyectos de la cuenta.
-              if (!name.startsWith('futbolbase-v') || name === `futbolbase-v${version}`) continue;
+              if (!name.startsWith('futbolbase2-v') || name === `futbolbase2-v${version}`) continue;
               const cache = await caches.open(name);
               for (const request of await cache.keys()) {
                 const { pathname } = new URL(request.url);
@@ -87,7 +87,7 @@
         const { start } = await import('./src/app.js?v=20261113b');
         start(document, window);
         if (navigator.serviceWorker?.controller) {
-          try { localStorage.setItem('futbol-base:codigo', CODIGO); } catch { /* sin almacenamiento */ }
+          try { localStorage.setItem('fb2:codigo', CODIGO); } catch { /* sin almacenamiento */ }
         }
       } catch (error) {
         console.error('[arranque]', error);

@@ -32,7 +32,7 @@ import generate_js  # noqa: E402
 ROOT = Path(__file__).resolve().parents[1]
 VERSION_RE = re.compile(r"\?v=(\d{8}[a-z]?)")
 FOOTER_RE = re.compile(r"Última actualización: \d{2}/\d{2}/\d{4}")
-CACHE_LINE_RE = re.compile(r"^const CACHE_NAME = 'futbolbase-v([0-9a-z]+)';$")
+CACHE_LINE_RE = re.compile(r"^const CACHE_NAME = 'futbolbase2-v([0-9a-z]+)';$")
 
 
 def next_publish_version(current, today_utc):
@@ -71,7 +71,7 @@ def main(argv=None):
         return 1
     if len(set(marks)) != 1 or cache_line.group(1) != marks[0]:
         print(f"las ?v= de index.html tienen que ir todas iguales y coincidir con el CACHE_NAME de sw.js "
-              f"({sorted(set(marks))} vs. futbolbase-v{cache_line.group(1)}): nada escrito")
+              f"({sorted(set(marks))} vs. futbolbase2-v{cache_line.group(1)}): nada escrito")
         return 1
     current = marks[0]
     try:
@@ -86,8 +86,8 @@ def main(argv=None):
     first = (root / "sw.js").read_text(encoding="utf-8").split("\n", 1)[0]
     assert VERSION_RE.findall(index) == [version] * len(marks), "alguna ?v= no subió"
     assert FOOTER_RE.findall(index) == footer, "el pie cambió"
-    assert first == f"const CACHE_NAME = 'futbolbase-v{version}';", first
-    print(f"versión {version} (antes, {current}): {len(marks)} ?v= en index.html y futbolbase-v{version} en sw.js; "
+    assert first == f"const CACHE_NAME = 'futbolbase2-v{version}';", first
+    print(f"versión {version} (antes, {current}): {len(marks)} ?v= en index.html y futbolbase2-v{version} en sw.js; "
           f"«{footer[0]}», sin tocar")
     return codigo.main(["--root", str(root)])
 

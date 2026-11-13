@@ -702,7 +702,7 @@ test('el último destino principal se guarda en la sesión y marca Partido tras 
   const b = fakeBrowser('#/tabla');
   const screens = { '': screen('home'), tabla: screen('tabla'), partido: screen('partido') };
   await startRouter({ screens, root: b.root, getContext: context(), window: b.win, session }).idle();
-  assert.equal(saved.get('futbol-base:destino'), 'tabla');
+  assert.equal(saved.get('fb2:destino'), 'tabla');
   const again = fakeBrowser(OTHER);
   await startRouter({ screens, root: again.root, getContext: context(), window: again.win, session }).idle();
   assert.deepEqual(again.marks(), [['#/tabla', 'true']]);

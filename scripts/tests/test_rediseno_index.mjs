@@ -47,25 +47,25 @@ test('datos inmediatos: los siete que lee la portada, con defer y en el orden de
   // el código y las hojas de esta app, y vuelve a pedir la hoja: su SW los serviría viejos aunque
   // cambie la ?v= (A1 de la revisión adversarial de B2 y de la del plan B3; decisión 155 de B3).
   assert.match(boot[0], /const CODIGO = '[0-9a-f]{8}';/);
-  assert.ok(boot[0].includes("seen = localStorage.getItem('futbol-base:codigo');"), 'lee el CODIGO que abrió este navegador');
+  assert.ok(boot[0].includes("seen = localStorage.getItem('fb2:codigo');"), 'lee el CODIGO que abrió este navegador');
   assert.ok(boot[0].includes('if (navigator.serviceWorker?.controller && seen !== CODIGO) {'), 'solo con un SW al mando y un código nuevo');
-  // Su ámbito: las cachés futbolbase-v* que no son la de esta versión (la ?v= de data-seasons.js) y, en
+  // Su ámbito: las cachés futbolbase2-v* que no son la de esta versión (la ?v= de data-seasons.js) y, en
   // ellas, src/*.js y las hojas bajo la ruta de la app; los datos, nunca.
   assert.ok(boot[0].includes('document.querySelector(\'script[src*="data-seasons.js"]\')'));
-  assert.ok(boot[0].includes("if (!name.startsWith('futbolbase-v') || name === `futbolbase-v${version}`) continue;"));
+  assert.ok(boot[0].includes("if (!name.startsWith('futbolbase2-v') || name === `futbolbase2-v${version}`) continue;"));
   assert.ok(boot[0].includes('if (pathname.startsWith(home) && /\\/src\\/[^/]+\\.js$|\\.css$/.test(pathname) && await cache.delete(request)) stale = true;'));
   // Si se quitó algo, la hoja ya aplicada se vuelve a pedir (el SW anterior nunca la revalida).
   assert.ok(boot[0].includes('fresh.href = `${sheet.href}&c=${CODIGO}`;'));
   assert.ok(boot[0].includes('if (fresh.sheet) sheet.remove(); else fresh.remove();'));
   // El orden: se lee el marcador, se limpia, se importa app.js, start y, solo entonces, se apunta.
   const at = (text) => boot[0].indexOf(text);
-  assert.ok(at("localStorage.getItem('futbol-base:codigo')") < at('caches.keys()'), 'lee el marcador antes de limpiar');
+  assert.ok(at("localStorage.getItem('fb2:codigo')") < at('caches.keys()'), 'lee el marcador antes de limpiar');
   assert.ok(at('caches.keys()') < at("import('./src/app.js"), 'limpia antes de importar');
-  assert.ok(at('start(document, window);') < at("localStorage.setItem('futbol-base:codigo', CODIGO)"), 'apunta CODIGO tras start');
+  assert.ok(at('start(document, window);') < at("localStorage.setItem('fb2:codigo', CODIGO)"), 'apunta CODIGO tras start');
   // El marcador se apunta solo si un SW manda en la página: una apertura que se lo salta (Mayús+Recargar,
   // «Bypass for network») con el SW anterior todavía activo no purgó nada, y apuntarlo igual dejaría la
   // limpieza sin hacer para siempre (ronda de arreglos 1, reproducido con bypass.mjs).
-  assert.match(boot[0], /start\(document, window\);\s*if \(navigator\.serviceWorker\?\.controller\) \{\s*try \{ localStorage\.setItem\('futbol-base:codigo', CODIGO\); \} catch/,
+  assert.match(boot[0], /start\(document, window\);\s*if \(navigator\.serviceWorker\?\.controller\) \{\s*try \{ localStorage\.setItem\('fb2:codigo', CODIGO\); \} catch/,
     'el marcador se apunta solo si hay un SW al mando (ronda de arreglos 1)');
   assert.doesNotMatch(boot[0], /src\/render\.js/, 'la limpieza de la app anterior queda dentro de la general');
 });
@@ -78,7 +78,7 @@ test('si el arranque falla, un aviso con estilos en línea y «Reintentar», que
   // nivel superior en el módulo (decisión 5 de B4): antes, solo comentarios; después, nada.
   assert.match(boot, /^<script type="module">\s*(?:\/\/[^\n]*\s*)*\(async \(\) => \{\s*try \{\s*const CODIGO = '[0-9a-f]{8}';/);
   assert.match(boot, /\}\)\(\);\s*<\/script>$/, 'la función asíncrona cierra el módulo');
-  assert.ok(boot.indexOf('} catch (error) {') > boot.indexOf("localStorage.setItem('futbol-base:codigo', CODIGO)"), 'el catch recoge el import, start y el marcador');
+  assert.ok(boot.indexOf('} catch (error) {') > boot.indexOf("localStorage.setItem('fb2:codigo', CODIGO)"), 'el catch recoge el import, start y el marcador');
   assert.match(boot, /innerHTML = `<div role="alert" style="[^"]+">\s*<p style="[^"]+">No se pudo abrir la versión nueva de la app\. Comprueba la conexión y pulsa Reintentar\.<\/p>\s*<button type="button" id="reintentar-arranque" style="[^"]*min-height:44px[^"]*">Reintentar<\/button>\s*<\/div>`;/);
   const retry = boot.slice(boot.indexOf("getElementById('reintentar-arranque')"));
   assert.match(retry, /registration\.update\(\)/, 'Reintentar busca el SW nuevo');

@@ -25,7 +25,7 @@ MAIN_INDEX = (
     '<script type="module" src="./src/app.js?v=20260930b"></script>\n'
 )
 MAIN_SW = (
-    "const CACHE_NAME = 'futbolbase-v20260930b';\n"
+    "const CACHE_NAME = 'futbolbase2-v20260930b';\n"
     "const STATIC_ASSETS = ['./', './src/render.js'];\n"
 )
 BRANCH_INDEX = (
@@ -37,8 +37,8 @@ BRANCH_INDEX = (
     '<script type="module" src="./src/app.js?v=20260923j"></script>\n'
 )
 BRANCH_SW = (
-    "const CACHE_NAME = 'futbolbase-v20260923j';\n"
-    "// Rediseño: sin la caché futbolbase-vieja de antes\n"
+    "const CACHE_NAME = 'futbolbase2-v20260923j';\n"
+    "// Rediseño: sin la caché futbolbase2-vieja de antes\n"
     "const STATIC_ASSETS = ['./', './src/screen-home.js'];\n"
 )
 
@@ -55,7 +55,7 @@ def test_la_rama_conserva_su_estructura_con_las_marcas_de_main():
     assert index == BRANCH_INDEX.replace("20260923j", "20260930b").replace("23/09/2026", "30/09/2026")
     assert index.count("?v=20260930b") == 4
     assert '<div class="box skeleton">' in index and "sec-miequipo" not in index
-    assert sw.splitlines()[0] == "const CACHE_NAME = 'futbolbase-v20260930b';"
+    assert sw.splitlines()[0] == "const CACHE_NAME = 'futbolbase2-v20260930b';"
     assert sw.splitlines()[1:] == BRANCH_SW.splitlines()[1:], "solo cambia la línea 1"
     assert "screen-home.js" in sw and "render.js" not in sw
 
@@ -63,7 +63,7 @@ def test_la_rama_conserva_su_estructura_con_las_marcas_de_main():
 def test_solo_la_primera_cache_name_como_el_bot():
     _, sw = sync_versions.apply_marks(
         BRANCH_INDEX, BRANCH_SW, {"v": "20261001", "footer": "01/10/2026", "cache": "20261001"})
-    assert "futbolbase-vieja" in sw, "count=1, igual que bump_cache_version"
+    assert "futbolbase2-vieja" in sw, "count=1, igual que bump_cache_version"
 
 
 def test_es_idempotente():
@@ -112,7 +112,7 @@ def test_cli_reescribe_con_las_marcas_de_la_ref(repo, capsys):
     sw = (repo / "sw.js").read_text(encoding="utf-8")
     assert "?v=20260923j" not in index and index.count("?v=20260930b") == 4
     assert "Última actualización: 30/09/2026" in index and "skeleton" in index
-    assert sw.startswith("const CACHE_NAME = 'futbolbase-v20260930b';\n") and "screen-home.js" in sw
+    assert sw.startswith("const CACHE_NAME = 'futbolbase2-v20260930b';\n") and "screen-home.js" in sw
     assert "20260930b" in capsys.readouterr().out
 
 

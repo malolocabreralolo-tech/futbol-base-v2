@@ -1,4 +1,4 @@
-// Almacén persistente «futbol-base:v2» (spec §6.5): { myTeam, recent }.
+// Almacén persistente de v2, STORE_KEY: { myTeam, recent }.
 //   myTeam = { name, season, cat, groupId }
 //   recent = [{ s, g, t }], lo último visto primero, sin repetidos y como máximo 8.
 //
@@ -6,17 +6,21 @@
 // el Storage por parámetro (o una función que lo devuelve) y lo envuelve con
 // safeStorage, así que un almacenamiento que falla (modo privado, cookies
 // bloqueadas, cuota agotada o ninguno) deja la app con los valores por defecto
-// en memoria. Solo borra con «Borrar datos de esta app» (clearStore): la
-// migración no toca futbol-base:favorites:v1 ni las claves antiguas `season`,
-// `cat` y `theme`, que tampoco se leen.
+// en memoria. Solo borra con «Borrar datos de esta app» (clearStore), y solo
+// claves de v2: v1 comparte el origen, y sus claves (las V1_* y LEGACY_KEY)
+// nunca se escriben ni se borran; las antiguas `season`, `cat` y `theme`, ni se
+// leen.
 import { normalizeTeamName } from './state.js';
 import { CATEGORIES } from './model.js';
 
-export const STORE_KEY = 'futbol-base:v2';
-export const LEGACY_KEY = 'futbol-base:favorites:v1';
-export const MAX_RECENT = 8;
+export const STORE_KEY = 'fb2:almacen';
 // Los jugadores seguidos (followed.js) van en su propia clave: «Borrar datos» también la borra.
-export const FOLLOWED_KEY = 'futbol-base:jugadores';
+export const FOLLOWED_KEY = 'fb2:jugadores';
+// Las de v1, en el mismo origen: solo se leen.
+export const V1_STORE_KEY = 'futbol-base:v2';            // solo lectura
+export const V1_FOLLOWED_KEY = 'futbol-base:jugadores';  // solo lectura
+export const LEGACY_KEY = 'futbol-base:favorites:v1';    // solo lectura, como hasta ahora
+export const MAX_RECENT = 8;
 
 // Las categorías de la app anterior (favorites.js, v1), que nunca tuvo alevín; las de la v2 son las de
 // la app (CATEGORIES de model.js, alevín incluido: si no, un equipo alevín guardado se descartaba en
@@ -117,7 +121,7 @@ export function loadStore(storage, { defaultTeam, portalSeason }) {
       recent: cleanRecent(saved.recent),
     };
   }
-  // Migración única: se escribe v2 y v1 se conserva.
+  // Migración: se escribe STORE_KEY y LEGACY_KEY, de v1, no se toca.
   const migrated = migrateV1(readJSON(store, LEGACY_KEY));
   if (migrated) {
     saveStore(storage, migrated);
@@ -136,12 +140,12 @@ export function addRecent(state, entry) {
   return { ...state, recent: cleanRecent([{ s: entry.s, g: entry.g, t: entry.t }, ...(state.recent || [])]) };
 }
 
-// «Borrar datos de esta app» (§4.7 y §4.9; decisión 6 de B3): v2, la clave v1 (si se quedara, la
-// carga siguiente volvería a migrarla), los jugadores seguidos y las claves `season`, `cat` y
-// `theme` de la app anterior.
+// «Borrar datos de esta app»: el almacén y los jugadores seguidos, las dos claves de v2. Las de v1 y
+// las antiguas `season`, `cat` y `theme` son de v1, que comparte el origen, y se quedan: si LEGACY_KEY
+// sigue ahí, la carga siguiente vuelve a migrarla.
 // Nunca storage.clear(): el origen (malolocabreralolo-tech.github.io) es de más proyectos. Devuelve
 // false si alguna no se pudo borrar; nunca lanza.
 export function clearStore(storage) {
   const store = safeStorage(storage);
-  return [STORE_KEY, LEGACY_KEY, FOLLOWED_KEY, 'season', 'cat', 'theme'].map((key) => store.removeItem(key)).every(Boolean);
+  return [STORE_KEY, FOLLOWED_KEY].map((key) => store.removeItem(key)).every(Boolean);
 }

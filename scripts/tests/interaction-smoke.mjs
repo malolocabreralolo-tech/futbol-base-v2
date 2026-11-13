@@ -31,7 +31,7 @@ import { useWorld, STORE_KEY } from './fixture-site.mjs';
 // - las pantallas nuevas (la ficha con su plantilla y su trayectoria, «Comparar grupos», Copa,
 //   Goleadores, Récords, Temporadas, Fuentes y Ajustes), sin desplazamiento horizontal; el cuadro de
 //   copa se desliza dentro de su caja y la página no;
-// - «Hacer mi equipo» desde la ficha: se guarda en futbol-base:v2 y, al recargar, la portada es la
+// - «Hacer mi equipo» desde la ficha: se guarda en fb2:almacen y, al recargar, la portada es la
 //   del equipo nuevo.
 // Y una vez, en el mundo E (§11, caso 3): la respuesta a la pregunta se guarda y, al recargar, la
 // portada es la de ese equipo, sin preguntar.

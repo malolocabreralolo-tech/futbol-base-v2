@@ -17,7 +17,7 @@ Cada original escudos/<nombre>.<ext> da escudos/s/<nombre>.png, la imagen que la
 
 Y el sello de escudos/ (decisión 1 del plan B5): las 8 primeras cifras hex del sha1 de la lista ordenada
 de «<ruta>:<sha1 del fichero>» de todos sus ficheros, originales y miniaturas (sin los ocultos, que la app
-nunca pide). Va en la línea 2 de sw.js, `const CRESTS_CACHE = 'futbolbase-escudos-<sello>';`, el nombre
+nunca pide). Va en la línea 2 de sw.js, `const CRESTS_CACHE = 'futbolbase2-escudos-<sello>';`, el nombre
 de la caché de los escudos del SW: una subida de datos del bot no lo cambia, así que los escudos ya vistos
 siguen ahí sin conexión; un escudo nuevo o cambiado da otro sello, y el SW nuevo borra la caché anterior.
 Se escribe al terminar las miniaturas, y --check lo compara.
@@ -45,7 +45,7 @@ COLORS = 256
 RECIPE = f"{SIZE}px octree{COLORS}"
 TAG = "escudo"
 PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
-SEAL_LINE = re.compile(r"const CRESTS_CACHE = 'futbolbase-escudos-([0-9a-f]{8})';")
+SEAL_LINE = re.compile(r"const CRESTS_CACHE = 'futbolbase2-escudos-([0-9a-f]{8})';")
 
 
 def thumb_name(original: str) -> str:
@@ -211,7 +211,7 @@ def main(argv=None) -> int:
             return 1
         if have != want:
             lines = text.split("\n")
-            lines[1] = f"const CRESTS_CACHE = 'futbolbase-escudos-{want}';"
+            lines[1] = f"const CRESTS_CACHE = 'futbolbase2-escudos-{want}';"
             worker.write_text("\n".join(lines), encoding="utf-8")
             print(f"sello de sw.js: {want} (antes, {have})")
     return 1 if failed else 0
