@@ -3,15 +3,20 @@
 // Chrome real y comprueba que ninguna toca lo de la otra, tampoco cuando una se actualiza.
 // v1 es el código y los datos reales de v1 en V1_COMMIT, sacados con git archive a una carpeta temporal y
 // servidos bajo /futbol-base/; v2, el árbol de trabajo, bajo /futbol-base-v2/ (pages-server.mjs).
-//   1. v1 instalada, con su equipo, un jugador seguido y sus claves antiguas (season, cat, theme).
+//   1. v1 instalada, con su equipo (el primero de prebenjamín de sus datos que no es el de por defecto), un
+//      jugador seguido y sus claves antiguas (season, cat, theme).
 //   2. v2 instalada: lo de v1 sigue igual; las cachés de v2 son futbolbase2-*; trae el equipo y los
 //      seguidos de v1 a fb2:almacen y fb2:jugadores.
-//   3. «Borrar datos de esta app» en v2: lo de v1 sigue igual; de fb2: solo quedan fb2:importado y
+//   3. «Borrar datos de esta app» en v1: lo de v2 sigue igual; de v1 solo queda futbol-base:codigo; al
+//      recargar, su equipo por defecto.
+//   4. «Borrar datos de esta app» en v2: lo de v1 sigue igual; de fb2: solo quedan fb2:importado y
 //      fb2:codigo; al recargar, el equipo por defecto.
-//   4. Subida de v1 (otra versión y otro sello de escudos en sw.js e index.html): su SW nuevo borra sus
+//   5. Subida de v1 (otra versión y otro sello de escudos en sw.js e index.html): su SW nuevo borra sus
 //      cachés viejas, y lo de v2 sigue igual.
-//   5. Subida de v2, igual: borra sus viejas, y lo de v1 sigue igual.
-//   6. Ni un error de consola ni una excepción en las dos apps.
+//   6. Subida de v2, igual: borra sus viejas, y lo de v1 sigue igual.
+//   7. Cambio de CODIGO con el SW al mando, en cada una: la limpieza del arranque de su index.html quita
+//      src/*.js y las hojas de su caché vieja, y nada más, ni de la otra.
+//   8. Ni un error de consola ni una excepción en las dos apps.
 // Cada caché del origen tiene que ser de una de las dos por su nombre y guardar solo lo de su ruta.
 // Sin Chrome o sin el commit de v1, falla: esta prueba no se salta.
 //
@@ -24,6 +29,7 @@ import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { runInNewContext } from 'node:vm';
 import { findChrome } from './render-smoke.mjs';
 import { labeled, takeOver, waitForAsync } from './browser-wait.mjs';
 import { startPagesServer } from './pages-server.mjs';
@@ -32,16 +38,15 @@ import { PORTAL } from '../../src/config.js';
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 // El commit de v1 del que nació v2: su código y sus datos son los que tiene publicados v1.
 const V1_COMMIT = 'c47a1caaddd19b8000b394487fb0eb4ef25c59d2';
-// El estado de v1 en este navegador: un equipo de sus datos distinto del de por defecto (Heidelberg, de
-// PG3), un jugador seguido y las claves antiguas que v1 aún borra con su «Borrar datos».
-const V1_TEAM = { name: 'Heidelberg', season: '2026-2027', cat: 'prebenjamin', groupId: 'PG3' };
-const V1_STATE = {
-  'futbol-base:v2': JSON.stringify({ myTeam: V1_TEAM, recent: [{ s: '2026-2027', g: 'PG2', t: 'AD Huracán' }] }),
+// El estado de v1 en este navegador: su equipo (de sus datos, lo elige extractV1), un jugador seguido y las
+// claves antiguas que v1 aún borra con su «Borrar datos».
+const v1State = (team) => ({
+  'futbol-base:v2': JSON.stringify({ myTeam: team, recent: [{ s: '2026-2027', g: 'PG2', t: 'AD Huracán' }] }),
   'futbol-base:jugadores': JSON.stringify([{ id: '900001', n: 'PRUEBA PRUEBA, JUGADOR' }]),
   season: '2025-2026',
   cat: 'benjamin',
   theme: 'dark',
-};
+});
 const PLAYER_LINK = 'a.traj-row[href*="id=900001"]';
 const HOME = '#contenido section[data-screen="home"][data-state] h1';
 
@@ -58,6 +63,7 @@ function versionsOf(sw) {
 // v1 en una carpeta temporal: lo que su sitio necesita para abrir sin un 404 (cada uno, un error de
 // consola): la página, su SW, el manifiesto, la hoja, src/, la fuente, los iconos, los escudos, los datos
 // que precachea su SW y las actas de los dos grupos que se abren. Sin la base ni el resto de actas.
+// Su equipo en la prueba, de sus datos y no fijo: el primero de prebenjamín que no es el de por defecto.
 function extractV1(dir) {
   const has = () => git(['cat-file', '-e', `${V1_COMMIT}^{commit}`]).status === 0;
   // En CI el clon es de un solo commit: se trae el de v1, y si no llega, la prueba falla.
@@ -67,11 +73,15 @@ function extractV1(dir) {
   const sw = show('sw.js');
   const config = JSON.parse(show('src/config.js').replace(/^export const PORTAL = /, '').replace(/;\s*$/, ''));
   const data = [...sw.matchAll(/'\.\/(data-[^']+)'/g)].map((m) => m[1]);
-  const lineups = [config.defaultTeam.groupId, V1_TEAM.groupId].map((group) => `data-lineups-${config.season}-${group}.js`);
+  const groups = runInNewContext(`${show('data-prebenjamin.js')};PREBENJAMIN`);
+  const team = groups.flatMap((group) => (group.standings || []).map((row) => ({ name: row[1], season: config.season, cat: 'prebenjamin', groupId: group.id })))
+    .find((candidate) => candidate.name !== config.defaultTeam.name);
+  assert.ok(team, 'los datos de prebenjamín de v1 no tienen ningún equipo que no sea el de por defecto');
+  const lineups = [...new Set([config.defaultTeam.groupId, team.groupId])].map((group) => `data-lineups-${config.season}-${group}.js`);
   const paths = ['index.html', 'sw.js', 'manifest.json', 'acta.css', 'src', 'fonts', 'icons', 'escudos', ...data, ...lineups];
   const tar = execFileSync('git', ['archive', '--format=tar', V1_COMMIT, '--', ...paths], { cwd: ROOT, maxBuffer: 1 << 28 });
   execFileSync('tar', ['-x', '-C', dir], { input: tar });
-  return { ...versionsOf(sw), defaultTeam: config.defaultTeam.name };
+  return { ...versionsOf(sw), defaultTeam: config.defaultTeam.name, team };
 }
 
 // Lo que hay en el origen: las cachés, con las rutas que guarda cada una, y localStorage. Se mira desde
@@ -149,12 +159,14 @@ try {
   const { chromium } = createRequire(import.meta.url)('playwright');
   browser = await chromium.launch({ executablePath: chrome, headless: true, args: ['--no-sandbox'] });
   v1Dir = mkdtempSync(join(tmpdir(), 'aislamiento-v1-'));
-  const v1Real = extractV1(v1Dir);
+  const { team: V1_TEAM, ...v1Real } = extractV1(v1Dir);
+  const V1_STATE = v1State(V1_TEAM);
   const v2Real = versionsOf(readFileSync(join(ROOT, 'sw.js'), 'utf8'));
-  // Cada app: su ruta, el prefijo de sus cachés, sus claves, su versión y la de su subida.
-  const v1 = { id: 'v1', path: '/futbol-base/', prefix: 'futbolbase-', ownsKey: (key) => !key.startsWith('fb2:'),
+  // Cada app: su ruta, el prefijo de sus cachés, sus claves (y la del CODIGO que vio por última vez), su
+  // versión y la de su subida.
+  const v1 = { id: 'v1', path: '/futbol-base/', prefix: 'futbolbase-', ownsKey: (key) => !key.startsWith('fb2:'), codigoKey: 'futbol-base:codigo',
     ...v1Real, next: '20991231a', nextSeal: 'c1c1c1c1', published: false };
-  const v2 = { id: 'v2', path: '/futbol-base-v2/', prefix: 'futbolbase2-', ownsKey: (key) => key.startsWith('fb2:'),
+  const v2 = { id: 'v2', path: '/futbol-base-v2/', prefix: 'futbolbase2-', ownsKey: (key) => key.startsWith('fb2:'), codigoKey: 'fb2:codigo',
     ...v2Real, defaultTeam: PORTAL.defaultTeam.name, next: '20991231b', nextSeal: 'c2c2c2c2', published: false };
   const apps = [v1, v2];
   for (const app of apps) {
@@ -268,28 +280,52 @@ try {
     assert.equal(s2.keys['fb2:jugadores'], s1.keys['futbol-base:jugadores'], 'fb2:jugadores no son los seguidos de v1');
   });
 
-  // ── 3. «Borrar datos de esta app» en v2 ─────────────────────────────────────────────────────────
-  let s3;
-  await run(3, '«Borrar datos» de v2: lo de v1, intacto; quedan fb2:importado y fb2:codigo; al recargar, el equipo por defecto', async () => {
-    const page = await open(v2, 'v2, antes de borrar');
+  // «Borrar datos de esta app» en `app`: desde Ajustes, hasta que se van `gone` (sus claves del almacén y de
+  // los seguidos). Devuelve la página, abierta en Ajustes.
+  const clearData = async (app, gone) => {
+    const page = await open(app, `${app.id}, antes de borrar`);
     await page.evaluate(() => { location.hash = '#/ajustes'; });
-    await labeled('v2, Ajustes', () => page.locator('#contenido section[data-screen="ajustes"]').waitFor());
-    await labeled('v2, «Borrar datos de esta app»', () => page.click('#contenido button[data-action="borrar-datos"]'));
-    await labeled('v2, «Borrar»', () => page.click('#ajustes-borrar button[data-action="confirmar-borrado"]'));
-    await waitForAsync(page, () => localStorage.getItem('fb2:almacen') === null && localStorage.getItem('fb2:jugadores') === null, null,
-      { label: 'v2, el borrado' });
-    const cleared = await quiet(probe, 'v2 tras borrar');
-    checkUntouched(v1, s2, cleared, 'tras «Borrar datos» de v2');
-    assert.deepEqual(Object.keys(pick(cleared.keys, v2.ownsKey)).sort(), ['fb2:codigo', 'fb2:importado'], 'lo que queda de fb2:');
+    await labeled(`${app.id}, Ajustes`, () => page.locator('#contenido section[data-screen="ajustes"]').waitFor());
+    await labeled(`${app.id}, «Borrar datos de esta app»`, () => page.click('#contenido button[data-action="borrar-datos"]'));
+    await labeled(`${app.id}, «Borrar»`, () => page.click('#ajustes-borrar button[data-action="confirmar-borrado"]'));
+    await waitForAsync(page, (keys) => keys.every((key) => localStorage.getItem(key) === null), gone, { label: `${app.id}, el borrado` });
+    return page;
+  };
+  // Tras borrar, vuelve a la portada y recarga: el equipo por defecto de `app`, sin el jugador seguido.
+  const reloadedDefault = async (page, app) => {
     await page.evaluate(() => { location.hash = '#/'; });
-    await labeled('v2, recargar tras borrar', () => page.reload());
-    await painted(page, 'v2 tras borrar y recargar');
-    assert.equal(await title(page), v2.defaultTeam, 'tras borrar y recargar, v2 no enseña el equipo por defecto');
-    assert.equal(await page.locator(PLAYER_LINK).count(), 0, 'tras borrar y recargar, v2 sigue con el jugador de v1');
+    await labeled(`${app.id}, recargar tras borrar`, () => page.reload());
+    await painted(page, `${app.id} tras borrar y recargar`);
+    assert.equal(await title(page), app.defaultTeam, `tras borrar y recargar, ${app.id} no enseña el equipo por defecto`);
+    assert.equal(await page.locator(PLAYER_LINK).count(), 0, `tras borrar y recargar, ${app.id} sigue con el jugador seguido`);
+  };
+
+  // ── 3. «Borrar datos de esta app» en v1, con v2 instalada ───────────────────────────────────────
+  let s3;
+  await run(3, '«Borrar datos» de v1: lo de v2, intacto; de v1 queda futbol-base:codigo; al recargar, su equipo por defecto', async () => {
+    const page = await clearData(v1, ['futbol-base:v2', 'futbol-base:jugadores']);
+    const cleared = await quiet(probe, 'v1 tras borrar');
+    checkUntouched(v2, s2, cleared, 'tras «Borrar datos» de v1');
+    assert.deepEqual(Object.keys(pick(cleared.keys, v1.ownsKey)).sort(), [v1.codigoKey], 'lo que queda de v1');
+    await reloadedDefault(page, v1);
     await page.close();
-    s3 = await quiet(probe, 'v2 recargada tras borrar');
-    checkUntouched(v1, s2, s3, 'tras recargar v2');
-    checkOwners(s3, apps, 'tras borrar');
+    s3 = await quiet(probe, 'v1 recargada tras borrar');
+    checkUntouched(v2, s2, s3, 'tras recargar v1');
+    checkOwners(s3, apps, 'tras borrar en v1');
+  });
+
+  // ── 4. «Borrar datos de esta app» en v2 ─────────────────────────────────────────────────────────
+  let s4;
+  await run(4, '«Borrar datos» de v2: lo de v1, intacto; quedan fb2:importado y fb2:codigo; al recargar, el equipo por defecto', async () => {
+    const page = await clearData(v2, ['fb2:almacen', 'fb2:jugadores']);
+    const cleared = await quiet(probe, 'v2 tras borrar');
+    checkUntouched(v1, s3, cleared, 'tras «Borrar datos» de v2');
+    assert.deepEqual(Object.keys(pick(cleared.keys, v2.ownsKey)).sort(), ['fb2:codigo', 'fb2:importado'], 'lo que queda de fb2:');
+    await reloadedDefault(page, v2);
+    await page.close();
+    s4 = await quiet(probe, 'v2 recargada tras borrar');
+    checkUntouched(v1, s3, s4, 'tras recargar v2');
+    checkOwners(s4, apps, 'tras borrar en v2');
   });
 
   // Una subida de `app`: la abre como quien recarga (su index.html pide la actualización), espera sin
@@ -309,8 +345,8 @@ try {
     return { before, after: await quiet(probe, `${label}, después`) };
   };
 
-  // ── 4. Subida de v1 ─────────────────────────────────────────────────────────────────────────────
-  await run(4, 'subida de v1: su SW nuevo borra sus cachés viejas y las de v2 siguen', async () => {
+  // ── 5. Subida de v1 ─────────────────────────────────────────────────────────────────────────────
+  await run(5, 'subida de v1: su SW nuevo borra sus cachés viejas y las de v2 siguen', async () => {
     const { before, after } = await publish(v1, 'subida de v1');
     const left = Object.keys(pick(after.caches, (name) => name.startsWith(v1.prefix))).sort();
     assert.deepEqual(left, [v1.crests(v1.nextSeal), v1.data(v1.next)].sort(), 'las cachés de v1 tras su subida (las viejas, fuera)');
@@ -318,8 +354,8 @@ try {
     checkOwners(after, apps, 'tras la subida de v1');
   });
 
-  // ── 5. Subida de v2 ─────────────────────────────────────────────────────────────────────────────
-  await run(5, 'subida de v2: su SW nuevo borra sus cachés viejas y las de v1 siguen', async () => {
+  // ── 6. Subida de v2 ─────────────────────────────────────────────────────────────────────────────
+  await run(6, 'subida de v2: su SW nuevo borra sus cachés viejas y las de v1 siguen', async () => {
     const { before, after } = await publish(v2, 'subida de v2');
     const left = Object.keys(pick(after.caches, (name) => name.startsWith(v2.prefix))).sort();
     assert.deepEqual(left, [v2.crests(v2.nextSeal), v2.data(v2.next)].sort(), 'las cachés de v2 tras su subida (las viejas, fuera)');
@@ -327,13 +363,48 @@ try {
     checkOwners(after, apps, 'tras la subida de v2');
   });
 
-  // ── 6. Sin errores ──────────────────────────────────────────────────────────────────────────────
-  step = 6;
-  assert.deepEqual(errors, [], `paso 6 (errores de consola y excepciones de las dos apps):\n  ${errors.join('\n  ')}`);
-  console.log('aislamiento-smoke: ok (5 pasos)');
+  // ── 7. Cambio de CODIGO con el SW al mando ──────────────────────────────────────────────────────
+  // Tras publicar código, la primera apertura con un SW al mando (y otro CODIGO apuntado en este navegador)
+  // quita src/*.js y las hojas de las cachés de datos de su app que no son las de su versión: la limpieza del
+  // arranque de index.html. Cada app, con una caché vieja con código, datos, su página y un icono, y la otra
+  // también: la que se abre deja en la suya lo que no es código, y la otra no cambia.
+  const OLD = '20000101a';
+  const oldFiles = ['src/app.js', 'src/store.js', `acta.css?v=${OLD}`, `data-seasons.js?v=${OLD}`, 'index.html', 'icons/icon-192.png'];
+  const isCode = (path) => /\/src\/[^/]+\.js$|\.css$/.test(path.split('?')[0]);
+  await run(7, 'cambio de CODIGO: cada app quita src/*.js y las hojas de su caché vieja, y nada de la otra', async () => {
+    for (const [app, other] of [[v2, v1], [v1, v2]]) {
+      const label = `cambio de CODIGO en ${app.id}`;
+      await probe.evaluate(async ({ old, key }) => {
+        for (const { name, urls } of old) {
+          const cache = await caches.open(name);
+          for (const url of urls) await cache.put(url, new Response('de la versión vieja'));
+        }
+        localStorage.setItem(key, 'otro');
+      }, { old: apps.map((a) => ({ name: a.data(OLD), urls: oldFiles.map((file) => `${a.path}${file}`) })), key: app.codigoKey });
+      const before = await quiet(probe, `${label}, antes`);
+      const page = await open(app, label);
+      // El arranque apunta su CODIGO tras la limpieza y tras start(): entonces ya ha quitado lo que quitaba.
+      await waitForAsync(page, (key) => localStorage.getItem(key) !== 'otro', app.codigoKey, { label: `${label}: su CODIGO, apuntado` });
+      await page.close();
+      const after = await quiet(probe, `${label}, después`);
+      const old = app.data(OLD);
+      assert.deepEqual(after.caches[old], before.caches[old].filter((path) => !isCode(path)), `${label}: lo que queda en su caché vieja`);
+      for (const [name, entries] of Object.entries(pick(before.caches, (n) => n.startsWith(app.prefix) && n !== old))) {
+        const gone = entries.filter((path) => !(after.caches[name] || []).includes(path));
+        assert.deepEqual(gone, [], `${label}: la caché ${name}, que no es vieja, ha perdido entradas`);
+      }
+      checkUntouched(other, before, after, label);
+      checkOwners(after, apps, label);
+    }
+  });
+
+  // ── 8. Sin errores ──────────────────────────────────────────────────────────────────────────────
+  step = 8;
+  assert.deepEqual(errors, [], `paso 8 (errores de consola y excepciones de las dos apps):\n  ${errors.join('\n  ')}`);
+  console.log('aislamiento-smoke: ok (7 pasos)');
 } catch (error) {
   console.error(`aislamiento-smoke: FALLA: ${error.message}`);
-  if (errors.length && step !== 6) console.error(`y errores de consola:\n  ${errors.join('\n  ')}`);
+  if (errors.length && step !== 8) console.error(`y errores de consola:\n  ${errors.join('\n  ')}`);
   process.exitCode = 1;
 } finally {
   if (browser) await browser.close();
