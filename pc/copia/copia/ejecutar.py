@@ -24,6 +24,9 @@ _BUENOS = (ACEPTADA, SIN_CAMBIOS)
 CADUCIDAD = timedelta(days=3)
 _TEMPORAL = ".pasada-"
 _NUNCA_SE_PERDONA = ("integridad:", "claves foráneas:", "no se puede abrir:", "mengua:")
+_ESPEJO_INCOMPLETO = "espejo incompleto: "
+# El fallo de git pasa de 300 caracteres con su consejo y la ruta del remoto; la rama que choca va al principio.
+_NOTA_CORTA = 160
 
 
 def ejecutar(origenes: Sequence[Origen], ahora: datetime, aceptar_mengua: Collection[str] = ()) -> int:
@@ -83,7 +86,7 @@ def _pasada(origen: Origen, ahora: datetime, entrada: dict, a_mano: bool) -> tup
     avisos: list[str] = []
     try:
         commit = actualizar_espejo(origen, ahora)
-        avisos = [f"espejo incompleto: {aviso}" for aviso in avisos_del_espejo(origen)]
+        avisos = [f"{_ESPEJO_INCOMPLETO}{aviso}" for aviso in avisos_del_espejo(origen)]
         anterior = _anterior(origen.nombre, entrada)
         # Lo que se aceptó a mano en la última buena (una tabla que falta o vacía) no cuenta mientras siga así.
         excepciones = list((entrada.get("ultima_buena") or {}).get("excepciones") or [])
@@ -176,8 +179,14 @@ def _resumen(nombre: str, entrada: Mapping, ahora: datetime) -> tuple[str, bool]
             partes.append("con excepciones: " + "; ".join(buena["excepciones"]))
     else:
         avisos.append("sin copia buena")
+    detalle = comprobacion.get("detalle") or []
+    # Un choque de ramas en el espejo no para la copia, pero si dura días tiene que verse aquí y no solo en registro.log.
+    espejo = [d for d in detalle if d.startswith(_ESPEJO_INCOMPLETO)]
+    if espejo:
+        nota = "; ".join(espejo)
+        partes.append(nota if len(nota) <= _NOTA_CORTA else nota[: _NOTA_CORTA - 1] + "…")
     if resultado not in _BUENOS:
-        avisos.append("; ".join(comprobacion.get("detalle") or [resultado]))
+        avisos.append("; ".join([d for d in detalle if d not in espejo] or [resultado]))
     if "momento" in comprobacion:
         edad = ahora - datetime.fromisoformat(comprobacion["momento"])
         if edad >= CADUCIDAD:

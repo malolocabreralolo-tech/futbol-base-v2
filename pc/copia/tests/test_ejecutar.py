@@ -431,7 +431,29 @@ def test_espejo_incompleto_no_para_la_pasada(raiz, remoto):
     assert c["detalle"][-1].startswith("espejo incompleto: git fetch: ") and "refs/heads/claude" in c["detalle"][-1]
     assert comprobar(raiz / "actual/v1/futbolbase.db").recuentos["matches"] == 41
     assert " v1 aceptada matches 41; " in _registro(raiz)[-1] and "; espejo incompleto: " in _registro(raiz)[-1]
-    assert estado(AHORA + timedelta(days=1, hours=1))[1] == 0
+    # estado lo enseña, corto, sin que cuente como aviso; también los días siguientes sin cambios.
+    for dia in (1, 2):
+        if dia == 2:
+            assert ejecutar([o], AHORA + timedelta(days=2)) == 0
+            assert _estado(raiz)["v1"]["ultima_comprobacion"]["resultado"] == "sin cambios"
+        texto, codigo = estado(AHORA + timedelta(days=dia, hours=1), ["v1"])
+        linea = texto.splitlines()[0]
+        nota = linea.split(" · ")[-1]
+        assert codigo == 0 and "AVISO" not in linea
+        assert nota.startswith("espejo incompleto: git fetch: ") and "refs/heads/claude" in nota and len(nota) <= 160
+    # Con un resultado malo sale una sola vez, y el aviso es lo demás.
+    commit_base(remoto, 10)
+    assert ejecutar([o], AHORA + timedelta(days=3)) == 1
+    texto, codigo = estado(AHORA + timedelta(days=3, hours=1), ["v1"])
+    linea = texto.splitlines()[0]
+    assert codigo == 1 and linea.count("espejo incompleto") == 1
+    assert linea.split(" · ")[-1].startswith("AVISO: mengua: matches 41 → 10; apartada en ")
+    # Cuando el choque se acaba, la nota se va.
+    git(remoto, "branch", "--quiet", "-m", "claude", "otra")
+    commit_base(remoto, 41)
+    assert ejecutar([o], AHORA + timedelta(days=4)) == 0
+    texto, codigo = estado(AHORA + timedelta(days=4, hours=1), ["v1"])
+    assert codigo == 0 and "espejo incompleto" not in texto
 
 
 def _foto(carpeta: Path) -> dict[str, bytes]:
