@@ -268,10 +268,13 @@ def test_restaurar_detecta_copia_danada(raiz, tmp_path):        # se sustituye e
 def test_restaurar_no_escribe_en_actual(raiz, tmp_path):
     with pytest.raises(ValueError): restaurar("v1", raiz / "actual/v1")
 def test_escritura_interrumpida_no_deja_version(raiz, tmp_path, monkeypatch):
-    # os.replace lanza OSError durante aceptar
-    with pytest.raises(OSError): aceptar("v1", db, r.recuentos, AHORA)
+    # os.replace lanza OSError durante aceptar. Con monkeypatch.context(), nunca monkeypatch.undo():
+    # undo() desharía también FB_COPIA_RAIZ de la fixture y la prueba escribiría en ~/backups.
+    with monkeypatch.context() as m:
+        m.setattr(os, "replace", falla)
+        with pytest.raises(OSError): aceptar("v1", db, r.recuentos, AHORA)
     assert versiones("v1") == [] and not (raiz / "actual/v1/futbolbase.db").exists()
-    monkeypatch.undo(); assert aceptar("v1", db, r.recuentos, AHORA) is not None
+    assert aceptar("v1", db, r.recuentos, AHORA) is not None
 ```
 
 - [ ] **Step 2: Ejecutarlas y ver que fallan**
@@ -309,6 +312,7 @@ git commit -m "copia del PC: almacén de versiones, actual, cuarentena y restaur
   ```
 - Ventanas: diaria `ahora - m < timedelta(days=30)`; semanal `ahora - m < timedelta(weeks=26)`; semana y año ISO en UTC.
 - `volcar` usa `sqlite3.Connection.iterdump()` sobre `actual/<origen>/futbolbase.db`; devuelve `None` si ya hay volcado de esa semana ISO o si no hay `actual/`; tras escribir, deja los 12 más nuevos.
+- De paso, en `aceptar` (tarea 3): si ya existe una versión con ese mismo segundo y otra huella, lanza `FileExistsError` en vez de pisarla. Una copia nunca se sobrescribe.
 
 - [ ] **Step 1: Escribir las pruebas que fallan** (`test_retencion.py`)
 
@@ -346,11 +350,17 @@ def test_volcar(raiz, tmp_path):
 
 def test_volcar_sin_actual(raiz):  assert volcar("v1", AHORA) is None
 def test_volcar_conserva_doce(raiz, tmp_path)   # 14 semanas seguidas -> 12 ficheros
+
+def test_aceptar_no_pisa_una_version_del_mismo_segundo(raiz, tmp_path):
+    v = aceptar("v1", a, ra.recuentos, AHORA)                 # a y b son bases distintas
+    with pytest.raises(FileExistsError): aceptar("v1", b, rb.recuentos, AHORA)
+    assert lzma.open(v.ruta).read() == a.read_bytes() and len(versiones("v1")) == 1
+    assert (raiz / "actual/v1/futbolbase.db").read_bytes() == a.read_bytes()
 ```
 
 - [ ] **Step 2: Ejecutarlas y ver que fallan** — Run: `cd pc/copia && python3 -m pytest tests/test_retencion.py -q`
 - [ ] **Step 3: Implementar `a_conservar`, `podar` y `volcar`**
-- [ ] **Step 4: Ejecutarlas y ver que pasan** — Expected: 6 passed.
+- [ ] **Step 4: Ejecutarlas y ver que pasan** — Expected: 7 passed.
 - [ ] **Step 5: Commit**
 
 ```bash
@@ -456,6 +466,7 @@ git commit -m "copia del PC: espejo de git sin podas y extracción de la base y 
           "ultima_comprobacion": {"momento": "…", "resultado": "aceptada|sin cambios|cuarentena|error", "detalle": ["…"], "commit": "…"}}}
   ```
 - `raiz()/registro.log`: una línea por origen y pasada: `<momento ISO> <origen> <resultado> <detalle separado por «; »>`.
+- `almacen.restaurar` lanza `LookupError` si no hay versión (o no la hay de ese momento): `main` lo convierte en un mensaje y código `1`. `--momento` se lee como UTC (`tzinfo=timezone.utc`), porque `restaurar` compara el momento exacto.
 - `estado`: una línea por origen con el momento y el resultado de la última comprobación, el momento de la última buena y sus recuentos de `matches` y `players`, y una última línea con lo que ocupa `raiz()`. Código `0` si todos los orígenes tienen `ultima_buena`, su último resultado es `aceptada` o `sin cambios` y su última comprobación tiene menos de 3 días; si no, `1`. Sin `estado.json`: el texto contiene `sin copias` y el código es `1`.
 - Orden: `ejecutar [--aceptar-mengua ORIGEN]…`, `estado`, `versiones ORIGEN`, `restaurar ORIGEN DESTINO [--momento AAAAMMDD-HHMMSS]`, `extraer ORIGEN RUTA DESTINO`. Los orígenes salen de `FB_COPIA_ORIGENES` o, si no está, del `origenes.json` que hay junto al paquete (`Path(__file__).parent.parent`).
 

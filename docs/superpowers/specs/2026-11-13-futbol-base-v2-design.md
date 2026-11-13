@@ -190,7 +190,7 @@ v1 y v2 comparten origen, y por tanto `localStorage` y Cache Storage. Hoy v1 bor
 - **Pronósticos (dueño)**: el marcador exacto se queda. Se añade el margen al pronóstico final. **(criterio de Claude)** En la pantalla Partido, junto al «resultado más probable», su probabilidad real; si al dueño le estorba, se quita.
 - **Peso**: un paso de empaquetado al publicar. Las fuentes siguen en módulos y las pruebas siguen importándolos. Con esto sobran los tres mecanismos de versión de hoy y la purga de `index.html`.
 - **Arreglos menores** de la revisión: enlaces de partido que acaban en punto, `data-matchdetail.js` solo cuando hace falta, duración en el `.ics`, goleadores por páginas, letra en `rem` sin cambiar el tamaño por defecto, código muerto.
-- **Barra inferior en iOS 26**: los dos commits de la rama local `barra-ios` de v1 (18/10/2026) se incorporan a v2. No se puede verificar aquí en un iPhone: lo prueba el dueño, y se le dice.
+- **Barra inferior en iOS 26**: no se incorpora. El dueño decidió en octubre guardar ese arreglo en la rama local `barra-ios` de v1 y publicarlo solo si el problema vuelve a pasar. La rama se conserva (está también en el paquete de la copia del PC). Si el problema aparece en v2, se incorpora entonces. *(Corregido el 13/11/2026 al encontrar esa decisión en la ficha del proyecto; la primera redacción decía incorporarlo.)*
 
 ### 7.8 El bot y el mantenimiento
 
@@ -220,7 +220,7 @@ Cada fase acaba con algo que funciona y se ha visto funcionar. No se empieza una
 0. **Copia en el PC y limpieza local.** No publica nada. Es lo que más le importa al dueño y no depende del resto.
 1. **v2 en su enlace**, como copia fiel de v1 con el aislamiento, su reloj y su bot. Primera pasada con pocos grupos.
 2. **Datos**: fases y competiciones que faltan, detección y activación, pasada sana, estado en portada, identidad de jugadores.
-3. **Web**: datos frescos, instalación robusta, margen del pronóstico, empaquetado, arreglos menores, barra de iOS.
+3. **Web**: datos frescos, instalación robusta, margen del pronóstico, empaquetado, arreglos menores.
 4. **Mantenimiento**: un solo escritor, reconstrucción, dependencias fijadas, scripts y comentarios, y al final el planificador.
 
 ## 9. Cómo se trabaja
@@ -234,6 +234,5 @@ Cada fase acaba con algo que funciona y se ha visto funcionar. No se empieza una
 
 - La federación puede no haber publicado aún la Segunda Fase: entonces O3 se cumple con la detección y la portada, y la carga llega cuando se publique.
 - La federación puede endurecer su corte con dos bots leyendo.
-- El arreglo de iOS no se puede probar aquí.
 - La migración de identidades cambia muchas fichas: se hace sobre copia, con recuentos y con vuelta atrás.
 - GitHub desactiva los workflows programados de un repositorio público tras 60 días sin commits.
