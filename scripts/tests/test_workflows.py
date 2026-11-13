@@ -431,6 +431,27 @@ def test_tests_yml_paths_cover_known_gaps():
         assert "acta.css" in paths, f"{event} paths must include acta.css"
 
 
+def test_tests_yml_paths_cover_docs_and_pc():
+    """El bot pasa todas las pruebas antes de publicar, y algunas leen el README, los documentos (las órdenes
+    de gh, en test_identidad_v2.mjs), el diseño de v2 y pc/: un cambio que solo toque eso tiene que lanzar
+    tests.yml, o el primer rojo sería el de la pasada siguiente del bot, que dejaría de publicar."""
+    trig = _triggers(_load("tests.yml"))
+    for event in ("push", "pull_request"):
+        paths = trig[event]["paths"]
+        for wanted in ("README.md", "docs/*.md", "docs/superpowers/specs/**", "pc/**"):
+            assert wanted in paths, f"{event} paths must include {wanted}"
+
+
+def test_tests_yml_runs_the_pc_tests():
+    """Las pruebas de las herramientas del PC (pc/copia y pc/reloj) corren en CI, con -W error, cada una como
+    dice su README: la de la copia desde su carpeta, que es la que hace importable su paquete (copia)."""
+    steps = _steps(_load("tests.yml"), "pc-tests")
+    runs = [(step.get("working-directory"), step.get("run") or "") for step in steps]
+    assert re.search(r"pip install[^\n]*\bpytest\b", " ".join(run for _, run in runs))
+    assert ("pc/copia", "python3 -m pytest tests -q -W error") in runs, runs
+    assert (None, "python3 -m pytest pc/reloj/tests -q -W error") in runs, runs
+
+
 def test_tests_yml_render_smoke_intact():
     runs = " ".join(_runs(_load("tests.yml"), "render-smoke"))
     assert "node scripts/tests/render-smoke.mjs" in runs

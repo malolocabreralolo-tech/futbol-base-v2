@@ -21,6 +21,10 @@ on:
       - '.github/workflows/tests.yml'
       - '.github/workflows/update.yml'
       - '.github/workflows/reloj.yml'
+      - 'README.md'
+      - 'docs/*.md'
+      - 'docs/superpowers/specs/**'
+      - 'pc/**'
   pull_request:
     paths:
       - 'scripts/**.py'
@@ -40,6 +44,10 @@ on:
       - '.github/workflows/tests.yml'
       - '.github/workflows/update.yml'
       - '.github/workflows/reloj.yml'
+      - 'README.md'
+      - 'docs/*.md'
+      - 'docs/superpowers/specs/**'
+      - 'pc/**'
   # Red de seguridad: los push del bot con GITHUB_TOKEN no disparan este
   # workflow (anti-recursión de GitHub), así que un cron diario garantiza
   # que las suites corren sobre main al menos una vez al día.
@@ -104,3 +112,20 @@ jobs:
         run: npm install --no-save --package-lock=false playwright@1.58.0
       - name: v1 y v2 en el mismo origen (headless Chrome)
         run: node scripts/tests/aislamiento-smoke.mjs
+
+  # Las herramientas del PC del dueño (la copia de seguridad y el reloj), cada una como dice su README: la de la
+  # copia, desde su carpeta, que es la que hace importable su paquete.
+  pc-tests:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Install pytest
+        run: pip install pytest
+      - name: Copia de seguridad del PC (pc/copia)
+        working-directory: pc/copia
+        run: python3 -m pytest tests -q -W error
+      - name: Reloj del PC (pc/reloj)
+        run: python3 -m pytest pc/reloj/tests -q -W error
