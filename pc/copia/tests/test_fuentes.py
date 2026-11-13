@@ -44,7 +44,8 @@ def test_cargar_origenes(tmp_path):
     assert cargar_origenes(f) == [Origen("v1", "https://x/y.git", "main", "futbolbase.db")]
     # El que se instala junto al paquete.
     assert cargar_origenes(ORIGENES) == [
-        Origen("v1", "https://github.com/malolocabreralolo-tech/futbol-base.git", "main", "futbolbase.db")
+        Origen("v1", "https://github.com/malolocabreralolo-tech/futbol-base.git", "main", "futbolbase.db"),
+        Origen("v2", "https://github.com/malolocabreralolo-tech/futbol-base-v2.git", "main", "futbolbase.db"),
     ]
     # Un fichero que falta o está mal escrito, o un nombre que no sirve de carpeta, se dicen con FuenteError.
     with pytest.raises(FuenteError): cargar_origenes(tmp_path / "no-hay.json")
