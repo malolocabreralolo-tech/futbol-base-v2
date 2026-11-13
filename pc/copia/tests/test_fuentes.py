@@ -224,6 +224,28 @@ def test_fetch_sin_gc_en_segundo_plano_y_con_limite_de_velocidad(raiz, remoto, m
         assert {"gc.autoDetach=false", "http.lowSpeedLimit=1000", "http.lowSpeedTime=120"} <= set(_ajustes(args, "fetch")), args
 
 
+def test_git_nunca_usa_credenciales(raiz, remoto, tmp_path, monkeypatch):
+    o = _origen(remoto)
+    # Aunque quien lance la orden tenga un programa que da la contraseña o deje a git preguntarla.
+    monkeypatch.setenv("GIT_ASKPASS", "/bin/echo")
+    monkeypatch.setenv("GIT_TERMINAL_PROMPT", "1")
+    llamadas = []
+    with monkeypatch.context() as m:
+        _espiar_git(m, llamadas)
+        primero = actualizar_espejo(o, AHORA)
+    commit_base(remoto, 41)
+    with monkeypatch.context() as m:
+        _espiar_git(m, llamadas)
+        actualizar_espejo(o, AHORA + timedelta(days=1))
+        extraer_base(o, primero, tmp_path / "x.db")
+        extraer_fichero(o, "scripts/x_raw.json", tmp_path / "x.json")
+    ordenes = {next(a for a in args[1:] if not a.startswith("-") and "=" not in a) for args, _ in llamadas}
+    assert {"init", "config", "fetch", "rev-parse", "for-each-ref", "update-ref", "cat-file"} <= ordenes
+    for args, env in llamadas:
+        assert args[:3] == ["git", "-c", "credential.helper="], args
+        assert env["GIT_TERMINAL_PROMPT"] == "0" and env["GIT_ASKPASS"] == "", args
+
+
 def test_ramas_que_chocan_no_paran_la_base(raiz, remoto, tmp_path):
     o = _origen(remoto)
     git(remoto, "branch", "claude/arreglo")
