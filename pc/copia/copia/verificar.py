@@ -17,6 +17,7 @@ TABLAS: tuple[str, ...] = (
     "teams",
     "groups",
     "scorers",
+    "match_staff_all",
 )
 MARGEN_MENGUA = 0.02
 

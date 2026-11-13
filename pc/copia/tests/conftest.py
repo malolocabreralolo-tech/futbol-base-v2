@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-# Esquema reducido de la base de v1: las nueve tablas vigiladas y una sola clave foránea.
+# Esquema reducido de la base de v1: las diez tablas vigiladas y una sola clave foránea.
 _ESQUEMA = """
 CREATE TABLE matches (
     id         INTEGER PRIMARY KEY,
@@ -25,6 +25,7 @@ CREATE TABLE match_events (id INTEGER PRIMARY KEY, match_id INTEGER NOT NULL, ki
 CREATE TABLE teams (id INTEGER PRIMARY KEY, name TEXT NOT NULL UNIQUE);
 CREATE TABLE "groups" (id INTEGER PRIMARY KEY, code TEXT NOT NULL, name TEXT);
 CREATE TABLE scorers (id INTEGER PRIMARY KEY, group_id INTEGER NOT NULL, player_name TEXT NOT NULL, goals INTEGER);
+CREATE TABLE match_staff_all (match_id INTEGER NOT NULL, team_id INTEGER, role TEXT NOT NULL, name TEXT NOT NULL, ord INTEGER NOT NULL);
 
 INSERT INTO players VALUES (1, 'Jugador Uno');
 INSERT INTO appearances VALUES (1, 1, 'starter');
@@ -34,6 +35,7 @@ INSERT INTO match_events VALUES (1, 1, 'goal', 12);
 INSERT INTO teams VALUES (1, 'Equipo A');
 INSERT INTO "groups" VALUES (1, 'G1', 'Grupo 1');
 INSERT INTO scorers VALUES (1, 1, 'Jugador Uno', 1);
+INSERT INTO match_staff_all VALUES (1, 1, 'Entrenador', 'Entrenador Uno', 1);
 """
 
 # Una identidad de prueba y nada de la configuración del usuario: los commits de prueba no llevan su nombre ni su correo.

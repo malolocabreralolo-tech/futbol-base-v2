@@ -78,7 +78,7 @@ def test_volcar(raiz, tmp_path):
     aceptar("v1", db, comprobar(db).recuentos, AHORA)
     p = volcar("v1", AHORA)
     assert p == raiz / "volcados/v1/futbolbase-2026-S46.sql.xz"
-    # Cargar el volcado en una base nueva da los mismos recuentos en las nueve tablas.
+    # Cargar el volcado en una base nueva da los mismos recuentos en las diez tablas.
     cargada = tmp_path / "cargada.db"
     con = sqlite3.connect(cargada)
     try:

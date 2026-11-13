@@ -9,9 +9,9 @@ import pytest
 
 from conftest import commit_base, crear_base, git
 from copia import ejecutar as ejecutar_mod
-from copia import rutas
+from copia import rutas, verificar
 from copia.__main__ import main
-from copia.almacen import versiones
+from copia.almacen import restaurar, versiones
 from copia.ejecutar import ejecutar, estado
 from copia.fuentes import Origen, actualizar_espejo, extraer_base
 from copia.verificar import comprobar
@@ -260,6 +260,52 @@ def test_aceptar_mengua_perdona_solo_lo_que_tenia_la_apartada(raiz, remoto, tmp_
     assert ejecutar([o], AHORA + timedelta(days=4)) == 1
     assert ejecutar([o], AHORA + timedelta(days=5), aceptar_mengua={"v1"}) == 1
     assert _estado(raiz)["v1"]["ultima_comprobacion"]["detalle"][0].startswith(("integridad:", "no se puede abrir:"))
+
+
+# Lo que vigilaba la herramienta ya instalada cuando hizo sus primeras copias, antes de match_staff_all.
+_TABLAS_DE_ANTES = (
+    "matches", "players", "appearances", "goals", "standings", "match_events", "teams", "groups", "scorers",
+)
+
+
+def test_lo_guardado_antes_sigue_sirviendo(raiz, remoto, tmp_path, monkeypatch):
+    o = _origen(remoto)
+    primera = (remoto / "futbolbase.db").read_bytes()
+    # Estado, versión y espejo como los dejó la herramienta instalada: nueve tablas y sin ultima_apartada.
+    with monkeypatch.context() as m:
+        m.setattr(verificar, "TABLAS", _TABLAS_DE_ANTES)
+        assert ejecutar([o], AHORA) == 0
+    e = _estado(raiz)["v1"]
+    assert sorted(e) == ["ultima_buena", "ultima_comprobacion"]
+    assert sorted(e["ultima_buena"]) == ["commit", "momento", "recuentos", "sha256", "version"]
+    assert sorted(e["ultima_buena"]["recuentos"]) == sorted(_TABLAS_DE_ANTES)
+    vieja, = versiones("v1")
+    ficha = json.loads(vieja.ruta.with_name(vieja.ruta.name.removesuffix(".xz") + ".json").read_text())
+    assert sorted(ficha) == ["bytes", "recuentos", "sha256"] and sorted(ficha["recuentos"]) == sorted(_TABLAS_DE_ANTES)
+    # Con el código de hoy: la misma base, sin cambios; una nueva, aceptada; nunca cuarentena por la tabla nueva.
+    assert ejecutar([o], AHORA + timedelta(days=1)) == 0
+    assert _estado(raiz)["v1"]["ultima_comprobacion"]["resultado"] == "sin cambios"
+    commit_base(remoto, 41)
+    assert ejecutar([o], AHORA + timedelta(days=2)) == 0
+    e = _estado(raiz)["v1"]
+    assert e["ultima_comprobacion"]["resultado"] == "aceptada" and e["ultima_buena"]["recuentos"]["match_staff_all"] == 1
+    # Y la versión vieja se sigue restaurando.
+    assert restaurar("v1", tmp_path / "r", AHORA).read_bytes() == primera
+
+
+def test_una_cuarentena_de_antes_se_acepta_a_mano(raiz, remoto, monkeypatch):
+    o = _origen(remoto)
+    with monkeypatch.context() as m:
+        m.setattr(verificar, "TABLAS", _TABLAS_DE_ANTES)
+        ejecutar([o], AHORA); commit_base(remoto, 10)
+        assert ejecutar([o], AHORA + timedelta(days=1)) == 1
+    # La herramienta instalada no guardaba la base apartada en estado.json.
+    datos = _estado(raiz)
+    del datos["v1"]["ultima_apartada"]
+    (raiz / "estado.json").write_text(json.dumps(datos), encoding="utf-8")
+    assert ejecutar([o], AHORA + timedelta(days=2), aceptar_mengua={"v1"}) == 0
+    c = _estado(raiz)["v1"]["ultima_comprobacion"]
+    assert c["resultado"] == "aceptada" and "aceptado a mano: matches 40 → 10" in c["detalle"]
 
 
 def test_misma_rechazada_no_se_repite(raiz, remoto):

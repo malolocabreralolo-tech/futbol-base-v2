@@ -21,6 +21,17 @@ def test_base_sana(tmp_path):
     assert r.recuentos["matches"] == 40 and set(r.recuentos) == set(TABLAS)
 
 
+def test_vigila_los_cuerpos_tecnicos(tmp_path):       # match_staff_all, parte de las actas
+    assert len(TABLAS) == 10 and "match_staff_all" in TABLAS
+    db = crear_base(tmp_path / "a.db")
+    assert comprobar(db).recuentos["match_staff_all"] == 1
+    _modificar(db, "DELETE FROM match_staff_all")
+    assert "match_staff_all está vacía" in comprobar(db).motivos
+    _modificar(db, "DROP TABLE match_staff_all")
+    assert "falta la tabla match_staff_all" in comprobar(db).motivos
+    assert "mengua: match_staff_all 100 → 1" in comprobar(crear_base(tmp_path / "b.db"), anterior={"match_staff_all": 100}).motivos
+
+
 def test_no_deja_ficheros_al_lado(tmp_path):
     comprobar(crear_base(tmp_path / "a.db"))
     assert sorted(p.name for p in tmp_path.iterdir()) == ["a.db"]
