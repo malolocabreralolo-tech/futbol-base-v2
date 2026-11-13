@@ -36,6 +36,9 @@ Escribe una línea por web y lo que ocupa la carpeta. Va bien si pone `(aceptada
 
     v1: comprobada 2026-11-14T04:43:05+00:00 (aceptada) · última buena 2026-11-14T04:43:05+00:00 (matches 37850, players 17402)
     ocupa 352,8 MB en /home/manolo/backups/futbol-base
+    instalado: commit 0123abcd…, 2026-11-13T15:02:11+01:00
+
+La última línea dice de qué commit del repositorio es la copia instalada y cuándo se instaló (con `+cambios` si `pc/copia` tenía cambios sin commit).
 
 Sale `AVISO` si la última pasada falló, si la base fue a cuarentena, si lleva 3 días o más sin comprobarse o si una web de `origenes.json` no tiene todavía ninguna copia (`sin copias`).
 Si quitas una web de `origenes.json`, sus copias se quedan y `estado` la sigue enseñando con `(ya no está en origenes.json)`, sin avisar por ella.
@@ -99,7 +102,7 @@ Después de cambiar algo aquí (también `origenes.json`, por ejemplo para añad
     python3 -m pytest tests -q
     bash instalar.sh
 
-`instalar.sh` sustituye entera la copia instalada y vuelve a escribir la orden `~/.local/bin/futbol-base-copia` y el temporizador (`~/.config/systemd/user/futbol-base-copia.service` y `.timer`).
+`instalar.sh` sustituye entera la copia instalada (sin dejar ningún momento sin ella) y vuelve a escribir la orden `~/.local/bin/futbol-base-copia` y el temporizador (`~/.config/systemd/user/futbol-base-copia.service` y `.timer`).
 No toca las copias ni hace ninguna. Al acabar dice qué ha instalado y cómo comprobarlo.
 Para dejar de hacer la copia diaria: `systemctl --user disable --now futbol-base-copia.timer`.
 

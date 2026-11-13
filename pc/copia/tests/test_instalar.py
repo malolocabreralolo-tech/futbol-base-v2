@@ -3,8 +3,13 @@
 import configparser
 import json
 import os
+import re
+import shutil
 import subprocess
+import sys
 from pathlib import Path
+
+from conftest import git
 
 PC_COPIA = Path(__file__).resolve().parent.parent
 INSTALADA = Path(".local/share/futbol-base-copia")
@@ -71,11 +76,85 @@ def test_reinstalar_sustituye_la_copia_entera(tmp_path):
     assert _instalar(env).returncode == 0
     esperados = {f"copia/{p.name}" for p in (PC_COPIA / "copia").glob("*.py")} | {"origenes.json"}
     hay = {p.relative_to(instalada).as_posix() for p in instalada.rglob("*") if p.is_file()}
-    assert hay == esperados
+    assert hay == esperados | {"INSTALADO"}
     for nombre in esperados:
         assert (instalada / nombre).read_bytes() == (PC_COPIA / nombre).read_bytes(), nombre
     # Instalar no hace ninguna copia ni escribe en la carpeta de las copias.
     assert not (tmp_path / "copias").exists() and not (tmp_path / "backups").exists()
+
+
+def test_reinstalar_no_deja_hueco(tmp_path):
+    env = {**_sin_fbc(), "FBC_HOME": str(tmp_path), "FBC_SIN_SYSTEMD": "1"}
+    assert _instalar(env).returncode == 0
+    instalada = tmp_path / INSTALADA
+    # Un rm de mentira apunta lo que borra: la copia instalada no se borra en su sitio (un pasada que arrancase
+    # en ese momento no la encontraría), se aparta con un cambio de nombre y se borra después.
+    falsos = tmp_path / "falsos"
+    falsos.mkdir()
+    borrados = tmp_path / "borrados"
+    (falsos / "rm").write_text(f'#!/bin/sh\nprintf "%s\\n" "$@" >> "{borrados}"\nexec {shutil.which("rm")} "$@"\n')
+    (falsos / "rm").chmod(0o755)
+    (instalada / "copia" / "viejo.py").write_text("raise SystemExit('módulo viejo')\n")
+    r = _instalar({**env, "PATH": f"{falsos}{os.pathsep}{os.environ['PATH']}"})
+    assert r.returncode == 0, r.stderr
+    assert str(instalada) not in borrados.read_text().splitlines()
+    assert [p.name for p in instalada.parent.iterdir()] == ["futbol-base-copia"]
+    assert not (instalada / "copia" / "viejo.py").exists()
+    assert (instalada / "copia" / "__main__.py").read_bytes() == (PC_COPIA / "copia" / "__main__.py").read_bytes()
+
+
+def _repo_de_prueba(tmp_path: Path) -> Path:
+    # Una copia de pc/copia dentro de un repositorio git de prueba con un solo commit; devuelve su pc/copia.
+    repo = tmp_path / "repo"
+    aqui = repo / "pc" / "copia"
+    shutil.copytree(PC_COPIA / "copia", aqui / "copia", ignore=shutil.ignore_patterns("__pycache__"))
+    shutil.copytree(PC_COPIA / "systemd", aqui / "systemd")
+    for nombre in ("instalar.sh", "origenes.json"):
+        shutil.copy2(PC_COPIA / nombre, aqui / nombre)
+    (repo / "otro.txt").write_text("fuera de pc/copia\n")
+    (repo / ".gitignore").write_text("__pycache__/\n")         # como el del repositorio de verdad
+    git(repo, "init", "--quiet", "--initial-branch=main")
+    git(repo, "add", ".")
+    git(repo, "commit", "--quiet", "-m", "prueba")
+    return aqui
+
+
+def test_instalado_dice_de_que_commit_es(tmp_path):
+    aqui = _repo_de_prueba(tmp_path)
+    repo = aqui.parent.parent
+    home = tmp_path / "home"
+    env = {**_sin_fbc(), "FBC_HOME": str(home), "FBC_SIN_SYSTEMD": "1", "FB_COPIA_RAIZ": str(tmp_path / "copias")}
+    commit = git(repo, "rev-parse", "HEAD")
+    fecha = r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}"
+
+    def instalar() -> str:
+        r = subprocess.run(["bash", "instalar.sh"], cwd=aqui, env=env, capture_output=True, text=True)
+        assert r.returncode == 0, r.stderr
+        return (home / INSTALADA / "INSTALADO").read_text(encoding="utf-8")
+
+    assert re.fullmatch(rf"commit {commit}, {fecha}\n", instalar())
+    # estado lo dice en su última línea.
+    r = subprocess.run([str(home / LANZADOR), "estado"], env=env, capture_output=True, text=True)
+    assert r.stdout.splitlines()[-1] == f"instalado: {(home / INSTALADA / 'INSTALADO').read_text().strip()}"
+    # Lanzado desde el repositorio, donde no hay INSTALADO, no.
+    r = subprocess.run([sys.executable, "-m", "copia", "estado"], cwd=aqui, env=env, capture_output=True, text=True)
+    assert r.stdout.splitlines()[-1].startswith("ocupa ")
+    # Un cambio fuera de pc/copia no cuenta; uno dentro, con commit o sin él (también un fichero nuevo), sí.
+    (repo / "otro.txt").write_text("cambiado\n")
+    assert re.fullmatch(rf"commit {commit}, {fecha}\n", instalar())
+    (aqui / "copia" / "__init__.py").write_text('"""Cambiado."""\n')
+    assert re.fullmatch(rf"commit {commit}\+cambios, {fecha}\n", instalar())
+    git(repo, "commit", "--quiet", "-am", "otro")
+    nuevo = git(repo, "rev-parse", "HEAD")
+    assert re.fullmatch(rf"commit {nuevo}, {fecha}\n", instalar())
+    (aqui / "nuevo.txt").write_text("sin añadir\n")
+    assert re.fullmatch(rf"commit {nuevo}\+cambios, {fecha}\n", instalar())
+    # Fuera de un repositorio git se instala igual y lo dice.
+    suelta = tmp_path / "suelta"
+    shutil.copytree(aqui, suelta)
+    r = subprocess.run(["bash", "instalar.sh"], cwd=suelta, env=env, capture_output=True, text=True)
+    assert r.returncode == 0, r.stderr
+    assert re.fullmatch(rf"commit desconocido \(no es un repositorio git\), {fecha}\n", (home / INSTALADA / "INSTALADO").read_text())
 
 
 def test_una_copia_que_no_arranca_no_sustituye_a_la_instalada(tmp_path):

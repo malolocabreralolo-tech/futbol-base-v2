@@ -44,7 +44,17 @@ def _estado(args: argparse.Namespace, ahora: datetime) -> int:
         esperados = None
     texto, codigo = estado(ahora, esperados)
     print(texto)
+    if instalado := _instalado():
+        print(f"instalado: {instalado}")
     return codigo
+
+
+def _instalado() -> str | None:
+    # instalar.sh deja junto al paquete de qué commit es la copia instalada; en el repositorio no hay.
+    try:
+        return (Path(__file__).parent.parent / "INSTALADO").read_text(encoding="utf-8").strip() or None
+    except (OSError, ValueError):
+        return None
 
 
 def _versiones(args: argparse.Namespace, ahora: datetime) -> int:
