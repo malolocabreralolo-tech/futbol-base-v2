@@ -1,0 +1,8 @@
+[Unit]
+Description=futbol-base — copia de seguridad diaria en el PC de la base y los repositorios
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/futbol-base-copia ejecutar
+TimeoutStartSec=1800
+Nice=10

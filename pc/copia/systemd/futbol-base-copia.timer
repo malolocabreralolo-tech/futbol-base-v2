@@ -1,0 +1,10 @@
+[Unit]
+Description=futbol-base — copia de seguridad diaria en el PC (04:40, o al encender si se la saltó)
+
+[Timer]
+OnCalendar=*-*-* 04:40:00
+Persistent=true
+RandomizedDelaySec=600
+
+[Install]
+WantedBy=timers.target
