@@ -189,6 +189,8 @@ def _ejecutar(
     try:
         return subprocess.run(
             [*orden, *args],
+            # git lee al arrancar el directorio actual y falla si se ha borrado: se le da uno que siempre existe.
+            cwd=raiz(),
             env={**entorno, **_SIN_CREDENCIALES},
             stdout=subprocess.PIPE if salida is None else salida,
             stderr=subprocess.PIPE,

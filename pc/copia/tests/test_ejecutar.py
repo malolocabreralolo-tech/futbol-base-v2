@@ -1,6 +1,7 @@
 import fcntl
 import hashlib
 import json
+import os
 import sqlite3
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
@@ -13,7 +14,7 @@ from copia import rutas, verificar
 from copia.__main__ import main
 from copia.almacen import restaurar, versiones
 from copia.ejecutar import ejecutar, estado
-from copia.fuentes import Origen, actualizar_espejo, extraer_base
+from copia.fuentes import Origen, actualizar_espejo, extraer_base, extraer_fichero
 from copia.verificar import comprobar
 
 AHORA = datetime(2026, 11, 13, 5, 0, tzinfo=timezone.utc)
@@ -495,6 +496,25 @@ def test_un_git_dir_heredado_no_toca_otro_repositorio(raiz, remoto, tmp_path, mo
         f"refs/copia/main/20261114 {git(remoto, 'rev-parse', 'main')}",
         f"refs/heads/main {git(remoto, 'rev-parse', 'main')}",
     ]
+    assert [v.recuentos["matches"] for v in versiones("v1")] == [40, 41]
+
+
+def test_desde_una_carpeta_que_ya_no_existe(raiz, remoto, tmp_path):
+    o = _origen(remoto)
+    antes = os.getcwd()
+    borrada = tmp_path / "borrada"
+    borrada.mkdir()
+    try:
+        # Una terminal que se quedó en una carpeta que luego se borró: git no puede leer allí su directorio actual.
+        os.chdir(borrada)
+        borrada.rmdir()
+        assert ejecutar([o], AHORA) == 0                            # crea el espejo
+        commit_base(remoto, 41)
+        assert ejecutar([o], AHORA + timedelta(days=1)) == 0        # lo actualiza
+        assert _estado(raiz)["v1"]["ultima_comprobacion"]["resultado"] == "aceptada"
+        assert json.loads(extraer_fichero(o, "scripts/x_raw.json", tmp_path / "x.json").read_text()) == {"a": 1}
+    finally:
+        os.chdir(antes)
     assert [v.recuentos["matches"] for v in versiones("v1")] == [40, 41]
 
 
