@@ -66,10 +66,12 @@ def benjamin_comps(comps, categories=None):
     return [(c["id"], c["name"].strip()) for c in comps if category_of(c["name"]) in categories]
 
 
-def catalog_comps(code, categories=None):
-    """Las de la temporada en el catálogo de discover_fiflp_comps.py."""
-    path = HERE / "fiflp_comps_catalog.json"
-    catalog = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+def catalog_comps(code, categories=None, catalog=None):
+    """Las de la temporada en el catálogo de discover_fiflp_comps.py (o en `catalog`, ya leído:
+    las pruebas pasan el congelado)."""
+    if catalog is None:
+        path = HERE / "fiflp_comps_catalog.json"
+        catalog = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
     return benjamin_comps((catalog.get(season_name(code)) or {}).get("all", []), categories)
 
 

@@ -1,6 +1,7 @@
 """Los descargadores de la federación y de la app eligen sus competiciones por categoría
 (categorias.category_of) y alevín se pide a propósito: por defecto bajan lo de siempre,
-benjamín y prebenjamín. Sin red: el catálogo del repositorio y HTML de prueba.
+benjamín y prebenjamín. Sin red: el catálogo congelado en fixtures/ (el vivo lo cambia
+discover-fiflp.yml y estas pruebas corren en el bot antes de publicar) y HTML de prueba.
 """
 import importlib
 import json
@@ -13,7 +14,7 @@ import yaml
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 sys.path.insert(1, str(ROOT))
-CATALOG = json.loads((ROOT / "scripts" / "fiflp_comps_catalog.json").read_text(encoding="utf-8"))
+CATALOG = json.loads((ROOT / "scripts" / "tests" / "fixtures" / "fiflp_comps_catalog.json").read_text(encoding="utf-8"))
 ALEVIN_GC_2526 = {"54422881", "54422939", "54422940", "54422941", "54965212", "54976639"}
 
 
@@ -46,7 +47,11 @@ def test_tanda_22al_is_only_the_alevin_fase_previa_of_gran_canaria(monkeypatch):
     I = islas(monkeypatch, "22al")
     assert I.F.SEASON == "22"
     assert I.F.OUTPUT_PATH.endswith("scripts/fiflp_islas_22al_raw.json")
-    assert [c["id"] for c in I.F.COMPETITIONS] == ["54976940"]
+    # Baja lo de su categoría en el catálogo del repositorio, diga lo que diga; en el congelado,
+    # eso es solo la Fase Previa alevín de Gran Canaria.
+    assert I.tanda_categories("22al") == ("ALEVIN",)
+    assert I.F.COMPETITIONS == I.comps_from_catalog("2026-2027", categories=("ALEVIN",))
+    assert [c["id"] for c in I.comps_from_catalog("2026-2027", CATALOG, ("ALEVIN",))] == ["54976940"]
 
 
 def test_tanda_22_can_fetch_fuerteventura_benjamin_alone(monkeypatch):
@@ -59,7 +64,10 @@ def test_tanda_22_can_fetch_fuerteventura_benjamin_alone(monkeypatch):
 
 def test_fiflp_cats_overrides_the_category_of_a_tanda(monkeypatch):
     I = islas(monkeypatch, "22", cats="alevin,benjamin")
-    assert {c["id"] for c in I.F.COMPETITIONS} == {"54976940", "54976988", "54976982", "54977017"}
+    assert I.tanda_categories("22") == ("ALEVIN", "BENJAMIN")
+    assert I.F.COMPETITIONS == I.comps_from_catalog("2026-2027", categories=("ALEVIN", "BENJAMIN"))
+    congelado = I.comps_from_catalog("2026-2027", CATALOG, ("ALEVIN", "BENJAMIN"))
+    assert {c["id"] for c in congelado} == {"54976940", "54976988", "54976982", "54977017"}
 
 
 def test_an_unknown_tanda_still_stops(monkeypatch):
@@ -72,10 +80,10 @@ def test_an_unknown_tanda_still_stops(monkeypatch):
 def test_actas_know_2026_27_and_choose_by_category():
     from scripts import fetch_fiflp_actas as A
     assert A.SEASON_NAME["22"] == "2026-2027"
-    assert set(A.catalog_comps("22")) == {"54976988", "54976982", "54977017", "54977022"}
-    assert set(A.catalog_comps("21", ("ALEVIN",))) == ALEVIN_GC_2526
-    assert "54422881" not in A.catalog_comps("21")                       # por defecto, sin alevín
-    assert set(A.catalog_comps("21", ("ALEVIN", "BENJAMIN"))) >= ALEVIN_GC_2526 | {"54422885"}
+    assert set(A.catalog_comps("22", catalog=CATALOG)) == {"54976988", "54976982", "54977017", "54977022"}
+    assert set(A.catalog_comps("21", ("ALEVIN",), CATALOG)) == ALEVIN_GC_2526
+    assert "54422881" not in A.catalog_comps("21", catalog=CATALOG)      # por defecto, sin alevín
+    assert set(A.catalog_comps("21", ("ALEVIN", "BENJAMIN"), CATALOG)) >= ALEVIN_GC_2526 | {"54422885"}
 
 
 def test_actas_cli_takes_the_categories(monkeypatch):
@@ -101,7 +109,7 @@ def test_detalle_chooses_by_category():
     comps = CATALOG["2025-2026"]["all"]
     assert {c for c, _ in D.benjamin_comps(comps, ("ALEVIN",))} == ALEVIN_GC_2526
     assert "54422881" not in [c for c, _ in D.benjamin_comps(comps)]
-    assert {c for c, _ in D.catalog_comps("21", ("ALEVIN",))} == ALEVIN_GC_2526
+    assert {c for c, _ in D.catalog_comps("21", ("ALEVIN",), CATALOG)} == ALEVIN_GC_2526
 
 
 # ── App de futbolaspalmas ────────────────────────────────────────────────────

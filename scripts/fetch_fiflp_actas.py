@@ -83,22 +83,27 @@ def _categorias():
     return categorias
 
 
-def catalog_comps(season_code, categories=None):
+def catalog_comps(season_code, categories=None, catalog=None):
     """Ids de las competiciones de fútbol 7/8 de la temporada de las categorías dadas ('ALEVIN',
     'BENJAMIN'…; por defecto benjamín y prebenjamín), del catálogo y según
     categorias.category_of (sin sala ni alevín de Lanzarote o Fuerteventura); [] si el catálogo
-    no la tiene."""
+    no la tiene. `catalog`: otro catálogo ya leído (las pruebas, el congelado); por defecto, el
+    del repositorio."""
     C = _categorias()
     categories = categories or C.DEFAULT_CATEGORIES
-    entry = _catalog_entry(season_code)
+    entry = _catalog_entry(season_code, catalog)
     return [c["id"] for c in entry.get("all", []) if C.category_of(c["name"]) in categories]
 
 
-def _catalog_entry(season_code):
-    path = Path(__file__).parent / "fiflp_comps_catalog.json"
-    if season_code not in SEASON_NAME or not path.exists():
+def _catalog_entry(season_code, catalog=None):
+    if season_code not in SEASON_NAME:
         return {}
-    return json.loads(path.read_text(encoding="utf-8")).get(SEASON_NAME[season_code]) or {}
+    if catalog is None:
+        path = Path(__file__).parent / "fiflp_comps_catalog.json"
+        if not path.exists():
+            return {}
+        catalog = json.loads(path.read_text(encoding="utf-8"))
+    return catalog.get(SEASON_NAME[season_code]) or {}
 
 
 def catalog_names(season_code):

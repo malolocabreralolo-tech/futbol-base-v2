@@ -38,6 +38,8 @@ from db import SCHEMA  # noqa: E402
 from migrate_actas_schema import migrate  # noqa: E402
 
 ALEVIN_2526 = {"54422881", "54422939", "54422940", "54422941", "54965212", "54976639"}
+# El catálogo congelado, no el que cambia discover-fiflp.yml: estas pruebas corren en el bot antes de publicar.
+CATALOGO = ROOT / "scripts" / "tests" / "fixtures" / "fiflp_comps_catalog.json"
 ALEVIN_COMP = "LIGA ALEVIN GRAN CANARIA FASE PREVIA"
 BENJAMIN_COMP = "LIGA BENJAMIN FASE PREVIA F-7 GRAN CANARIA"
 
@@ -178,6 +180,9 @@ def fed(tmp_path, monkeypatch):
     monkeypatch.setattr(A, "HERE", tmp_path)
     monkeypatch.setattr(A, "delay", lambda *a, **k: None)
     LAUNCHES.clear()
+    catalogo, entry = json.loads(CATALOGO.read_text(encoding="utf-8")), A._catalog_entry
+    monkeypatch.setattr(A, "_catalog_entry",                  # main lee el catálogo por su cuenta: el congelado
+                        lambda season, catalog=None: entry(season, catalogo if catalog is None else catalog))
     names = A.catalog_names("21")
     state = {"competition": {}, "read": [], "answer": None, "mislabel": True}
 
@@ -742,8 +747,8 @@ def run_next_tanda(tmp_path, categorias, temporada="21", cola="20,19", tandas="4
     step = next(s for s in data["jobs"]["scrape"]["steps"] if s.get("name") == "Siguiente tanda")
     work = tmp_path / "work"
     (work / "scripts").mkdir(parents=True)
-    for name in ("fetch_fiflp_actas.py", "fiflp_comps_catalog.json"):
-        (work / "scripts" / name).write_bytes((ROOT / "scripts" / name).read_bytes())
+    (work / "scripts" / "fetch_fiflp_actas.py").write_bytes((ROOT / "scripts" / "fetch_fiflp_actas.py").read_bytes())
+    (work / "scripts" / CATALOGO.name).write_bytes(CATALOGO.read_bytes())
     for name, status in dict(statuses).items():
         (work / "scripts" / name).write_text(json.dumps(status), encoding="utf-8")
     (tmp_path / "bin").mkdir()

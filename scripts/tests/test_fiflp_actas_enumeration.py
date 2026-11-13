@@ -1,6 +1,7 @@
 """El enumerador de actas de temporadas pasadas va por URL directa (2026-10):
 elegir grupo con select_option sobre el formulario OCULTO de FIFLP daba timeout
 en todos los grupos salvo el primero."""
+import json
 import pytest
 import sys
 from pathlib import Path
@@ -8,6 +9,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT))
 import scripts.fetch_fiflp_actas as A
+
+CATALOGO = json.loads((ROOT / "scripts" / "tests" / "fixtures" / "fiflp_comps_catalog.json").read_text(encoding="utf-8"))
 
 
 class Page:
@@ -69,10 +72,10 @@ def test_only_the_requested_groups(monkeypatch):
 
 
 def test_backfill_takes_the_catalog_competitions_without_futsal_and_rereads_old_actas():
-    comps = A.catalog_comps("21")
+    comps = A.catalog_comps("21", catalog=CATALOGO)                # el congelado, no el de discover-fiflp.yml
     assert "54422888" in comps and "54976641" in comps            # liga prebenjamín y Clausura Benjamín
     assert "54422904" not in comps                                # LIGA BENJAMIN FUTBOL SALA
-    assert A.catalog_comps("99") == []
+    assert A.catalog_comps("99", catalog=CATALOGO) == []
     assert A.needs_rescrape({"header": {}, "lineups": {}})        # lector de mayo: sin «consistent»
     assert not A.needs_rescrape({"header": {}, "consistent": True})
 

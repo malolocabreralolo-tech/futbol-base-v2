@@ -6,7 +6,8 @@ pasada, update_fiflp.check_competitions lee ese desplegable de la temporada en c
 discover_fiflp_comps.py), se queda con benjamín, prebenjamín y alevín de Gran Canaria (sin fútbol sala
 ni alevín de Lanzarote y Fuerteventura), quita las que la temporada ya tiene y las ignoradas, y lo
 apunta en data-health.json (newCompetitions). update.yml abre una issue por competición, sin
-repetirla (avisar_competiciones.py). Sin red: el catálogo real de 2026-27 y un gh falso.
+repetirla (avisar_competiciones.py). Sin red: el catálogo de 2026-27 congelado en fixtures/ (el
+vivo lo cambia discover-fiflp.yml y estas pruebas corren en el bot antes de publicar) y un gh falso.
 """
 from datetime import date, datetime, timedelta, timezone
 import json
@@ -24,7 +25,7 @@ import source_health  # noqa: E402
 import update_fiflp as U  # noqa: E402
 
 TODAY = date(2026, 10, 14)
-CATALOG = json.loads((ROOT / "scripts" / "fiflp_comps_catalog.json").read_text(encoding="utf-8"))["2026-2027"]["all"]
+CATALOG = json.loads((ROOT / "scripts" / "tests" / "fixtures" / "fiflp_comps_catalog.json").read_text(encoding="utf-8"))["2026-2027"]["all"]
 FIFLP = ("https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22"
          "&CodCompeticion={comp}&CodGrupo={group}")
 
@@ -223,8 +224,8 @@ def test_one_issue_per_new_competition_and_never_twice(tmp_path):
 
 def test_the_issue_steps_refresh_the_catalog_first_and_pull_before_the_manifest():
     """fetch-fiflp-islas saca las competiciones de 2026-27 del catálogo del repositorio
-    (fiflp_comps_catalog.json): una competición publicada después no se descarga hasta que
-    discover-fiflp.yml la apunta. Y el raw lo sube el workflow: git pull antes del manifiesto."""
+    (el que escribe discover-fiflp.yml): una competición publicada después no se descarga hasta
+    que ese workflow la apunta. Y el raw lo sube el workflow: git pull antes del manifiesto."""
     lines = A.body(FV, "2026-2027").splitlines()
     step = lambda text: next(i for i, line in enumerate(lines) if text in line)
     discover, fetch = step("gh workflow run discover-fiflp.yml"), step("gh workflow run fetch-fiflp-islas.yml")

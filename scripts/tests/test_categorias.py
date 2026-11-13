@@ -55,8 +55,9 @@ def test_category_of(name, expected):
 
 def test_category_of_whole_catalog():
     """Cada competición del catálogo de la federación: nada de sala, nada de alevín fuera de Gran
-    Canaria, y ningún benjamín tomado por prebenjamín ni al revés."""
-    catalog = json.loads((ROOT / "scripts" / "fiflp_comps_catalog.json").read_text(encoding="utf-8"))
+    Canaria, y ningún benjamín tomado por prebenjamín ni al revés. El congelado en fixtures/: el
+    vivo lo cambia discover-fiflp.yml y esta prueba corre en el bot antes de publicar."""
+    catalog = json.loads((ROOT / "scripts" / "tests" / "fixtures" / "fiflp_comps_catalog.json").read_text(encoding="utf-8"))
     seen = {"ALEVIN": 0, "BENJAMIN": 0, "PREBENJAMIN": 0}
     for season in catalog.values():
         for comp in season.get("all", []):
