@@ -15,7 +15,7 @@
 - **v1 no se toca**: ningún `git push` a `malolocabreralolo-tech/futbol-base` (el remoto `v1` tiene el push anulado), ningún cambio en `~/.config/futbol-base-reloj/`, `~/.local/bin/futbol-base-reloj`, `~/.local/share/futbol-base-reloj/` ni en `futbol-base-reloj.timer/.service`.
 - **v2 nunca escribe ni borra una caché o una clave de v1.** Solo lee, una vez, `futbol-base:v2`, `futbol-base:jugadores` y `futbol-base:favorites:v1`.
 - Prefijos de caché de v2: `futbolbase2-v` (datos y código; antes `futbolbase-v`) y `futbolbase2-escudos-` (antes `futbolbase-escudos-`).
-- Claves de v2: `fb2:almacen` (antes `futbol-base:v2`), `fb2:jugadores` (antes `futbol-base:jugadores`), `fb2:codigo` (antes `futbol-base:codigo`), `fb2:destino` en `sessionStorage` (antes `futbol-base:destino`).
+- Claves de v2: `fb2:almacen` (antes `futbol-base:v2`), `fb2:jugadores` (antes `futbol-base:jugadores`), `fb2:codigo` (antes `futbol-base:codigo`), `fb2:importado` (nueva: marca de que ya se leyó v1) y `fb2:destino` en `sessionStorage` (antes `futbol-base:destino`).
 - Repositorio: `malolocabreralolo-tech/futbol-base-v2`, público, sin Issues ni wiki. Ruta del sitio: `/futbol-base-v2/`.
 - Nombre visible: `<title>` «Fútbol Base Las Palmas v2»; manifiesto `id` `/futbol-base-v2/index.html`, `name` «Fútbol Base Las Palmas v2», `short_name` «Fútbol Base v2»; `apple-mobile-web-app-title` «Fútbol Base v2»; en la cabecera, «v2» tras «Las Palmas».
 - **El aspecto y el comportamiento de las pantallas son los de v1**, salvo la marca «v2».
@@ -134,49 +134,63 @@ Expected: todo en verde (1.324 de pytest con 5 saltadas, y las de node con las 5
 ### Task 2: Traer una vez «mi equipo» y los seguidos de v1
 
 **Files:**
-- Modify: `src/store.js`, `src/followed.js`, `src/app.js`
+- Modify: `src/store.js`, `src/app.js`, y las pruebas de `test_rediseno_store.mjs` y `test_rediseno_integracion.mjs` que hoy comprueban que `loadStore` migra `LEGACY_KEY`
 - Test: `scripts/tests/test_importar_v1.mjs` (nuevo)
 
 **Interfaces:**
-- Consumes: las constantes de la tarea 1.
+- Consumes: las constantes de la tarea 1 (`STORE_KEY`, `FOLLOWED_KEY`, `V1_STORE_KEY`, `V1_FOLLOWED_KEY`, `LEGACY_KEY`) y `migrateV1`.
 - Produces (`src/store.js`):
   ```js
-  // Copia a las claves de v2 lo que v1 tenga guardado, si v2 aún no tiene lo suyo. Devuelve qué copió.
-  export function importFromV1(storage): { store: boolean, followed: boolean }
+  export const IMPORTED_KEY = 'fb2:importado';
+  // Lee v1 UNA sola vez en la vida de esta app en este navegador y copia a las claves de v2 lo que v2 no tenga.
+  export function importFromV1(storage, { portalSeason }): { store: boolean, followed: boolean }
   ```
-  - Si no existe `fb2:almacen`: si `futbol-base:v2` existe y es un JSON de objeto, se copia tal cual a `fb2:almacen`; si no, no se escribe nada (y `loadStore` seguirá leyendo `LEGACY_KEY` como hoy).
-  - Si no existe `fb2:jugadores`: si `futbol-base:jugadores` existe y es un JSON de lista, se copia tal cual a `fb2:jugadores`.
-  - Nunca escribe, cambia ni borra una clave de v1. Con un almacenamiento que falla, devuelve `{ store: false, followed: false }` sin lanzar.
-  - La validación fina (equipo que no existe, forma incorrecta) la siguen haciendo `loadStore` y `loadFollowed`, que ya descartan lo que no vale.
-- `src/app.js` llama a `importFromV1(storage)` una vez, antes del primer `loadStore`.
+  - Si `fb2:importado` ya existe, no hace nada y devuelve `{ store: false, followed: false }`.
+  - Si no existe: la pone a `'1'` (antes de copiar nada) y entonces:
+    - si falta `fb2:almacen`: si `futbol-base:v2` es un JSON de objeto, se copia tal cual; si no, y `futbol-base:favorites:v1` da algo con `migrateV1`, se guarda eso en `fb2:almacen`; si no, no se escribe nada;
+    - si falta `fb2:jugadores` y `futbol-base:jugadores` es un JSON de lista, se copia tal cual.
+  - Nunca escribe, cambia ni borra una clave de v1. Con un almacenamiento que falla devuelve `{ store: false, followed: false }` sin lanzar.
+- `loadStore` deja de leer `LEGACY_KEY`: en v2 solo lee `fb2:almacen`. Lo de v1 entra únicamente por `importFromV1`.
+- `clearStore` sigue borrando solo `STORE_KEY` y `FOLLOWED_KEY`; **no** borra `IMPORTED_KEY`. Así «Borrar datos» dura: tras borrar y recargar sale el equipo por defecto, no el de v1 otra vez (en la tarea 1 volvía a traerse; es lo que corrige esta tarea).
+- La validación fina (equipo que no existe, forma incorrecta) la siguen haciendo `loadStore` y `loadFollowed`.
+- `src/app.js` llama a `importFromV1(storage, { portalSeason: portal.season })` una vez, antes del primer `loadStore`.
 
 - [ ] **Step 1: Escribir las pruebas que fallan** (`test_importar_v1.mjs`)
 
 ```js
 test('copia mi equipo y los seguidos de v1 la primera vez', () => {
   const s = almacenDePrueba({ 'futbol-base:v2': JSON.stringify({ myTeam: EQUIPO, recent: [] }), 'futbol-base:jugadores': JSON.stringify([{ id: 1, n: 'A' }]) });
-  assert.deepEqual(importFromV1(s), { store: true, followed: true });
+  assert.deepEqual(importFromV1(s, OPC), { store: true, followed: true });
   assert.equal(s.datos['fb2:almacen'], s.datos['futbol-base:v2']);
   assert.equal(s.datos['fb2:jugadores'], s.datos['futbol-base:jugadores']);
+  assert.equal(s.datos['fb2:importado'], '1');
 });
-test('no pisa lo que v2 ya tiene', () => { /* con fb2:almacen y fb2:jugadores ya puestos -> {false,false} y no cambian */ });
+test('la segunda vez no hace nada, aunque v1 haya cambiado', () => { /* tras la primera, se cambia futbol-base:v2 -> {false,false} y fb2:almacen no cambia */ });
+test('«Borrar datos» dura: tras clearStore y otra importación, el equipo por defecto', () => {
+  importFromV1(s, OPC); clearStore(s);
+  assert.deepEqual(importFromV1(s, OPC), { store: false, followed: false });
+  assert.equal(loadStore(s, { defaultTeam: POR_DEFECTO, portalSeason: '2026-2027' }).myTeam.name, POR_DEFECTO.name);
+  assert.equal(s.datos['fb2:importado'], '1');
+});
+test('no pisa lo que v2 ya tiene', () => { /* con fb2:almacen y fb2:jugadores ya puestos y sin marca -> {false,false}, no cambian, y la marca queda puesta */ });
+test('sin almacén en v1 pero con favoritos antiguos, los migra', () => { /* solo futbol-base:favorites:v1 válido -> {store:true,…} y loadStore da ese equipo */ });
 test('nunca toca las claves de v1', () => { /* antes y después, las tres claves de v1 son idénticas byte a byte */ });
 test('test_importar_ignora_lo_corrupto', () => {
   const s = almacenDePrueba({ 'futbol-base:v2': '{no es json', 'futbol-base:jugadores': '"texto"' });
-  assert.deepEqual(importFromV1(s), { store: false, followed: false });
+  assert.deepEqual(importFromV1(s, OPC), { store: false, followed: false });
   assert.equal(loadStore(s, { defaultTeam: POR_DEFECTO, portalSeason: '2026-2027' }).myTeam.name, POR_DEFECTO.name);
 });
 test('un equipo de v1 que ya no existe acaba en el equipo por defecto', () => { /* importFromV1 copia; loadStore + la resolución de la app dan el de por defecto */ });
 test('test_importar_con_almacenamiento_que_falla', () => {
   const roto = { getItem() { throw new Error('bloqueado'); }, setItem() { throw new Error('bloqueado'); }, removeItem() {} };
-  assert.deepEqual(importFromV1(roto), { store: false, followed: false });
+  assert.deepEqual(importFromV1(roto, OPC), { store: false, followed: false });
 });
-test('sin nada en v1 no escribe nada', () => { /* almacén vacío -> {false,false} y sigue vacío */ });
+test('sin nada en v1 solo deja la marca', () => { /* almacén vacío -> {false,false} y solo existe fb2:importado */ });
 ```
 
 - [ ] **Step 2: Ejecutarlas y ver que fallan**
-- [ ] **Step 3: Implementar `importFromV1` y llamarla en el arranque.** Después `python3 scripts/codigo.py`.
-- [ ] **Step 4: Ejecutar las dos suites enteras** — Expected: todo en verde.
+- [ ] **Step 3: Implementar `importFromV1`, quitar la lectura de `LEGACY_KEY` de `loadStore` y llamarla en el arranque.** Después `python3 scripts/codigo.py`.
+- [ ] **Step 4: Ejecutar las dos suites enteras** — Expected: todo en verde. `test_aislamiento_v1.mjs` sigue pasando (`fb2:importado` no es una clave de v1).
 - [ ] **Step 5: Commit** — `git commit -m "v2: trae una vez «mi equipo» y los jugadores seguidos de v1, sin tocar lo de v1"`
 
 ---
@@ -231,7 +245,7 @@ test('el título de cada pantalla acaba en «v2»', () => { /* el título que po
 - Pasos y aserciones:
   1. Abrir v1; esperar a que su SW controle la página. Poner en `localStorage` un estado de v1: `futbol-base:v2` con un equipo válido distinto del de por defecto, `futbol-base:jugadores` con un jugador, y `season`, `cat`, `theme`. Anotar cachés y claves.
   2. Abrir v2 en el mismo contexto; esperar a su SW. **Aserciones:** todas las cachés de v1 siguen; las claves de v1 son idénticas; las cachés de v2 empiezan por `futbolbase2-`; v2 muestra el equipo traído de v1 y tiene `fb2:almacen` y `fb2:jugadores`.
-  3. En v2, Ajustes → «Borrar datos de esta app». **Aserciones:** las claves de v1 (también `season`, `cat`, `theme`) siguen idénticas; no queda ninguna `fb2:`.
+  3. En v2, Ajustes → «Borrar datos de esta app». **Aserciones:** las claves de v1 (también `season`, `cat`, `theme`) siguen idénticas; de `fb2:` solo quedan `fb2:importado` y `fb2:codigo`; y tras recargar v2 muestra el equipo por defecto, no el de v1.
   4. Subida de v1 (el servidor cambia la versión de `sw.js` e `index.html` de v1); recargar v1 hasta que el SW nuevo esté activo. **Aserciones:** las cachés viejas de v1 ya no están y **todas las de v2 siguen**.
   5. Subida de v2, igual. **Aserciones:** las cachés de v1 siguen todas; las viejas de v2 no.
   6. Cero errores de consola y cero excepciones en las dos apps.
