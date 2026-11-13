@@ -85,6 +85,22 @@ def test_cli_fallos_previstos(raiz, remoto, origenes, tmp_path, monkeypatch, cap
     assert salida.value.code == 2
 
 
+def test_extraer_no_escribe_dentro_de_la_raiz(raiz, remoto, origenes, tmp_path, capsys):
+    assert main(["ejecutar"]) == 0
+    actual = raiz / "actual/v1/futbolbase.db"
+    antes = sorted(p for p in raiz.rglob("*"))
+    buena = actual.read_bytes()
+    (tmp_path / "enlace").symlink_to(raiz)
+    for destino in (actual, raiz / "actual/v1/x.json", raiz / "x.json", raiz / "versiones/../x.json", tmp_path / "enlace/x.json"):
+        capsys.readouterr()
+        assert main(["extraer", "v1", "scripts/x_raw.json", str(destino)]) == 1, destino
+        salida = capsys.readouterr()
+        assert salida.out == "" and salida.err.startswith("error: ") and str(raiz) in salida.err, destino
+    assert actual.read_bytes() == buena and sorted(p for p in raiz.rglob("*")) == antes
+    # Fuera de la raíz, sí.
+    assert main(["extraer", "v1", "scripts/x_raw.json", str(tmp_path / "x.json")]) == 0
+
+
 def test_cli_cuarentena_y_cerrojo(raiz, remoto, origenes, capsys):
     # La primera copia, de otro día: dos versiones distintas del mismo segundo no pueden guardarse.
     ejecutar([Origen("v1", str(remoto), "main", "futbolbase.db")], datetime(2026, 1, 1, tzinfo=timezone.utc))

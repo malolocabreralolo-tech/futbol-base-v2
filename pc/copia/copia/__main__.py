@@ -10,6 +10,7 @@ from pathlib import Path
 from . import almacen
 from .ejecutar import ejecutar, estado
 from .fuentes import FuenteError, Origen, cargar_origenes, extraer_fichero
+from .rutas import raiz
 
 _SELLO = "%Y%m%d-%H%M%S"
 
@@ -64,6 +65,10 @@ def _restaurar(args: argparse.Namespace, ahora: datetime) -> int:
 
 def _extraer(args: argparse.Namespace, ahora: datetime) -> int:
     origen = _origen(_origenes(), args.origen)
+    copias = raiz()
+    # La carpeta de las copias solo la escribe la pasada: un fichero extraído podría pisar la actual o una versión.
+    if Path(args.destino).resolve().is_relative_to(copias.resolve()):
+        raise _Fallo(f"no se extrae dentro de {copias}: elige un destino fuera de esa carpeta")
     try:
         final = extraer_fichero(origen, args.ruta, args.destino)
     except (FuenteError, OSError) as e:
