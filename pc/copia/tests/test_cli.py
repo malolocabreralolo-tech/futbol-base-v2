@@ -69,8 +69,8 @@ def test_cli_fallos_previstos(raiz, remoto, origenes, tmp_path, monkeypatch, cap
     # Una copia que no cuadra se dice y no deja nada.
     v.ruta.write_bytes(b"esto no es xz")
     assert main(["restaurar", "v1", str(tmp_path / "r")]) == 1 and list((tmp_path / "r").glob("*")) == []
-    # Un fichero de orígenes que falta o no se entiende.
-    for contenido in (None, "no es json"):
+    # Un fichero de orígenes que falta, no se entiende o no tiene ninguno.
+    for contenido in (None, "no es json", "{}"):
         f = tmp_path / "otros.json"
         if contenido is not None:
             f.write_text(contenido)

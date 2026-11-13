@@ -50,6 +50,9 @@ def cargar_origenes(ruta: Path) -> list[Origen]:
         origenes = [Origen(nombre, d["repo"], d["rama"], d["base"]) for nombre, d in datos.items()]
     except (OSError, ValueError, AttributeError, KeyError, TypeError) as e:
         raise FuenteError(f"{ruta}: no se pueden leer los orígenes ({type(e).__name__}: {e})") from e
+    if not origenes:
+        # Una pasada sin nada que copiar acabaría bien y nadie se enteraría de que no se copia nada.
+        raise FuenteError(f"{ruta}: no hay ningún origen")
     for o in origenes:
         if not _NOMBRE.fullmatch(o.nombre) or not all(isinstance(v, str) and v for v in (o.repo, o.rama, o.base)):
             raise FuenteError(f"{ruta}: el origen {o.nombre!r} no es válido")

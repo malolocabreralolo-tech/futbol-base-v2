@@ -57,6 +57,9 @@ def test_cargar_origenes(tmp_path):
     ):
         f.write_text(texto)
         with pytest.raises(FuenteError): cargar_origenes(f)
+    # Sin ningún origen no habría nada que copiar y la pasada parecería buena.
+    f.write_text("{}")
+    with pytest.raises(FuenteError, match="no hay ningún origen"): cargar_origenes(f)
 
 
 def test_espejo_y_extraer(raiz, remoto, tmp_path, monkeypatch):
