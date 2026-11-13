@@ -19,6 +19,8 @@ _NOMBRE = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]*")
 _SIN_CREDENCIALES = {"GIT_TERMINAL_PROMPT": "0", "GIT_ASKPASS": ""}
 # Solo ramas y etiquetas, cada una a su sitio: refs/copia/* es nuestro y el remoto no puede escribir en él.
 _REFSPECS = ("+refs/heads/*:refs/heads/*", "+refs/tags/*:refs/tags/*")
+# Por origen, lo que la última actualización del espejo no pudo traer sin que eso impidiera copiar la base.
+_avisos: dict[str, list[str]] = {}
 
 
 class FuenteError(Exception):
@@ -47,6 +49,7 @@ def cargar_origenes(ruta: Path) -> list[Origen]:
 
 def actualizar_espejo(origen: Origen, ahora: datetime) -> str:
     espejo = _espejo(origen)
+    _avisos[origen.nombre] = []
     if espejo.is_dir():
         _traer(espejo, origen)
     else:
@@ -55,6 +58,11 @@ def actualizar_espejo(origen: Origen, ahora: datetime) -> str:
     # Una referencia por día mantiene alcanzable cada estado de la rama aunque el remoto reescriba su historial.
     _fijar_copia(espejo, f"refs/copia/{origen.rama}/{ahora.astimezone(timezone.utc):%Y%m%d}", sha)
     return sha
+
+
+def avisos_del_espejo(origen: Origen) -> list[str]:
+    """Lo que la última actualización del espejo de este origen no pudo traer (otras ramas o etiquetas)."""
+    return list(_avisos.get(origen.nombre, []))
 
 
 def extraer_base(origen: Origen, commit: str, destino: Path) -> Path:
@@ -113,9 +121,16 @@ def _crear(origen: Origen, espejo: Path) -> None:
 
 
 def _traer(repo: Path, origen: Origen) -> None:
-    # Sin podar, aunque la configuración de git lo pida: lo que el remoto borre o reescriba se queda aquí. La rama va
-    # pedida aparte para que el fetch falle si el remoto la ha perdido, en vez de dar por buena la que ya teníamos.
-    _git(repo, "fetch", "--quiet", "--no-prune", "--", origen.repo, *_REFSPECS, f"refs/heads/{origen.rama}")
+    # Sin podar, aunque la configuración de git lo pida: lo que el remoto borre o reescriba se queda aquí.
+    # Primero la rama de la base, sola: si el remoto la ha perdido falla aquí, en vez de dar por buena la que ya teníamos.
+    rama = f"refs/heads/{origen.rama}"
+    _git(repo, "fetch", "--quiet", "--no-prune", "--no-tags", "--", origen.repo, f"+{rama}:{rama}")
+    try:
+        _git(repo, "fetch", "--quiet", "--no-prune", "--", origen.repo, *_REFSPECS)
+    except FuenteError as e:
+        # Como el espejo no poda, una rama borrada en el remoto puede chocar con otra nueva (claude/x y claude):
+        # eso deja el espejo incompleto, pero no puede impedir la copia de la base, que ya está traída.
+        _avisos.setdefault(origen.nombre, []).append(str(e))
 
 
 def _fijar_copia(repo: Path, ref: str, sha: str) -> None:

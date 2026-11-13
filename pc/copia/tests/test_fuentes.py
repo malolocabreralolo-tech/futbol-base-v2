@@ -6,7 +6,9 @@ from pathlib import Path
 import pytest
 
 from conftest import commit_base, git
-from copia.fuentes import FuenteError, Origen, actualizar_espejo, cargar_origenes, extraer_base, extraer_fichero
+from copia.fuentes import (
+    FuenteError, Origen, actualizar_espejo, avisos_del_espejo, cargar_origenes, extraer_base, extraer_fichero,
+)
 
 AHORA = datetime(2026, 11, 13, 5, 0, tzinfo=timezone.utc)
 ORIGENES = Path(__file__).resolve().parent.parent / "origenes.json"
@@ -76,7 +78,7 @@ def test_espejo_y_extraer(raiz, remoto, tmp_path, monkeypatch):
     with monkeypatch.context() as m:
         m.setattr(subprocess, "run", espia)
         sha = actualizar_espejo(o, AHORA)
-    assert durante_la_descarga == [False]
+    assert durante_la_descarga == [False, False]        # la rama de la base y luego todo lo demás
     assert sha == git(remoto, "rev-parse", "main")
     assert espejo.is_dir()
     assert _nombres(raiz / "repos") == [".v2.git.cortado.tmp", "v1.git"]
@@ -184,6 +186,29 @@ def test_dos_reescrituras_el_mismo_dia_no_pierden_nada(raiz, remoto):
     # Siguen alcanzables: ni una limpieza a fondo del espejo los pierde.
     git(espejo, "gc", "--quiet", "--prune=now")
     assert _existe(espejo, a) and _existe(espejo, b)
+
+
+def test_ramas_que_chocan_no_paran_la_base(raiz, remoto, tmp_path):
+    o = _origen(remoto)
+    git(remoto, "branch", "claude/arreglo")
+    viejo = actualizar_espejo(o, AHORA)
+    assert avisos_del_espejo(o) == []
+    # El remoto borra claude/arreglo y crea claude: en el espejo, que no poda, los dos nombres chocan.
+    git(remoto, "branch", "--quiet", "-D", "claude/arreglo")
+    git(remoto, "branch", "claude")
+    nuevo = commit_base(remoto, 50)
+    assert actualizar_espejo(o, AHORA + timedelta(days=1)) == nuevo
+    assert extraer_base(o, nuevo, tmp_path / "n.db").read_bytes() == (remoto / "futbolbase.db").read_bytes()
+    aviso, = avisos_del_espejo(o)
+    assert aviso.startswith("git fetch: ") and "refs/heads/claude" in aviso and "\n" not in aviso
+    espejo = raiz / "repos/v1.git"
+    assert git(espejo, "rev-parse", "refs/copia/main/20261114") == nuevo
+    assert git(espejo, "rev-parse", "refs/heads/claude/arreglo") == viejo        # lo que había no se pierde
+    # Cuando deja de chocar, el aviso desaparece y la otra rama llega.
+    git(remoto, "branch", "--quiet", "-m", "claude", "otra")
+    assert actualizar_espejo(o, AHORA + timedelta(days=2)) == nuevo
+    assert avisos_del_espejo(o) == []
+    assert git(espejo, "rev-parse", "refs/heads/otra") == viejo
 
 
 def test_remoto_caido(raiz, remoto, tmp_path):

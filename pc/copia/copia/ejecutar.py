@@ -12,7 +12,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from . import almacen
-from .fuentes import FuenteError, Origen, actualizar_espejo, extraer_base
+from .fuentes import FuenteError, Origen, actualizar_espejo, avisos_del_espejo, extraer_base
 from .rutas import raiz
 from .verificar import comprobar
 
@@ -70,14 +70,16 @@ def estado(ahora: datetime) -> tuple[str, int]:
 
 def _pasada(origen: Origen, ahora: datetime, entrada: dict, sin_mengua: bool) -> tuple[str, list[str], str | None]:
     commit = None
+    avisos: list[str] = []
     try:
         commit = actualizar_espejo(origen, ahora)
+        avisos = [f"espejo incompleto: {aviso}" for aviso in avisos_del_espejo(origen)]
         with tempfile.TemporaryDirectory(prefix=_TEMPORAL, dir=raiz()) as carpeta:
             db = extraer_base(origen, commit, Path(carpeta) / "futbolbase.db")
             r = comprobar(db, None if sin_mengua else _anterior(origen.nombre, entrada))
             if not r.ok:
                 apartada = almacen.apartar(origen.nombre, db, r.motivos, ahora)
-                return CUARENTENA, [*r.motivos, f"apartada en {_relativa(apartada)}"], commit
+                return CUARENTENA, [*r.motivos, f"apartada en {_relativa(apartada)}", *avisos], commit
             nueva = almacen.aceptar(origen.nombre, db, r.recuentos, ahora)
         ultima = nueva or almacen.versiones(origen.nombre)[-1]
         # Una pasada cortada tras guardar la versión, o un estado.json perdido, se ponen al día con la versión guardada.
@@ -94,10 +96,10 @@ def _pasada(origen: Origen, ahora: datetime, entrada: dict, sin_mengua: bool) ->
             detalle.append(f"volcado en {_relativa(volcado)}")
         if podadas := almacen.podar(origen.nombre, ahora):
             detalle.append(f"versiones viejas borradas: {len(podadas)}")
-        return (ACEPTADA if nueva else SIN_CAMBIOS), detalle, commit
+        return (ACEPTADA if nueva else SIN_CAMBIOS), [*detalle, *avisos], commit
     except Exception as e:
         texto = " ".join(str(e).splitlines())
-        return ERROR, [texto if isinstance(e, FuenteError) else f"{type(e).__name__}: {texto}"], commit
+        return ERROR, [texto if isinstance(e, FuenteError) else f"{type(e).__name__}: {texto}", *avisos], commit
 
 
 def _anterior(nombre: str, entrada: Mapping) -> Mapping[str, int] | None:

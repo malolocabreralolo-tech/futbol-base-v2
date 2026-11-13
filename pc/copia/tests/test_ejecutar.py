@@ -177,6 +177,22 @@ def test_misma_rechazada_no_se_repite(raiz, remoto):
     assert _estado(raiz)["v1"]["ultima_comprobacion"]["momento"] == "2026-11-15T05:00:00+00:00"
 
 
+def test_espejo_incompleto_no_para_la_pasada(raiz, remoto):
+    o = _origen(remoto)
+    git(remoto, "branch", "claude/arreglo")
+    assert ejecutar([o], AHORA) == 0
+    git(remoto, "branch", "--quiet", "-D", "claude/arreglo")
+    git(remoto, "branch", "claude")
+    commit_base(remoto, 41)
+    assert ejecutar([o], AHORA + timedelta(days=1)) == 0
+    c = _estado(raiz)["v1"]["ultima_comprobacion"]
+    assert c["resultado"] == "aceptada" and c["commit"] == git(remoto, "rev-parse", "main")
+    assert c["detalle"][-1].startswith("espejo incompleto: git fetch: ") and "refs/heads/claude" in c["detalle"][-1]
+    assert comprobar(raiz / "actual/v1/futbolbase.db").recuentos["matches"] == 41
+    assert " v1 aceptada matches 41; " in _registro(raiz)[-1] and "; espejo incompleto: " in _registro(raiz)[-1]
+    assert estado(AHORA + timedelta(days=1, hours=1))[1] == 0
+
+
 def test_un_origen_caido_no_para_al_otro(raiz, remoto, tmp_path, monkeypatch):
     caido = _origen(tmp_path / "no-existe", "v2")
     sin_base = _origen(remoto, "v3", base="no-esta.db")      # falla ya con la base a medio sacar
