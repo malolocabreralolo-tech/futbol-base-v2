@@ -6,6 +6,7 @@ import re
 import shutil
 import subprocess
 import tempfile
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
@@ -17,6 +18,14 @@ from .rutas import raiz
 _NOMBRE = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]*")
 # Los repositorios son públicos: git no debe enviar credenciales guardadas ni quedarse esperando a que alguien teclee.
 _SIN_CREDENCIALES = {"GIT_TERMINAL_PROMPT": "0", "GIT_ASKPASS": ""}
+# Heredadas de un hook de git o de un `rebase --exec`, harían que git leyese y escribiese en otro repositorio.
+_DE_OTRO_REPOSITORIO = (
+    "GIT_DIR", "GIT_WORK_TREE", "GIT_INDEX_FILE", "GIT_OBJECT_DIRECTORY", "GIT_ALTERNATE_OBJECT_DIRECTORIES",
+    "GIT_NAMESPACE", "GIT_COMMON_DIR",
+)
+# Al traer: que gc --auto no se quede en segundo plano (systemd lo mataría a medias y con pruneExpire=never nadie
+# limpia sus restos) y que una conexión colgada (menos de 1000 B/s durante 2 minutos) se corte en vez de esperar sin fin.
+_AL_TRAER = ("gc.autoDetach=false", "http.lowSpeedLimit=1000", "http.lowSpeedTime=120")
 # Solo ramas y etiquetas, cada una a su sitio: refs/copia/* es nuestro y el remoto no puede escribir en él.
 _REFSPECS = ("+refs/heads/*:refs/heads/*", "+refs/tags/*:refs/tags/*")
 # Por origen, lo que la última actualización del espejo no pudo traer sin que eso impidiera copiar la base.
@@ -110,7 +119,7 @@ def _crear(origen: Origen, espejo: Path) -> None:
     temporal = Path(tempfile.mkdtemp(prefix=prefijo, suffix=".tmp", dir=repos))
     try:
         # Un repositorio vacío y el mismo fetch de cada día, no `clone --mirror`, que trae también el refs/copia/* del remoto.
-        _git(repos, "init", "--quiet", "--bare", f"--initial-branch={origen.rama}", str(temporal))
+        _git(None, "init", "--quiet", "--bare", f"--initial-branch={origen.rama}", str(temporal.absolute()))
         # Que ningún gc borre nunca un objeto, aunque se quede sin referencia (otra rama reescrita en el remoto).
         _git(temporal, "config", "gc.pruneExpire", "never")
         _traer(temporal, origen)
@@ -124,9 +133,9 @@ def _traer(repo: Path, origen: Origen) -> None:
     # Sin podar, aunque la configuración de git lo pida: lo que el remoto borre o reescriba se queda aquí.
     # Primero la rama de la base, sola: si el remoto la ha perdido falla aquí, en vez de dar por buena la que ya teníamos.
     rama = f"refs/heads/{origen.rama}"
-    _git(repo, "fetch", "--quiet", "--no-prune", "--no-tags", "--", origen.repo, f"+{rama}:{rama}")
+    _git(repo, "fetch", "--quiet", "--no-prune", "--no-tags", "--", origen.repo, f"+{rama}:{rama}", ajustes=_AL_TRAER)
     try:
-        _git(repo, "fetch", "--quiet", "--no-prune", "--", origen.repo, *_REFSPECS)
+        _git(repo, "fetch", "--quiet", "--no-prune", "--", origen.repo, *_REFSPECS, ajustes=_AL_TRAER)
     except FuenteError as e:
         # Como el espejo no poda, una rama borrada en el remoto puede chocar con otra nueva (claude/x y claude):
         # eso deja el espejo incompleto, pero no puede impedir la copia de la base, que ya está traída.
@@ -157,18 +166,27 @@ def _punta(repo: Path, origen: Origen) -> str:
         raise FuenteError(f"el repositorio de {origen.nombre} no tiene la rama {origen.rama}") from None
 
 
-def _git(carpeta: Path, *args: str, salida: BinaryIO | None = None) -> str:
-    r = _ejecutar(carpeta, *args, salida=salida)
+def _git(repo: Path | None, *args: str, salida: BinaryIO | None = None, ajustes: Sequence[str] = ()) -> str:
+    r = _ejecutar(repo, *args, salida=salida, ajustes=ajustes)
     if r.returncode:
         raise FuenteError(_fallo(args, r))
     return "" if salida is not None else r.stdout.decode(errors="replace").strip()
 
 
-def _ejecutar(carpeta: Path, *args: str, salida: BinaryIO | None = None) -> subprocess.CompletedProcess:
+def _ejecutar(
+    repo: Path | None, *args: str, salida: BinaryIO | None = None, ajustes: Sequence[str] = ()
+) -> subprocess.CompletedProcess:
+    orden = ["git", "-c", "credential.helper="]
+    for ajuste in ajustes:
+        orden += ["-c", ajuste]
+    if repo is not None:
+        # El repositorio siempre explícito: git no lo busca a partir del directorio actual ni del entorno.
+        orden.append(f"--git-dir={Path(repo).absolute()}")
+    entorno = {k: v for k, v in os.environ.items() if k not in _DE_OTRO_REPOSITORIO}
     try:
         return subprocess.run(
-            ["git", "-c", "credential.helper=", "-C", str(carpeta), *args],
-            env={**os.environ, **_SIN_CREDENCIALES},
+            [*orden, *args],
+            env={**entorno, **_SIN_CREDENCIALES},
             stdout=subprocess.PIPE if salida is None else salida,
             stderr=subprocess.PIPE,
         )

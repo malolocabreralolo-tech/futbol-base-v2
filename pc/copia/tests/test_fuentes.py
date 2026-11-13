@@ -188,6 +188,39 @@ def test_dos_reescrituras_el_mismo_dia_no_pierden_nada(raiz, remoto):
     assert _existe(espejo, a) and _existe(espejo, b)
 
 
+def _espiar_git(monkeypatch, llamadas: list[tuple[list[str], dict[str, str]]]) -> None:
+    # Apunta en `llamadas` cada llamada a git (sus argumentos y su entorno) y la deja seguir.
+    run = subprocess.run
+
+    def espia(args, **kwargs):
+        llamadas.append((list(args), dict(kwargs.get("env") or {})))
+        return run(args, **kwargs)
+
+    monkeypatch.setattr(subprocess, "run", espia)
+
+
+def _ajustes(args: list[str], orden: str) -> list[str]:
+    # Los `-c clave=valor` que van antes de la orden de git.
+    previos = args[: args.index(orden)]
+    return [previos[i + 1] for i in range(len(previos) - 1) if previos[i] == "-c"]
+
+
+def test_fetch_sin_gc_en_segundo_plano_y_con_limite_de_velocidad(raiz, remoto, monkeypatch):
+    o = _origen(remoto)
+    llamadas = []
+    with monkeypatch.context() as m:
+        _espiar_git(m, llamadas)
+        actualizar_espejo(o, AHORA)                             # lo crea
+    commit_base(remoto, 41)
+    with monkeypatch.context() as m:
+        _espiar_git(m, llamadas)
+        actualizar_espejo(o, AHORA + timedelta(days=1))         # lo actualiza
+    fetches = [args for args, _ in llamadas if "fetch" in args]
+    assert len(fetches) == 4
+    for args in fetches:
+        assert {"gc.autoDetach=false", "http.lowSpeedLimit=1000", "http.lowSpeedTime=120"} <= set(_ajustes(args, "fetch")), args
+
+
 def test_ramas_que_chocan_no_paran_la_base(raiz, remoto, tmp_path):
     o = _origen(remoto)
     git(remoto, "branch", "claude/arreglo")

@@ -193,6 +193,48 @@ def test_espejo_incompleto_no_para_la_pasada(raiz, remoto):
     assert estado(AHORA + timedelta(days=1, hours=1))[1] == 0
 
 
+def _foto(carpeta: Path) -> dict[str, bytes]:
+    return {p.relative_to(carpeta).as_posix(): p.read_bytes() for p in carpeta.rglob("*") if p.is_file()}
+
+
+@pytest.mark.parametrize("todas", [False, True], ids=["solo GIT_DIR", "todas"])
+def test_un_git_dir_heredado_no_toca_otro_repositorio(raiz, remoto, tmp_path, monkeypatch, todas):
+    o = _origen(remoto)
+    ajeno = tmp_path / "ajeno"
+    ajeno.mkdir()
+    git(ajeno, "init", "--quiet", "--initial-branch=main")
+    (ajeno / "f.txt").write_text("ajeno\n")
+    git(ajeno, "add", "f.txt")
+    git(ajeno, "commit", "--quiet", "-m", "ajeno")
+    antes = _foto(ajeno)
+    heredadas = {"GIT_DIR": ajeno / ".git"}
+    if todas:
+        heredadas |= {
+            "GIT_WORK_TREE": ajeno, "GIT_INDEX_FILE": ajeno / ".git/index",
+            "GIT_OBJECT_DIRECTORY": ajeno / ".git/objects", "GIT_ALTERNATE_OBJECT_DIRECTORIES": ajeno / ".git/objects",
+            "GIT_NAMESPACE": "ajeno", "GIT_COMMON_DIR": ajeno / ".git",
+        }
+    for dia in (0, 1):          # la primera crea el espejo; la segunda lo actualiza
+        if dia:
+            commit_base(remoto, 41)
+        with monkeypatch.context() as m:
+            # Como si la orden se lanzase desde un hook de git o un `rebase --exec` de ese otro repositorio.
+            for nombre, valor in heredadas.items():
+                m.setenv(nombre, str(valor))
+            assert ejecutar([o], AHORA + timedelta(days=dia)) == 0
+    assert _foto(ajeno) == antes
+    espejo = raiz / "repos/v1.git"
+    assert sorted(p.name for p in (raiz / "repos").iterdir()) == ["v1.git"]
+    assert git(espejo, "rev-parse", "--is-bare-repository") == "true"
+    assert git(espejo, "config", "gc.pruneExpire") == "never"
+    assert git(espejo, "for-each-ref", "--format=%(refname) %(objectname)").splitlines() == [
+        f"refs/copia/main/20261113 {git(remoto, 'rev-parse', 'main~1')}",
+        f"refs/copia/main/20261114 {git(remoto, 'rev-parse', 'main')}",
+        f"refs/heads/main {git(remoto, 'rev-parse', 'main')}",
+    ]
+    assert [v.recuentos["matches"] for v in versiones("v1")] == [40, 41]
+
+
 def test_un_origen_caido_no_para_al_otro(raiz, remoto, tmp_path, monkeypatch):
     caido = _origen(tmp_path / "no-existe", "v2")
     sin_base = _origen(remoto, "v3", base="no-esta.db")      # falla ya con la base a medio sacar
