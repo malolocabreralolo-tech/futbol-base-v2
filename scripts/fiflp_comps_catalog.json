@@ -4169,7 +4169,7 @@
   },
   "2026-2027": {
     "season_code": "22",
-    "total": 58,
+    "total": 44,
     "relevant": [
       {
         "id": "54977176",
@@ -4188,44 +4188,16 @@
         "name": "COPA PRIMERA REGIONAL DE FUERTEVENTURA"
       },
       {
-        "id": "54976847",
-        "name": "COPA JOSE ANTONIO RUIZ CABALLERO"
-      },
-      {
-        "id": "54977075",
-        "name": "COPA MANOLO SANTANA FUTUREFEM LAS PALMAS"
-      },
-      {
-        "id": "54976815",
-        "name": "COPA TOMÁS ALCANTARA PRIMERA FASE"
-      },
-      {
         "id": "54977097",
         "name": "COPA SENIOR FUTBOL SALA LANZAROTE-FUERTEVENTURA"
-      },
-      {
-        "id": "54977062",
-        "name": "COPA JUVENIL LANZAROTE-FUERTEVENTURA FUTBOL SALA"
       },
       {
         "id": "54977178",
         "name": "COPA CADETE PREFERENTE DE LANZAROTE"
       },
       {
-        "id": "54977202",
-        "name": "ELIMINATORIAS COPA CADETE PREFERENTE DE LANZAROTE"
-      },
-      {
         "id": "54977072",
         "name": "COPA CADETE INSULAR DE LANZAROTE"
-      },
-      {
-        "id": "55133909",
-        "name": "ELIMINATORIAS COPA CADETE INSULAR DE LANZAROTE"
-      },
-      {
-        "id": "55331982",
-        "name": "COPA BENJAMÍN GRAN CANARIA"
       },
       {
         "id": "54976988",
@@ -4240,20 +4212,8 @@
         "name": "LIGA BENJAMIN F-7 DE FUERTEVENTURA 1ª FASE"
       },
       {
-        "id": "54977051",
-        "name": "LIGA BENJAMIN FUTBOL SALA GRAN CANARIA"
-      },
-      {
         "id": "54977022",
         "name": "LIGA PREBENJAMIN DE GRAN CANARIA"
-      },
-      {
-        "id": "54977161",
-        "name": "LIGA PREBENJAMIN LANZAROTE"
-      },
-      {
-        "id": "54977026",
-        "name": "LIGA PREBENJAMIN FUERTEVENTURA"
       }
     ],
     "all": [
@@ -4286,10 +4246,6 @@
         "name": "COPA PRIMERA REGIONAL DE FUERTEVENTURA"
       },
       {
-        "id": "54976847",
-        "name": "COPA JOSE ANTONIO RUIZ CABALLERO"
-      },
-      {
         "id": "54976859",
         "name": "LIGA SEGUNDA REGIONAL GRAN CANARIA"
       },
@@ -4298,28 +4254,12 @@
         "name": "LIGA PREFERENTE FEMENINA"
       },
       {
-        "id": "54977075",
-        "name": "COPA MANOLO SANTANA FUTUREFEM LAS PALMAS"
-      },
-      {
         "id": "54976833",
         "name": "LIGA PRIMERA FEMENINA GRAN CANARIA"
       },
       {
-        "id": "54976874",
-        "name": "LIGA PRIMERA FEMENINA LANZAROTE-FUERTEVENTURA"
-      },
-      {
         "id": "54977034",
         "name": "LIGA PREFERENTE FUTBOL SALA GRAN CANARIA"
-      },
-      {
-        "id": "54977036",
-        "name": "LIGA PREFERENTE FUTBOL SALA MASCULINA LANZAROTE Y FUERTEVENTURA"
-      },
-      {
-        "id": "54976815",
-        "name": "COPA TOMÁS ALCANTARA PRIMERA FASE"
       },
       {
         "id": "54977097",
@@ -4366,10 +4306,6 @@
         "name": "LIGA JUVENIL TERRITORIAL FÚTBOL SALA GRAN CANARIA"
       },
       {
-        "id": "54977062",
-        "name": "COPA JUVENIL LANZAROTE-FUERTEVENTURA FUTBOL SALA"
-      },
-      {
         "id": "54976894",
         "name": "LIGA CADETE INTERINSULAR"
       },
@@ -4384,10 +4320,6 @@
       {
         "id": "54977178",
         "name": "COPA CADETE PREFERENTE DE LANZAROTE"
-      },
-      {
-        "id": "54977202",
-        "name": "ELIMINATORIAS COPA CADETE PREFERENTE DE LANZAROTE"
       },
       {
         "id": "55133947",
@@ -4408,10 +4340,6 @@
       {
         "id": "54977072",
         "name": "COPA CADETE INSULAR DE LANZAROTE"
-      },
-      {
-        "id": "55133909",
-        "name": "ELIMINATORIAS COPA CADETE INSULAR DE LANZAROTE"
       },
       {
         "id": "54977045",
@@ -4438,10 +4366,6 @@
         "name": "LIGA INFANTIL DE FUERTEVENTURA 1ª FASE"
       },
       {
-        "id": "54977047",
-        "name": "LIGA INFANTIL FUTBOL SALA GRAN CANARIA"
-      },
-      {
         "id": "54976940",
         "name": "LIGA ALEVIN GRAN CANARIA FASE PREVIA"
       },
@@ -4452,14 +4376,6 @@
       {
         "id": "54976977",
         "name": "LIGA ALEVIN FUERTEVENTURA F7 1ª FASE"
-      },
-      {
-        "id": "54977049",
-        "name": "LIGA ALEVIN FUTBOL SALA GRAN CANARIA"
-      },
-      {
-        "id": "55331982",
-        "name": "COPA BENJAMÍN GRAN CANARIA"
       },
       {
         "id": "54976988",
@@ -4474,20 +4390,8 @@
         "name": "LIGA BENJAMIN F-7 DE FUERTEVENTURA 1ª FASE"
       },
       {
-        "id": "54977051",
-        "name": "LIGA BENJAMIN FUTBOL SALA GRAN CANARIA"
-      },
-      {
         "id": "54977022",
         "name": "LIGA PREBENJAMIN DE GRAN CANARIA"
-      },
-      {
-        "id": "54977161",
-        "name": "LIGA PREBENJAMIN LANZAROTE"
-      },
-      {
-        "id": "54977026",
-        "name": "LIGA PREBENJAMIN FUERTEVENTURA"
       }
     ]
   },
