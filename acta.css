@@ -352,6 +352,25 @@ abbr[title] { text-decoration: none; }
 .tab[aria-current] { font-weight: 800; color: var(--ink); }
 .tab[aria-current] .tab-icon { background: var(--ink); color: var(--on-ink); }
 
+/* Por debajo de 1024 px la marca de la cabecera no se ve: «v2», como una muesca sobre la línea de la
+ * barra, distingue esta web de v1 sin cambiar la altura de nada ni tapar las pestañas. */
+@media (max-width: 1023.98px) {
+  .tabbar::before {
+    content: 'v2';
+    position: absolute;
+    top: 0;
+    right: 12px;
+    transform: translateY(-50%);
+    padding: 0 6px;
+    background: var(--paper);
+    color: var(--ink);
+    font-size: 10.5px;
+    font-weight: 700;
+    line-height: 1;
+    pointer-events: none;
+  }
+}
+
 /* ── Escritorio: pestañas arriba, 1120 px de ancho ────────────────────── */
 
 @media (min-width: 1024px) {

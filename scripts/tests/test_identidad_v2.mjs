@@ -53,6 +53,58 @@ test('la marca «v2»: pequeña, en la tinta del tema y en la línea base del no
   assert.match(brand, /align-items:\s*baseline/, 'las partes de la marca, en la misma línea base');
 });
 
+// Reglas del CSS como {media, selector, body}; un nivel de @media (como en test_rediseno_css.mjs).
+function parseCss(src) {
+  const rules = [];
+  const walk = (s, media) => {
+    let i = 0;
+    while (i < s.length) {
+      const open = s.indexOf('{', i);
+      if (open < 0) break;
+      const prelude = s.slice(i, open).trim();
+      let depth = 1, j = open + 1;
+      for (; j < s.length && depth; j++) {
+        if (s[j] === '{') depth++;
+        else if (s[j] === '}') depth--;
+      }
+      const body = s.slice(open + 1, j - 1);
+      if (prelude.startsWith('@media')) walk(body, prelude);
+      else rules.push({ media, selector: prelude, body });
+      i = j;
+    }
+  };
+  walk(src.replace(/\/\*[\s\S]*?\*\//g, ''), null);
+  return rules;
+}
+
+// Por debajo de 1024 px la marca de la cabecera no se ve: «v2» va como una muesca sobre la línea de la
+// barra de abajo (la misma .tabbar en index.html y en la app), y nunca a la vez que la de la cabecera.
+test('en móvil y tableta, «v2» sobre la línea de la barra de abajo, solo cuando la marca de la cabecera no se ve', () => {
+  const rules = parseCss(read('acta.css'));
+  const has = (rule, selector) => rule.selector.split(',').map((s) => s.trim()).includes(selector);
+  const narrow = (media) => /^@media\s*\(max-width:\s*1023\.98px\)$/.test(media ?? '');
+  const marks = rules.filter((r) => has(r, '.tabbar::before') && /(^|;)\s*content\s*:/.test(r.body));
+  assert.equal(marks.length, 1, 'una sola regla .tabbar::before con contenido');
+  const [mark] = marks;
+  assert.ok(narrow(mark.media), `la muesca, fuera de la consulta de móvil y tableta: ${mark.media}`);
+  assert.match(mark.body, /content:\s*'v2'/);
+  assert.match(mark.body, /color:\s*var\(--ink\)/);
+  assert.match(mark.body, /background:\s*var\(--paper\)/);
+  assert.doesNotMatch(mark.body, /#[0-9a-f]{3,8}\b|rgb|hsl/i, 'sin colores a mano');
+  assert.match(mark.body, /position:\s*absolute/);
+  assert.match(mark.body, /top:\s*0/);
+  assert.match(mark.body, /pointer-events:\s*none/);
+  // Va colgada de la barra, que en móvil es fija.
+  assert.ok(rules.some((r) => r.media === null && has(r, '.tabbar') && /position:\s*fixed/.test(r.body)));
+  // La marca de la cabecera, con su «v2», solo se ve desde 1024 px: las dos nunca coinciden.
+  assert.ok(rules.some((r) => r.media === null && has(r, '.brand') && /display:\s*none/.test(r.body)));
+  const brandShown = rules.filter((r) => has(r, '.brand') && /display:\s*flex/.test(r.body));
+  assert.ok(brandShown.length > 0 && brandShown.every((r) => /^@media\s*\(min-width:\s*1024px\)$/.test(r.media ?? '')));
+  // La barra que se ve mientras carga (index.html) es la misma .tabbar que pinta la app.
+  assert.match(read('index.html'), /<nav class="tabbar" aria-label="Navegación principal">/);
+  assert.match(String(renderHeader()), /<nav class="tabbar" aria-label="Navegación principal">/);
+});
+
 // El router de verdad, con el título de index.html, sobre las fixtures congeladas.
 const PORTAL = '2025-2026';
 const raw = fixture('current-2025-2026');
