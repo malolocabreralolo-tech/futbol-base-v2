@@ -383,6 +383,8 @@ def test_a_run_with_only_alevin_reads_every_alevin_group(monkeypatch, number, ex
 @pytest.mark.parametrize("cats, recorded, kept", [
     ("alevin", ["AL1", "AL2", "AL3", "AL4", "AL5"], ["FF1", "PG2"]),
     ("benjamin,prebenjamin", ["FF1", "PG2"], ["AL1", "AL2", "AL3", "AL4", "AL5"]),
+    # La entrada cats de update.yml, vacía (el reloj y las tandas no la pasan): todas, como sin la variable.
+    ("", ["AL1", "AL2", "AL3", "AL4", "AL5", "FF1", "PG2"], []),
 ])
 def test_fiflp_cats_keeps_the_health_of_the_categories_left_out(monkeypatch, cats, recorded, kept):
     """Con FIFLP_CATS cada workflow reescribe data-health.json: los grupos de las categorías que no lee

@@ -11,6 +11,14 @@ name: Actualización automática
 # cada pasada (update_fiflp.run_number): así solo sube en pasadas de verdad.
 on:
   workflow_dispatch:          # el reloj (reloj.yml), las tandas de la federación y a mano desde GitHub
+    inputs:
+      # Solo a mano, para una pasada pequeña (la primera de un repositorio nuevo): el reloj y las tandas no
+      # la pasan y, vacía, se leen todas las categorías (update_fiflp.update_groups).
+      cats:
+        description: 'Categorías a leer, separadas por comas (vacío: todas)'
+        required: false
+        default: ''
+        type: string
 
 permissions:
   contents: write
@@ -76,6 +84,7 @@ jobs:
           # update_fiflp deja aquí una marca cuando cambia en la base estado suyo que no se publica
           # (la primera pasada completa de un grupo recién activado): el commit sube la base también entonces.
           FIFLP_DB_MARK: ${{ runner.temp }}/base-cambiada
+          FIFLP_CATS: ${{ inputs.cats }}
         run: python3 scripts/fetch_futbolaspalmas.py
 
       # Competiciones de la federación que la web no tiene (newCompetitions de data-health.json, que

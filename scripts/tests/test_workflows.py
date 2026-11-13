@@ -299,6 +299,19 @@ def test_update_logs_the_federation_pass_as_it_goes():
     assert scrape["env"].get("FIFLP_UPDATE") == "1"
 
 
+def test_update_admite_pasada_de_pocas_categorias():
+    """A mano, una pasada puede leer solo algunas categorías (la entrada cats, que llega a FIFLP_CATS de
+    update_fiflp.update_groups): así la primera de un repositorio nuevo es pequeña. El reloj y las tandas la
+    lanzan sin entradas: vacía, se leen todas, como siempre. Y va por env, no interpolada en el guion."""
+    data = _load("update.yml")
+    entrada = _triggers(data)["workflow_dispatch"]["inputs"]["cats"]
+    assert entrada["required"] is False and entrada["default"] == ""
+    assert entrada["type"] == "string"
+    paso = next(s for s in _steps(data, "update") if s.get("id") == "scrape")
+    assert paso["env"]["FIFLP_CATS"] == "${{ inputs.cats }}"
+    assert "${{" not in paso["run"], "la entrada va por env, no interpolada en el guion"
+
+
 def test_update_prints_the_runner_ip_before_the_bot_and_never_fails():
     """Diagnóstico del freno de la federación (15/10/2026): la IP pública del runner en el log, antes del
     paso del bot, para cruzar frenos con IPs. Nunca para el job (continue-on-error, tope de 5 s y una
