@@ -1,1 +1,12 @@
-{"v1": {"repo": "https://github.com/malolocabreralolo-tech/futbol-base.git", "rama": "main", "base": "futbolbase.db"}}
+{
+  "v1": {
+    "repo": "https://github.com/malolocabreralolo-tech/futbol-base.git",
+    "rama": "main",
+    "base": "futbolbase.db"
+  },
+  "v2": {
+    "repo": "https://github.com/malolocabreralolo-tech/futbol-base-v2.git",
+    "rama": "main",
+    "base": "futbolbase.db"
+  }
+}
