@@ -85,11 +85,17 @@ def _comprobar(con: sqlite3.Connection, anterior: Mapping[str, int], margen: flo
         if recuentos[tabla] == 0:
             motivos.append(f"{tabla} está vacía")
 
-    for tabla in TABLAS:
-        if tabla in anterior and tabla in recuentos and recuentos[tabla] < anterior[tabla] * (1 - margen):
-            motivos.append(f"mengua: {tabla} {anterior[tabla]} → {recuentos[tabla]}")
-
+    motivos += [f"mengua: {m}" for m in menguas(anterior, recuentos, margen)]
     return Resultado(not motivos, tuple(motivos), recuentos)
+
+
+def menguas(anterior: Mapping[str, int], recuentos: Mapping[str, int], margen: float = MARGEN_MENGUA) -> list[str]:
+    """Las tablas vigiladas que han perdido más del margen, como «matches 40 → 38»."""
+    return [
+        f"{tabla} {anterior[tabla]} → {recuentos[tabla]}"
+        for tabla in TABLAS
+        if tabla in anterior and tabla in recuentos and recuentos[tabla] < anterior[tabla] * (1 - margen)
+    ]
 
 
 def _primera_linea(filas: list[tuple[str]]) -> str:

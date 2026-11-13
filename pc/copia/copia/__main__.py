@@ -108,7 +108,7 @@ def _analizador() -> argparse.ArgumentParser:
 
     p = ordenes.add_parser("ejecutar", help="una pasada por todos los orígenes")
     p.add_argument("--aceptar-mengua", action="append", default=[], metavar="ORIGEN",
-                   help="acepta esta vez la base de ORIGEN aunque haya menguado (se puede repetir)")
+                   help="acepta la base de ORIGEN que se apartó, o una prácticamente igual (se puede repetir)")
     p.set_defaults(orden=_ejecutar)
 
     p = ordenes.add_parser("estado", help="cómo fue la última pasada de cada origen")

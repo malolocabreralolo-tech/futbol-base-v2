@@ -78,11 +78,14 @@ No se ha perdido nada: la buena anterior sigue en `actual/` y en `versiones/`. `
 
 Qué hacer:
 
-- Si el cambio era querido (por ejemplo, se borraron a propósito partidos repetidos), acéptalo una vez:
+- Si el cambio era querido (por ejemplo, se borraron a propósito partidos repetidos), acéptalo:
 
       futbol-base-copia ejecutar --aceptar-mengua v1
 
-  Desde ese momento esa base es la buena, y las pérdidas se miden contra ella. Esto solo perdona que haya menos filas: una base dañada sigue yendo a cuarentena.
+  Acepta la base que se apartó, o una prácticamente igual: la que hay en GitHub en ese momento se compara con la apartada (con el mismo margen del 2 %), no con la última buena. Si desde que la viste ha perdido más filas, no la acepta: va otra vez a cuarentena con su motivo, y decides viendo esa.
+  Perdona también que falte una tabla o que esté vacía, pero solo si ya le pasaba a la base apartada. Una base dañada o con filas que apuntan a otras que no existen va siempre a cuarentena.
+  La línea de la pasada dice lo que se ha perdonado comparando con la última buena, por ejemplo `aceptado a mano: matches 40 → 38`. Desde ese momento esa base es la buena, y las pérdidas se miden contra ella.
+  Si la pasas sin que haya nada apartado (por adelantado, sabiendo que viene una base con menos filas), acepta la que llegue sin medir cuánto ha menguado; lo demás lo comprueba igual.
 - Si no era querido, la base de la web está estropeada. La buena está en `~/backups/futbol-base/actual/v1/futbolbase.db` (o en una versión anterior, con `restaurar`), y con ella se arregla la de la web.
 
 ## Reinstalar después de cambiar el código

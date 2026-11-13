@@ -1,11 +1,13 @@
 import fcntl
+import hashlib
 import json
+import sqlite3
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
 
-from conftest import commit_base, git
+from conftest import commit_base, crear_base, git
 from copia import ejecutar as ejecutar_mod
 from copia import rutas
 from copia.__main__ import main
@@ -165,6 +167,99 @@ def test_aceptar_mengua(raiz, remoto):
     # Desde ahí la mengua se mide contra la nueva: la siguiente pasada ya no la ve.
     assert ejecutar([o], AHORA + timedelta(days=3)) == 0
     assert _estado(raiz)["v1"]["ultima_comprobacion"]["resultado"] == "sin cambios"
+
+
+def _base(ruta: Path, partidos: int, sql: str = "") -> bytes:
+    # Una base de prueba con algún cambio más (una tabla borrada o vaciada) metido con SQL.
+    crear_base(ruta, partidos=partidos, wal=False)
+    con = sqlite3.connect(ruta)
+    try:
+        con.executescript(sql)
+    finally:
+        con.close()
+    return ruta.read_bytes()
+
+
+def test_aceptar_mengua_acepta_la_que_se_aparto(raiz, remoto):
+    o = _origen(remoto)
+    ejecutar([o], AHORA); commit_base(remoto, 38)        # 40 → 38 es un 5 % menos
+    assert ejecutar([o], AHORA + timedelta(days=1)) == 1
+    apartada = remoto / "futbolbase.db"
+    assert _estado(raiz)["v1"]["ultima_apartada"] == {
+        "momento": "2026-11-14T05:00:00+00:00",
+        "sha256": hashlib.sha256(apartada.read_bytes()).hexdigest(),
+        "recuentos": comprobar(apartada).recuentos,
+        "motivos": ["mengua: matches 40 → 38"],
+    }
+    # El remoto no cambia y se acepta a mano.
+    assert ejecutar([o], AHORA + timedelta(days=2), aceptar_mengua={"v1"}) == 0
+    e = _estado(raiz)["v1"]
+    assert e["ultima_comprobacion"]["resultado"] == "aceptada"
+    assert "aceptado a mano: matches 40 → 38" in e["ultima_comprobacion"]["detalle"]
+    assert e["ultima_buena"]["recuentos"]["matches"] == 38 and "ultima_apartada" not in e
+    assert comprobar(raiz / "actual/v1/futbolbase.db").recuentos["matches"] == 38
+    assert " v1 aceptada matches 38; " in _registro(raiz)[-1]
+
+
+def test_aceptar_mengua_no_acepta_lo_que_llegue_despues(raiz, remoto):
+    o = _origen(remoto)
+    ejecutar([o], AHORA); commit_base(remoto, 38)
+    assert ejecutar([o], AHORA + timedelta(days=1)) == 1
+    # Antes de aceptarla, el remoto baja a 3: eso no es lo que se vio.
+    commit_base(remoto, 3)
+    assert ejecutar([o], AHORA + timedelta(days=2), aceptar_mengua={"v1"}) == 1
+    e = _estado(raiz)["v1"]
+    assert e["ultima_comprobacion"]["resultado"] == "cuarentena"
+    assert e["ultima_comprobacion"]["detalle"][0] == "mengua: matches 38 → 3"
+    assert comprobar(raiz / "actual/v1/futbolbase.db").recuentos["matches"] == 40
+    assert e["ultima_buena"]["recuentos"]["matches"] == 40 and len(versiones("v1")) == 1
+    assert e["ultima_apartada"]["recuentos"]["matches"] == 3
+    # Aceptar esta otra es otra decisión, que ya se puede tomar viéndola.
+    assert ejecutar([o], AHORA + timedelta(days=3), aceptar_mengua={"v1"}) == 0
+    assert "aceptado a mano: matches 40 → 3" in _estado(raiz)["v1"]["ultima_comprobacion"]["detalle"]
+
+
+def test_aceptar_mengua_por_adelantado(raiz, remoto, tmp_path):
+    o = _origen(remoto)
+    ejecutar([o], AHORA); commit_base(remoto, 10)
+    # Sin una base apartada se acepta sin medir la mengua, como antes.
+    assert ejecutar([o], AHORA + timedelta(days=1), aceptar_mengua={"v1"}) == 0
+    e = _estado(raiz)["v1"]
+    assert e["ultima_comprobacion"]["resultado"] == "aceptada"
+    assert "aceptado a mano: matches 40 → 10" in e["ultima_comprobacion"]["detalle"]
+    assert e["ultima_buena"]["recuentos"]["matches"] == 10
+    # Pero que falte una tabla no se perdona si no se había visto antes.
+    _subir(remoto, _base(tmp_path / "sin.db", 10, "DROP TABLE scorers"))
+    assert ejecutar([o], AHORA + timedelta(days=2), aceptar_mengua={"v1"}) == 1
+    assert _estado(raiz)["v1"]["ultima_comprobacion"]["detalle"][0] == "falta la tabla scorers"
+
+
+def test_aceptar_mengua_perdona_solo_lo_que_tenia_la_apartada(raiz, remoto, tmp_path):
+    o = _origen(remoto)
+    ejecutar([o], AHORA)
+    _subir(remoto, _base(tmp_path / "a.db", 38, "DROP TABLE scorers; DELETE FROM goals"))
+    assert ejecutar([o], AHORA + timedelta(days=1)) == 1
+    assert _estado(raiz)["v1"]["ultima_apartada"]["motivos"] == [
+        "goals está vacía", "falta la tabla scorers", "mengua: matches 40 → 38", "mengua: goals 1 → 0",
+    ]
+    # Llega otra con una tabla vacía más: eso no estaba en la apartada y no se perdona.
+    _subir(remoto, _base(tmp_path / "b.db", 38, "DROP TABLE scorers; DELETE FROM goals; DELETE FROM teams"))
+    assert ejecutar([o], AHORA + timedelta(days=2), aceptar_mengua={"v1"}) == 1
+    c = _estado(raiz)["v1"]["ultima_comprobacion"]
+    assert c["resultado"] == "cuarentena" and c["detalle"][:2] == ["teams está vacía", "mengua: teams 1 → 0"]
+    assert comprobar(raiz / "actual/v1/futbolbase.db").recuentos["matches"] == 40
+    # Con esa ya apartada, aceptarla perdona lo que tenía, y el detalle lo dice contra la última buena.
+    assert ejecutar([o], AHORA + timedelta(days=3), aceptar_mengua={"v1"}) == 0
+    c = _estado(raiz)["v1"]["ultima_comprobacion"]
+    assert c["resultado"] == "aceptada"
+    assert "aceptado a mano: matches 40 → 38; goals 1 → 0; teams 1 → 0; goals está vacía; teams está vacía; falta la tabla scorers" in c["detalle"]
+    # Una base dañada no se perdona nunca, ni apartada antes.
+    datos = bytearray((remoto / "futbolbase.db").read_bytes())
+    datos[4096:8192] = b"\xff" * 4096
+    _subir(remoto, bytes(datos))
+    assert ejecutar([o], AHORA + timedelta(days=4)) == 1
+    assert ejecutar([o], AHORA + timedelta(days=5), aceptar_mengua={"v1"}) == 1
+    assert _estado(raiz)["v1"]["ultima_comprobacion"]["detalle"][0].startswith(("integridad:", "no se puede abrir:"))
 
 
 def test_misma_rechazada_no_se_repite(raiz, remoto):

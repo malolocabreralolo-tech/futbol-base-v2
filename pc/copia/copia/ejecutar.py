@@ -14,7 +14,7 @@ from pathlib import Path
 from . import almacen
 from .fuentes import FuenteError, Origen, actualizar_espejo, avisos_del_espejo, extraer_base
 from .rutas import raiz
-from .verificar import comprobar
+from .verificar import comprobar, menguas
 
 ACEPTADA = "aceptada"
 SIN_CAMBIOS = "sin cambios"
@@ -23,6 +23,7 @@ ERROR = "error"
 _BUENOS = (ACEPTADA, SIN_CAMBIOS)
 CADUCIDAD = timedelta(days=3)
 _TEMPORAL = ".pasada-"
+_NUNCA_SE_PERDONA = ("integridad:", "claves foráneas:", "no se puede abrir:", "mengua:")
 
 
 def ejecutar(origenes: Sequence[Origen], ahora: datetime, aceptar_mengua: Collection[str] = ()) -> int:
@@ -68,19 +69,36 @@ def estado(ahora: datetime) -> tuple[str, int]:
     return "\n".join([*lineas, ocupa]), codigo
 
 
-def _pasada(origen: Origen, ahora: datetime, entrada: dict, sin_mengua: bool) -> tuple[str, list[str], str | None]:
+def _pasada(origen: Origen, ahora: datetime, entrada: dict, a_mano: bool) -> tuple[str, list[str], str | None]:
     commit = None
     avisos: list[str] = []
     try:
         commit = actualizar_espejo(origen, ahora)
         avisos = [f"espejo incompleto: {aviso}" for aviso in avisos_del_espejo(origen)]
+        anterior = _anterior(origen.nombre, entrada)
+        apartada = entrada.get("ultima_apartada") if a_mano else None
         with tempfile.TemporaryDirectory(prefix=_TEMPORAL, dir=raiz()) as carpeta:
             db = extraer_base(origen, commit, Path(carpeta) / "futbolbase.db")
-            r = comprobar(db, None if sin_mengua else _anterior(origen.nombre, entrada))
-            if not r.ok:
-                apartada = almacen.apartar(origen.nombre, db, r.motivos, ahora)
-                return CUARENTENA, [*r.motivos, f"apartada en {_relativa(apartada)}", *avisos], commit
+            if apartada:
+                # Aceptar a mano es aceptar la base que se apartó, o una prácticamente igual: se mide contra ella.
+                r = comprobar(db, apartada["recuentos"])
+                motivos = [m for m in r.motivos if not _perdonable(m, apartada["motivos"])]
+            else:
+                # Pedido por adelantado, sin nada apartado con que comparar, no se mide la mengua; lo demás sí.
+                r = comprobar(db, None if a_mano else anterior)
+                motivos = list(r.motivos)
+            if motivos:
+                ruta = almacen.apartar(origen.nombre, db, motivos, ahora)
+                entrada["ultima_apartada"] = {
+                    "momento": _iso(ahora),
+                    "sha256": almacen._huella(db),
+                    "recuentos": r.recuentos,
+                    "motivos": list(r.motivos),
+                }
+                return CUARENTENA, [*motivos, f"apartada en {_relativa(ruta)}", *avisos], commit
             nueva = almacen.aceptar(origen.nombre, db, r.recuentos, ahora)
+        # Lo apartado ya no es lo que hay en el remoto: no puede servir de medida a un --aceptar-mengua posterior.
+        entrada.pop("ultima_apartada", None)
         ultima = nueva or almacen.versiones(origen.nombre)[-1]
         # Una pasada cortada tras guardar la versión, o un estado.json perdido, se ponen al día con la versión guardada.
         if nueva or (entrada.get("ultima_buena") or {}).get("sha256") != ultima.sha256:
@@ -92,6 +110,9 @@ def _pasada(origen: Origen, ahora: datetime, entrada: dict, sin_mengua: bool) ->
                 "commit": commit,
             }
         detalle = [f"{t} {r.recuentos[t]}" for t in ("matches", "players")] + [f"versión {_relativa(ultima.ruta)}"]
+        # Lo que se ha perdonado, contra la última buena: lo que queda en r.motivos son tablas que faltan o vacías.
+        if a_mano and (perdonado := [*menguas(anterior or {}, r.recuentos), *r.motivos]):
+            detalle.append("aceptado a mano: " + "; ".join(perdonado))
         if volcado := almacen.volcar(origen.nombre, ahora):
             detalle.append(f"volcado en {_relativa(volcado)}")
         if podadas := almacen.podar(origen.nombre, ahora):
@@ -100,6 +121,14 @@ def _pasada(origen: Origen, ahora: datetime, entrada: dict, sin_mengua: bool) ->
     except Exception as e:
         texto = " ".join(str(e).splitlines())
         return ERROR, [texto if isinstance(e, FuenteError) else f"{type(e).__name__}: {texto}", *avisos], commit
+
+
+def _perdonable(motivo: str, de_la_apartada: Sequence[str]) -> bool:
+    # Que falte una tabla o esté vacía se perdona si ya pasaba en la base apartada; un daño, una clave rota o una
+    # mengua respecto a ella, nunca.
+    if motivo.startswith(_NUNCA_SE_PERDONA):
+        return False
+    return (motivo.startswith("falta la tabla ") or motivo.endswith(" está vacía")) and motivo in de_la_apartada
 
 
 def _anterior(nombre: str, entrada: Mapping) -> Mapping[str, int] | None:
