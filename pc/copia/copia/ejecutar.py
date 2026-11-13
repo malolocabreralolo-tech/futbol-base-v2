@@ -34,6 +34,7 @@ def ejecutar(origenes: Sequence[Origen], ahora: datetime, aceptar_mengua: Collec
         # Con el cerrojo tomado nadie usa ya lo que dejó una pasada cortada a medias (el temporizador la mató, un apagón).
         for resto in raiz().glob(f"{_TEMPORAL}*"):
             shutil.rmtree(resto, ignore_errors=True)
+        _borrar_escrituras_cortadas()
         datos = _estado_para_la_pasada()
         codigo = 0
         for origen in origenes:
@@ -159,6 +160,17 @@ def _resumen(nombre: str, entrada: Mapping, ahora: datetime) -> tuple[str, bool]
     if avisos:
         partes.append("AVISO: " + "; ".join(avisos))
     return " · ".join(partes), not avisos and resultado in _BUENOS
+
+
+def _borrar_escrituras_cortadas() -> None:
+    # Los temporales de almacen._atomico (.<destino>.<azar>.tmp, junto a su destino) que no llegaron a su sitio; solo
+    # en la raíz y en las carpetas de la herramienta, no en las demás que haya en la raíz.
+    sueltos = list(raiz().glob(".*.tmp"))
+    for carpeta in ("versiones", "actual", "volcados", "cuarentena"):
+        sueltos += (raiz() / carpeta).rglob(".*.tmp")
+    for resto in sueltos:
+        if resto.is_file() and not resto.is_symlink():
+            resto.unlink(missing_ok=True)
 
 
 def _estado_para_la_pasada() -> dict:

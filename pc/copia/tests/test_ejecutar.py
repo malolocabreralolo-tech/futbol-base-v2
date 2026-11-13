@@ -434,6 +434,27 @@ def test_una_ficha_danada_no_para_la_copia(raiz, remoto, tmp_path, capsys):
     assert [v.recuentos["matches"] for v in versiones("v1")] == [41, 42, 43]
 
 
+def test_limpia_los_ficheros_a_medio_escribir(raiz, remoto):
+    o = _origen(remoto)
+    assert ejecutar([o], AHORA) == 0
+    # Lo que deja una escritura atómica cortada (el temporizador mata la pasada, un apagón): .<destino>.<azar>.tmp
+    restos = [
+        raiz / ".estado.json.k3j2h1.tmp",
+        raiz / "versiones/v1/2026/.futbolbase-20261114-050000.db.xz.k3j2h1.tmp",
+        raiz / "actual/v1/.futbolbase.db.k3j2h1.tmp",
+        raiz / "volcados/v1/.futbolbase-2026-S47.sql.xz.k3j2h1.tmp",
+        raiz / "cuarentena/v1/.futbolbase-20261114-050000.db.xz.k3j2h1.tmp",
+    ]
+    # Lo que no sigue ese patrón, o está en carpetas que no son de la herramienta, no se toca.
+    ajenos = [raiz / "notas.tmp", raiz / ".notas", raiz / "local-v1/.rama.tmp", raiz / "actual/v1/.oculto"]
+    for p in restos + ajenos:
+        p.parent.mkdir(parents=True, exist_ok=True)
+        p.write_bytes(b"a medio escribir")
+    assert ejecutar([o], AHORA + timedelta(hours=1)) == 0
+    assert [p for p in restos if p.exists()] == []
+    assert all(p.exists() for p in ajenos)
+
+
 def test_estado(raiz, remoto):
     o = _origen(remoto)
     assert "sin copias" in estado(AHORA)[0] and estado(AHORA)[1] == 1
