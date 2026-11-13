@@ -1,0 +1,10 @@
+[Unit]
+Description=futbol-base v2 — reloj de las pasadas cada 5 min (a y 4, 9, 14…: dos minutos después del de v1)
+
+[Timer]
+OnCalendar=*:04/5 UTC
+RandomizedDelaySec=30
+AccuracySec=30s
+
+[Install]
+WantedBy=timers.target

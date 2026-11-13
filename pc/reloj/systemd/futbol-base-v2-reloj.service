@@ -1,0 +1,7 @@
+[Unit]
+Description=futbol-base v2 — reloj de las pasadas desde el PC (lanza reloj.yml de v2 si toca)
+
+[Service]
+Type=oneshot
+ExecStart=%h/.local/bin/futbol-base-v2-reloj
+TimeoutStartSec=120
