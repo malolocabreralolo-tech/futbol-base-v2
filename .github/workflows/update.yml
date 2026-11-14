@@ -175,10 +175,11 @@ jobs:
           fi
           exit 1
 
-      # Fase 2D (14/11/2026): si la pasada ha apuntado competiciones o grupos nuevos (newCompetitions,
-      # newGroups) que activar.yml no haya intentado en las últimas 6 h (source_health.py pendiente), lo lanza
-      # sobre main; arranca en fila tras esta pasada (concurrency update-data). Un fallo al lanzarlo no pone la
-      # pasada en rojo: la pasada siguiente lo vuelve a mirar.
+      # Fase 2D (14/11/2026): si hay competiciones o grupos nuevos (newCompetitions, newGroups) y toca
+      # (source_health.py pendiente: lo nuevo, ya; una descarga a medias, otro intento, hasta 8; lo que no se
+      # arregla solo, una vez al día), lanza activar.yml sobre main; arranca en fila tras esta pasada
+      # (concurrency update-data), y así pasadas e intentos se alternan. Un fallo al lanzarlo no pone la pasada
+      # en rojo: la pasada siguiente lo vuelve a mirar.
       - name: Lanzar la activación si hay algo nuevo
         if: success()
         continue-on-error: true

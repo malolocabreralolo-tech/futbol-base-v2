@@ -876,16 +876,17 @@ def test_the_bot_works_on_the_current_main_not_on_the_dispatch_commit():
 #
 # Fase 2D (14/11/2026): activar.yml activa solo lo que el bot apuntó como nuevo (newCompetitions y newGroups
 # de data-health.json): catálogo, descarga de lo pendiente, activar_auto.py, pruebas y subida. Lo lanza el bot
-# (update.yml, «Lanzar la activación si hay algo nuevo»), se relanza a sí mismo mientras solo falte descarga
-# (hasta 4 intentos) y se lanza a mano. Los guiones de sus pasos se ejecutan con bash en repositorios de
-# mentira con su remoto, con un gh de mentira que apunta lo que se le pide.
+# (update.yml, «Lanzar la activación si hay algo nuevo», con source_health.py pendiente) o el dueño a mano;
+# nunca se relanza a sí mismo (ronda de arreglo 1): intentos cortos que se alternan con las pasadas. Los guiones
+# de sus pasos se ejecutan con bash en repositorios de mentira con su remoto, con un gh de mentira que apunta
+# lo que se le pide.
 
 V2_REPO = "malolocabreralolo-tech/futbol-base-v2"
 ACTIVAR_STEPS = ["Checkout", "Set up Python", "Qué hay pendiente", "Instalar dependencias de test",
                  "Instalar Playwright (federación)", "Catálogo de la temporada", "Descargar lo pendiente",
                  "Subir lo descargado", "Activar", "Cambios en la web", "Tests Python (bloquean el commit si fallan)",
                  "Tests Node (bloquean el commit si fallan)", "Subir la activación",
-                 "Publicar el fallo si las pruebas fallan", "Relanzar si falta descarga", "Activación en rojo"]
+                 "Publicar el fallo si las pruebas fallan", "Activación en rojo"]
 PENDING = "steps.pendientes.outputs.ids != ''"
 
 
@@ -900,26 +901,28 @@ def _activar_step(name):
     return next(s for s in job["steps"] if s.get("name") == name)
 
 
-def test_activar_is_dispatched_by_hand_or_by_the_chain_with_its_attempt():
-    """Solo workflow_dispatch (lo lanzan el bot, la cadena y el dueño a mano), con la entrada intento (por
-    defecto 1, no obligatoria: el bot y a mano no la pasan); nada interpolado en los guiones."""
+def test_activar_is_dispatched_by_the_bot_or_by_hand_and_never_relaunches_itself():
+    """Solo workflow_dispatch sin entradas (lo lanzan el bot y el dueño a mano). Ronda de arreglo 1: nunca se
+    relanza a sí mismo (ni gh, ni actions: write): GitHub guarda una sola ejecución en espera por grupo de
+    concurrencia y relanzarse cancelaría la pasada que espera; el intento siguiente lo lanza la pasada
+    siguiente. Nada interpolado en los guiones."""
     data, job = _activar()
     trig = _triggers(data)
-    assert set(trig) == {"workflow_dispatch"}
-    inputs = trig["workflow_dispatch"]["inputs"]
-    assert set(inputs) == {"intento"}
-    assert inputs["intento"]["required"] is False and str(inputs["intento"]["default"]) == "1"
+    assert set(trig) == {"workflow_dispatch"} and not trig["workflow_dispatch"], "sin entradas"
+    text = (WF_DIR / "activar.yml").read_text(encoding="utf-8")
+    runs = " ".join(step.get("run") or "" for step in job["steps"])
+    assert "gh " not in runs and "GH_TOKEN" not in text and "inputs." not in text
     for step in job["steps"]:
         assert "${{" not in (step.get("run") or ""), step.get("name")
 
 
 def test_activar_is_the_only_other_writer_of_the_db_and_works_on_main():
     """Un solo escritor de la base a la vez: el mismo grupo de concurrencia que update.yml, sin cancelar; parte
-    del main de cuando arranca (en fila tras una pasada que acaba de subir la base); permisos para subir y para
-    relanzarse (actions: write), solo en el workflow."""
+    del main de cuando arranca (en fila tras una pasada que acaba de subir la base); permiso para subir y
+    nada más (no lanza workflows), solo en el workflow."""
     data, job = _activar()
     assert data["concurrency"] == {"group": "update-data", "cancel-in-progress": False}
-    assert data["permissions"] == {"contents": "write", "actions": "write"}
+    assert data["permissions"] == {"contents": "write"}
     assert "permissions" not in job
     checkout = next(s for s in job["steps"] if str(s.get("uses", "")).startswith("actions/checkout"))
     assert checkout["with"]["ref"] == "main"
@@ -966,11 +969,13 @@ def test_activar_refreshes_the_catalog_of_the_current_season_only():
     assert step.get("timeout-minutes", 99) <= 15
 
 
-def test_activar_downloads_both_tandas_with_a_deadline_inside_the_step_timeout():
+def test_activar_downloads_both_tandas_in_short_attempts():
     """Una fase nueva son cientos de páginas y la federación frena: la descarga tiene plazo (ISLAS_HASTA,
     fetch_fiflp_islas.guardar_por_grupo guarda grupo a grupo y para al pasarlo) por debajo del timeout del
-    paso, con margen para el último grupo, y nunca para el job (continue-on-error). Las dos tandas de la
-    temporada (benjamín y prebenjamín, alevín) con la misma lista: cada una filtra por su categoría."""
+    paso, con margen para el último grupo, y nunca para el job (continue-on-error). Ronda de arreglo 1:
+    intentos cortos (20 min de descarga, 30 el paso, 75 el job): un intento ocupa update-data poco más que una
+    pasada. Las dos tandas de la temporada (benjamín y prebenjamín, alevín) con la misma lista: cada una filtra
+    por su categoría."""
     _, job = _activar()
     step = _activar_step("Descargar lo pendiente")
     assert step.get("id") == "descarga" and step.get("continue-on-error") is True
@@ -981,7 +986,7 @@ def test_activar_downloads_both_tandas_with_a_deadline_inside_the_step_timeout()
     assert 'for TANDA in "$CODIGO" "${CODIGO}al"' in run
     assert 'ISLAS_SEASON="$TANDA" python3 scripts/fetch_fiflp_islas.py' in run
     minutes = int(re.search(r"ISLAS_HASTA=\$\(\( \$\(date \+%s\) \+ (\d+) \* 60 \)\)", run).group(1))
-    assert 60 <= minutes and minutes + 15 <= step["timeout-minutes"], (minutes, step["timeout-minutes"])
+    assert (minutes, step["timeout-minutes"], job["timeout-minutes"]) == (20, 30, 75)
     # El job: la descarga entera, más preparación, catálogo, activación, pruebas y subidas (~30 min).
     assert step["timeout-minutes"] + 30 <= job["timeout-minutes"]
 
@@ -1041,7 +1046,6 @@ def test_activar_uploads_what_it_downloaded_first_and_only_that(tmp_path):
     (work / FAKE_CATALOG).write_text('{"nuevo": 1}')
     (work / "futbolbase.db").write_text("otros bytes")
     (work / "data-health.json").write_text('{"otro": 1}')
-    env = {**env, "INTENTO": "2"}
     done = subprocess.run(["bash", "-e", "-c", step["run"]], cwd=work, env=env, capture_output=True, text=True, timeout=60)
     assert done.returncode == 0, done.stdout + done.stderr
     assert _last_commit(git, remote) == [FAKE_CATALOG, "scripts/fiflp_islas_22_grupos.json",
@@ -1146,56 +1150,9 @@ def test_when_the_suites_fail_after_activating_only_the_published_report_goes_up
     assert re.findall(r"git add .*", step["run"]) == ["git add data-health.json"]
 
 
-def _run_relaunch(tmp_path, intento, failed):
-    """El guion de verdad de «Relanzar si falta descarga», con el activar_auto.py de verdad (una copia de
-    scripts/*.py, que lee el data-health.json de la copia) y un gh de mentira que apunta lo que se le pide.
-    Devuelve (código de salida, las órdenes de gh, la salida)."""
-    import shutil
-    step = _activar_step("Relanzar si falta descarga")
-    work = tmp_path / "arbol"
-    (work / "scripts").mkdir(parents=True)
-    for path in (ROOT / "scripts").glob("*.py"):
-        shutil.copy2(path, work / "scripts" / path.name)
-    (work / "data-health.json").write_text(json.dumps({"activation": {
-        "at": "2026-11-14T10:00:00+00:00", "activated": [], "tried": ["1"], "failed": failed}}), encoding="utf-8")
-    bin_dir, calls = tmp_path / "bin", tmp_path / "gh-llamadas"
-    bin_dir.mkdir()
-    (bin_dir / "gh").write_text(f'#!/bin/bash\necho "$*" >> "{calls}"\n', encoding="utf-8")
-    (bin_dir / "gh").chmod(0o755)
-    env = {**os.environ, "PATH": f"{bin_dir}{os.pathsep}{os.environ.get('PATH', '')}", "GH_TOKEN": "x",
-           "INTENTO": intento}
-    done = subprocess.run(["bash", "-e", "-c", step["run"]], cwd=work, env=env, capture_output=True, text=True, timeout=60)
-    return done.returncode, (calls.read_text().splitlines() if calls.exists() else []), done.stdout + done.stderr
-
-
-def test_activar_relaunches_itself_only_for_an_incomplete_download_and_at_most_4_times(tmp_path):
-    """Review Focus 5: una descarga cortada (el plazo, el freno) se reanuda en el intento siguiente, que lanza
-    el mismo job sobre main con intento + 1; el 4.º no relanza, ni un fallo que no es de la descarga (relanzar
-    no lo arregla: lo vuelve a intentar el bot pasadas 6 h, source_health.py pendiente)."""
-    step = _activar_step("Relanzar si falta descarga")
-    assert step["if"] == "${{ !cancelled() && steps.activar.outcome == 'failure' }}"
-    assert step["env"] == {"GH_TOKEN": "${{ github.token }}", "INTENTO": "${{ inputs.intento }}"}
-    descarga = [{"competition": "1", "name": "X", "reason": "la descarga no está completa: faltan 3 grupos"},
-                {"competition": "2", "name": "Y", "reason": "la descarga no está completa: falta la lista de grupos de la federación"}]
-    code, calls, log = _run_relaunch(tmp_path / "uno", "1", descarga)
-    assert code == 0 and calls == [f"workflow run activar.yml -R {V2_REPO} --ref main -f intento=2"], log
-    code, calls, log = _run_relaunch(tmp_path / "tres", "3", descarga)
-    assert code == 0 and calls == [f"workflow run activar.yml -R {V2_REPO} --ref main -f intento=4"], log
-    code, calls, log = _run_relaunch(tmp_path / "cuatro", "4", descarga)
-    assert code == 0 and calls == [], log
-    otro = descarga[:1] + [{"competition": "3", "name": "Z", "reason": "sin convenio de código: Z"}]
-    code, calls, log = _run_relaunch(tmp_path / "otro", "1", otro)
-    assert code == 0 and calls == [], log
-    code, calls, log = _run_relaunch(tmp_path / "pruebas", "1", [{"competition": "1", "name": "X",
-                                                                  "reason": "las pruebas fallaron tras activar"}])
-    assert code == 0 and calls == [], log
-    code, calls, log = _run_relaunch(tmp_path / "vacio", "", descarga)          # a mano o desde el bot: el 1
-    assert code == 0 and calls == [f"workflow run activar.yml -R {V2_REPO} --ref main -f intento=2"], log
-
-
 def test_activar_ends_in_red_when_something_could_not_be_activated():
-    """Rojo al final si algo no se activó (activar_auto.py salió con 1), después de subir el resultado y de
-    relanzar: lo que sí se activó ya está publicado."""
+    """Rojo al final si algo no se activó (activar_auto.py salió con 1), después de subir el resultado: lo que
+    sí se activó ya está publicado."""
     _, job = _activar()
     step = job["steps"][-1]
     assert step["name"] == "Activación en rojo"
@@ -1209,9 +1166,9 @@ LANZAR = "Lanzar la activación si hay algo nuevo"
 
 
 def test_update_launches_activar_when_something_new_is_pending():
-    """Al acabar una pasada sana, si hay competiciones o grupos nuevos que activar.yml no haya intentado en las
-    últimas 6 h (source_health.py pendiente), lo lanza sobre main (queda en fila: concurrency update-data). Un
-    fallo al lanzarlo no pone la pasada en rojo: la pasada siguiente lo vuelve a mirar."""
+    """Al acabar una pasada sana, si hay competiciones o grupos nuevos y toca (source_health.py pendiente), lanza
+    activar.yml sobre main (queda en fila: concurrency update-data); así pasadas e intentos se alternan. Un fallo
+    al lanzarlo no pone la pasada en rojo: la pasada siguiente lo vuelve a mirar."""
     steps, step = _update_step(LANZAR)
     names = [s.get("name") for s in steps]
     assert names.index("Commit y push si hay cambios") < names.index(DIAGNOSTICO) < names.index(LANZAR) \
@@ -1249,9 +1206,16 @@ def test_update_launch_step_runs_for_real(tmp_path):
     code, calls, log = _run_launch(tmp_path / "nada", {"groups": {}})
     assert code == 0 and calls == [], log
     from datetime import datetime, timezone
-    tried = {**new, "activation": {"at": datetime.now(timezone.utc).isoformat(), "tried": ["55400001"],
-                                   "activated": [], "failed": []}}
-    code, calls, log = _run_launch(tmp_path / "intentado", tried)
+    def tried(reason, attempts):
+        return {**new, "activation": {"at": datetime.now(timezone.utc).isoformat(), "tried": ["55400001"],
+                                      "activated": [], "attempts": attempts,
+                                      "failed": [{"competition": "55400001", "name": "LIGA X", "reason": reason}]}}
+    # El intento siguiente de una descarga a medias, en esta misma pasada (hasta el 8.º); lo demás, a las 24 h.
+    code, calls, log = _run_launch(tmp_path / "descarga-7", tried("la descarga no está completa: faltan 9 grupos", 7))
+    assert code == 0 and calls == [f"workflow run activar.yml -R {V2_REPO} --ref main"], log
+    code, calls, log = _run_launch(tmp_path / "descarga-8", tried("la descarga no está completa: faltan 9 grupos", 8))
+    assert code == 0 and calls == [], log
+    code, calls, log = _run_launch(tmp_path / "convenio", tried("sin convenio de código: LIGA X", 1))
     assert code == 0 and calls == [], log
     code, calls, log = _run_launch(tmp_path / "gh-falla", new, gh_exit=1)
     assert code != 0 and len(calls) == 1, log                 # en rojo el paso, no la pasada (continue-on-error)

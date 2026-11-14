@@ -3,23 +3,18 @@ name: Activación automática
 # Activa sola lo que el bot (update.yml) apuntó como nuevo en data-health.json: las competiciones de
 # newCompetitions (enteras) y los grupos de newGroups (solo esos). Pone al día el catálogo, descarga lo
 # pendiente, lo activa con scripts/activar_auto.py, pasa las pruebas y sube el resultado (fase 2D de v2,
-# 14/11/2026). Lo lanza el bot al acabar una pasada si hay algo pendiente que no se haya intentado en las
-# últimas 6 h (source_health.py pendiente); se relanza a sí mismo mientras solo falte descarga, hasta el
-# intento 4 (activar_auto.py --relanzar); y se puede lanzar a mano. Para pararlo:
+# 14/11/2026). Lo lanza el bot al acabar una pasada (update.yml, «Lanzar la activación si hay algo nuevo»,
+# con source_health.py pendiente): lo nuevo, enseguida; una descarga a medias, en la pasada siguiente (hasta 8
+# intentos); lo que no se arregla solo, una vez al día. Intentos cortos (la descarga para a los 20 min) que se
+# alternan con las pasadas: nunca se relanza a sí mismo, porque GitHub solo guarda una ejecución en espera
+# por grupo de concurrencia y relanzarse cancelaría la pasada que espera. También a mano. Para pararlo:
 # gh workflow disable activar.yml -R malolocabreralolo-tech/futbol-base-v2. Ver docs/federacion.md,
-# «Competiciones y grupos nuevos».
+# «La activación automática».
 on:
-  workflow_dispatch:          # el bot (update.yml), la propia cadena y a mano desde GitHub
-    inputs:
-      intento:
-        description: 'Intento de la cadena (1 a 4; a mano, 1)'
-        required: false
-        default: '1'
-        type: string
+  workflow_dispatch:          # el bot (update.yml) y a mano desde GitHub
 
 permissions:
   contents: write
-  actions: write
 
 # El grupo de update.yml: un solo escritor de futbolbase.db a la vez (una pasada y una activación nunca se
 # pisan; la que llega espera a la otra, sin cancelarla).
@@ -31,8 +26,9 @@ jobs:
   activar:
     # La imagen fijada y las acciones en Node 24, como update.yml (test_workflows.py).
     runs-on: ubuntu-24.04
-    # La descarga (110 min como mucho) y ~30 más: preparación, catálogo, activación, pruebas y subidas.
-    timeout-minutes: 150
+    # La descarga (30 min como mucho) y ~30 más: preparación, catálogo, activación, pruebas y subidas. Poco más
+    # que una pasada: mientras corre, el bot espera en fila.
+    timeout-minutes: 75
 
     steps:
       # ref: main, el main de AHORA: lanzado por el bot, arranca en fila tras la pasada que acaba de subir la
@@ -81,20 +77,21 @@ jobs:
         run: python3 scripts/discover_fiflp_comps.py
 
       # Una fase nueva son cientos de páginas (una por grupo y jornada) y la federación frena: la descarga para
-      # a los 90 min (ISLAS_HASTA; fetch_fiflp_islas.guardar_por_grupo guarda cada grupo al acabarlo) y el
-      # intento siguiente la reanuda. Las dos tandas con la misma lista: cada una filtra por su categoría
-      # (benjamín y prebenjamín; alevín). Nunca para el job: lo descargado se sube igual.
+      # a los 20 min (ISLAS_HASTA; fetch_fiflp_islas.guardar_por_grupo guarda cada grupo al acabarlo) y el
+      # intento siguiente, tras la pasada siguiente del bot, la reanuda. Las dos tandas con la misma lista:
+      # cada una filtra por su categoría (benjamín y prebenjamín; alevín). Nunca para el job: lo descargado se
+      # sube igual.
       - name: Descargar lo pendiente
         id: descarga
         if: steps.pendientes.outputs.ids != ''
         continue-on-error: true
-        timeout-minutes: 110
+        timeout-minutes: 30
         env:
           CODIGO: ${{ steps.pendientes.outputs.codigo }}
           SCRAPE_IDS: ${{ steps.pendientes.outputs.ids }}
           PYTHONUNBUFFERED: '1'
         run: |
-          export ISLAS_HASTA=$(( $(date +%s) + 90 * 60 ))
+          export ISLAS_HASTA=$(( $(date +%s) + 20 * 60 ))
           for TANDA in "$CODIGO" "${CODIGO}al"; do
             if [ "$(date +%s)" -ge "$ISLAS_HASTA" ]; then echo "Sin plazo para la tanda $TANDA: el intento siguiente"; break; fi
             ISLAS_SEASON="$TANDA" python3 scripts/fetch_fiflp_islas.py || echo "La tanda $TANDA no acabó: el intento siguiente la reanuda"
@@ -104,8 +101,6 @@ jobs:
       # corte) y aunque no se active nada, como fetch-fiflp-islas.yml: el intento siguiente reanuda desde ahí.
       - name: Subir lo descargado
         if: ${{ !cancelled() && steps.pendientes.outputs.ids != '' }}
-        env:
-          INTENTO: ${{ inputs.intento }}
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
@@ -117,7 +112,7 @@ jobs:
             echo "Nada descargado que subir."
             exit 0
           fi
-          git commit -m "Activación automática: descarga de la federación (intento ${INTENTO:-1})"
+          git commit -m "Activación automática: descarga de la federación $(date '+%d/%m/%Y %H:%M UTC')"
           # Solo sus ficheros: si main se ha movido, se rebasa y se reintenta, como update.yml.
           for vez in 1 2 3; do
             if git push; then break; fi
@@ -127,7 +122,7 @@ jobs:
 
       # Activa lo que encaja (cada competición en su transacción), regenera, pasa la sonda y escribe
       # activation en data-health.json. Sale con 1 si algo falló (lo activado se queda): no para el job, que
-      # sube el resultado y se pone en rojo al final.
+      # sube el resultado y se pone en rojo al final. Cuenta los intentos seguidos (activation.attempts).
       - name: Activar
         id: activar
         if: ${{ !cancelled() && steps.pendientes.outputs.ids != '' }}
@@ -163,7 +158,7 @@ jobs:
 
       # Solo con todo en verde (success(): una suite en rojo deja el job en rojo y esto no corre). Con datos, la
       # base, lo generado y su manifiesto; siempre, data-health.json: lo intentado y por qué (activation), que
-      # enseña «Datos y fuentes» y frena los relanzamientos desde el bot (activation.tried).
+      # enseña «Datos y fuentes» y dice al bot cuándo lanzar el intento siguiente (source_health.py pendiente).
       - name: Subir la activación
         if: ${{ success() && steps.activar.outcome != 'skipped' }}
         env:
@@ -190,7 +185,7 @@ jobs:
       # Las suites en rojo tras activar: no se publica nada de la activación. La base y lo generado vuelven a
       # lo publicado (y los ficheros nuevos, fuera); data-health.json, el publicado, con lo intentado como
       # fallido por las pruebas (activar_auto.py --pruebas-fallaron, con el informe de esta ejecución: su
-      # tried frena los relanzamientos). Solo se sube ese fichero, y el job en rojo.
+      # tried y su at frenan al bot un día). Solo se sube ese fichero, y el job en rojo.
       - name: Publicar el fallo si las pruebas fallan
         if: ${{ !cancelled() && (steps.pytest.outcome == 'failure' || steps.node.outcome == 'failure') }}
         run: |
@@ -212,21 +207,8 @@ jobs:
           fi
           exit 1
 
-      # Solo si todo lo fallido es la descarga incompleta (lo único que arregla volver a descargar) y quedan
-      # intentos (el 4.º no relanza): activar_auto.py --relanzar lo decide con el data-health.json del disco.
-      # El intento siguiente reanuda la descarga; si una pasada del bot llega antes, va en fila (update-data).
-      - name: Relanzar si falta descarga
-        if: ${{ !cancelled() && steps.activar.outcome == 'failure' }}
-        env:
-          GH_TOKEN: ${{ github.token }}
-          INTENTO: ${{ inputs.intento }}
-        run: |
-          if SIGUIENTE=$(python3 scripts/activar_auto.py --relanzar "${INTENTO:-1}"); then
-            echo "La descarga no está completa: intento $SIGUIENTE."
-            gh workflow run activar.yml -R malolocabreralolo-tech/futbol-base-v2 --ref main -f intento="$SIGUIENTE"
-          fi
-
-      # El rojo, al final: lo que sí se activó ya está publicado y el resultado subido.
+      # El rojo, al final: lo que sí se activó ya está publicado y el resultado subido. El intento siguiente
+      # lo lanza el bot (source_health.py pendiente), no este job.
       - name: Activación en rojo
         if: ${{ !cancelled() && steps.activar.outcome == 'failure' }}
         run: |
