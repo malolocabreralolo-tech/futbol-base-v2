@@ -11,8 +11,8 @@ from collections import Counter
 
 import pytest
 
-from identidad import (Identidad, NIVEL, club, clave_publica, compatibles, intervalo, nombre_completo,
-                       normalizar, resolver, trozo)
+from identidad import (UNIR_CORTOS_EN_CLUB, Identidad, NIVEL, club, clave_publica, compatibles, intervalo,
+                       nombre_completo, normalizar, resolver, trozo)
 from import_fiflp_actas import _norm_player
 
 PRE, BEN, ALE = NIVEL["PREBENJAMIN"], NIVEL["BENJAMIN"], NIVEL["ALEVIN"]
@@ -571,3 +571,8 @@ def test_la_medida_cuenta_los_pares_de_u1():
     assert medida[("uno a uno", "completos")] == {"mismo": 1}
     texto, decision = M.informe(Counter(), nino, medida)
     assert decision is False and "unir_cortos_en_club = False" in texto
+
+
+def test_los_cortos_no_se_unen_en_el_club():
+    # La medida del 14/11/2026 (docs/identidad.md): precisión de los cortos 33,2 % < 95 %.
+    assert UNIR_CORTOS_EN_CLUB is False
