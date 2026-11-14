@@ -9,6 +9,12 @@ temporada») sin manos: manifiesto (fiflp_manifest.build) → verificación (act
     python3 scripts/activar_auto.py --dry-run       # solo dice qué activaría; no escribe nada
     python3 scripts/activar_auto.py --pendientes    # imprime los ids pendientes, separados por comas
     python3 scripts/activar_auto.py --raw scripts/fiflp_islas_22_raw.json   # un raw para todas
+    python3 scripts/activar_auto.py --temporada     # el CodTemporada de la temporada en curso (22 en 2026-27)
+
+Y las de activar.yml (docs/federacion.md, «Competiciones y grupos nuevos»):
+
+    python3 scripts/activar_auto.py --relanzar 1    # imprime 2 y sale con 0 si solo falló la descarga
+    python3 scripts/activar_auto.py --pruebas-fallaron <data-health.json de la ejecución>
 
 Sin --raw, cada competición se busca en el raw de su tanda: scripts/fiflp_islas_<CodTemporada>_raw.json
 (benjamín y prebenjamín) o scripts/fiflp_islas_<CodTemporada>al_raw.json (alevín); la que no está en
@@ -44,12 +50,17 @@ from db import get_connection  # noqa: E402
 # Los motivos de fallo (activation.failed[].reason), con estos textos: «Datos y fuentes» los enseña y
 # activar.yml relanza la descarga solo con el de la descarga incompleta.
 SIN_CONVENIO = "sin convenio de código: {}"
-INCOMPLETA = "la descarga no está completa: faltan {} grupos"
-SIN_LISTA = "la descarga no está completa: falta la lista de grupos de la federación"
+DESCARGA = "la descarga no está completa"
+INCOMPLETA = DESCARGA + ": faltan {} grupos"
+SIN_LISTA = DESCARGA + ": falta la lista de grupos de la federación"
 VERIFICACION = "verificación: {}"
 FASE_DESCONOCIDA = "fase que la web no reconoce: {}"
 SIN_GENERAR = "no se pudo regenerar la web: {}"
 SIN_SONDA = "no se pudo pasar la sonda de fases: {}"
+# El que pone activar.yml (--pruebas-fallaron) cuando las suites fallan tras activar: no se publica nada.
+PRUEBAS = "las pruebas fallaron tras activar"
+# Los intentos de una cadena de activar.yml (--relanzar): el último no se relanza.
+MAX_INTENTOS = 4
 
 
 class Fallo(Exception):
@@ -322,11 +333,64 @@ def escribir_activacion(health_path, activation, done_comps, season_pairs):
     Path(health_path).write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
+def siguiente_intento(health, intento):
+    """El intento siguiente de activar.yml (intento + 1) si todo lo que falló es la descarga incompleta (lo
+    único que arregla volver a descargar) y quedan intentos (MAX_INTENTOS); None si no se relanza."""
+    try:
+        intento = int(intento)
+    except (TypeError, ValueError):
+        return None
+    activation = (health or {}).get("activation")
+    failed = activation.get("failed") if isinstance(activation, dict) else None
+    if not isinstance(failed, list) or not failed or not 1 <= intento < MAX_INTENTOS:
+        return None
+    if all(isinstance(f, dict) and str(f.get("reason") or "").startswith(DESCARGA) for f in failed):
+        return intento + 1
+    return None
+
+
+def pruebas_fallaron(health_path, db_path, ejecucion_path):
+    """activar.yml, si las suites fallan tras activar: `health_path` es ya el data-health.json publicado (la base
+    y lo generado, también) y `ejecucion_path` el que dejó esta ejecución. Lo activado pasa a fallido por
+    PRUEBAS (lo que falló por otra cosa conserva su motivo), con su `at` y su `tried` (el freno de 6 h de
+    source_health.py pendiente). Sin el de la ejecución, todo lo pendiente cuenta como intentado y fallido."""
+    published = _read_json(health_path, {})
+    run_activation = _read_json(ejecucion_path, {})
+    run_activation = run_activation.get("activation") if isinstance(run_activation, dict) else None
+    if isinstance(run_activation, dict) and isinstance(run_activation.get("tried"), list):
+        activated = [a for a in run_activation.get("activated") or [] if isinstance(a, dict)]
+        failed = [f for f in run_activation.get("failed") or [] if isinstance(f, dict)]
+        failed += [{"competition": a.get("competition"), "name": a.get("name"), "reason": PRUEBAS}
+                   for a in activated if a.get("codes")]
+        # Lo que ya estaba entero en la temporada (sin códigos) no se tocó: sigue activado.
+        activation = {"at": run_activation.get("at") or datetime.now(timezone.utc).isoformat(timespec="seconds"),
+                      "activated": [a for a in activated if not a.get("codes")], "failed": failed,
+                      "tried": list(run_activation["tried"])}
+    else:
+        comps, names = pendientes(published), nombres(published)
+        activation = {"at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "activated": [],
+                      "failed": [{"competition": c, "name": names.get(c) or c, "reason": PRUEBAS} for c in comps],
+                      "tried": sorted(comps)}
+    conn = get_connection(db_path)
+    try:
+        sid, _ = _current(conn)
+        season_pairs, _ = _season_groups(conn, sid)
+    finally:
+        conn.close()
+    escribir_activacion(health_path, activation, {a["competition"] for a in activation["activated"]}, season_pairs)
+
+
 def main(argv=None, root=ROOT, sonda=run_sonda, generar=regenerar, log=print):
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--raw", type=Path, help="el raw de todas las pendientes (sin él, el de la tanda de cada una)")
     parser.add_argument("--dry-run", action="store_true", help="solo comprobar: no escribe nada")
     parser.add_argument("--pendientes", action="store_true", help="imprime los ids pendientes, separados por comas")
+    parser.add_argument("--temporada", action="store_true",
+                        help="imprime el CodTemporada de la federación de la temporada en curso (la tanda)")
+    parser.add_argument("--relanzar", metavar="INTENTO",
+                        help="activar.yml: imprime el intento siguiente y sale con 0 si toca relanzar; con 1 si no")
+    parser.add_argument("--pruebas-fallaron", metavar="INFORME", type=Path,
+                        help="activar.yml: las suites fallaron tras activar (INFORME, el data-health.json de la ejecución)")
     args = parser.parse_args(argv)
     root = Path(root)
     health_path, db_path = root / "data-health.json", root / "futbolbase.db"
@@ -334,6 +398,25 @@ def main(argv=None, root=ROOT, sonda=run_sonda, generar=regenerar, log=print):
     comps, names = pendientes(health), nombres(health)
     if args.pendientes:
         print(",".join(comps))
+        return 0
+    if args.temporada:
+        conn = get_connection(db_path)
+        try:
+            print(season_code(_current(conn)[1]))
+        finally:
+            conn.close()
+        return 0
+    if args.relanzar is not None:
+        nxt = siguiente_intento(health, args.relanzar)
+        if nxt is None:
+            # A stderr: activar.yml recoge la salida (el intento siguiente) y esto va al registro.
+            print(f"Sin relanzar (intento {args.relanzar}): nada fallido, algo que no es la descarga o sin intentos.",
+                  file=sys.stderr)
+            return 1
+        print(nxt)
+        return 0
+    if args.pruebas_fallaron is not None:
+        pruebas_fallaron(health_path, db_path, args.pruebas_fallaron)
         return 0
     if not comps:
         log("Nada pendiente de activar.")

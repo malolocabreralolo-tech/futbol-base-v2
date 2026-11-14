@@ -344,6 +344,75 @@ def test_pendientes_imprime_los_ids(tmp_path, capsys):
     assert capsys.readouterr().out == f"{FF[0]},{PLZ[0]}\n"
 
 
+def test_temporada_imprime_el_codigo_de_la_federacion_de_la_temporada_en_curso(tmp_path, capsys):
+    """activar.yml descarga la tanda de la temporada en curso (22 y 22al en 2026-27) sin escribirla a fuego."""
+    root = tree(tmp_path)
+    assert run(root, "--temporada")[0] == 0
+    assert capsys.readouterr().out == "22\n"
+
+
+# ── Lo que decide activar.yml ────────────────────────────────────────────────
+
+def con_activacion(root, failed, **extra):
+    report = health(root)
+    report["activation"] = {"at": "2026-11-14T10:00:00+00:00", "activated": [], "failed": failed,
+                            "tried": [f["competition"] for f in failed], **extra}
+    (root / "data-health.json").write_text(json.dumps(report), encoding="utf-8")
+
+
+def falla(comp, reason):
+    return {"competition": comp[0], "name": comp[1], "reason": reason}
+
+
+def test_relanzar_solo_si_todo_lo_fallido_es_la_descarga_y_quedan_intentos(tmp_path, capsys):
+    """Review Focus 5: la descarga cortada se reanuda en el intento siguiente (con tope: el 4.º no relanza).
+    Un fallo de otro tipo no se arregla descargando otra vez: no se relanza."""
+    root = tree(tmp_path)
+    capsys.readouterr()
+    con_activacion(root, [falla(PLZ, A.INCOMPLETA.format(2)), falla(SEGUNDA, A.SIN_LISTA)])
+    assert run(root, "--relanzar", "1")[0] == 0 and capsys.readouterr().out == "2\n"
+    assert run(root, "--relanzar", "3")[0] == 0 and capsys.readouterr().out == "4\n"
+    for intento in ("4", "5", "x", ""):
+        assert run(root, "--relanzar", intento)[0] == 1, intento
+    con_activacion(root, [falla(PLZ, A.INCOMPLETA.format(2)), falla(TORNEO, A.SIN_CONVENIO.format(TORNEO[1]))])
+    assert run(root, "--relanzar", "1")[0] == 1
+    con_activacion(root, [falla(PLZ, A.PRUEBAS)])
+    assert run(root, "--relanzar", "1")[0] == 1
+    con_activacion(root, [])
+    assert run(root, "--relanzar", "1")[0] == 1                       # nada fallido: nada que relanzar
+    assert capsys.readouterr().out == ""
+
+
+def test_pruebas_fallaron_parte_del_publicado_y_apunta_el_motivo(tmp_path):
+    """Si las suites fallan tras activar, activar.yml deja la base y lo generado como estaban (los publicados) y
+    sube solo data-health.json: el publicado, con lo que se intentó como fallido por las pruebas (lo que ya
+    había fallado por otra cosa conserva su motivo); lo activado sigue en newCompetitions/newGroups."""
+    root = tree(tmp_path, [entry(PLZ, 1)], health={"newCompetitions": [new_comp(PLZ), new_comp(TORNEO)]})
+    published = health(root)
+    ejecucion = tmp_path / "activacion.json"
+    (ejecucion).write_text(json.dumps({**published, "activation": {
+        "at": "2026-11-14T10:00:00+00:00", "activated": [{"competition": PLZ[0], "name": PLZ[1], "codes": ["PLZ1"]}],
+        "failed": [falla(TORNEO, A.SIN_CONVENIO.format(TORNEO[1]))], "tried": [PLZ[0], TORNEO[0]]}}))
+    assert run(root, "--pruebas-fallaron", str(ejecucion))[0] == 0
+    after = health(root)
+    assert after.pop("activation") == {
+        "at": "2026-11-14T10:00:00+00:00", "activated": [], "tried": [PLZ[0], TORNEO[0]],
+        "failed": [falla(TORNEO, A.SIN_CONVENIO.format(TORNEO[1])), falla(PLZ, A.PRUEBAS)]}
+    assert after == published
+    assert A.PRUEBAS == "las pruebas fallaron tras activar"
+
+
+def test_pruebas_fallaron_sin_el_informe_de_la_ejecucion_frena_igual(tmp_path):
+    """Sin el informe de la ejecución (no se pudo leer), todo lo pendiente cuenta como intentado y fallido por
+    las pruebas: sin `tried`, cada pasada del bot relanzaría la activación (source_health.py pendiente)."""
+    root = tree(tmp_path, health={"newCompetitions": [new_comp(PLZ)], "newGroups": [{"competition": FF[0], "id": "77"}]})
+    assert run(root, "--pruebas-fallaron", str(tmp_path / "no-existe.json"))[0] == 0
+    activation = health(root)["activation"]
+    assert activation["tried"] == [FF[0], PLZ[0]] and activation["activated"] == []
+    assert [f["reason"] for f in activation["failed"]] == [A.PRUEBAS, A.PRUEBAS]
+    assert datetime.fromisoformat(activation["at"]).tzinfo is not None
+
+
 # ── Lo que pasa después de escribir ──────────────────────────────────────────
 
 def test_si_generar_falla_la_base_y_los_ficheros_vuelven_a_la_copia(tmp_path):
