@@ -4,7 +4,7 @@
  * aporta tanto»): «en base a la evolución de los resultados, […] una proyección de la clasificación final
  * en la que pueda quedar […] pronóstico tercero, o segundo, o quinto». Tras ver la primera versión (un
  * bloque con la tabla en cada ficha), lo quiso como una cifra: en «La temporada en cifras» de la ficha y
- * de Mi equipo, «Pronóstico final: 4.º · entre 2.º y 6.º · unos 45 puntos» (projectionFigure de
+ * de Mi equipo, «Pronóstico final: 4.º entre 2.º y 6.º unos 45 puntos» (projectionFigure de
  * team-view.js, con projectStandings), que abre la tabla prevista en un solo sitio, la Tabla del grupo (v=pronostico,
  * projectionView de screen-tabla.js, con projectStandings; el router quita esa vista donde
  * projectionApplies da false). Puro e importable en Node sin DOM, como pronostico.js: recibe el Group de

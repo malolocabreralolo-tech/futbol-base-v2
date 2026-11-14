@@ -360,9 +360,7 @@ test('Partido sin jugar de prebenjamín: el bloque «Pronóstico» bajo el resul
   // El más probable (el del favorito) y los dos que le siguen sin cambiar de ganador.
   const cells = [...block.matchAll(/<div class="cell is-muted"><dt class="cell-label">(.*?)<\/dt><dd class="cell-value">(.*?)<\/dd>/g)].map((m) => [m[1], m[2]]);
   assert.equal(cells.length, 2, 'las dos casillas, apagadas: nunca con la letra de un dato real');
-  // El marcador, con lo probable que es él solo (pScore): «4–1 · 14 %»; el lector oye «4–1, con un 14 %».
-  assert.deepEqual(cells[0], ['Resultado más probable', `${f.score[0]}–${f.score[1]}<span aria-hidden="true"> · </span><span class="vh">, con un </span>${percent(f.pScore)}`]);
-  assert.ok(f.pScore > 0 && f.pScore < 1);
+  assert.deepEqual(cells[0], ['Resultado más probable', `${f.score[0]}–${f.score[1]}`]);
   assert.equal(cells[1][0], 'Goles esperados');
   assert.match(cells[1][1], /^\d+,\d – \d+,\d$/);
   const others = topScores(f.xgHome, f.xgAway, { n: 3, pick: f.pick });
@@ -393,7 +391,7 @@ test('Partido y Jornada: si los goles esperados no van con el favorito (el 1X2 e
   assert.ok(!top.includes(f.score.join('-')), `${f.score}: no está entre los dos más probables del Poisson (${top})`);
   const block = blockOf(renderPartido(params, opts), 'Pronóstico');
   const cells = [...block.matchAll(/<div class="cell is-muted"><dt class="cell-label">(.*?)<\/dt><dd class="cell-value">(.*?)<\/dd>/g)].map((m) => [m[1], m[2]]);
-  assert.deepEqual(cells, [['Si gana La Garita', `${f.score[0]}–${f.score[1]}<span aria-hidden="true"> · </span><span class="vh">, con un </span>${percent(f.pScore)}`]]);
+  assert.deepEqual(cells, [['Si gana La Garita', `${f.score[0]}–${f.score[1]}`]]);
   assert.match(block, /<dl class="cells cells-1">/);
   assert.doesNotMatch(block, /Goles esperados|Resultado más probable|También probables|odds-also/);
   assert.match(block, /class="odds-bar"/, 'la barra y las cifras, como siempre');

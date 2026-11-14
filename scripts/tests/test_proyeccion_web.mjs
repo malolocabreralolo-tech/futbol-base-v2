@@ -3,8 +3,8 @@
 // pronóstico en una tipo tabla, sino pónmelo, por ejemplo, la temporada en cifras, ahí me pones pronóstico
 // quinto, mis 55 puntos, y luego si pincho ahí […] ver esa tabla […], pero esa tabla no me la pongas en cada
 // uno de los equipos». Ahora:
-// - en «La temporada en cifras» de la ficha y de Mi equipo, la primera cifra, «Pronóstico final: 4.º · entre
-//   2.º y 6.º · unos 45 puntos · Ver la tabla prevista ›» (projectionFigure de team-view.js), un enlace a
+// - en «La temporada en cifras» de la ficha y de Mi equipo, la primera cifra, «Pronóstico final: 4.º entre 2.º
+//   y 6.º unos 45 puntos Ver la tabla prevista ›» (projectionFigure de team-view.js), un enlace a
 // - la tabla prevista, en un solo sitio: la Tabla del grupo, vista v=pronostico (projectionView de
 //   screen-tabla.js), fuera del selector de vistas, con el enlace de vuelta a la clasificación y, desde la
 //   clasificación, el enlace «Ver el pronóstico de la clasificación final ›»;
@@ -40,8 +40,8 @@ const amp = (x) => x.replace(/&/g, '&amp;');
 // Lo que oye el lector de pantalla: sin lo que va con aria-hidden.
 const heard = (h) => text(s(h).replace(/<span aria-hidden="true">[^<]*<\/span>/g, ''));
 const NB = '\u00a0';
-// El margen de la cifra tras el puesto: «· entre 2.º y 5.º», sin partirse; nada si es un solo puesto.
-const fanHtml = (r) => (r.lo === r.hi ? '' : `<span class="proj-figure-fan"><span aria-hidden="true"> · </span><span class="vh">, </span>entre${NB}${r.lo}.º${NB}y${NB}${r.hi}.º</span>`);
+// El margen de la cifra tras el puesto: «entre 2.º y 5.º», sin partirse; nada si es un solo puesto.
+const fanHtml = (r) => (r.lo === r.hi ? '' : `<span class="proj-figure-fan"><span class="vh">, </span>entre${NB}${r.lo}.º${NB}y${NB}${r.hi}.º</span>`);
 const TITLE = 'Pronóstico de la clasificación final';
 const figureOf = (out) => (s(out).match(/<a class="proj-figure"[\s\S]*?<\/a>/) || [null])[0];
 const figuresBox = (out) => (s(out).match(/<h2 class="block-title">La temporada en cifras<\/h2><\/div><div class="box">([\s\S]*?)<\/div><\/section>/) || [null, null])[1];
@@ -100,9 +100,9 @@ test('la ficha de Las Mesas Hu.: «Pronóstico final», la primera cifra, con su
   assert.equal(projectionHref(pg2Of(), 'Las Mesas Hu.'), href);
   // La primera de la caja, antes de «Goles a favor»; toda la cifra es el enlace.
   assert.equal(figuresBox(out).indexOf('<a class="proj-figure"'), 0);
-  assert.equal(figureOf(out), `<a class="proj-figure" href="${amp(href)}"><span class="cell-label">Pronóstico final<span class="vh">: </span></span><span class="proj-figure-main"><b class="proj-figure-pos">${me.pos}.º</b><span class="proj-figure-fan"><span aria-hidden="true"> · </span><span class="vh">, </span>entre${NB}${me.lo}.º${NB}y${NB}${me.hi}.º</span><span class="proj-figure-pts"><span class="vh">, </span>unos ${Math.round(me.pts)} puntos</span><span class="proj-figure-more"><span class="vh">. </span>Ver la tabla prevista<span aria-hidden="true"> ›</span></span></span></a>`);
+  assert.equal(figureOf(out), `<a class="proj-figure" href="${amp(href)}"><span class="cell-label">Pronóstico final<span class="vh">: </span></span><span class="proj-figure-main"><b class="proj-figure-pos">${me.pos}.º</b><span class="proj-figure-fan"><span class="vh">, </span>entre${NB}${me.lo}.º${NB}y${NB}${me.hi}.º</span><span class="proj-figure-pts"><span class="vh">, </span>unos ${Math.round(me.pts)} puntos</span><span class="proj-figure-more"><span class="vh">. </span>Ver la tabla prevista<span aria-hidden="true"> ›</span></span></span></a>`);
   assert.match(figuresBox(out), /<\/a><dl class="cells cells-3"><div class="cell"><dt class="cell-label">Goles a favor<\/dt>/);
-  // Lo que oye el lector de pantalla: la frase entera, sin el punto medio ni la flecha.
+  // Lo que oye el lector de pantalla: la frase entera, sin la flecha.
   assert.equal(heard(figureOf(out)), `Pronóstico final: ${me.pos}.º, entre ${me.lo}.º y ${me.hi}.º, unos ${Math.round(me.pts)} puntos. Ver la tabla prevista`);
 });
 

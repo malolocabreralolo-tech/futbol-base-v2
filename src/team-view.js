@@ -200,7 +200,7 @@ export function projectionFigure(ctx, group, name) {
   if (!me || me.played < PARAMS.minPlayed) return '';
   // Con espacios de no separación, «entre 2.º y 5.º» salta de línea entero.
   const fan = me.lo === me.hi ? ''
-    : html`<span class="proj-figure-fan"><span aria-hidden="true"> · </span><span class="vh">, </span>entre\u00a0${me.lo}.º\u00a0y\u00a0${me.hi}.º</span>`;
+    : html`<span class="proj-figure-fan"><span class="vh">, </span>entre\u00a0${me.lo}.º\u00a0y\u00a0${me.hi}.º</span>`;
   return html`<a class="proj-figure" href="${projectionHref(group, name)}"><span class="cell-label">Pronóstico final<span class="vh">: </span></span><span class="proj-figure-main"><b class="proj-figure-pos">${me.pos}.º</b>${fan}<span class="proj-figure-pts"><span class="vh">, </span>${pointsPhrase(me.pts)}</span><span class="proj-figure-more"><span class="vh">. </span>Ver la tabla prevista<span aria-hidden="true"> ›</span></span></span></a>`;
 }
 
