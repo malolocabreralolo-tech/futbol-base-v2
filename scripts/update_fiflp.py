@@ -669,9 +669,12 @@ def check_competitions(page, F, conn, season_id, today, log=print):
 
 def option_round(text):
     """'3 - 17-10-2026' (así lo escribe FIFLP; también con barras) ->
-    ('Jornada 3', date(2026, 10, 17)); sin fecha, None."""
+    ('Jornada 3', date(2026, 10, 17)); sin fecha, None. La jornada única de una copa, sin « - »
+    ('14-11-2026 ( Única )'): la etiqueta de siempre, con la primera fecha del texto (hasta el 14/11/2026,
+    sin fecha, y el día de sus partidos no se releía)."""
     num, _, day = (text or "").partition(" - ")
-    m = re.fullmatch(r"(\d{2})[-/](\d{2})[-/](\d{4})", day.strip())
+    date_re = r"(\d{2})[-/](\d{2})[-/](\d{4})"
+    m = re.fullmatch(date_re, day.strip()) or re.search(date_re, text or "")
     when = date(int(m.group(3)), int(m.group(2)), int(m.group(1))) if m else None
     return f"Jornada {num.strip()}", when
 
