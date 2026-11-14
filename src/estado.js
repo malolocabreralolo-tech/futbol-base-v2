@@ -27,10 +27,11 @@ export function enVentana(now, timeZone) {
 
 const conElementos = (list) => Array.isArray(list) && list.length > 0;
 
-// «N h» hasta las 48 h; desde ahí, «N días».
+// «N h» hasta las 48 h; desde ahí, «N días». Con un espacio de no separación entre el número y la
+// unidad (como percent de ui.js), para que una línea nunca acabe en el número.
 const edad = (ms) => {
   const horas = Math.floor(ms / HORA_MS);
-  return horas >= 48 ? `${Math.floor(horas / 24)} días` : `${horas} h`;
+  return horas >= 48 ? `${Math.floor(horas / 24)}\u00a0días` : `${horas}\u00a0h`;
 };
 
 export function estadoDatos(health, now, timeZone) {

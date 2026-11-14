@@ -476,7 +476,7 @@ test('start: el ctx lleva como now el reloj de start; startContext, sin now, el 
   const page = fakeBrowser('#/', { storage: new Map() });
   const router = start(page.doc, page.win, PORTAL_2526, { now: () => new Date('2026-09-24T09:00:00Z') });
   await router.idle();
-  assert.match(page.main.innerHTML, /<b>Los datos llevan 11 h sin comprobarse\.<\/b>/);
+  assert.match(page.main.innerHTML, /<b>Los datos llevan 11\u00a0h sin comprobarse\.<\/b>/);
   const ctx = startContext({ storage: memoryStorage(), portal: { season: '2025-2026', defaultTeam: PORTAL_2526.defaultTeam }, datasets: datasetsFor(), today: '2026-09-24' });
   assert.equal(ctx.now.toISOString(), '2026-09-24T12:00:00.000Z');
   const at = new Date('2026-09-24T08:00:00Z');

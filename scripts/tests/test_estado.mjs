@@ -48,12 +48,17 @@ test('enVentana: en verano (UTC+1) cuenta la hora de Canarias, no la UTC', () =>
 
 test('estadoDatos: sana y reciente, nada; sin comprobar más que el umbral, la frase con las horas o los días', () => {
   assert.deepEqual(estadoDatos(sana(SABADO), SABADO, TZ), []);
-  assert.deepEqual(estadoDatos({ ...sana(SABADO), checkedAt: hace(SABADO, 4 * H + MIN) }, SABADO, TZ), [viejo('4 h')], 'en ventana: 4 h 01 min');
+  assert.deepEqual(estadoDatos({ ...sana(SABADO), checkedAt: hace(SABADO, 4 * H + MIN) }, SABADO, TZ), [viejo('4\u00a0h')], 'en ventana: 4 h 01 min');
   assert.deepEqual(estadoDatos({ ...sana(SABADO), checkedAt: hace(SABADO, 4 * H) }, SABADO, TZ), [], 'en ventana: 4 h justas no pasan del umbral');
   assert.deepEqual(estadoDatos({ ...sana(MIERCOLES), checkedAt: hace(MIERCOLES, 7 * H + 59 * MIN) }, MIERCOLES, TZ), [], 'fuera: 7 h 59 min');
-  assert.deepEqual(estadoDatos({ ...sana(MIERCOLES), checkedAt: hace(MIERCOLES, 8 * H + MIN) }, MIERCOLES, TZ), [viejo('8 h')], 'fuera: 8 h 01 min');
-  assert.deepEqual(estadoDatos({ ...sana(MIERCOLES), checkedAt: hace(MIERCOLES, 47 * H + 59 * MIN) }, MIERCOLES, TZ), [viejo('47 h')]);
-  assert.deepEqual(estadoDatos({ ...sana(MIERCOLES), checkedAt: hace(MIERCOLES, 50 * H) }, MIERCOLES, TZ), [viejo('2 días')], 'desde 48 h, en días');
+  assert.deepEqual(estadoDatos({ ...sana(MIERCOLES), checkedAt: hace(MIERCOLES, 8 * H + MIN) }, MIERCOLES, TZ), [viejo('8\u00a0h')], 'fuera: 8 h 01 min');
+  assert.deepEqual(estadoDatos({ ...sana(MIERCOLES), checkedAt: hace(MIERCOLES, 47 * H + 59 * MIN) }, MIERCOLES, TZ), [viejo('47\u00a0h')]);
+  assert.deepEqual(estadoDatos({ ...sana(MIERCOLES), checkedAt: hace(MIERCOLES, 50 * H) }, MIERCOLES, TZ), [viejo('2\u00a0días')], 'desde 48 h, en días');
+  // Entre el número y la unidad, un espacio de no separación (como percent de ui.js): nunca «10» al final
+  // de una línea y «h» al principio de la siguiente. El resto de la frase, con espacios normales.
+  const [frase] = estadoDatos({ ...sana(MIERCOLES), checkedAt: hace(MIERCOLES, 10 * H) }, MIERCOLES, TZ);
+  assert.equal(frase, 'Los datos llevan 10\u00a0h sin comprobarse.');
+  assert.equal((frase.match(/\u00a0/g) || []).length, 1);
 });
 
 test('estadoDatos: sin conexión (fromCache) nunca dice «sin comprobarse»; sin checkedAt válido, tampoco', () => {
@@ -74,7 +79,7 @@ test('estadoDatos: la pasada en rojo y lo publicado sin cargar, cada una con su 
   assert.deepEqual(estadoDatos({ ...base, activation: { failed: [{ competition: '3', name: 'C', reason: 'r' }] } }, MIERCOLES, TZ), [PENDIENTES]);
   assert.deepEqual(estadoDatos({ ...base, activation: { failed: [] }, newGroups: [], newCompetitions: [] }, MIERCOLES, TZ), []);
   const todas = { ...base, runHealth: { ok: false, reasons: ['x'] }, checkedAt: hace(MIERCOLES, 9 * H), newGroups: [{ id: '1' }] };
-  assert.deepEqual(estadoDatos(todas, MIERCOLES, TZ), [FALLO, viejo('9 h'), PENDIENTES]);
+  assert.deepEqual(estadoDatos(todas, MIERCOLES, TZ), [FALLO, viejo('9\u00a0h'), PENDIENTES]);
 });
 
 test('estadoDatos: sin objeto de salud, nada', () => {
@@ -84,7 +89,7 @@ test('estadoDatos: sin objeto de salud, nada', () => {
 test('statusNotice: el aviso exacto con las frases en negrita y el enlace a Datos y fuentes; nada sin frases', () => {
   const roja = { ...sana(MIERCOLES), runHealth: { ok: false, reasons: ['x'] }, checkedAt: hace(MIERCOLES, 9 * H) };
   assert.equal(String(statusNotice(roja, MIERCOLES, TZ)),
-    `<p class="notice home-status" role="status"><b>${FALLO} ${viejo('9 h')}</b> <a class="more" href="#/fuentes">Ver datos y fuentes</a></p>`);
+    `<p class="notice home-status" role="status"><b>${FALLO} ${viejo('9\u00a0h')}</b> <a class="more" href="#/fuentes">Ver datos y fuentes</a></p>`);
   assert.equal(String(statusNotice(sana(MIERCOLES), MIERCOLES, TZ)), '');
   assert.equal(String(statusNotice(null, MIERCOLES, TZ)), '');
 });
