@@ -11,9 +11,8 @@ temporada») sin manos: manifiesto (fiflp_manifest.build) → verificación (act
     python3 scripts/activar_auto.py --raw scripts/fiflp_islas_22_raw.json   # un raw para todas
     python3 scripts/activar_auto.py --temporada     # el CodTemporada de la temporada en curso (22 en 2026-27)
 
-Y las de activar.yml (docs/federacion.md, «Competiciones y grupos nuevos»):
+Y la de activar.yml si las suites fallan tras activar (docs/federacion.md, «La activación automática»):
 
-    python3 scripts/activar_auto.py --relanzar 1    # imprime 2 y sale con 0 si solo falló la descarga
     python3 scripts/activar_auto.py --pruebas-fallaron <data-health.json de la ejecución>
 
 Sin --raw, cada competición se busca en el raw de su tanda: scripts/fiflp_islas_<CodTemporada>_raw.json
@@ -46,9 +45,10 @@ import fiflp_manifest as M  # noqa: E402
 from activate_season import add_groups, fiflp_ids, raw_team_names, validate_manifest, verify_sources  # noqa: E402
 from categorias import category_of  # noqa: E402
 from db import get_connection  # noqa: E402
+from source_health import RETRY_AFTER  # noqa: E402
 
 # Los motivos de fallo (activation.failed[].reason), con estos textos: «Datos y fuentes» los enseña y
-# activar.yml relanza la descarga solo con el de la descarga incompleta.
+# el bot vuelve a lanzar activar.yml enseguida solo con los de la descarga incompleta (source_health.INCOMPLETE).
 SIN_CONVENIO = "sin convenio de código: {}"
 DESCARGA = "la descarga no está completa"
 INCOMPLETA = DESCARGA + ": faltan {} grupos"
@@ -59,8 +59,6 @@ SIN_GENERAR = "no se pudo regenerar la web: {}"
 SIN_SONDA = "no se pudo pasar la sonda de fases: {}"
 # El que pone activar.yml (--pruebas-fallaron) cuando las suites fallan tras activar: no se publica nada.
 PRUEBAS = "las pruebas fallaron tras activar"
-# Los intentos de una cadena de activar.yml (--relanzar): el último no se relanza.
-MAX_INTENTOS = 4
 
 
 class Fallo(Exception):
@@ -333,27 +331,45 @@ def escribir_activacion(health_path, activation, done_comps, season_pairs):
     Path(health_path).write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
-def siguiente_intento(health, intento):
-    """El intento siguiente de activar.yml (intento + 1) si todo lo que falló es la descarga incompleta (lo
-    único que arregla volver a descargar) y quedan intentos (MAX_INTENTOS); None si no se relanza."""
+def intentos(previous, tried):
+    """activation.attempts: 1 si el conjunto de pendientes (`tried`) no es el del intento anterior (`previous`,
+    la activation publicada); el anterior + 1 si es el mismo (source_health.py pendiente reanuda una descarga
+    incompleta mientras sean menos de 8)."""
+    if isinstance(previous, dict) and isinstance(previous.get("tried"), list) \
+            and sorted(str(c) for c in previous["tried"]) == sorted(tried):
+        before = previous.get("attempts")
+        return (before if isinstance(before, int) and not isinstance(before, bool) and before > 0 else 1) + 1
+    return 1
+
+
+def _fallos(activation):
+    return sorted((str(f.get("competition")), str(f.get("reason"))) for f in activation.get("failed") or []
+                  if isinstance(f, dict))
+
+
+def repetido(previous, activation, now=None):
+    """¿Este intento acaba igual que el publicado (`previous`): nada activado, lo mismo intentado, los mismos
+    fallos y ninguno de descarga (los de descarga avanzan: cuentan intentos), y el publicado es de hace menos de
+    RETRY_AFTER? Entonces no se reescribe nada: ni commit ni despliegue por un reintento que falla igual. Pasado
+    ese rato sí (una vez al día): sin un `at` nuevo, el freno de source_health.py pendiente lanzaría en cada
+    pasada."""
+    if not isinstance(previous, dict) or previous.get("activated") or activation["activated"]:
+        return False
+    if sorted(map(str, previous.get("tried") or [])) != sorted(activation["tried"]):
+        return False
+    if _fallos(previous) != _fallos(activation) or any(r.startswith(DESCARGA) for _, r in _fallos(activation)):
+        return False
     try:
-        intento = int(intento)
+        return (now or datetime.now(timezone.utc)) - datetime.fromisoformat(str(previous.get("at"))) < RETRY_AFTER
     except (TypeError, ValueError):
-        return None
-    activation = (health or {}).get("activation")
-    failed = activation.get("failed") if isinstance(activation, dict) else None
-    if not isinstance(failed, list) or not failed or not 1 <= intento < MAX_INTENTOS:
-        return None
-    if all(isinstance(f, dict) and str(f.get("reason") or "").startswith(DESCARGA) for f in failed):
-        return intento + 1
-    return None
+        return False
 
 
 def pruebas_fallaron(health_path, db_path, ejecucion_path):
     """activar.yml, si las suites fallan tras activar: `health_path` es ya el data-health.json publicado (la base
     y lo generado, también) y `ejecucion_path` el que dejó esta ejecución. Lo activado pasa a fallido por
-    PRUEBAS (lo que falló por otra cosa conserva su motivo), con su `at` y su `tried` (el freno de 6 h de
-    source_health.py pendiente). Sin el de la ejecución, todo lo pendiente cuenta como intentado y fallido."""
+    PRUEBAS (lo que falló por otra cosa conserva su motivo), con su `at`, su `tried` y sus `attempts` (el freno
+    de source_health.py pendiente). Sin el de la ejecución, todo lo pendiente cuenta como intentado y fallido."""
     published = _read_json(health_path, {})
     run_activation = _read_json(ejecucion_path, {})
     run_activation = run_activation.get("activation") if isinstance(run_activation, dict) else None
@@ -365,12 +381,12 @@ def pruebas_fallaron(health_path, db_path, ejecucion_path):
         # Lo que ya estaba entero en la temporada (sin códigos) no se tocó: sigue activado.
         activation = {"at": run_activation.get("at") or datetime.now(timezone.utc).isoformat(timespec="seconds"),
                       "activated": [a for a in activated if not a.get("codes")], "failed": failed,
-                      "tried": list(run_activation["tried"])}
+                      "tried": list(run_activation["tried"]), "attempts": run_activation.get("attempts") or 1}
     else:
         comps, names = pendientes(published), nombres(published)
         activation = {"at": datetime.now(timezone.utc).isoformat(timespec="seconds"), "activated": [],
                       "failed": [{"competition": c, "name": names.get(c) or c, "reason": PRUEBAS} for c in comps],
-                      "tried": sorted(comps)}
+                      "tried": sorted(comps), "attempts": intentos(published.get("activation"), sorted(comps))}
     conn = get_connection(db_path)
     try:
         sid, _ = _current(conn)
@@ -387,8 +403,6 @@ def main(argv=None, root=ROOT, sonda=run_sonda, generar=regenerar, log=print):
     parser.add_argument("--pendientes", action="store_true", help="imprime los ids pendientes, separados por comas")
     parser.add_argument("--temporada", action="store_true",
                         help="imprime el CodTemporada de la federación de la temporada en curso (la tanda)")
-    parser.add_argument("--relanzar", metavar="INTENTO",
-                        help="activar.yml: imprime el intento siguiente y sale con 0 si toca relanzar; con 1 si no")
     parser.add_argument("--pruebas-fallaron", metavar="INFORME", type=Path,
                         help="activar.yml: las suites fallaron tras activar (INFORME, el data-health.json de la ejecución)")
     args = parser.parse_args(argv)
@@ -405,15 +419,6 @@ def main(argv=None, root=ROOT, sonda=run_sonda, generar=regenerar, log=print):
             print(season_code(_current(conn)[1]))
         finally:
             conn.close()
-        return 0
-    if args.relanzar is not None:
-        nxt = siguiente_intento(health, args.relanzar)
-        if nxt is None:
-            # A stderr: activar.yml recoge la salida (el intento siguiente) y esto va al registro.
-            print(f"Sin relanzar (intento {args.relanzar}): nada fallido, algo que no es la descarga o sin intentos.",
-                  file=sys.stderr)
-            return 1
-        print(nxt)
         return 0
     if args.pruebas_fallaron is not None:
         pruebas_fallaron(health_path, db_path, args.pruebas_fallaron)
@@ -477,10 +482,14 @@ def main(argv=None, root=ROOT, sonda=run_sonda, generar=regenerar, log=print):
         season_pairs, _ = _season_groups(conn, sid)
     finally:
         conn.close()
+    previous = health.get("activation")
     activation = {"at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
                   "activated": [{k: a[k] for k in ("competition", "name", "codes")} for a in result["activated"]],
-                  "failed": result["failed"], "tried": sorted(comps)}
-    escribir_activacion(health_path, activation, {a["competition"] for a in result["activated"]}, season_pairs)
+                  "failed": result["failed"], "tried": sorted(comps), "attempts": intentos(previous, sorted(comps))}
+    if repetido(previous, activation):
+        log("Igual que el intento publicado, de hace menos de un día: data-health.json no cambia.")
+    else:
+        escribir_activacion(health_path, activation, {a["competition"] for a in result["activated"]}, season_pairs)
     for item in result["failed"]:
         log(f"No activada: {item['name']} [{item['competition']}]: {item['reason']}")
     return 1 if result["failed"] else 0

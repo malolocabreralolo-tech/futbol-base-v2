@@ -328,7 +328,7 @@ def test_activation_bien_formado_y_la_segunda_ejecucion_no_hace_nada(tmp_path):
     root = tree(tmp_path, [entry(PLZ, 1)], health={"newCompetitions": [new_comp(PLZ)]})
     assert run(root)[0] == 0
     activation = health(root)["activation"]
-    assert set(activation) == {"at", "activated", "failed", "tried"}
+    assert set(activation) == {"at", "activated", "failed", "tried", "attempts"}
     assert datetime.fromisoformat(activation["at"]).tzinfo is not None
     assert all(set(a) == {"competition", "name", "codes"} for a in activation["activated"])
     snapshot = fingerprint(root)
@@ -351,36 +351,45 @@ def test_temporada_imprime_el_codigo_de_la_federacion_de_la_temporada_en_curso(t
     assert capsys.readouterr().out == "22\n"
 
 
-# ── Lo que decide activar.yml ────────────────────────────────────────────────
-
-def con_activacion(root, failed, **extra):
-    report = health(root)
-    report["activation"] = {"at": "2026-11-14T10:00:00+00:00", "activated": [], "failed": failed,
-                            "tried": [f["competition"] for f in failed], **extra}
-    (root / "data-health.json").write_text(json.dumps(report), encoding="utf-8")
-
+# ── Los intentos y lo que deja activar.yml ──────────────────────────────────
 
 def falla(comp, reason):
     return {"competition": comp[0], "name": comp[1], "reason": reason}
 
 
-def test_relanzar_solo_si_todo_lo_fallido_es_la_descarga_y_quedan_intentos(tmp_path, capsys):
-    """Review Focus 5: la descarga cortada se reanuda en el intento siguiente (con tope: el 4.º no relanza).
-    Un fallo de otro tipo no se arregla descargando otra vez: no se relanza."""
-    root = tree(tmp_path)
-    capsys.readouterr()
-    con_activacion(root, [falla(PLZ, A.INCOMPLETA.format(2)), falla(SEGUNDA, A.SIN_LISTA)])
-    assert run(root, "--relanzar", "1")[0] == 0 and capsys.readouterr().out == "2\n"
-    assert run(root, "--relanzar", "3")[0] == 0 and capsys.readouterr().out == "4\n"
-    for intento in ("4", "5", "x", ""):
-        assert run(root, "--relanzar", intento)[0] == 1, intento
-    con_activacion(root, [falla(PLZ, A.INCOMPLETA.format(2)), falla(TORNEO, A.SIN_CONVENIO.format(TORNEO[1]))])
-    assert run(root, "--relanzar", "1")[0] == 1
-    con_activacion(root, [falla(PLZ, A.PRUEBAS)])
-    assert run(root, "--relanzar", "1")[0] == 1
-    con_activacion(root, [])
-    assert run(root, "--relanzar", "1")[0] == 1                       # nada fallido: nada que relanzar
-    assert capsys.readouterr().out == ""
+def test_attempts_cuenta_los_intentos_seguidos_del_mismo_conjunto(tmp_path):
+    """Ronda de arreglo 1: activation.attempts, 1 con otro conjunto de pendientes que el intento anterior y el
+    anterior + 1 con el mismo (source_health.py pendiente reanuda una descarga incompleta hasta 8)."""
+    root = tree(tmp_path, [entry(PLZ, 1)], listed={PLZ[0]: {group_id(PLZ, 1): "GRUPO 1", group_id(PLZ, 2): "GRUPO 2"}},
+                health={"newCompetitions": [new_comp(PLZ)]})
+    assert run(root)[0] == 1                                        # falta el grupo 2: descarga incompleta
+    assert health(root)["activation"]["attempts"] == 1
+    assert run(root)[0] == 1
+    assert run(root)[0] == 1
+    assert health(root)["activation"]["attempts"] == 3
+    report = health(root)
+    report["newCompetitions"].append(new_comp(TORNEO))              # otro conjunto: vuelve a 1
+    (root / "data-health.json").write_text(json.dumps(report), encoding="utf-8")
+    assert run(root)[0] == 1
+    assert health(root)["activation"]["attempts"] == 1 and health(root)["activation"]["tried"] == [PLZ[0], TORNEO[0]]
+
+
+def test_un_reintento_que_falla_igual_no_reescribe_el_informe_hasta_pasado_un_dia(tmp_path):
+    """Sin commits de ruido: mismo resultado que el publicado (nada activado, los mismos fallos, ninguno de
+    descarga) de hace menos de 24 h → data-health.json tal cual (ni `at` ni `attempts`). Pasadas 24 h sí se
+    reescribe (`at` nuevo: lo necesita el freno de 24 h de source_health.py pendiente): un commit al día."""
+    root = tree(tmp_path, [entry(TORNEO, 1)], health={"newCompetitions": [new_comp(TORNEO)]})
+    assert run(root)[0] == 1
+    first = (root / "data-health.json").read_bytes()
+    assert run(root)[0] == 1
+    assert (root / "data-health.json").read_bytes() == first
+    report = json.loads(first)
+    report["activation"]["at"] = "2026-11-01T10:00:00+00:00"        # de hace días
+    (root / "data-health.json").write_text(json.dumps(report), encoding="utf-8")
+    assert run(root)[0] == 1
+    activation = health(root)["activation"]
+    assert activation["at"] != "2026-11-01T10:00:00+00:00" and activation["attempts"] == 2
+    assert activation["failed"] == report["activation"]["failed"]
 
 
 def test_pruebas_fallaron_parte_del_publicado_y_apunta_el_motivo(tmp_path):
@@ -392,11 +401,11 @@ def test_pruebas_fallaron_parte_del_publicado_y_apunta_el_motivo(tmp_path):
     ejecucion = tmp_path / "activacion.json"
     (ejecucion).write_text(json.dumps({**published, "activation": {
         "at": "2026-11-14T10:00:00+00:00", "activated": [{"competition": PLZ[0], "name": PLZ[1], "codes": ["PLZ1"]}],
-        "failed": [falla(TORNEO, A.SIN_CONVENIO.format(TORNEO[1]))], "tried": [PLZ[0], TORNEO[0]]}}))
+        "failed": [falla(TORNEO, A.SIN_CONVENIO.format(TORNEO[1]))], "tried": [PLZ[0], TORNEO[0]], "attempts": 3}}))
     assert run(root, "--pruebas-fallaron", str(ejecucion))[0] == 0
     after = health(root)
     assert after.pop("activation") == {
-        "at": "2026-11-14T10:00:00+00:00", "activated": [], "tried": [PLZ[0], TORNEO[0]],
+        "at": "2026-11-14T10:00:00+00:00", "activated": [], "tried": [PLZ[0], TORNEO[0]], "attempts": 3,
         "failed": [falla(TORNEO, A.SIN_CONVENIO.format(TORNEO[1])), falla(PLZ, A.PRUEBAS)]}
     assert after == published
     assert A.PRUEBAS == "las pruebas fallaron tras activar"
@@ -408,7 +417,7 @@ def test_pruebas_fallaron_sin_el_informe_de_la_ejecucion_frena_igual(tmp_path):
     root = tree(tmp_path, health={"newCompetitions": [new_comp(PLZ)], "newGroups": [{"competition": FF[0], "id": "77"}]})
     assert run(root, "--pruebas-fallaron", str(tmp_path / "no-existe.json"))[0] == 0
     activation = health(root)["activation"]
-    assert activation["tried"] == [FF[0], PLZ[0]] and activation["activated"] == []
+    assert activation["tried"] == [FF[0], PLZ[0]] and activation["activated"] == [] and activation["attempts"] == 1
     assert [f["reason"] for f in activation["failed"]] == [A.PRUEBAS, A.PRUEBAS]
     assert datetime.fromisoformat(activation["at"]).tzinfo is not None
 
