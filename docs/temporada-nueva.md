@@ -33,10 +33,11 @@ Los grupos quedan con su URL de la federación. `fetch_futbolaspalmas.py` los sa
 
 ### Añadir una fase a mitad de temporada: con el bot parado
 
-`activate_season.py --add --apply` escribe en la base viva (`futbolbase.db`, binaria) y el bot comitea en `main` cada 1-2 h: si los dos la cambian, el conflicto no se fusiona. Por eso todo, desde el catálogo (paso 1) hasta el push, va en una ventana con el bot parado: se para el reloj y se espera a que no quede ninguna «Actualización automática» en marcha; al acabar, con las suites en verde y el push hecho, se vuelve a activar. Si algo falla por el camino, no se empuja nada y se reactiva el reloj igual.
+`activate_season.py --add --apply` escribe en la base viva (`futbolbase.db`, binaria) y el bot comitea en `main` cada 1-2 h: si los dos la cambian, el conflicto no se fusiona. Por eso todo, desde el catálogo (paso 1) hasta el push, va en una ventana con el bot parado: se para el reloj y la activación automática (`activar.yml`, que también escribe la base) y se espera a que no quede ninguna «Actualización automática» ni «Activación automática» en marcha; al acabar, con las suites en verde y el push hecho, se vuelven a activar. Si algo falla por el camino, no se empuja nada y se reactivan igual.
 
 ```bash
 gh workflow disable reloj.yml -R malolocabreralolo-tech/futbol-base-v2   # y esperar a que no haya ninguna pasada en marcha
+gh workflow disable activar.yml -R malolocabreralolo-tech/futbol-base-v2 # ni ninguna activación
 # pasos 1-2 de arriba (catálogo y raw, con -f ids=<ids nuevos>) y git pull
 python3 scripts/fiflp_manifest.py scripts/fiflp_islas_22_raw.json 2026-2027 --comps <ids nuevos> > fase.json
 python3 scripts/activate_season.py fase.json --fiflp-raw scripts/fiflp_islas_22_raw.json --add          # verifica
@@ -44,6 +45,7 @@ python3 scripts/activate_season.py fase.json --fiflp-raw scripts/fiflp_islas_22_
 python3 -m pytest scripts/tests/ -q && node --test scripts/tests/test_*.mjs                            # y la sonda de «otra-…» (abajo)
 git add futbolbase.db data-*.js index.html sw.js && git commit && git push                             # git pull antes, si hace falta
 gh workflow enable reloj.yml -R malolocabreralolo-tech/futbol-base-v2
+gh workflow enable activar.yml -R malolocabreralolo-tech/futbol-base-v2
 ```
 
 ### Activación automática (`scripts/activar_auto.py`)
@@ -69,7 +71,9 @@ Motivos de fallo:
 
 Una copa o una eliminatoria sin clasificación en el raw (la Copa Benjamín, `CGC1`: una jornada a partido único) entra sin tabla: `fiflp_evidence` ya no le inventa filas a cero (una liga sin tabla todavía sí la recibe, como siempre) y `verify_sources` la da por buena con sus partidos. Un grupo que la federación no numera conserva su nombre («Eliminatoria previa»).
 
-**Si falla, a mano:** con el bot parado como se explica arriba, `python3 scripts/activar_auto.py --dry-run` dice qué falla y por qué; arreglado el motivo, `python3 scripts/activar_auto.py` en local (con el raw al día tras `git pull`), las suites y la sonda, y el commit de la base, `data-*.js`, `index.html`, `sw.js`, `docs/temporadas/*-auto-*.json` y `data-health.json`. O el camino manual de arriba con `--comps`.
+En GitHub lo hace `activar.yml`, que lanza el bot cuando ve algo nuevo: descarga lo pendiente, llama a `activar_auto.py`, pasa las suites, sube el resultado y se relanza mientras solo falte descarga (hasta 4 intentos). Cómo funciona, qué se ve en «Datos y fuentes» en cada caso y cómo pararlo o lanzarlo a mano: [federacion.md](federacion.md), «La activación automática».
+
+**Si falla, a mano:** el camino manual de arriba sigue valiendo tal cual. Con el bot y la activación automática parados como se explica arriba, `python3 scripts/activar_auto.py --dry-run` dice qué falla y por qué; arreglado el motivo, `python3 scripts/activar_auto.py` en local (con el raw al día tras `git pull`), las suites y la sonda, y el commit de la base, `data-*.js`, `index.html`, `sw.js`, `docs/temporadas/*-auto-*.json` y `data-health.json`. O el camino manual de arriba con `--comps`.
 
 `--comps` no es opcional al añadir una fase: `fiflp_manifest.py` pasa `comp_meta` a **todas** las competiciones del raw para ordenarlas, y el raw de la tanda trae también las que ya están activadas y las que aún no tienen convenio de código (un torneo, una copa nueva…). Una sola sin convenio aborta el manifiesto entero («competición sin convenio de código: …»); con `--comps <ids>` solo cuentan las pedidas.
 
