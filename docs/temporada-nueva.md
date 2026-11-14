@@ -46,6 +46,31 @@ git add futbolbase.db data-*.js index.html sw.js && git commit && git push      
 gh workflow enable reloj.yml -R malolocabreralolo-tech/futbol-base-v2
 ```
 
+### Activación automática (`scripts/activar_auto.py`)
+
+Lo de arriba lo hace solo `activar_auto.py` a partir de un raw **ya descargado** (la descarga y el lanzamiento van en `activar.yml`: [federacion.md](federacion.md)). Lee de `data-health.json` lo que el bot apuntó como nuevo: las competiciones de `newCompetitions` (enteras) y los grupos de `newGroups` (solo esos, de una competición que ya se sigue). Cada competición busca su raw por tanda: `scripts/fiflp_islas_22_raw.json` (benjamín y prebenjamín) o `scripts/fiflp_islas_22al_raw.json` (alevín); la que no está en ninguno, en el de su categoría.
+
+```bash
+python3 scripts/activar_auto.py --pendientes    # los ids pendientes, separados por comas (para SCRAPE_IDS)
+python3 scripts/activar_auto.py --dry-run       # qué activaría y qué no, sin escribir nada
+python3 scripts/activar_auto.py                 # activa, regenera y apunta el resultado
+```
+
+Por competición, en su propia transacción: el manifiesto de **solo** los grupos que la temporada no tiene (`fiflp_manifest.build` con `only` y `taken`), `verify_sources` con el raw y `add_groups` (que marca cada grupo para la primera lectura completa del bot). Una competición que no encaja no toca la base ni impide las demás. Antes de escribir copia la base, los `data-*.js`, `index.html` y `sw.js` en `backups/auto-<UTC>/`; si `generate_js` falla después, todo vuelve a esa copia. Lo activado queda en `docs/temporadas/<temporada>-auto-<AAAAMMDD>.json`, sale de `newCompetitions`/`newGroups` y la sonda de fases (`node scripts/sonda_fases.mjs`, la de abajo hecha script) se pasa al final. El resultado va a `data-health.json`, campo `activation` (`{at, activated: [{competition, name, codes}], failed: [{competition, name, reason}], tried: [ids]}`; el bot lo arrastra entre pasadas y «Datos y fuentes» enseña lo fallido). Sale con 0 si nada falló y con 1 si algo falló (lo activado se queda).
+
+Motivos de fallo:
+
+- `sin convenio de código: <nombre>`: `comp_meta` no sabe qué código y fase darle. Hay que añadir el convenio en `scripts/fiflp_manifest.py` (con sus pruebas en `test_alevin_activacion.py`) y la regla de la web si hace falta; la pasada siguiente lo vuelve a intentar.
+- `la descarga no está completa: faltan N grupos` (o `… falta la lista de grupos de la federación`): para una competición entera, la descarga deja en `scripts/fiflp_islas_<tanda>_grupos.json` qué grupos lista la federación (`fetch_fiflp_2425.save_group_list`), y todos tienen que estar en el raw con calendario o tabla (uno guardado vacío cuenta como que falta). Se vuelve a descargar; lo ya descargado se conserva.
+- `verificación: <mensaje>`: lo que dice `verify_sources` (fechas de otra temporada, calendario de otro grupo, nombres que chocan…).
+- `código repetido: <código>`: el código del grupo nuevo (prefijo + número) ya lo tiene la temporada.
+- `fase que la web no reconoce: <fase>`: activado y publicado, pero la web lo pone en «otra-…». No se deshace (los datos son buenos): falta la regla en `PHASE_TABLE` (y `PHASE_LEVEL`) de `src/model.js`, que es código.
+- `no se pudo regenerar la web: …`: falló `generate_js`; la base y los ficheros volvieron a la copia.
+
+Una copa o una eliminatoria sin clasificación en el raw (la Copa Benjamín, `CGC1`: una jornada a partido único) entra sin tabla: `fiflp_evidence` ya no le inventa filas a cero (una liga sin tabla todavía sí la recibe, como siempre) y `verify_sources` la da por buena con sus partidos. Un grupo que la federación no numera conserva su nombre («Eliminatoria previa»).
+
+**Si falla, a mano:** con el bot parado como se explica arriba, `python3 scripts/activar_auto.py --dry-run` dice qué falla y por qué; arreglado el motivo, `python3 scripts/activar_auto.py` en local (con el raw al día tras `git pull`), las suites y la sonda, y el commit de la base, `data-*.js`, `index.html`, `sw.js`, `docs/temporadas/*-auto-*.json` y `data-health.json`. O el camino manual de arriba con `--comps`.
+
 `--comps` no es opcional al añadir una fase: `fiflp_manifest.py` pasa `comp_meta` a **todas** las competiciones del raw para ordenarlas, y el raw de la tanda trae también las que ya están activadas y las que aún no tienen convenio de código (un torneo, una copa nueva…). Una sola sin convenio aborta el manifiesto entero («competición sin convenio de código: …»); con `--comps <ids>` solo cuentan las pedidas.
 
 ## Descubrir y comprobar candidatos
@@ -104,7 +129,7 @@ Después de activar, fija la línea base de desvío de marcadores para que la te
 python3 scripts/score_deviation.py --write-baseline
 ```
 
-Comprueba también, a mano, que ninguna fase de la temporada nueva cae en «otra-…», la clave que da `competitionKey` (`src/model.js`) a una fase que no reconoce. Ninguna prueba lo detecta, y a propósito: `phases.json` y `phases-archivo.json` (las de las temporadas archivadas, 2017-18 a 2020-21, que también deben dar «0 en otra-…»; se comprueban con la misma sonda sobre su `data-season-<S>.js`) están congeladas, y una fase nueva de la fuente no debe bloquear al bot. Pero una fase sin clasificar recibe de `PHASE_LEVEL` (`src/model.js`, el que usa `src/myteam.js`) el nivel de la Primera Fase, así que una «Tercera Fase» nunca provocaría un cambio de fase. La sonda mira las tres categorías, alevín incluido:
+Comprueba también, a mano, que ninguna fase de la temporada nueva cae en «otra-…», la clave que da `competitionKey` (`src/model.js`) a una fase que no reconoce. Ninguna prueba lo detecta, y a propósito: `phases.json` y `phases-archivo.json` (las de las temporadas archivadas, 2017-18 a 2020-21, que también deben dar «0 en otra-…»; se comprueban con la misma sonda sobre su `data-season-<S>.js`) están congeladas, y una fase nueva de la fuente no debe bloquear al bot. Pero una fase sin clasificar recibe de `PHASE_LEVEL` (`src/model.js`, el que usa `src/myteam.js`) el nivel de la Primera Fase, así que una «Tercera Fase» nunca provocaría un cambio de fase. La sonda mira las tres categorías, alevín incluido (es `node scripts/sonda_fases.mjs`, que sale con 1 nombrando cada grupo en «otra-…»; el fragmento de abajo es lo mismo):
 
 ```bash
 node --input-type=module -e "
