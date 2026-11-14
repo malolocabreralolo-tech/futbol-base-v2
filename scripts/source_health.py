@@ -256,13 +256,49 @@ def finish(now=None, failed=False):
     REPORT_PATH.write_text(json.dumps(_report, ensure_ascii=False, indent=2) + "\n")
 
 
-def main(argv=None):
+# Lo que activar.yml ya intentó (activation.tried) no se vuelve a lanzar desde el bot hasta pasado este rato:
+# una activación que falla por algo que no se arregla solo no se relanza en cada pasada.
+RETRY_AFTER = timedelta(hours=6)
+
+
+def pending_activation(report, now=None):
+    """Las competiciones (ids, ordenados y sin repetir) de newCompetitions y newGroups que activar.yml tendría
+    que intentar: las que no están en activation.tried de un intento de hace menos de RETRY_AFTER."""
+    report = report if isinstance(report, dict) else {}
+    ids = set()
+    for key, field in (("newCompetitions", "id"), ("newGroups", "competition")):
+        items = report.get(key)
+        for item in items if isinstance(items, list) else []:
+            if isinstance(item, dict) and str(item.get(field) or "").isdigit():
+                ids.add(str(item[field]))
+    activation = report.get("activation")
+    if isinstance(activation, dict) and isinstance(activation.get("tried"), list):
+        try:
+            at = datetime.fromisoformat(str(activation.get("at")))
+            recent = (now or datetime.now(timezone.utc)) - at < RETRY_AFTER
+        except (TypeError, ValueError):
+            recent = False                  # sin una hora que valga no se sabe cuándo fue: no frena
+        if recent:
+            ids -= {str(comp) for comp in activation["tried"]}
+    return sorted(ids)
+
+
+def main(argv=None, now=None):
     """Las órdenes sobre data-health.json del disco (update.yml, después del commit):
       veredicto         sale con 1, e imprime los motivos, si la última pasada está en rojo (runHealth.ok
                         falso); con 0 si es sana o no hay veredicto;
       marcar "<motivo>" pone runHealth en rojo con ese motivo (con `since` y los motivos de antes si ya lo
-                        estaba) y escribe el fichero, sin tocar nada más del informe."""
+                        estaba) y escribe el fichero, sin tocar nada más del informe;
+      pendiente         sale con 0, e imprime sus ids separados por comas, si hay competiciones o grupos
+                        nuevos que activar.yml no haya intentado en las últimas 6 h (pending_activation);
+                        con 1 si no hay nada que lanzar."""
     args = sys.argv[1:] if argv is None else list(argv)
+    if args == ["pendiente"]:
+        ids = pending_activation(_read_previous(), now)
+        if ids:
+            print(",".join(ids))
+            return 0
+        return 1
     if args == ["veredicto"]:
         health = _read_previous().get("runHealth")
         if isinstance(health, dict) and health.get("ok") is False:
@@ -279,7 +315,7 @@ def main(argv=None):
             report["runHealth"]["drySince"] = health["drySince"]
         REPORT_PATH.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n")
         return 0
-    print('uso: source_health.py veredicto | marcar "<motivo>"', file=sys.stderr)
+    print('uso: source_health.py veredicto | marcar "<motivo>" | pendiente', file=sys.stderr)
     return 2
 
 

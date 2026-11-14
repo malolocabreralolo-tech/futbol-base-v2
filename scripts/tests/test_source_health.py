@@ -296,6 +296,46 @@ def test_the_mark_order_on_a_red_report_adds_its_reason_and_keeps_since(portal):
     assert health == {"ok": False, "reasons": ["m", "x"], "since": T0.isoformat(timespec="seconds")}
 
 
+PEND_NOW = datetime(2026, 11, 14, 12, 0, tzinfo=timezone.utc)
+PEND_REPORT = {"season": "2026-2027", "groups": {},
+               "newCompetitions": [{"id": "55400001", "name": "LIGA BENJAMIN SEGUNDA FASE A", "firstSeen": "2026-11-14"}],
+               "newGroups": [{"competition": "54976988", "competitionName": "X", "id": "25", "name": "GRUPO 25"},
+                             {"competition": "54976988", "id": "26", "name": "GRUPO 26"}, {"competition": "", "id": "1"}]}
+
+
+def pending(capsys, report, now=PEND_NOW):
+    source_health.REPORT_PATH.write_text(json.dumps(report))
+    capsys.readouterr()
+    code = source_health.main(["pendiente"], now=now)
+    return code, capsys.readouterr().out
+
+
+def test_the_pending_order_prints_what_activar_yml_would_activate(portal, capsys):
+    """Fase 2D: update.yml lanza activar.yml solo si hay competiciones o grupos nuevos (sale con 0 e imprime
+    sus competiciones, sin repetir); con 1 si no hay nada que lanzar."""
+    code, out = pending(capsys, PEND_REPORT)
+    assert code == 0 and out == "54976988,55400001\n"
+    assert pending(capsys, {"season": "2026-2027", "groups": {}}) == (1, "")
+    assert pending(capsys, {"newCompetitions": "x", "newGroups": [None, {"competition": "abc"}]}) == (1, "")
+    source_health.REPORT_PATH.unlink()
+    assert source_health.main(["pendiente"], now=PEND_NOW) == 1      # sin informe
+
+
+def test_the_pending_order_waits_6_hours_for_what_was_already_tried(portal, capsys):
+    """Sin bucles: lo que activar.yml ya intentó (activation.tried) no se relanza hasta 6 h después de ese
+    intento (activation.at); lo nuevo de entre medias, sí."""
+    tried = {"activated": [], "failed": [], "tried": ["54976988", "55400001"]}
+    recent = {**PEND_REPORT, "activation": {**tried, "at": (PEND_NOW - timedelta(hours=5, minutes=59)).isoformat()}}
+    assert pending(capsys, recent) == (1, "")
+    old = {**PEND_REPORT, "activation": {**tried, "at": (PEND_NOW - timedelta(hours=6, minutes=1)).isoformat()}}
+    assert pending(capsys, old) == (0, "54976988,55400001\n")
+    some = {**recent, "activation": {**recent["activation"], "tried": ["54976988"]}}
+    assert pending(capsys, some) == (0, "55400001\n")
+    broken = {**PEND_REPORT, "activation": {**tried, "at": "ayer"}}
+    assert pending(capsys, broken) == (0, "54976988,55400001\n")     # sin hora que valga, no frena
+    assert pending(capsys, {**PEND_REPORT, "activation": "x"}) == (0, "54976988,55400001\n")
+
+
 def test_the_orders_run_from_the_command_line():
     import subprocess
     script = Path(source_health.__file__)
