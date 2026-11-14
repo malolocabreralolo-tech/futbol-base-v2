@@ -12,7 +12,7 @@ from collections import Counter
 import pytest
 
 from identidad import (UNIR_CORTOS_EN_CLUB, Identidad, NIVEL, club, clave_publica, compatibles, intervalo,
-                       nombre_completo, normalizar, resolver, resumen_u0_cortos, trozo)
+                       nombre_completo, nombre_con_coma, normalizar, resolver, resumen_u0_cortos, trozo)
 from import_fiflp_actas import _norm_player
 
 PRE, BEN, ALE = NIVEL["PREBENJAMIN"], NIVEL["BENJAMIN"], NIVEL["ALEVIN"]
@@ -339,18 +339,145 @@ def test_u1_con_dos_candidatos_en_el_club_no_une():
     assert len(fichas(resolver([a, b, c], unir_cortos_en_club=True))) == 3
 
 
-def test_u1_no_une_con_una_ficha_con_id():
-    # Decisión: U1 es para identidades sin id. Un corto con id en el club al año siguiente no se lleva al
-    # corto sin id (y un completo solo por U2, si es el único).
+@pytest.mark.parametrize("cortos", [False, True])
+def test_u1_corto_sin_coma_sin_id_y_con_id_segun_el_interruptor(cortos):
+    # Ronda 2: U1 une una ficha sin id con una con id; para los nombres sin coma manda el interruptor.
     a = ident(1, "LUCAS", None, v(2025, PRE, "Arucas"))
-    b = ident(2, "LUCAS", 300002, v(2026, BEN, "Arucas"))
-    assert len(fichas(resolver([a, b], unir_cortos_en_club=True))) == 2
+    b = ident(2, "LUCAS", 300002, v(2026, BEN, "Arucas B"))
+    r = resolver([a, b], unir_cortos_en_club=cortos)
+    assert r == ({1: (2, "club"), 2: (2, None)} if cortos else {1: (1, None), 2: (2, None)})
 
 
 def test_u1_respeta_la_edad():
     a = ident(1, "LUCAS", None, v(2025, ALE, "Arucas"))
     b = ident(2, "LUCAS", None, v(2026, PRE, "Arucas"))
     assert len(fichas(resolver([a, b], unir_cortos_en_club=True))) == 2
+
+
+# ---------------------------------------------------------------------------
+# Ronda de arreglo 2: U0 con un apellido y U1 entre una ficha sin id y una con id
+# ---------------------------------------------------------------------------
+
+@pytest.mark.parametrize("norm, esperado", [
+    ("ALVAREZ, JOSE", True), ("ALVAREZ PENA, JOSE", True), ("ALVAREZ, JOSE#2", True), ("ALVAREZ,", False),
+    (", JOSE", False), ("LUCAS", False), ("ALVAREZ JOSE", False), ("", False),
+])
+def test_nombre_con_coma(norm, esperado):
+    assert nombre_con_coma(norm) is esperado
+
+
+def test_u0_un_apellido_con_38_de_un_solo_uso_es_un_nino():
+    # Con un solo apellido no hay asentada: las 39 son de un partido y U0 normal las junta.
+    todas = [ident(1 + k, "ROSALES, TEO" if k == 0 else f"ROSALES, TEO#{500000 + k}", 500000 + k,
+                   v(2021, BEN, "Teror", n=1, ini=f"2021-{10 + k % 3}-{1 + k % 28:02d}",
+                     fin=f"2021-{10 + k % 3}-{1 + k % 28:02d}")) for k in range(39)]
+    r = resolver(todas, unir_cortos_en_club=False)
+    assert len(fichas(r)) == 1
+    assert sorted(u for _, u in r.values() if u) == ["equipo"] * 38
+
+
+def test_u0_un_apellido_en_dos_equipos_son_dos_fichas():
+    # Y U2 no las junta: es para dos apellidos.
+    a = ident(1, "ROSALES, TEO", 500001, v(2021, BEN, "Teror"))
+    b = ident(2, "ROSALES, TEO", None, v(2022, BEN, "Galdar"))
+    assert len(fichas(resolver([a, b], unir_cortos_en_club=True))) == 2
+
+
+def test_u1_completo_sin_id_y_con_id_al_ano_siguiente_en_el_club():
+    # Hay otra ficha con ese nombre en otro club: U2 no podía; U1 sí.
+    sin = ident(1, "ALVAREZ PENA, JOSE", None, v(2025, PRE, "Teror B", n=14))
+    con = ident(2, "ALVAREZ PENA, JOSE", 300002, v(2026, BEN, "Teror", n=6))
+    otro = ident(3, "ALVAREZ PENA, JOSE#300003", 300003, v(2026, BEN, "Galdar", n=9))
+    r = resolver([sin, con, otro], unir_cortos_en_club=False)
+    assert r == {1: (2, "club"), 2: (2, None), 3: (3, None)}
+
+
+def test_u1_con_id_y_sin_id_al_ano_siguiente_en_el_club():
+    con = ident(1, "ALVAREZ PENA, JOSE", 300001, v(2024, PRE, "Teror", n=10))
+    sin = ident(2, "ALVAREZ PENA, JOSE", None, v(2025, PRE, "Teror B", n=8))
+    otro = ident(3, "ALVAREZ PENA, JOSE#300003", 300003, v(2025, PRE, "Galdar", n=9))
+    r = resolver([sin, otro, con], unir_cortos_en_club=False)
+    assert r == {1: (1, None), 2: (1, "club"), 3: (3, None)}
+
+
+def test_u1_un_apellido_sin_id_y_con_id_sin_interruptor():
+    # Un apellido lleva coma: U1 lo une aunque los cortos sin coma no se unan.
+    sin = ident(1, "ROSALES, TEO", None, v(2025, PRE, "Teror", n=14))
+    con = ident(2, "ROSALES, TEO", 300002, v(2026, BEN, "Teror", n=6))
+    assert resolver([sin, con], unir_cortos_en_club=False) == {1: (2, "club"), 2: (2, None)}
+
+
+def test_u1_con_id_y_con_id_no_se_unen():
+    a = ident(1, "ALVAREZ PENA, JOSE", 300001, v(2024, PRE, "Teror"))
+    b = ident(2, "ALVAREZ PENA, JOSE#300002", 300002, v(2025, PRE, "Teror"))
+    assert len(fichas(resolver([a, b], unir_cortos_en_club=True))) == 2
+
+
+def test_u1_con_id_dos_fichas_del_nombre_en_el_club_no_une():
+    con = ident(1, "ALVAREZ PENA, JOSE", 300001, v(2024, PRE, "Teror"))
+    sin_a = ident(2, "ALVAREZ PENA, JOSE", None, v(2025, PRE, "Teror"))
+    sin_b = ident(3, "ALVAREZ PENA, JOSE", None, v(2025, PRE, "Teror B"))
+    assert len(fichas(resolver([con, sin_a, sin_b], unir_cortos_en_club=True))) == 3
+    # También si la segunda del club tiene id.
+    con_b = ident(3, "ALVAREZ PENA, JOSE#300003", 300003, v(2025, PRE, "Teror B"))
+    assert len(fichas(resolver([con, sin_a, con_b], unir_cortos_en_club=True))) == 3
+
+
+def test_u1_no_lleva_dos_ids_a_la_misma_ficha_por_una_sin_id():
+    # Con id (2024) → sin id (2025) → con id (2026), todo en el club: la sin id puede ser de cualquiera de
+    # los dos niños con id (dos ids son dos niños): no se une a ninguno.
+    a = ident(1, "ALVAREZ PENA, JOSE", 300001, v(2024, PRE, "Teror", n=9))
+    b = ident(2, "ALVAREZ PENA, JOSE", None, v(2025, PRE, "Teror", n=9))
+    c = ident(3, "ALVAREZ PENA, JOSE#300003", 300003, v(2026, PRE, "Teror", n=9))
+    r = resolver([a, b, c], unir_cortos_en_club=True)
+    assert r == {1: (1, None), 2: (2, None), 3: (3, None)}
+
+
+def test_u1_con_id_respeta_el_ordinal_y_la_edad():
+    con = ident(1, "ALVAREZ PENA, JOSE", 300001, v(2024, PRE, "Teror"))
+    ordinal = ident(2, "ALVAREZ PENA, JOSE#2", None, v(2025, PRE, "Galdar"))
+    sin = ident(3, "ALVAREZ PENA, JOSE", None, v(2025, PRE, "Galdar"))
+    con_g = ident(4, "ALVAREZ PENA, JOSE#300004", 300004, v(2024, PRE, "Galdar"))
+    assert len(fichas(resolver([con, ordinal, sin, con_g], unir_cortos_en_club=True))) == 4
+    viejo = ident(5, "SOSA VEGA, ANA", 300005, v(2024, ALE, "Teror"))
+    nuevo = ident(6, "SOSA VEGA, ANA", None, v(2025, PRE, "Teror"))
+    otra = ident(7, "SOSA VEGA, ANA#300007", 300007, v(2025, PRE, "Galdar"))
+    assert len(fichas(resolver([viejo, nuevo, otra], unir_cortos_en_club=True))) == 3
+
+
+def casos_ronda_2():
+    return [
+        *[ident(1 + k, "ROSALES, TEO" if k == 0 else f"ROSALES, TEO#{500000 + k}", 500000 + k,
+                v(2021, BEN, "Teror", n=1, ini=f"2021-11-{1 + k % 28:02d}", fin=f"2021-11-{1 + k % 28:02d}"))
+          for k in range(39)],
+        ident(101, "ROSALES, IVO", 600101, v(2021, BEN, "Teror")), ident(102, "ROSALES, IVO", None, v(2022, BEN, "Galdar")),
+        ident(201, "ALVAREZ PENA, JOSE", None, v(2025, PRE, "Teror B", n=14)),
+        ident(202, "ALVAREZ PENA, JOSE", 300202, v(2026, BEN, "Teror", n=6)),
+        ident(203, "ALVAREZ PENA, JOSE#300203", 300203, v(2026, BEN, "Galdar", n=9)),
+        ident(301, "SOSA VEGA, ANA", 300301, v(2024, PRE, "Moya", n=10)),
+        ident(302, "SOSA VEGA, ANA", None, v(2025, PRE, "Moya B", n=8)),
+        ident(303, "SOSA VEGA, ANA#300303", 300303, v(2025, PRE, "Galdar", n=9)),
+        ident(401, "MESA LUIS, IKER", 300401, v(2024, PRE, "Moya")),
+        ident(402, "MESA LUIS, IKER#300402", 300402, v(2025, PRE, "Moya")),
+        ident(501, "MESA LUIS, ABEL", 300501, v(2024, PRE, "Moya")),
+        ident(502, "MESA LUIS, ABEL", None, v(2025, PRE, "Moya")), ident(503, "MESA LUIS, ABEL", None, v(2025, PRE, "Moya B")),
+        ident(601, "LUCAS", None, v(2025, PRE, "Arucas")), ident(602, "LUCAS", 300602, v(2026, BEN, "Arucas B")),
+        ident(701, "RUANO MESA, LEO", 300701, v(2024, PRE, "Teror", n=9)),
+        ident(702, "RUANO MESA, LEO", None, v(2025, PRE, "Teror", n=9)),
+        ident(703, "RUANO MESA, LEO#300703", 300703, v(2026, PRE, "Teror", n=9)),
+    ]
+
+
+@pytest.mark.parametrize("cortos", [False, True])
+def test_ronda_2_barajado_y_punto_fijo(cortos):
+    casos = casos_ronda_2()
+    esperado = resolver(casos, unir_cortos_en_club=cortos)
+    assert len(fichas(esperado)) == 1 + 2 + 2 + 2 + 2 + 3 + (1 if cortos else 2) + 3
+    for semilla in range(5):
+        barajados = list(casos)
+        random.Random(semilla).shuffle(barajados)
+        assert resolver(barajados, unir_cortos_en_club=cortos) == esperado
+    assert punto_fijo(casos, esperado, cortos)
 
 
 # ---------------------------------------------------------------------------
@@ -468,7 +595,7 @@ def test_review_focus_2_el_nino_sin_id_que_al_ano_siguiente_lo_tiene():
     sin = ident(1, "ALVAREZ PENA, JOSE", None, v(2025, PRE, "Teror B", n=14))
     con = ident(2, "ALVAREZ PENA, JOSE", 300002, v(2026, BEN, "Teror", n=6))
     r = resolver([sin, con], unir_cortos_en_club=False)
-    assert r == {1: (2, "nombre"), 2: (2, None)}
+    assert r == {1: (2, "club"), 2: (2, None)}         # el mismo club: U1 (ronda 2) antes que U2
     assert clave_publica(con.fiflp_id, con.norm, "Teror", 2026) == "300002"
     alias = clave_publica(None, sin.norm, "Teror B", 2025)
     assert alias.startswith("n") and alias != "300002"

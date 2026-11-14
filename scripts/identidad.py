@@ -5,9 +5,9 @@ o un nombre sin id en un equipo y una temporada). Una FICHA es el niño: un conj
 una principal. `resolver` decide las fichas desde cero, siempre igual para las mismas identidades (no
 depende del orden de entrada ni de lo que se resolvió antes), con las reglas de docs/identidad.md:
 
-    U0  mismo nombre completo, mismo equipo y temporada (el id de un solo uso)    union_por 'equipo'
-        y, con nombre corto y id, la de 1 aparición con la única asentada del cubo
-    U1  sin id, mismo nombre, mismo club, temporadas seguidas                    union_por 'club'
+    U0  mismo nombre con coma, mismo equipo y temporada (el id de un solo uso)    union_por 'equipo'
+        y, sin coma y con id, la de 1 aparición con la única asentada del cubo
+    U1  mismo nombre, mismo club, temporadas seguidas, no las dos con id         union_por 'club'
     U2  sin id y nombre completo, con la única otra ficha de ese nombre          union_por 'nombre'
 
 y ninguna unión entre conjuntos incompatibles (edad imposible o dos clubes a la vez en la misma
@@ -61,6 +61,13 @@ def nombre_completo(nombre_normalizado: str) -> bool:
     '#…' (id u ordinal) no es parte del nombre."""
     antes, coma, despues = _SUFIJO.sub("", nombre_normalizado or "").partition(",")
     return bool(coma) and len(antes.split()) >= 2 and len(despues.split()) >= 1
+
+
+def nombre_con_coma(nombre_normalizado: str) -> bool:
+    """«APELLIDO(S), NOMBRE»: coma, al menos una palabra antes y una después (U0 y U1; U2 pide
+    nombre_completo, dos apellidos). El sufijo '#…' no es parte del nombre."""
+    antes, coma, despues = _SUFIJO.sub("", nombre_normalizado or "").partition(",")
+    return bool(coma) and len(antes.split()) >= 1 and len(despues.split()) >= 1
 
 
 def club(nombre_equipo: str) -> str:
@@ -208,7 +215,7 @@ def _cubos_cortos(identidades):
     cubos = {}
     for i in sorted(identidades, key=lambda i: i.id):
         nombre = _nombre(i)
-        if i.fiflp_id is None or nombre_completo(nombre) or _fuera(i):
+        if i.fiflp_id is None or nombre_con_coma(nombre) or _fuera(i):
             continue
         uso_unico = _apariciones(i) == 1
         for clave in sorted({(nombre, equipo or "", anio) for anio, _, equipo, *_ in i.vistas}):
@@ -265,12 +272,13 @@ def resolver(identidades: list[Identidad], unir_cortos_en_club: bool) -> dict[in
 
     validas = [por_id[k] for k in ids if not _fuera(por_id[k])]
 
-    # U0: el mismo nombre completo en el mismo equipo y temporada. Si en ese equipo y temporada hay dos
-    # sin id con ese nombre (el ordinal), no se sabe cuál es cuál: solo se juntan las que tienen id.
+    # U0: el mismo nombre con coma (uno o más apellidos) en el mismo equipo y temporada. Si en ese equipo y
+    # temporada hay dos sin id con ese nombre (el ordinal), no se sabe cuál es cuál: solo se juntan las que
+    # tienen id.
     cubos = {}
     for i in validas:
         nombre = _nombre(i)
-        if nombre_completo(nombre):
+        if nombre_con_coma(nombre):
             for anio, _, equipo, *_ in i.vistas:
                 cubos.setdefault((_base(nombre), equipo or "", anio), {})[i.id] = i
     for clave in sorted(cubos):
@@ -284,15 +292,17 @@ def resolver(identidades: list[Identidad], unir_cortos_en_club: bool) -> dict[in
             if not any(raiz(s) == raiz(m.id) or unir(s, m.id, "equipo") for s in semillas):
                 semillas.append(m.id)
 
-    # U0 de nombres cortos: las de una sola aparición van a la única asentada de su cubo (con dos o más
+    # U0 de nombres sin coma: las de una sola aparición van a la única asentada de su cubo (con dos o más
     # asentadas, dos niños con ese nombre de pila en el equipo; con ninguna, nada a lo que ir).
     for clave, (asentadas, sueltas) in sorted(_cubos_cortos(validas).items()):
         if len(asentadas) == 1:
             for m in sueltas:
                 unir(asentadas[0].id, m.id, "equipo")
 
-    # U1: sin id, mismo nombre, mismo club, temporadas seguidas. Solo de uno a uno: con dos fichas de
-    # ese nombre en el club en una de las dos temporadas (con id o sin él) no se sabe cuál es.
+    # U1: mismo nombre, mismo club, temporadas seguidas, entre dos fichas que no tienen id las dos (manda
+    # el id). Solo de uno a uno: con dos fichas de ese nombre en el club en una de las dos temporadas (con
+    # id o sin él) no se sabe cuál es. Y si los enlaces llevan de una ficha con id a otra con otro id
+    # (con id → sin id → con id), la sin id puede ser de cualquiera de los dos: ese grupo no se une.
     lados = {}
     for i in validas:
         base = _base(_nombre(i))
@@ -300,15 +310,31 @@ def resolver(identidades: list[Identidad], unir_cortos_en_club: bool) -> dict[in
             c = club(equipo or "")
             if c:
                 lados.setdefault((base, c, anio), set()).add(raiz(i.id))
+    enlaces = []
     for base, c, anio in sorted(lados):
-        if not (nombre_completo(base) or unir_cortos_en_club):
+        if not (nombre_con_coma(base) or unir_cortos_en_club):
             continue
         aqui, despues = lados[(base, c, anio)], lados.get((base, c, anio + 1), ())
         if len(aqui) == 1 and len(despues) == 1:
             a, b = next(iter(aqui)), next(iter(despues))
-            fa, fb = fichas[raiz(a)], fichas[raiz(b)]
-            if not (fa.con_id or fb.con_id or fa.ordinal or fb.ordinal):
-                unir(a, b, "club")
+            fa, fb = fichas[a], fichas[b]
+            if a != b and not (fa.con_id and fb.con_id) and not (fa.ordinal or fb.ordinal) and fa.cabe_con(fb):
+                enlaces.append((a, b))
+    grupo_u1 = {}
+
+    def raiz_u1(k):
+        while grupo_u1.setdefault(k, k) != k:
+            k = grupo_u1[k]
+        return k
+
+    for a, b in enlaces:
+        grupo_u1[raiz_u1(a)] = raiz_u1(b)
+    con_id_u1 = {}
+    for r in {k for par in enlaces for k in par}:
+        con_id_u1[raiz_u1(r)] = con_id_u1.get(raiz_u1(r), 0) + fichas[r].con_id
+    for a, b in enlaces:
+        if con_id_u1[raiz_u1(a)] <= 1:
+            unir(a, b, "club")
 
     # U2: una ficha sin id y de nombre completo, con la única otra ficha de ese nombre.
     por_nombre = {}
