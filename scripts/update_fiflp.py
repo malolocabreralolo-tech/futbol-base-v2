@@ -40,7 +40,7 @@ from fiflp_render import flatten, fiflp_launch_args
 from fiflp_carga import BRAKE_ROOM, CATALOG_URL, ready_selector, ready_timeout_ms, wait_ready
 from fetch_futbolaspalmas import standings_regression, stored_standings
 from generate_js import _repair_incoherent_points
-from pasada_sana import veredicto
+from pasada_sana import seca, veredicto
 from fiflp_names import MIN_TEAM_SCORE, team_key, team_score
 import source_health
 
@@ -1596,12 +1596,22 @@ def update_campos(page, F, conn, deadline=None):
     return len(rows)
 
 
-def update_groups(conn, season_id, today=None):
+def dry_hours(since, now):
+    """Las horas desde `since` (el drySince de source_health, ISO) hasta `now`; 0 sin él o si no se entiende."""
+    try:
+        return max(0.0, (now - _aware(datetime.fromisoformat(since))).total_seconds() / 3600)
+    except (TypeError, ValueError):
+        return 0.0
+
+
+def update_groups(conn, season_id, today=None, now=None):
     """Recorre los grupos de la federación de la temporada en curso, con el plazo global
     (budget_seconds) contado desde aquí, antes de abrir el navegador. Con FIFLP_CATS
     ('benjamin,prebenjamin', 'alevin'), solo los de esas categorías (para repartir la temporada entre
     dos workflows si un día no cabe en uno): los de las demás conservan su entrada de
-    data-health.json (cada workflow lo reescribe entero)."""
+    data-health.json (cada workflow lo reescribe entero). Al acabar, el veredicto de la pasada
+    (pasada_sana) en data-health.json, con la racha de pasadas secas contada hasta `now` (UTC; por
+    defecto, la hora de ahora)."""
     from categorias import parse_categories
     cats = parse_categories(os.environ["FIFLP_CATS"]) if os.environ.get("FIFLP_CATS", "").strip() else None
     every = fiflp_groups(conn, season_id)
@@ -1630,13 +1640,21 @@ def update_groups(conn, season_id, today=None):
         print(f"  ! la federación no se pudo consultar: {e}")
         for code, url in pending.items():
             source_health.record(code, url, "error", e)
-        # Solo ese motivo: sus grupos no se llegaron a pedir (no es que la federación no los sirviera).
-        reasons = veredicto({}, 0, interrumpida=str(e) or type(e).__name__)
+        # Solo ese motivo: sus grupos no se llegaron a pedir (no es que la federación no los sirviera). Sin
+        # racha seca: en rojo ya.
+        reasons, dry = veredicto({}, 0, interrumpida=str(e) or type(e).__name__), False
     else:
-        reasons = veredicto(run["estados"], run["previstos"], run["vacias"])
+        # Una pasada seca (ningún grupo leído) es una IP frenada desde la primera página: en rojo solo si
+        # la racha dura más de pasada_sana.LIMITE_SECA_HORAS.
+        dry = seca(run["estados"], run["previstos"])
+        since = source_health.dry_since() if dry else None
+        hours = dry_hours(since, _aware(now or datetime.now(timezone.utc))) if since else 0
+        reasons = veredicto(run["estados"], run["previstos"], run["vacias"], horas_seca=hours)
+        if dry and not reasons:
+            print(f"  Pasada seca: ningún grupo leído (racha de {hours:.1f} h)", flush=True)
     if reasons:
         print("  ! pasada en rojo: " + "; ".join(reasons), flush=True)
-    source_health.set_run_health(reasons)
+    source_health.set_run_health(reasons, now=now, dry=dry)
 
 
 def _with_browser(work, deadline=None):

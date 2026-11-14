@@ -73,13 +73,26 @@ def _red(previous, reasons, now=None):
     return {"ok": False, "reasons": list(reasons), "since": since or _stamp(now)}
 
 
-def set_run_health(reasons, now=None):
+def dry_since():
+    """Desde cuándo dura la racha de pasadas secas (pasada_sana.seca), según el informe anterior de la misma
+    temporada: su runHealth.drySince, o None."""
+    health = (_previous or {}).get("runHealth") if _same_season() else None
+    since = health.get("drySince") if isinstance(health, dict) else None
+    return since if isinstance(since, str) and since else None
+
+
+def set_run_health(reasons, now=None, dry=False):
     """El veredicto de la pasada del bot de la federación (pasada_sana.veredicto: sin motivos, sana). Sana,
-    sin hora: una pasada sana tras otra sana no reescribe el informe (runHealth no es VOLATILE)."""
+    sin hora: una pasada sana tras otra sana no reescribe el informe (runHealth no es VOLATILE). Con `dry`
+    (una pasada seca), drySince: el de la racha en curso o, en la primera, ahora; la primera seca reescribe
+    el informe, las siguientes de la racha no, y la primera que lee algo lo quita."""
     if _report is None:
         return
     previous = (_previous or {}).get("runHealth") if _same_season() else None
-    _report["runHealth"] = _red(previous, reasons, now) if reasons else {"ok": True}
+    health = _red(previous, reasons, now) if reasons else {"ok": True}
+    if dry:
+        health["drySince"] = dry_since() or _stamp(now)
+    _report["runHealth"] = health
 
 
 def new_competitions():
@@ -184,8 +197,12 @@ def finish(now=None, failed=False):
     if failed:
         _discard_checks()
         # Lo publicado de una ejecución fallida es el diagnóstico: en rojo, si la pasada no lo estaba ya.
-        if (_report.get("runHealth") or {}).get("ok") is not False:
+        # La racha seca, como estaba: la interrupción no dice si la federación sirve o no.
+        health = _report.get("runHealth") or {}
+        if health.get("ok") is not False:
             set_run_health([INTERRUPTED], now)
+            if health.get("drySince"):
+                _report["runHealth"]["drySince"] = health["drySince"]
     _report["checkedAt"] = _stamp(now)
     text = (ROOT / "index.html").read_text()
     match = re.search(r"Última actualización: (\d{2})/(\d{2})/(\d{4})", text)
@@ -226,6 +243,8 @@ def main(argv=None):
         health = report.get("runHealth")
         before = list(health.get("reasons") or []) if isinstance(health, dict) and health.get("ok") is False else []
         report["runHealth"] = _red(health, before + [args[1]] if args[1] not in before else before)
+        if isinstance(health, dict) and health.get("drySince"):
+            report["runHealth"]["drySince"] = health["drySince"]
         REPORT_PATH.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n")
         return 0
     print('uso: source_health.py veredicto | marcar "<motivo>"', file=sys.stderr)

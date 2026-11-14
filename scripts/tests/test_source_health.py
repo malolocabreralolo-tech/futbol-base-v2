@@ -298,3 +298,56 @@ def test_the_orders_run_from_the_command_line():
     script = Path(source_health.__file__)
     done = subprocess.run([sys.executable, str(script), "no-existe"], capture_output=True, text=True)
     assert done.returncode == 2 and "veredicto" in done.stderr
+
+
+# ── drySince: la racha de pasadas secas (Ronda de arreglo 1 de la fase 2B) ──
+
+def dry_run(now, reasons=(), dry=True, failed=False):
+    source_health.begin("2025-2026")
+    for code, status, message in OK:
+        source_health.record(code, f"https://example.test/{code}", status, message, now=now)
+    source_health.set_run_health(list(reasons), now=now, dry=dry)
+    source_health.finish(now=now, failed=failed)
+    return source_health.REPORT_PATH.read_text()
+
+
+def test_the_first_dry_pass_writes_dry_since_and_the_next_ones_do_not_rewrite(portal):
+    bot_run(T0, [])
+    later = T0 + timedelta(hours=1)
+    first = dry_run(later)
+    assert json.loads(first)["runHealth"] == {"ok": True, "drySince": later.isoformat(timespec="seconds")}
+    source_health.begin("2025-2026")
+    assert source_health.dry_since() == later.isoformat(timespec="seconds")
+    assert dry_run(T0 + timedelta(hours=3)) == first                   # misma racha: no se reescribe
+    assert json.loads(dry_run(T0 + timedelta(hours=4), dry=False))["runHealth"] == {"ok": True}
+
+
+def test_a_red_dry_pass_has_since_and_dry_since(portal):
+    dry_run(T0)
+    later = T0 + timedelta(hours=7)
+    health = json.loads(dry_run(later, ["la federación no sirve ningún grupo desde hace 7 h"]))["runHealth"]
+    assert health == {"ok": False, "reasons": ["la federación no sirve ningún grupo desde hace 7 h"],
+                      "since": later.isoformat(timespec="seconds"), "drySince": T0.isoformat(timespec="seconds")}
+
+
+def test_dry_since_is_carried_without_the_federation_and_by_the_orders(portal):
+    dry_run(T0)
+    stamp = T0.isoformat(timespec="seconds")
+    assert json.loads(bot_run(T0 + timedelta(days=2)))["runHealth"] == {"ok": True, "drySince": stamp}
+    assert source_health.main(["marcar", "x"]) == 0
+    health = json.loads(source_health.REPORT_PATH.read_text())["runHealth"]
+    assert health["ok"] is False and health["reasons"] == ["x"] and health["drySince"] == stamp
+
+
+def test_a_failed_run_keeps_the_dry_streak(portal):
+    """Una ejecución que falla tras una pasada seca: en rojo por la interrupción, con la racha como estaba."""
+    health = json.loads(dry_run(T0, failed=True))["runHealth"]
+    assert health["reasons"] == [source_health.INTERRUPTED] and health["drySince"] == T0.isoformat(timespec="seconds")
+
+
+def test_dry_since_is_none_without_a_streak_or_with_another_season(portal):
+    source_health.begin("2025-2026")
+    assert source_health.dry_since() is None
+    dry_run(T0)
+    source_health.begin("2026-2027")
+    assert source_health.dry_since() is None
