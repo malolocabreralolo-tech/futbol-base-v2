@@ -82,6 +82,19 @@ function newCompetitionsNote(items) {
   return notice(null, `La federación ha publicado ${countLabel(names.length, 'competición', 'competiciones')} que esta web aún no tiene: ${names.join('; ')}.`);
 }
 
+// La última pasada del bot en rojo (runHealth de data-health: update_fiflp y source_health.set_run_health),
+// con sus motivos y desde cuándo (hora de Canarias; «hoy» si es `today`), en una línea; nada si fue sana,
+// si no hay veredicto o si no se entiende: el aviso solo sale con algún motivo en texto.
+export function runHealthNote(health, today) {
+  const run = health && typeof health === 'object' ? health.runHealth : null;
+  if (!run || typeof run !== 'object' || run.ok !== false || !Array.isArray(run.reasons)) return '';
+  const reasons = run.reasons.filter((r) => typeof r === 'string' && r.trim()).map((r) => r.trim());
+  if (!reasons.length) return '';
+  const since = typeof run.since === 'string' ? canaryDateTime(run.since) : null;
+  const when = since ? ` (desde ${since.day === today ? 'hoy' : `el ${dayMonthLong(since.day)}`}, ${since.time})` : '';
+  return notice(null, `La última pasada del bot no fue bien${when}: ${reasons.join('; ')}.`);
+}
+
 // La base de datos entera (futbolbase.db, SQLite, la misma de la que salen todas las pantallas) y lo
 // que guarda de cada temporada (COBERTURA de data-history.js): grupos, partidos con resultado, actas,
 // jugadores con alineación y goles con autor. null si no hay datos de cobertura.
@@ -132,7 +145,7 @@ function render(ctx) {
   const mine = ctx.resolution && ctx.resolution.status === 'ok' ? ctx.resolution.name : (ctx.myTeam && ctx.myTeam.name) || '';
   const upcoming = next && next.status === 'pending' && SEASON_RE.test(String(next.name)) && mine ? nextSeasonBox(ctx, mine, next.name) : '';
   const database = databaseBlock(ctx.datasets && ctx.datasets.cobertura);
-  return html`<section data-screen="fuentes">${screenHead(title, { sub: checkedSeason ? `Temporada ${seasonLabel(checkedSeason)}` : null, back: ctx.backHref })}${state}${block('Comprobación por grupo', list, { context: summary(rows) || null })}${sourcesNote(rows)}${missing}${newCompetitionsNote(health.newCompetitions)}${upcoming}${database}</section>`;
+  return html`<section data-screen="fuentes">${screenHead(title, { sub: checkedSeason ? `Temporada ${seasonLabel(checkedSeason)}` : null, back: ctx.backHref })}${state}${runHealthNote(health, ctx.today)}${block('Comprobación por grupo', list, { context: summary(rows) || null })}${sourcesNote(rows)}${missing}${newCompetitionsNote(health.newCompetitions)}${upcoming}${database}</section>`;
 }
 
 export const screen = {

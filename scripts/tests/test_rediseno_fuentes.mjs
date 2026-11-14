@@ -105,6 +105,28 @@ test('las competiciones que la federación publica y la web no tiene (newCompeti
   }
 });
 
+test('la última pasada del bot en rojo (runHealth de data-health), en un aviso justo debajo del estado de los datos', () => {
+  const red = { ok: false, reasons: ['fallaron 9 de 20 grupos leídos: FF1, FF2', 'jornada leída vacía que la base tiene con partidos: PG2'], since: '2026-11-14T10:05:00+00:00' };
+  const said = 'La última pasada del bot no fue bien (desde el 14 de noviembre, 10:05): fallaron 9 de 20 grupos leídos: FF1, FF2; jornada leída vacía que la base tiene con partidos: PG2.';
+  const out = render(edited((h) => { h.runHealth = red; }));
+  const esc = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  // Justo después de la caja «Estado de los datos» y antes de «Comprobación por grupo».
+  assert.match(out, new RegExp(`Último cambio en los datos</dt><dd class="cell-value">23 de septiembre</dd></div></dl></div></section><p class="notice">${esc(said)}</p><section class="block"><div class="block-head"><h2 class="block-title">Comprobación por grupo</h2>`));
+  // «hoy» si empezó hoy (en Canarias), y sin hora válida, sin el paréntesis.
+  assert.match(render(edited((h) => { h.runHealth = red; }), { today: '2026-11-14' }), /<p class="notice">La última pasada del bot no fue bien \(desde hoy, 10:05\): fallaron 9/);
+  for (const since of [undefined, '', 'ayer', 42]) {
+    assert.match(render(edited((h) => { h.runHealth = { ...red, since }; })), /<p class="notice">La última pasada del bot no fue bien: fallaron 9 de 20 grupos leídos: FF1, FF2; jornada leída vacía que la base tiene con partidos: PG2\.<\/p>/);
+  }
+  // Los motivos que no son texto, fuera.
+  assert.match(render(edited((h) => { h.runHealth = { ...red, reasons: [7, 'interrumpida', null, {}] }; })), /<p class="notice">La última pasada del bot no fue bien \(desde el 14 de noviembre, 10:05\): interrumpida\.<\/p>/);
+  // Sana, sin veredicto o mal formado: nada, y sin romper.
+  for (const value of [undefined, null, { ok: true }, 'rojo', [], { ok: false }, { ok: false, reasons: 'x' }, { ok: false, reasons: [] }, { ok: false, reasons: [3, null] }, { ok: 'false', reasons: ['x'] }]) {
+    const quiet = render(edited((h) => { h.runHealth = value; }));
+    assert.doesNotMatch(quiet, /La última pasada del bot/, JSON.stringify(value));
+    assert.match(quiet, /Comprobación por grupo/);
+  }
+});
+
 test('la temporada siguiente, con el texto de la portada en D; sin «pendiente», sin caja', () => {
   const out = render();
   assert.match(out, /<h2 class="block-title">Temporada 2026\/27<\/h2><\/div><div class="box"><dl class="cells cells-2"><div class="cell"><dt class="cell-label">Grupos<\/dt><dd class="cell-value">pendientes en esta web<\/dd><\/div><div class="cell"><dt class="cell-label">Última comprobación<\/dt><dd class="cell-value">23 sept, 22:11<\/dd><\/div><\/dl><p class="box-text">La temporada 2026\/27 aparecerá aquí cuando la federación publique los grupos y se activen en esta web\. Si hay más de un equipo de Las Mesas Hu\., te preguntaremos cuál es el tuyo\.<\/p><\/div><\/section><\/section>$/);
@@ -160,7 +182,8 @@ test('registro y CSS: la ruta pinta Fuentes; solo clases que existen y filas de 
   assert.equal(SCREEN_MAP.fuentes, screen);
   assert.match(readFileSync(new URL('../../sw.js', import.meta.url), 'utf8'), /\n {2}'\.\/src\/screen-fuentes\.js',\n/);
   const rules = cssRules();
-  const outs = [render(), render(withHealth(null)), render(edited((h) => { h.groups.PG3.url = ''; h.groups.PG3.status = 'error'; }))];
+  const outs = [render(), render(withHealth(null)), render(edited((h) => { h.groups.PG3.url = ''; h.groups.PG3.status = 'error'; })),
+    render(edited((h) => { h.runHealth = { ok: false, reasons: ['interrumpida'], since: '2026-11-14T10:05:00+00:00' }; }))];
   const used = new Set(outs.join('').match(/class="[^"]+"/g).flatMap((m) => m.slice(7, -1).split(/\s+/)));
   // error-box es el gancho de la caja de error de shell.js, sin regla propia (como en test_rediseno_shell).
   assert.deepEqual([...used].filter((c) => !rules.classes.has(c) && c !== 'error-box'), []);
