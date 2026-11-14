@@ -1,0 +1,41 @@
+{
+  "season": "2026-2027",
+  "groups": [
+    {
+      "id": "EL1",
+      "cat": "benjamin",
+      "name": "Eliminatoria de Primeros y Segundos",
+      "phase": "Eliminatorias",
+      "island": "grancanaria",
+      "fullName": "BENJAMIN ELIMINATORIAS - ELIMINATORIA DE PRIMEROS Y SEGUNDOS",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54976988&CodGrupo=55331279"
+    },
+    {
+      "id": "EL2",
+      "cat": "benjamin",
+      "name": "Eliminatoria de Terceros y Cuartos",
+      "phase": "Eliminatorias",
+      "island": "grancanaria",
+      "fullName": "BENJAMIN ELIMINATORIAS - ELIMINATORIA DE TERCEROS Y CUARTOS",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54976988&CodGrupo=55331350"
+    },
+    {
+      "id": "ALEL1",
+      "cat": "alevin",
+      "name": "Eliminatoria de Primeros y Segundos",
+      "phase": "Eliminatorias",
+      "island": "grancanaria",
+      "fullName": "ALEVIN ELIMINATORIAS - ELIMINATORIA DE PRIMEROS Y SEGUNDOS",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54976940&CodGrupo=55317325"
+    },
+    {
+      "id": "ALEL2",
+      "cat": "alevin",
+      "name": "Eliminatorias Terceros y Cuartos",
+      "phase": "Eliminatorias",
+      "island": "grancanaria",
+      "fullName": "ALEVIN ELIMINATORIAS - ELIMINATORIAS TERCEROS Y CUARTOS",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54976940&CodGrupo=55317330"
+    }
+  ]
+}

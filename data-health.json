@@ -457,59 +457,35 @@
     "name": "2027-2028",
     "status": "pending"
   },
-  "newGroups": [
-    {
-      "competition": "54976940",
-      "competitionName": "ALEVIN PRIMERA FASE GC",
-      "id": "55317325",
-      "name": "Eliminatoria de Primeros y Segundos",
-      "firstSeen": "2026-11-14"
-    },
-    {
-      "competition": "54976940",
-      "competitionName": "ALEVIN PRIMERA FASE GC",
-      "id": "55317330",
-      "name": "Eliminatorias Terceros y Cuartos",
-      "firstSeen": "2026-11-14"
-    },
-    {
-      "competition": "54976988",
-      "competitionName": "BENJAMIN PRIMERA FASE GC",
-      "id": "55331279",
-      "name": "Eliminatoria de Primeros y Segundos",
-      "firstSeen": "2026-11-14"
-    },
-    {
-      "competition": "54976988",
-      "competitionName": "BENJAMIN PRIMERA FASE GC",
-      "id": "55331350",
-      "name": "Eliminatoria de Terceros y Cuartos",
-      "firstSeen": "2026-11-14"
-    }
-  ],
   "runHealth": {
     "ok": true
   },
   "activation": {
-    "at": "2026-11-14T19:17:38+00:00",
-    "activated": [],
-    "failed": [
+    "at": "2026-11-14T20:13:57+00:00",
+    "activated": [
       {
         "competition": "54976988",
         "name": "LIGA BENJAMIN GRAN CANARIA FASE PREVIA",
-        "reason": "la descarga no está completa: faltan 2 grupos"
+        "codes": [
+          "EL1",
+          "EL2"
+        ]
       },
       {
         "competition": "54976940",
         "name": "LIGA ALEVIN GRAN CANARIA FASE PREVIA",
-        "reason": "la descarga no está completa: faltan 2 grupos"
+        "codes": [
+          "ALEL1",
+          "ALEL2"
+        ]
       }
     ],
+    "failed": [],
     "tried": [
       "54976940",
       "54976988"
     ],
-    "attempts": 1
+    "attempts": 2
   },
   "run": {
     "pass": 26,
