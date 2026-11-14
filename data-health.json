@@ -568,5 +568,26 @@
     "ok": 75,
     "rejected": 0,
     "error": 0
+  },
+  "activation": {
+    "at": "2026-11-14T19:17:38+00:00",
+    "activated": [],
+    "failed": [
+      {
+        "competition": "54976988",
+        "name": "LIGA BENJAMIN GRAN CANARIA FASE PREVIA",
+        "reason": "la descarga no está completa: faltan 2 grupos"
+      },
+      {
+        "competition": "54976940",
+        "name": "LIGA ALEVIN GRAN CANARIA FASE PREVIA",
+        "reason": "la descarga no está completa: faltan 2 grupos"
+      }
+    ],
+    "tried": [
+      "54976940",
+      "54976988"
+    ],
+    "attempts": 1
   }
 }
