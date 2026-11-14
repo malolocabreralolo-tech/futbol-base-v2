@@ -12,7 +12,7 @@ import {
   CATEGORIES, CAT_NAMES, CAT_SHORT, competitionKey, competitions, findGroup, groupSummary, searchKey, searchTeams, seasonLabel,
 } from './model.js';
 import { canaryDateTime, dayMonth, monthName, routeHref, teamHref } from './links.js';
-import { ensureHealth } from './state.js';
+import { healthNeeds } from './state.js';
 
 const PICKER_ID = 'temporada';
 const shieldsOf = ctx => (ctx.datasets && ctx.datasets.shields) || {};
@@ -204,10 +204,12 @@ function mount(root, ctx, nav) {
 export const screen = {
   id: 'explorar',
   // Todo sale de los datos inmediatos y de la temporada de la ruta, que carga el router (decisión 2 de
-  // B3). data-health.json solo pone la fecha de «Datos y fuentes»: se pide una vez por sesión, como en
-  // la portada (M4 de B2), y nunca rechaza; sin él, la fila va sin fecha.
-  needs: (params, datasets) => (datasets.health !== undefined ? []
-    : [ensureHealth().then((health) => { datasets.health = health; })]),
+  // B3). data-health.json solo pone la fecha de «Datos y fuentes»: se pide como en la portada
+  // (healthNeeds) y nunca rechaza; sin él, la fila va sin fecha.
+  needs: (params, datasets) => {
+    const load = healthNeeds(datasets);
+    return load ? [load] : [];
+  },
   render,
   mount,
 };

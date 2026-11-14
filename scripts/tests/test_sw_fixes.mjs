@@ -13,6 +13,8 @@
  *   6. activate: solo las cachés de esta app de otras versiones (decisión 8 de B4)
  *   7. los escudos, en su propia caché: CRESTS_CACHE en la línea 2, con el sello de
  *      escudos/, que el bot no toca y activate no borra (decisión 1 de B5)
+ *   8. data-health.json, primero de la red: el aviso de estado de la portada no
+ *      puede leer la salud de la visita anterior
  *
  * sw.js is a classic script (not a module): it is loaded in a vm context with
  * a stubbed `self`, and its pure decision functions (classifyRequest,
@@ -42,7 +44,7 @@ function loadSw(globals = {}) {
   };
   const ctx = { self: selfStub, console, URL, ...globals };
   vm.createContext(ctx);
-  const probes = ['CACHE_NAME', 'CRESTS_CACHE', 'STATIC_ASSETS', 'SEASON_FILES', 'LAZY_FILES', 'LINEUPS_KEEP', 'lineupsToCarry', 'classifyRequest', 'staleKeysFor', 'matchIgnoringVersion', 'versionedAssetURL'];
+  const probes = ['CACHE_NAME', 'CRESTS_CACHE', 'STATIC_ASSETS', 'SEASON_FILES', 'LAZY_FILES', 'LINEUPS_KEEP', 'lineupsToCarry', 'classifyRequest', 'staleKeysFor', 'matchIgnoringVersion', 'versionedAssetURL', 'LIMITE_SALUD_MS'];
   const probe = probes
     .map(n => `${n}:typeof ${n}!=='undefined'?${n}:undefined`)
     .join(',');
@@ -376,4 +378,91 @@ test('los escudos se sirven de CRESTS_CACHE; si no están, de la red con su sell
   assert.equal(await serve(url), first, 'la segunda, de CRESTS_CACHE');
   assert.equal(asked.length, 1, 'sin volver a la red');
   assert.deepEqual([...new Set(opened)], [sw.CRESTS_CACHE], 'nunca CACHE_NAME');
+});
+
+// ─── 8. data-health.json: primero la red, con límite; si no, la copia marcada ──
+test('classifyRequest: data-health.json → network-first; los data-*.js siguen en swr', () => {
+  assert.equal(sw.classifyRequest('/futbol-base-v2/data-health.json'), 'network-first');
+  assert.equal(sw.classifyRequest('/data-health.json'), 'network-first');
+  assert.equal(sw.classifyRequest('/futbol-base-v2/data-benjamin.js'), 'swr');
+  assert.ok(sw.STATIC_ASSETS.includes('./data-health.json'), 'sigue en el precache: la primera apertura sin red');
+  assert.equal(sw.LIMITE_SALUD_MS, 2500);
+});
+
+// Un SW con una caché en memoria (con su copia de data-health.json) y la red que se pida.
+function healthWorker({ network, timers = { setTimeout, clearTimeout } }) {
+  const stored = new Map([['https://example.test/data-health.json', new Response('{"checkedAt":"vieja"}', {
+    status: 200, headers: { 'content-type': 'application/json' } })]]);
+  const cache = {
+    match: async (request, options) => {
+      const url = typeof request === 'string' ? request : request.url;
+      if (stored.has(url)) return stored.get(url).clone();
+      if (options?.ignoreSearch) {
+        const bare = url.split('?')[0];
+        for (const [key, value] of stored) if (key.split('?')[0] === bare) return value.clone();
+      }
+      return undefined;
+    },
+    put: async (request, response) => { stored.set(typeof request === 'string' ? request : request.url, response); },
+    keys: async () => [...stored.keys()].map((url) => ({ url })),
+    delete: async (request) => stored.delete(request.url),
+  };
+  const asked = [];
+  const worker = loadSw({
+    caches: { open: async () => cache }, Response, Headers, ...timers,
+    fetch: (url, init) => { asked.push(`${url} ${init.cache}`); return network(); },
+  });
+  const pending = [];
+  const serve = (url) => new Promise((resolve) => {
+    worker.listeners.fetch({ request: { url, method: 'GET' }, respondWith: resolve, waitUntil: (p) => pending.push(p) });
+  });
+  return { serve, stored, asked, settle: () => Promise.all(pending) };
+}
+const URL_SALUD = 'https://example.test/data-health.json?v=20261114t';
+
+test('network-first: con red, la respuesta de la red, guardada (sin las ?v= anteriores) y sin marca', async () => {
+  const w = healthWorker({ network: async () => new Response('{"checkedAt":"nueva"}', { status: 200 }) });
+  const response = await w.serve(URL_SALUD);
+  assert.equal(await response.text(), '{"checkedAt":"nueva"}');
+  assert.equal(response.headers.get('x-fb2-origen'), null);
+  await w.settle();
+  assert.equal(await w.stored.get(URL_SALUD).text(), '{"checkedAt":"nueva"}', 'guardada con putAndPurge');
+  assert.ok(w.asked[0].startsWith('https://example.test/data-health.json?v='), w.asked[0]);
+});
+
+test('network-first: si la red rechaza o no da un 200, la copia guardada con x-fb2-origen: cache y sus cabeceras', async () => {
+  for (const network of [async () => { throw new TypeError('Failed to fetch'); }, async () => new Response('', { status: 503 })]) {
+    const w = healthWorker({ network });
+    const response = await w.serve(URL_SALUD);
+    assert.equal(response.headers.get('x-fb2-origen'), 'cache');
+    assert.equal(response.headers.get('content-type'), 'application/json');
+    assert.equal(response.status, 200);
+    assert.equal(await response.text(), '{"checkedAt":"vieja"}');
+    await w.settle();
+  }
+});
+
+test('network-first: con la red colgada, la copia marcada en cuanto pasa LIMITE_SALUD_MS', async () => {
+  const timers = [];
+  const w = healthWorker({
+    network: () => new Promise(() => {}),
+    timers: { setTimeout: (fn, ms) => { timers.push({ fn, ms }); return timers.length; }, clearTimeout: () => {} },
+  });
+  let response = null;
+  const served = w.serve(URL_SALUD).then((r) => { response = r; });
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(response, null, 'antes del límite, todavía esperando a la red');
+  assert.deepEqual(timers.map((t) => t.ms), [sw.LIMITE_SALUD_MS]);
+  timers[0].fn();
+  await served;
+  assert.equal(response.headers.get('x-fb2-origen'), 'cache');
+  assert.equal(await response.text(), '{"checkedAt":"vieja"}');
+});
+
+test('network-first: sin copia guardada, lo que dé la red', async () => {
+  const w = healthWorker({ network: async () => new Response('', { status: 404 }) });
+  w.stored.clear();
+  const response = await w.serve(URL_SALUD);
+  assert.equal(response.status, 404);
+  assert.equal(response.headers.get('x-fb2-origen'), null);
 });

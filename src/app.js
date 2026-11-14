@@ -4,7 +4,7 @@
 // escudos, sigue la conexión para el aviso de la cabecera y guarda el cambio de fase de mi equipo;
 // sin los datos inmediatos de la temporada, pinta la caja de error y no arranca el router.
 import { PORTAL } from './config.js';
-import { readGlobals, ensureHealth } from './state.js';
+import { readGlobals, healthNeeds } from './state.js';
 import { createModel, seasonLabel } from './model.js';
 import { buildClubIndex, resolveMyTeam, myTeamToSave } from './myteam.js';
 import { loadStore, saveStore, safeStorage, addRecent, clearStore, importFromV1 } from './store.js';
@@ -17,20 +17,21 @@ import { SCREEN_MAP } from './screens.js';
 
 // Los datos de un pintado (el ctx de las pantallas sin la ruta, que añade el router): mi equipo
 // resuelto contra la temporada del portal con el «hoy» de Canarias, un solo reloj (decisión 4), y
-// los vistos hace poco del almacén (decisión 5 de B3), y los jugadores seguidos (followed.js).
-function contextFor({ model, myTeam, recent = [], followed = [], portal, datasets, today, legacyDate = null }) {
+// los vistos hace poco del almacén (decisión 5 de B3), y los jugadores seguidos (followed.js). now es
+// el instante del pintado, con el que el aviso de estado mide la edad de la salud.
+function contextFor({ model, myTeam, recent = [], followed = [], portal, datasets, today, now, legacyDate = null }) {
   const resolution = resolveMyTeam(myTeam, model.season(portal.season), model.clubIndex(), today);
-  return { model, myTeam, recent, followed, resolution, today, health: datasets.health, datasets, portal, legacyDate };
+  return { model, myTeam, recent, followed, resolution, today, now, health: datasets.health, datasets, portal, legacyDate };
 }
 
 // El mismo contexto desde un almacén y con el día que se le pida: la base de las pruebas de las
 // pantallas. Con el almacén vacío o bloqueado, loadStore da el equipo por defecto, sin preguntas.
-// Solo lee el almacén: lo de v1 lo trae start, con importFromV1.
-export function startContext({ storage, portal, datasets, today }) {
+// Solo lee el almacén: lo de v1 lo trae start, con importFromV1. Sin now, el mediodía UTC de today.
+export function startContext({ storage, portal, datasets, today, now = new Date(`${today}T12:00:00Z`) }) {
   const store = loadStore(storage, { defaultTeam: portal.defaultTeam, portalSeason: portal.season });
   const model = createModel(datasets, { portalSeason: portal.season, buildClubIndex });
   const base = { season: portal.season, defaultTeam: portal.defaultTeam };
-  return { ...contextFor({ model, myTeam: store.myTeam, recent: store.recent, followed: loadFollowed(storage), portal: base, datasets, today }), lastPrimary: 'miequipo' };
+  return { ...contextFor({ model, myTeam: store.myTeam, recent: store.recent, followed: loadFollowed(storage), portal: base, datasets, today, now }), lastPrimary: 'miequipo' };
 }
 
 // Los datos inmediatos sin los que no hay temporada: sin uno de ellos, ni X ni B serían verdad.
@@ -45,10 +46,10 @@ export function start(doc, win, config = PORTAL, { now = () => new Date() } = {}
   const storage = () => win.localStorage;
   const portal = { season: config.season, defaultTeam: config.defaultTeam };
   // Registro de datos: los globales inmediatos y lo que traen los cargadores perezosos. health es
-  // undefined mientras data-health.json no se ha pedido y null si falló: se pide una vez por sesión
-  // (M4 de la revisión final de B2). El alevín, también perezoso y nunca en REQUIRED (contrato común de
-  // alevín): alevin, undefined hasta que el router lo pide (data-alevin.js), y seasonAlevin, el de
-  // cada temporada pasada (data-season-<S>-alevin.js).
+  // undefined mientras data-health.json no se ha pedido y null si falló; healthAt, la hora de la última
+  // respuesta: se vuelve a pedir pasados 10 minutos (healthNeeds). El alevín, también perezoso y
+  // nunca en REQUIRED (contrato común de alevín): alevin, undefined hasta que el router lo pide
+  // (data-alevin.js), y seasonAlevin, el de cada temporada pasada (data-season-<S>-alevin.js).
   const datasets = { ...readGlobals(), seasonRaw: {}, matchDetail: null, lineups: {}, health: undefined, alevin: undefined, seasonAlevin: {} };
   // La fecha del literal oculto «Última actualización» de index.html, por si falta data-health.
   const legacyDate = doc.getElementById('legacyUpdated')?.textContent.match(/\d{2}\/\d{2}\/\d{4}/)?.[0] || null;
@@ -62,11 +63,9 @@ export function start(doc, win, config = PORTAL, { now = () => new Date() } = {}
   win.addEventListener('offline', showOffline);
   showOffline();
   // El mismo vuelo que la portada (ensureHealth es de un solo vuelo): su resultado, o null si falla,
-  // queda en datasets.health, y así ninguna visita a Mi equipo lo vuelve a pedir ni lo espera.
-  ensureHealth().then((health) => {
-    datasets.health = health;
-    showOffline();
-  });
+  // queda en datasets.health, y así ninguna visita a Mi equipo de los 10 minutos siguientes lo vuelve
+  // a pedir ni lo espera.
+  healthNeeds(datasets).then(showOffline);
 
   // Sin los datos inmediatos de la temporada (un precache a medias y sin conexión, por ejemplo), la
   // caja de error de §7 con «Reintentar», que recarga la página: nunca un X o un B falsos (M4 de la
@@ -93,9 +92,12 @@ export function start(doc, win, config = PORTAL, { now = () => new Date() } = {}
   importFromV1(storage, { portalSeason: portal.season });
   let store = loadStore(storage, { defaultTeam: portal.defaultTeam, portalSeason: portal.season });
   let followed = loadFollowed(storage);
-  const getContext = () => contextFor({
-    model, myTeam: store.myTeam, recent: store.recent, followed, portal, datasets, today: canaryTodayISO(now(), config.timeZone), legacyDate,
-  });
+  const getContext = () => {
+    const instant = now();
+    return contextFor({
+      model, myTeam: store.myTeam, recent: store.recent, followed, portal, datasets, today: canaryTodayISO(instant, config.timeZone), now: instant, legacyDate,
+    });
+  };
 
   // El cambio de fase que se resuelve sin preguntar (FF5 → A2) queda guardado desde el arranque
   // (decisión 12 de B1). Un cambio de temporada, nunca: se resuelve en cada carga hasta que la

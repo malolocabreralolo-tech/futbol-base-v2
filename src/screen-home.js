@@ -8,11 +8,13 @@
 // siguiente y el aviso stale; la plantilla no espera a las actas (fillSquad). El estado va en
 // data-state, que usan las pruebas de navegador. mount(root, ctx, nav) añade el comportamiento. Nada
 // toca el DOM al importarse.
-import { html } from './html.js';
+import { Html, html } from './html.js';
 import { block, box, crest, empty } from './ui.js';
 import { seasonLabel } from './model.js';
 import { homeState } from './myteam.js';
-import { ensureHealth } from './state.js';
+import { PORTAL } from './config.js';
+import { healthNeeds } from './state.js';
+import { statusNotice } from './estado.js';
 import { SEARCH_HREF, mountTeamView, teamColumns, teamHeader, teamView } from './team-view.js';
 import { fillSquad, mountTeamExtras, squadPending, teamExtras } from './team-extras.js';
 import { followedBlock } from './screen-jugador.js';
@@ -36,27 +38,39 @@ function stateX(ctx, shields) {
   return html`${teamHeader(name, `Temporada ${season}`, { shields })}${block(null, html`${empty(`${name} no aparece en ${season}`)}<div class="buttons home-cta"><a class="button is-main" href="${SEARCH_HREF}">Elegir equipo</a></div>`)}`;
 }
 
+// El aviso de estado de los datos va justo detrás de la cabecera de la pantalla, delante de
+// cualquier otro aviso (el stale de C y D va dentro de view.head).
+function withStatus(markup, ctx) {
+  const note = String(statusNotice(ctx.health, ctx.now, PORTAL.timeZone));
+  const out = String(markup);
+  const at = out.indexOf('</header>');
+  return note && at >= 0 ? new Html(out.slice(0, at + '</header>'.length) + note + out.slice(at + '</header>'.length)) : markup;
+}
+
 export const screen = {
   id: 'home',
-  // Todo sale de los datos inmediatos salvo data-health.json (la caja de D y la frescura): se pide
-  // una sola vez por sesión y queda en datasets.health, que es undefined mientras no se ha pedido y
-  // null si falló; con null, las visitas siguientes pintan en el acto, sin esperar otra vez hasta
-  // 15 s (M4 de la revisión final de B2). Nunca rechaza: sin él, la portada se pinta igual (§7).
-  needs: (params, datasets) => (datasets.health !== undefined ? []
-    : [ensureHealth().then((health) => { datasets.health = health; })]),
+  // Todo sale de los datos inmediatos salvo data-health.json (la caja de D, la frescura y el aviso
+  // de estado): healthNeeds lo pide si no está o si la respuesta tiene más de 10 minutos, y lo deja
+  // en datasets.health, que es undefined mientras no se ha pedido y null si falló; con null, las
+  // visitas siguientes pintan en el acto hasta el siguiente intento. Nunca rechaza: sin él, la
+  // portada se pinta igual (§7).
+  needs: (params, datasets) => {
+    const load = healthNeeds(datasets);
+    return load ? [load] : [];
+  },
   render(ctx) {
     const shields = (ctx.datasets && ctx.datasets.shields) || {};
     const r = ctx.resolution;
     const state = homeState({ resolution: r, todayISO: ctx.today, portalSeason: ctx.portal.season });
     if (state === 'E' || state === 'X') {
-      return html`<section data-screen="home" data-state="${state}">${state === 'E' ? stateE(ctx, shields) : stateX(ctx, shields)}${followedBlock(ctx)}</section>`;
+      return withStatus(html`<section data-screen="home" data-state="${state}">${state === 'E' ? stateE(ctx, shields) : stateX(ctx, shields)}${followedBlock(ctx)}</section>`, ctx);
     }
     const team = { group: r.group, name: r.name };
     const view = teamView(ctx, team, { action: 'change', nextSeason: true, stale: r.stale || null, mine: true, shields, state });
     // La consulta de la ficha, en su orden; la plantilla, sin esperar a las actas (lazySquad).
     const aside = [...view.aside, ...teamExtras(ctx, r.group, r.name, { lazySquad: true })];
     // Los jugadores seguidos (la ficha de jugador), al final, si hay alguno.
-    return html`<section data-screen="home" data-state="${view.state}">${view.head}${teamColumns(view.main, aside, view.rest)}${followedBlock(ctx)}</section>`;
+    return withStatus(html`<section data-screen="home" data-state="${view.state}">${view.head}${teamColumns(view.main, aside, view.rest)}${followedBlock(ctx)}</section>`, ctx);
   },
   mount(root, ctx, nav) {
     const section = root.matches && root.matches('[data-screen="home"]') ? root : root.querySelector('[data-screen="home"]');

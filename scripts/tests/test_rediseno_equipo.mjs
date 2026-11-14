@@ -57,8 +57,8 @@ test('contrato de pantalla: id equipo, registrada en SCREEN_MAP, y una sección 
   }
 });
 
-// M4 de la revisión final de B2: data-health.json una vez por sesión, como la portada.
-test('needs: data-health.json una sola vez por sesión (null si falló), y nunca rechaza', async () => {
+// data-health.json como la portada (healthNeeds): un fallo no se vuelve a esperar hasta pasados 10 min.
+test('needs: data-health.json como mucho cada 10 min (null si falló), y nunca rechaza', async () => {
   const saved = { fetch: globalThis.fetch, warn: console.warn };
   let calls = 0;
   globalThis.fetch = async () => { calls += 1; return { ok: false, status: 503, text: async () => '' }; };
@@ -69,8 +69,11 @@ test('needs: data-health.json una sola vez por sesión (null si falló), y nunca
     assert.equal(loads.length, 1);
     await Promise.all(loads);
     assert.equal(datasets.health, null);
-    assert.deepEqual(screen.needs(HURACAN, datasets), [], 'falló: esta sesión no lo vuelve a pedir');
+    assert.deepEqual(screen.needs(HURACAN, datasets), [], 'falló hace nada: no lo vuelve a pedir');
     assert.equal(calls, 1);
+    datasets.healthAt -= 11 * 60000;
+    await Promise.all(screen.needs(HURACAN, datasets));
+    assert.equal(calls, 2, 'pasados 10 min, sí');
   } finally {
     globalThis.fetch = saved.fetch;
     console.warn = saved.warn;

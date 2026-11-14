@@ -15,7 +15,7 @@ import { findGroup, seasonLabel } from './model.js';
 import { routeIsMine } from './myteam.js';
 import { teamHref } from './links.js';
 import { errorBox } from './shell.js';
-import { ensureHealth, ensureLineups, lineupsKey } from './state.js';
+import { healthNeeds, ensureLineups, lineupsKey } from './state.js';
 import { mountTeamView, teamColumns, teamView } from './team-view.js';
 import { mountTeamExtras, teamExtras } from './team-extras.js';
 
@@ -91,13 +91,14 @@ function mount(root, ctx, nav) {
 
 export const screen = {
   id: 'equipo',
-  // data-health.json (la frescura de A, B y C), una vez por sesión, como la portada: undefined sin
-  // pedir y null si falló. Y las actas del grupo de la ruta (la plantilla): {} con un 404 y null
+  // data-health.json (la frescura de A, B y C), como la portada (healthNeeds): undefined sin pedir y
+  // null si falló. Y las actas del grupo de la ruta (la plantilla): {} con un 404 y null
   // si fallan, que la plantilla dice con su caja de error; un fallo se vuelve a pedir en la visita
   // siguiente. Nunca rechaza. La temporada de la ruta la carga el router (decisión 2 de B3).
   needs: (params, datasets) => {
     const loads = [];
-    if (datasets.health === undefined) loads.push(ensureHealth().then((health) => { datasets.health = health; }));
+    const health = healthNeeds(datasets);
+    if (health) loads.push(health);
     const s = params && params.s;
     const g = params && params.g;
     const key = lineupsKey(s, g);

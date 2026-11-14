@@ -224,14 +224,16 @@ function dataQuery() {
 export const LAZY_TIMEOUT_MS = 15000;
 
 // Una petición perezosa: `file` con la ?v= de los datos y el tiempo límite. Devuelve lo que los
-// cargadores usan de una respuesta (ok, status y text()), con el cuerpo ya leído dentro del plazo.
+// cargadores usan de una respuesta (ok, status y text()), con el cuerpo ya leído dentro del plazo, y
+// fromCache si la sirvió el service worker de su copia porque la red no llegó (x-fb2-origen: cache).
 async function fetchData(file) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), LAZY_TIMEOUT_MS);
   try {
     const r = await fetch(`./${file}${dataQuery()}`, { signal: controller.signal });
     const body = r.ok ? await r.text() : '';
-    return { ok: r.ok, status: r.status, text: async () => body };
+    const fromCache = r.headers?.get?.('x-fb2-origen') === 'cache';
+    return { ok: r.ok, status: r.status, fromCache, text: async () => body };
   } finally {
     clearTimeout(timer);
   }
@@ -531,24 +533,43 @@ export async function loadAlevinSeasons(datasets, names, portalSeason, loaders =
 
 // data-health.json (spec §4.10 y §7): la comprobación de las fuentes, parseada, o null si no
 // llega (sin conexión, por ejemplo). Un único vuelo: las llamadas simultáneas comparten la
-// petición; un fallo no se memoriza y la siguiente llamada reintenta.
+// petición. Una respuesta vale HEALTH_TTL_MS: el aviso de estado de la portada no puede leer la de
+// hace horas. Si la sirvió la copia del service worker, o si un refresco falla y había una anterior,
+// el objeto lleva fromCache: true; un fallo no se memoriza y la siguiente llamada reintenta.
+export const HEALTH_TTL_MS = 600000;
 let _health = null;
+let _healthAt = 0;
 let _healthPromise = null;
-async function loadHealth() {
+async function loadHealth(now) {
   try {
     const r = await fetchData('data-health.json');
     if (!r.ok) throw new Error('HTTP ' + r.status);
-    _health = JSON.parse(await r.text());
+    const health = JSON.parse(await r.text());
+    _health = r.fromCache ? { ...health, fromCache: true } : health;
+    _healthAt = now();
     return _health;
   } catch (e) {
     console.warn('[state] ensureHealth failed:', e.message);
-    return null;
+    return _health ? { ..._health, fromCache: true } : null;
   }
 }
-export async function ensureHealth() {
-  if (_health) return _health;
-  if (!_healthPromise) _healthPromise = loadHealth().finally(() => { _healthPromise = null; });
+export async function ensureHealth({ now = Date.now } = {}) {
+  if (_health && now() - _healthAt <= HEALTH_TTL_MS) return _health;
+  if (!_healthPromise) _healthPromise = loadHealth(now).finally(() => { _healthPromise = null; });
   return _healthPromise;
+}
+
+// Lo que ponen en `needs` las pantallas que leen data-health: una promesa que deja la salud (o null)
+// en datasets.health y su hora en datasets.healthAt, o null si no hace falta pedirla. Se pide si no
+// se ha pedido nunca o si la última respuesta tiene más de HEALTH_TTL_MS; sin healthAt (una salud
+// puesta a mano), vale la que hay. Nunca rechaza.
+export function healthNeeds(datasets, { ensure = ensureHealth, now = Date.now } = {}) {
+  const fresh = datasets.health !== undefined && !(Number.isFinite(datasets.healthAt) && now() - datasets.healthAt > HEALTH_TTL_MS);
+  if (fresh) return null;
+  return ensure().then((health) => {
+    datasets.health = health;
+    datasets.healthAt = now();
+  });
 }
 
 /* `needs` de las pantallas que leen una temporada (spec §5.4): [] si es la del portal o ya

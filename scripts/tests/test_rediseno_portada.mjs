@@ -87,9 +87,10 @@ test('contrato de pantalla: id home, sin cargas con data-health ya cargado, y un
   }
 });
 
-// M4 de la revisión final de B2: datasets.health es undefined sin pedir y null si falló. Se pide
-// una sola vez por sesión: mientras falla, las visitas siguientes pintan en el acto, sin esperar.
-test('needs: data-health.json una sola vez por sesión, guardado en datasets.health (null si falló), y nunca rechaza', async () => {
+// datasets.health es undefined sin pedir y null si falló; datasets.healthAt, la hora de la última
+// respuesta. Se vuelve a pedir pasados HEALTH_TTL_MS (el aviso de estado no puede leer la salud de
+// hace horas); antes, las visitas siguientes pintan en el acto, también tras un fallo.
+test('needs: data-health.json como mucho cada 10 min, guardado en datasets.health (null si falló), y nunca rechaza', async () => {
   const saved = { fetch: globalThis.fetch, warn: console.warn };
   let calls = 0;
   let up = false;
@@ -105,21 +106,56 @@ test('needs: data-health.json una sola vez por sesión, guardado en datasets.hea
     assert.equal(first.length, 1);
     await Promise.all(first);
     assert.equal(failed.health, null);
-    assert.deepEqual(screen.needs({}, failed), [], 'falló: esta sesión no lo vuelve a pedir');
+    assert.equal(typeof failed.healthAt, 'number');
+    assert.deepEqual(screen.needs({}, failed), [], 'falló hace nada: no lo vuelve a pedir');
     assert.equal(calls, 1);
-    // Llega: queda guardado y tampoco se vuelve a pedir.
+    // Pasados los 10 min, sí.
     up = true;
+    failed.healthAt -= 11 * 60000;
+    await Promise.all(screen.needs({}, failed));
+    assert.equal(failed.health.nextSeason.status, 'pending');
+    assert.equal(calls, 2);
+    // Llega: queda guardado y tampoco se vuelve a pedir en 10 min.
     const datasets = { health: undefined };
     const loads = screen.needs({}, datasets);
     assert.equal(loads.length, 1);
     await Promise.all(loads);
     assert.equal(datasets.health.nextSeason.status, 'pending');
     assert.deepEqual(screen.needs({}, datasets), [], 'cargado, no se vuelve a pedir');
-    assert.equal(calls, 2);
+    datasets.healthAt -= 11 * 60000;
+    assert.equal(screen.needs({}, datasets).length, 1, 'de hace 11 min: se vuelve a pedir');
   } finally {
     globalThis.fetch = saved.fetch;
     console.warn = saved.warn;
   }
+});
+
+// El aviso de estado (src/estado.js): en todos los estados, justo tras la cabecera y antes del aviso
+// stale; nada con la salud sana. El ctx lleva como now el mediodía UTC de `today` (startContext).
+const red = { ...health, runHealth: { ok: false, reasons: ['x'], since: '2026-09-23T10:05:00+00:00' } };
+const sanaEl = (today) => ({ ...health, runHealth: { ok: true }, checkedAt: `${today}T11:30:00+00:00` });
+const AVISO_ROJO = '<p class="notice home-status" role="status"><b>La última actualización de los datos falló.';
+
+test('aviso de estado: con la salud en rojo, en cada estado, justo detrás de la primera </header>; con la sana, ninguno', () => {
+  for (const [state, options] of Object.entries(CASES)) {
+    const out = render({ ...options, withHealth: red });
+    assert.match(out, new RegExp(`data-state="${state}"`));
+    const at = out.indexOf('</header>') + '</header>'.length;
+    assert.ok(out.startsWith(AVISO_ROJO, at), `${state}: ${out.slice(at, at + 120)}`);
+    assert.equal((out.match(/home-status/g) || []).length, 1, state);
+    assert.match(out, /<a class="more" href="#\/fuentes">Ver datos y fuentes<\/a><\/p>/, state);
+    assert.doesNotMatch(render({ ...options, withHealth: sanaEl(options.today) }), /home-status/, `${state} sana`);
+  }
+});
+
+test('aviso de estado: sin salud (null) o sin pedir, ninguno; en C, antes del aviso stale', () => {
+  assert.doesNotMatch(render({ ...CASES.A, withHealth: null }), /home-status/);
+  assert.doesNotMatch(String(screen.render({ ...homeCtx(CASES.A), health: undefined })), /home-status/);
+  const stale = '<p class="notice"><b>¿Sigue tu equipo en la Segunda Fase?</b>';
+  const out = render({ ...CASES.C, withHealth: red, resolution: (resolution) => ({ ...resolution, stale: true }) });
+  const status = out.indexOf('home-status');
+  assert.ok(status > 0 && out.indexOf(stale) > status, 'el de estado va primero');
+  assert.ok(out.includes(`Ver datos y fuentes</a></p>${stale}`));
 });
 
 test('cabecera (screenHead): escudo de 46 sin carga diferida, nombre en el h1, etiqueta de grupo y «Cambiar» a Explorar con el buscador', () => {

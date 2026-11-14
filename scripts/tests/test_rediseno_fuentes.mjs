@@ -211,6 +211,8 @@ test('needs pide data-health si no está, también si ya falló; el «Reintentar
     assert.deepEqual(b.marks(), [['#/explorar', 'true']]);
     assert.equal(b.doc.title, 'Datos y fuentes · Fútbol Base Las Palmas v2');
     assert.deepEqual(screen.needs({}, datasets), [], 'y ya no lo vuelve a pedir');
+    datasets.healthAt -= 11 * 60000;
+    assert.equal(screen.needs({}, datasets).length, 1, 'hasta pasados 10 min');
   } finally {
     globalThis.fetch = saved;
   }

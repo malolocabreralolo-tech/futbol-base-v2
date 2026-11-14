@@ -351,7 +351,7 @@ test('otra temporada (2024/25): su selector, sus ligas y copas, su buscador y M�
   assert.doesNotMatch(failed, /id="buscar"/);
 });
 
-test('needs: data-health.json una vez por sesión y sin rechazar nunca; nada si ya está (o si falló)', async (t) => {
+test('needs: data-health.json como mucho cada 10 min y sin rechazar nunca; nada si ya está (o si falló) y es reciente', async (t) => {
   assert.deepEqual(screen.needs({}, { health: fixture('health') }), []);
   assert.deepEqual(screen.needs({}, { health: null }), [], 'falló: no se espera otra vez');
   t.mock.method(globalThis, 'fetch', async () => ({ ok: true, status: 200, text: async () => JSON.stringify(fixture('health')) }));
@@ -360,6 +360,9 @@ test('needs: data-health.json una vez por sesión y sin rechazar nunca; nada si 
   assert.equal(loads.length, 1, 'solo data-health: la temporada de la ruta la carga el router');
   await Promise.all(loads);
   assert.equal(datasets.health.checkedAt, '2026-09-23T21:11:50+00:00');
+  assert.deepEqual(screen.needs({}, datasets), [], 'recién llegado');
+  datasets.healthAt -= 11 * 60000;
+  assert.equal(screen.needs({}, datasets).length, 1, 'de hace 11 min: se vuelve a pedir');
 });
 
 test('mount con el router: escribir filtra la lista y apunta la búsqueda con replaceState, sin volver a pintar; Atrás no recorre cada letra', async () => {

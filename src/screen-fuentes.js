@@ -9,7 +9,7 @@ import { block, box, cells, countLabel, empty, listEs, notice, screenHead } from
 import { errorBox, routeTitle } from './shell.js';
 import { canaryDateTime, dayMonthLong } from './links.js';
 import { seasonLabel } from './model.js';
-import { ensureHealth } from './state.js';
+import { healthNeeds } from './state.js';
 import { nextSeasonBox } from './team-view.js';
 
 // El estado de una comprobación en palabras (source_health.py escribe 'ok', 'rejected' o 'error').
@@ -176,10 +176,13 @@ function render(ctx) {
 
 export const screen = {
   id: 'fuentes',
-  // data-health.json, que es todo el contenido: se pide si no está, también si ya falló (null), a
-  // diferencia de las demás pantallas (M4 de B2). Así su «Reintentar» lo vuelve a pedir. Nunca
-  // rechaza: sin él, la pantalla pinta su vacío.
-  needs: (params, datasets) => (datasets.health ? []
-    : [ensureHealth().then((health) => { datasets.health = health; })]),
+  // data-health.json, que es todo el contenido: se pide como en las demás pantallas (healthNeeds) y,
+  // además, siempre que ya falló (null), para que su «Reintentar» lo vuelva a pedir. Nunca rechaza:
+  // sin él, la pantalla pinta su vacío.
+  needs: (params, datasets) => {
+    if (datasets.health === null) datasets.health = undefined;
+    const load = healthNeeds(datasets);
+    return load ? [load] : [];
+  },
   render,
 };

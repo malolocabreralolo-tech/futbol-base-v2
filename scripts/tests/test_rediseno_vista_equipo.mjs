@@ -74,10 +74,13 @@ function untimedJ18() {
 // no sale en ninguno: la clasificación de las fixtures es la del final de la temporada (currentAt no la
 // toca) y no cuadra con el calendario de esos días (startMatchesCalendar de src/proyeccion.js). Lo prueba
 // test_proyeccion_web.mjs, con la clasificación de cada día.
+// 2026-11-14: B y X, con el aviso de estado bajo la cabecera («Los datos llevan 7 días sin comprobarse.»:
+// la salud de la fixture es del 23/09 y su hoy, el 01/10); sin él, byte a byte los de antes
+// (BEFORE_STATUS). En los demás, la salud es de su mismo día o posterior y no hay aviso.
 const HOME = {
   A: [{ raw: currentAt('2026-03-01'), today: '2026-03-01' }, '6324408256e66f99200ca25b8cb24e0e92de3ab1'],
   'A en A2, con campo': [{ raw: currentAt('2026-05-20'), myTeam: { ...LAS_MESAS, cat: 'benjamin', groupId: 'A2' }, today: '2026-05-20' }, '211ed85261c6501b00759816803616f915467347'],
-  B: [{ raw: nextSeasonRaw({ benjamin: ['A1', 'B2', 'FF15'], prebenjamin: ['PG2', 'PG3'] }), myTeam: { ...LAS_MESAS, season: '2026-2027' }, today: '2026-10-01', portalSeason: '2026-2027', goles: false }, '8f38ff09c03b854b3c67b06379db98f43a7906a5'],
+  B: [{ raw: nextSeasonRaw({ benjamin: ['A1', 'B2', 'FF15'], prebenjamin: ['PG2', 'PG3'] }), myTeam: { ...LAS_MESAS, season: '2026-2027' }, today: '2026-10-01', portalSeason: '2026-2027', goles: false }, '1197c22fd509e24f31fdcdcbccc4acd69bfbf231'],
   'B de CD Batán': [{ raw: currentAt('2026-03-01'), myTeam: { ...LAS_MESAS, name: 'CD Batán' }, today: '2026-03-01' }, 'ec9408309fb1e01858c0f10de2323a8cb2b9b978'],
   C: [{ raw: currentAt('2026-06-03'), today: '2026-06-03' }, '14296a10661c7a6e5a9918cca7cf346fc6b23cee'],
   'C con stale': [{ raw: currentAt('2026-06-03'), today: '2026-06-03', stale: true }, '217db87f2ad1defe37fff1f9d18e4c3e47fd3156'],
@@ -86,7 +89,7 @@ const HOME = {
   'D con 2026/27 lista': [{ today: '2026-06-15', withHealth: { ...fixture('health'), nextSeason: { name: '2026-2027', status: 'ready' } } }, 'c2b20c0ac04343ee9a28ad460dae357e5a904900'],
   'D sin data-health': [{ today: '2026-09-23', withHealth: null, legacyDate: '23/09/2026' }, 'e4a00a69eaf3e8a9fa17177b2560a666694de910'],
   E: [{ myTeam: { name: 'Las Mesas Hu. B', season: '2025-2026', cat: 'benjamin', groupId: 'FF13' }, today: '2026-09-23' }, 'bede1e6746de45c5d2cf5882130d5d6594e6257d'],
-  X: [{ raw: nextSeasonRaw({ benjamin: ['A1'], prebenjamin: ['PG3'] }), today: '2026-10-01', portalSeason: '2026-2027', goles: false }, 'b60fcec7f40d3730d9150338f6377318bec65bad'],
+  X: [{ raw: nextSeasonRaw({ benjamin: ['A1'], prebenjamin: ['PG3'] }), today: '2026-10-01', portalSeason: '2026-2027', goles: false }, 'e50cc34ff23f1f93bdb24f7e073beea4cafba412'],
   'D sin «Verano»': [{ myTeam: { ...LAS_MESAS, name: 'RC Victoria' }, today: '2026-09-23' }, '93620123c997c53929ed7c1aee5d80c382b55bf1'],
   'C, próximo partido sin fecha publicada': [{ raw: undatedJ30(), today: '2026-05-31' }, '6b0135ae1070a1dbd6ba95cc050d06616e084258'],
   'C, resultado pendiente de publicar': [{ raw: currentAt('2026-06-02'), today: '2026-06-03' }, '61dd4249eac31db1f1b6db53890feb0c4ef1f4f9'],
@@ -100,6 +103,11 @@ const BEFORE_CALENDAR = {
   'A con menos de cinco resultados': 'e6c45c665b3b2799fe88e1051cd1b938c962636f',
   'A con la hora por confirmar': 'f53215d991afed6e7100199174d8c85947a00181',
 };
+// Las huellas de B y X antes del aviso de estado.
+const BEFORE_STATUS = {
+  B: '8f38ff09c03b854b3c67b06379db98f43a7906a5',
+  X: 'b60fcec7f40d3730d9150338f6377318bec65bad',
+};
 
 test('la portada pinta, byte a byte, lo que fijan sus huellas en A, B, C, D, E y X', () => {
   const sha = (out) => createHash('sha1').update(out).digest('hex');
@@ -110,6 +118,9 @@ test('la portada pinta, byte a byte, lo que fijan sus huellas en A, B, C, D, E y
     assert.equal(sha(out), sha1, name);
     // Sin las líneas del calendario ni su nota, lo de antes; y sin ninguna, nada cambia en los demás.
     assert.equal(sha(withoutLines(out)), BEFORE_CALENDAR[name] || sha1, `${name}, sin las líneas del calendario`);
+    const status = out.match(/<p class="notice home-status" role="status">[\s\S]*?<\/p>/);
+    assert.equal(Boolean(status), name in BEFORE_STATUS, `${name}, el aviso de estado`);
+    if (status) assert.equal(sha(out.replace(status[0], '')), BEFORE_STATUS[name], `${name}, sin el aviso de estado`);
     assert.doesNotMatch(out, /Evolución de puntos|Pronóstico de la clasificación final|proj-figure/, name);
   }
   // Lo que fija cada huella de B5, en claro: que el caso es el que dice su nombre.

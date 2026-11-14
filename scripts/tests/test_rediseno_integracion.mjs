@@ -468,3 +468,17 @@ test('Ajustes con start(): mi equipo guardado, y «Borrar» (tras desplegar el a
   assert.match(again.page.main.innerHTML, /<h1>Las Mesas Hu\.<\/h1>/);
   assert.deepEqual([...storage], [[LEGACY_KEY, JSON.stringify(fixture('favorites-v1'))], [IMPORTED_KEY, '1']]);
 });
+
+// ctx.now es el instante del pintado (el reloj de start), no el mediodía de `today`: el aviso de estado
+// de la portada mide con él la edad de checkedAt (23/09 21:11 UTC en la fixture de data-health).
+test('start: el ctx lleva como now el reloj de start; startContext, sin now, el mediodía UTC de today', async () => {
+  installData(raw);
+  const page = fakeBrowser('#/', { storage: new Map() });
+  const router = start(page.doc, page.win, PORTAL_2526, { now: () => new Date('2026-09-24T09:00:00Z') });
+  await router.idle();
+  assert.match(page.main.innerHTML, /<b>Los datos llevan 11 h sin comprobarse\.<\/b>/);
+  const ctx = startContext({ storage: memoryStorage(), portal: { season: '2025-2026', defaultTeam: PORTAL_2526.defaultTeam }, datasets: datasetsFor(), today: '2026-09-24' });
+  assert.equal(ctx.now.toISOString(), '2026-09-24T12:00:00.000Z');
+  const at = new Date('2026-09-24T08:00:00Z');
+  assert.equal(startContext({ storage: memoryStorage(), portal: { season: '2025-2026', defaultTeam: PORTAL_2526.defaultTeam }, datasets: datasetsFor(), today: '2026-09-24', now: at }).now, at);
+});

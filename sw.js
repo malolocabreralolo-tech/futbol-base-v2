@@ -67,6 +67,7 @@ const STATIC_ASSETS = [
   './src/pronostico.js',
   './src/proyeccion.js',
   './src/screen-home.js',
+  './src/estado.js',
   './src/team-view.js',
   './src/team-extras.js',
   './src/state.js',
@@ -155,10 +156,13 @@ async function usedLineups() {
 //                    B5). Antes del cache-first genérico, que casaría con sus
 //                    .png y .jpg.
 //   'cache-first' -> code, styles, images, fonts (immutable per ?v=).
+//   'network-first' -> data-health.json: la red con límite y, si no llega, la
+//                    copia guardada marcada; el aviso de estado de la portada no
+//                    puede leer la salud de la visita anterior.
 //   'network'     -> everything else (network, offline fallback).
 function classifyRequest(pathname) {
   const file = pathname.split('/').pop();
-  if (file === 'data-health.json') return 'swr';
+  if (file === 'data-health.json') return 'network-first';
   if (file.startsWith('data-') && file.endsWith('.js')) return 'swr';
   // Los módulos de src/ se piden SIN ?v= (index.html versiona app.js, pero no
   // sus imports), así que con cache-first un arreglo de solo código no llegaba
@@ -213,6 +217,17 @@ async function putAndPurge(request, response) {
   await Promise.all(keys.filter(k => stale.has(k.url)).map(k => cache.delete(k)));
 }
 
+// Lo que espera data-health.json a la red antes de servir la copia guardada.
+const LIMITE_SALUD_MS = 2500;
+
+// La copia guardada, con sus cabeceras y la que dice a la página que viene de
+// la caché.
+function markedFromCache(cached) {
+  const headers = new Headers(cached.headers);
+  headers.set('x-fb2-origen', 'cache');
+  return new Response(cached.body, { status: cached.status, statusText: cached.statusText, headers });
+}
+
 self.addEventListener('install', e => {
   e.waitUntil(
     caches.open(CACHE_NAME).then(async c => {
@@ -264,6 +279,29 @@ self.addEventListener('fetch', e => {
         }).catch(() => cached || caches.match(OFFLINE_URL));
         e.waitUntil(networkFetch.then(() => {}));
         return cached || networkFetch;
+      })
+    );
+    return;
+  }
+
+  // data-health.json: la red, si responde bien antes de LIMITE_SALUD_MS (y se
+  // guarda); si no, la copia guardada con x-fb2-origen: cache, para que la
+  // página sepa que no es la de ahora; sin copia, lo que dé la red. Si la red
+  // llega tarde, se guarda igual para la próxima vez.
+  if (strategy === 'network-first') {
+    const network = fetchFresh(e.request).then(async response => {
+      if (response.ok) await putAndPurge(e.request, response.clone());
+      return response;
+    });
+    e.waitUntil(network.then(() => {}, () => {}));
+    let timer;
+    const limit = new Promise(resolve => { timer = setTimeout(() => resolve(null), LIMITE_SALUD_MS); });
+    e.respondWith(
+      Promise.race([network.then(response => (response.ok ? response : null), () => null), limit]).then(async fresh => {
+        clearTimeout(timer);
+        if (fresh) return fresh;
+        const cached = await matchIgnoringVersion(e.request);
+        return cached ? markedFromCache(cached) : network;
       })
     );
     return;
