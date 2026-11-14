@@ -256,31 +256,57 @@ def finish(now=None, failed=False):
     REPORT_PATH.write_text(json.dumps(_report, ensure_ascii=False, indent=2) + "\n")
 
 
-# Lo que activar.yml ya intentó (activation.tried) no se vuelve a lanzar desde el bot hasta pasado este rato:
-# una activación que falla por algo que no se arregla solo no se relanza en cada pasada.
-RETRY_AFTER = timedelta(hours=6)
+# Cuándo vuelve a lanzar el bot activar.yml (update.yml, «Lanzar la activación si hay algo nuevo», con
+# pending_activation). Una descarga incompleta, en la pasada siguiente, hasta MAX_ATTEMPTS intentos (cada uno
+# descarga 20 min: pasadas e intentos se alternan); lo que no se arregla solo, una vez al día (RETRY_AFTER).
+RETRY_AFTER = timedelta(hours=24)
+MAX_ATTEMPTS = 8
+# El principio de los motivos de descarga incompleta de activar_auto.py (DESCARGA): los únicos que se reanudan.
+INCOMPLETE = "la descarga no está completa"
 
 
-def pending_activation(report, now=None):
-    """Las competiciones (ids, ordenados y sin repetir) de newCompetitions y newGroups que activar.yml tendría
-    que intentar: las que no están en activation.tried de un intento de hace menos de RETRY_AFTER."""
-    report = report if isinstance(report, dict) else {}
+def _pending_ids(report):
     ids = set()
     for key, field in (("newCompetitions", "id"), ("newGroups", "competition")):
         items = report.get(key)
         for item in items if isinstance(items, list) else []:
             if isinstance(item, dict) and str(item.get(field) or "").isdigit():
                 ids.add(str(item[field]))
+    return ids
+
+
+def _old(activation, now):
+    """¿El intento (activation.at) es de hace RETRY_AFTER o más? Sin una hora que valga no se sabe: sí."""
+    try:
+        at = datetime.fromisoformat(str(activation.get("at")))
+        return (now or datetime.now(timezone.utc)) - at >= RETRY_AFTER
+    except (TypeError, ValueError):
+        return True
+
+
+def pending_activation(report, now=None):
+    """Las competiciones pendientes (ids de newCompetitions y newGroups, ordenados y sin repetir) si el bot tiene
+    que lanzar activar.yml, o [] si no:
+      - alguna no está en activation.tried: ya;
+      - todas lo están y todos los fallos de las pendientes son de descarga incompleta: ya, si
+        activation.attempts < MAX_ATTEMPTS (el intento siguiente reanuda la descarga);
+      - si no (otro motivo, o MAX_ATTEMPTS intentos de descarga): cuando activation.at tenga RETRY_AFTER."""
+    report = report if isinstance(report, dict) else {}
+    ids = _pending_ids(report)
+    if not ids:
+        return []
     activation = report.get("activation")
-    if isinstance(activation, dict) and isinstance(activation.get("tried"), list):
-        try:
-            at = datetime.fromisoformat(str(activation.get("at")))
-            recent = (now or datetime.now(timezone.utc)) - at < RETRY_AFTER
-        except (TypeError, ValueError):
-            recent = False                  # sin una hora que valga no se sabe cuándo fue: no frena
-        if recent:
-            ids -= {str(comp) for comp in activation["tried"]}
-    return sorted(ids)
+    if not isinstance(activation, dict) or not isinstance(activation.get("tried"), list):
+        return sorted(ids)
+    if ids - {str(comp) for comp in activation["tried"]}:
+        return sorted(ids)
+    failed = activation.get("failed") if isinstance(activation.get("failed"), list) else []
+    reasons = [str(f.get("reason") or "") for f in failed if isinstance(f, dict) and str(f.get("competition")) in ids]
+    attempts = activation.get("attempts")
+    attempts = attempts if isinstance(attempts, int) and not isinstance(attempts, bool) else 0
+    if reasons and all(r.startswith(INCOMPLETE) for r in reasons) and attempts < MAX_ATTEMPTS:
+        return sorted(ids)
+    return sorted(ids) if _old(activation, now) else []
 
 
 def main(argv=None, now=None):
@@ -289,9 +315,8 @@ def main(argv=None, now=None):
                         falso); con 0 si es sana o no hay veredicto;
       marcar "<motivo>" pone runHealth en rojo con ese motivo (con `since` y los motivos de antes si ya lo
                         estaba) y escribe el fichero, sin tocar nada más del informe;
-      pendiente         sale con 0, e imprime sus ids separados por comas, si hay competiciones o grupos
-                        nuevos que activar.yml no haya intentado en las últimas 6 h (pending_activation);
-                        con 1 si no hay nada que lanzar."""
+      pendiente         sale con 0, e imprime sus ids separados por comas, si update.yml tiene que lanzar
+                        activar.yml para las competiciones y grupos nuevos (pending_activation); con 1 si no."""
     args = sys.argv[1:] if argv is None else list(argv)
     if args == ["pendiente"]:
         ids = pending_activation(_read_previous(), now)

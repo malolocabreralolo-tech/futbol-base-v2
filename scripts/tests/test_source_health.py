@@ -321,19 +321,55 @@ def test_the_pending_order_prints_what_activar_yml_would_activate(portal, capsys
     assert source_health.main(["pendiente"], now=PEND_NOW) == 1      # sin informe
 
 
-def test_the_pending_order_waits_6_hours_for_what_was_already_tried(portal, capsys):
-    """Sin bucles: lo que activar.yml ya intentó (activation.tried) no se relanza hasta 6 h después de ese
-    intento (activation.at); lo nuevo de entre medias, sí."""
-    tried = {"activated": [], "failed": [], "tried": ["54976988", "55400001"]}
-    recent = {**PEND_REPORT, "activation": {**tried, "at": (PEND_NOW - timedelta(hours=5, minutes=59)).isoformat()}}
-    assert pending(capsys, recent) == (1, "")
-    old = {**PEND_REPORT, "activation": {**tried, "at": (PEND_NOW - timedelta(hours=6, minutes=1)).isoformat()}}
-    assert pending(capsys, old) == (0, "54976988,55400001\n")
-    some = {**recent, "activation": {**recent["activation"], "tried": ["54976988"]}}
-    assert pending(capsys, some) == (0, "55400001\n")
-    broken = {**PEND_REPORT, "activation": {**tried, "at": "ayer"}}
-    assert pending(capsys, broken) == (0, "54976988,55400001\n")     # sin hora que valga, no frena
+BEN, SEG = "54976988", "55400001"
+DESCARGA = "la descarga no está completa: faltan 3 grupos"
+CONVENIO = "sin convenio de código: LIGA X"
+
+
+def tried(failed, hours, attempts=1, ids=(BEN, SEG)):
+    """PEND_REPORT con la activation de un intento de hace `hours` h sobre `ids`, con `failed` [(id, motivo)]."""
+    return {**PEND_REPORT, "activation": {
+        "at": (PEND_NOW - timedelta(hours=hours)).isoformat(), "activated": [], "tried": list(ids),
+        "attempts": attempts, "failed": [{"competition": c, "name": c, "reason": r} for c, r in failed]}}
+
+
+def test_the_pending_order_launches_what_was_never_tried_at_once(portal, capsys):
+    """Ronda de arreglo 1: lo pendiente que activar.yml no ha intentado (no está en activation.tried) se lanza
+    ya, aunque lo demás se intentara hace un minuto."""
+    assert pending(capsys, tried([(SEG, CONVENIO)], 0.01, ids=[SEG])) == (0, "54976988,55400001\n")
     assert pending(capsys, {**PEND_REPORT, "activation": "x"}) == (0, "54976988,55400001\n")
+
+
+def test_the_pending_order_alternates_download_attempts_with_the_passes_up_to_8(portal, capsys):
+    """Una descarga incompleta (todos los fallos de lo pendiente, de descarga) se reanuda en la pasada siguiente,
+    sin esperar, hasta 8 intentos (activation.attempts); con 8, como un fallo que no se arregla solo: 24 h."""
+    both = [(BEN, DESCARGA), (SEG, DESCARGA)]
+    assert pending(capsys, tried(both, 0.01, attempts=7)) == (0, "54976988,55400001\n")
+    assert pending(capsys, tried(both, 0.01, attempts=8)) == (1, "")
+    assert pending(capsys, tried(both, 23.9, attempts=8)) == (1, "")
+    assert pending(capsys, tried(both, 24, attempts=8)) == (0, "54976988,55400001\n")
+    no_count = tried(both, 0.01)
+    del no_count["activation"]["attempts"]                            # de antes de contar: el primero
+    assert pending(capsys, no_count) == (0, "54976988,55400001\n")
+
+
+def test_the_pending_order_waits_24_hours_for_what_does_not_fix_itself(portal, capsys):
+    """Sin convenio, verificación, código repetido, pruebas, regenerar…: no se arregla relanzando; una vez al
+    día. También si se mezcla con un fallo de descarga, o si lo intentado no dejó motivo."""
+    for failed in ([(SEG, CONVENIO)], [(BEN, DESCARGA), (SEG, CONVENIO)], []):
+        assert pending(capsys, tried(failed, 23.9)) == (1, ""), failed
+        assert pending(capsys, tried(failed, 24)) == (0, "54976988,55400001\n"), failed
+    assert pending(capsys, {**tried([(SEG, CONVENIO)], 1), "activation": {
+        **tried([(SEG, CONVENIO)], 1)["activation"], "at": "ayer"}}) == (0, "54976988,55400001\n")   # sin hora: no frena
+    # Los fallos de lo que ya no está pendiente no cuentan: solo queda BEN, por descarga.
+    only_ben = {**tried([(BEN, DESCARGA), ("99", CONVENIO)], 0.01, ids=[BEN, "99"]), "newCompetitions": []}
+    assert pending(capsys, only_ben) == (0, "54976988\n")
+
+
+def test_the_download_reason_is_the_one_activar_auto_writes():
+    import activar_auto
+    assert activar_auto.DESCARGA == source_health.INCOMPLETE
+    assert activar_auto.INCOMPLETA.startswith(source_health.INCOMPLETE)
 
 
 def test_the_orders_run_from_the_command_line():
