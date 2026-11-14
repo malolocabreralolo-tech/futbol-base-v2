@@ -33,21 +33,23 @@ Iguales salvo `players`, que solo crece (no se borra ninguna fila).
 
 | | Antes | Después |
 |---|---:|---:|
-| Fichas (con alguna aparición) | 17669 | 15134 |
+| Fichas (con alguna aparición) | 17669 | 14989 |
 | Con algún id de la federación (v1 publicaba las filas con `fiflp_id`) | 17019 | 14239 |
-| Sin ningún id | 650 | 895 |
+| Sin ningún id | 650 | 750 |
 | Imposibles por edad | 15 | 0 |
 | Imposibles por solape (dos clubes a la vez) | 101 | 89 |
 | Filas de `players` sin ninguna aparición | 1 | 651 |
 | Filas sin aparición ni suceso | 0 | 650 |
 
-Identidades con aparición o suceso: 19000; fichas que da el resolvedor: 15135.
+Identidades con aparición o suceso: 19000; fichas que da el resolvedor: 14990.
 
 Uniones (identidades que no son la principal de su ficha, por la regla que las unió):
 
 - U0, mismo equipo y temporada (`equipo`): 3039
-- U1, mismo club, temporadas seguidas (`club`): 615
-- U2, candidata única (`nombre`): 211
+- mismo club (U0 de club y U1) (`club`): 791
+  - de ellas, U0 de club, mismo club y temporada: 131
+  - U1, mismo club, temporadas seguidas: 660
+- U2, candidata única (`nombre`): 180
 
 ## Separar
 
@@ -216,8 +218,8 @@ Una sola identidad con id es lo que dice la federación: el mismo id en dos equi
 
 ## Tiempos (segundos)
 
-- leer originales: 2.28
-- esquema: 0.02
-- separar: 8.23
-- resolver_fichas: 6.51
-- de `resolver_fichas`: cargar 4.3, resolver 2.15
+- leer originales: 4.5
+- esquema: 0.03
+- separar: 19.01
+- resolver_fichas: 16.77
+- de `resolver_fichas`: cargar 11.66, resolver 5.0
