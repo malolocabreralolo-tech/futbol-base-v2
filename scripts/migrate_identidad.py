@@ -34,7 +34,8 @@ from collections import Counter, defaultdict
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from fiflp_acta import clean_scorer  # noqa: E402  (la limpieza del goleador que hace el importador)
-from identidad import NIVEL, UNIR_CORTOS_EN_CLUB, Identidad, compatibles, intervalo, normalizar, resolver  # noqa: E402
+from identidad import (NIVEL, UNIR_CORTOS_EN_CLUB, Identidad, club, compatibles, intervalo, normalizar,  # noqa: E402
+                       resolver)
 
 SCRIPTS = os.path.dirname(os.path.abspath(__file__))
 ANON_NORM = "#SIN NOMBRE PUBLICADO"     # la fila del gol sin nombre publicado (import_fiflp_actas): no se toca
@@ -739,9 +740,12 @@ def informe(r: dict, medida_antes: dict, medida_despues: dict, d12: list[str], s
           "",
           "Uniones (identidades que no son la principal de su ficha, por la regla que las unió):",
           ""]
-    for regla, nombre in (("equipo", "U0, mismo equipo y temporada"), ("club", "U1, mismo club, temporadas seguidas"),
+    for regla, nombre in (("equipo", "U0, mismo equipo y temporada"), ("club", "mismo club (U0 de club y U1)"),
                           ("nombre", "U2, candidata única")):
         L.append(f"- {nombre} (`{regla}`): {fi['uniones'].get(regla, 0)}")
+        if regla == "club" and "club y temporada" in fi:
+            L += [f"  - de ellas, U0 de club, mismo club y temporada: {fi['club y temporada']}",
+                  f"  - U1, mismo club, temporadas seguidas: {fi['uniones'].get('club', 0) - fi['club y temporada']}"]
     L += ["", "## Separar", ""]
     for clave in ("apariciones separadas", "apariciones separadas de filas con id",
                   "apariciones separadas de filas sin id", "filas de las que se separaron apariciones",
@@ -812,14 +816,32 @@ def _describe(conn, pid):
     return f"{pid} «{r[1]}» ({'id ' + str(r[2]) if r[2] is not None else 'sin id'}): {_perfil_txt(perfil(conn, pid))}"
 
 
+def uniones_de_club_y_temporada(conn) -> list[int]:
+    """Las identidades con union_por 'club' que comparten club y temporada con otra de su ficha: las de la U0
+    de club (ronda 3 de docs/identidad.md). Las demás 'club' son de U1: U1 solo une de uno a uno, así que la
+    identidad que une es la única de su ficha en ese club y temporada."""
+    vistas = _vistas(conn)
+    ficha = {pid: f or pid for pid, f in conn.execute("SELECT id, ficha_id FROM players")}
+    por_ficha = defaultdict(list)
+    for pid in vistas:
+        por_ficha[ficha[pid]].append(pid)
+    lados = {pid: {(club(v[2] or ""), v[0]) for v in vs} for pid, vs in vistas.items()}
+    return [pid for (pid,) in conn.execute("SELECT id FROM players WHERE union_por='club' ORDER BY id")
+            if any(lados.get(pid, set()) & lados[o] for o in por_ficha[ficha[pid]] if o != pid)]
+
+
 def muestras(conn, movidas, semilla: int = SEMILLA, n: int = 20) -> str:
     """20 uniones de cada tipo y 20 separaciones al azar (semilla fija), con nombres: para revisar a ojo."""
     rnd = random.Random(semilla)
     L = ["# Muestras de la migración de la fase 2C (con nombres: NO se versiona)", "",
          f"Semilla {semilla}. Cada línea: la identidad y, debajo, la principal de su ficha (o la fila de la que "
          "salió).", ""]
-    for regla, titulo in (("nombre", "U2, candidata única"), ("club", "U1, mismo club"), ("equipo", "U0, mismo equipo")):
-        ids = [pid for (pid,) in conn.execute("SELECT id FROM players WHERE union_por=? ORDER BY id", (regla,))]
+    de_temporada = set(uniones_de_club_y_temporada(conn))
+    for regla, titulo in (("nombre", "U2, candidata única"), ("club", "U1, mismo club, temporadas seguidas"),
+                          ("club-temporada", "U0 de club, mismo club y temporada"), ("equipo", "U0, mismo equipo")):
+        ids = [pid for (pid,) in conn.execute("SELECT id FROM players WHERE union_por=? ORDER BY id",
+                                              (regla.split("-")[0],))]
+        ids = [pid for pid in ids if (pid in de_temporada) == (regla == "club-temporada")]
         L += [f"## {titulo} ({len(ids)} en total)", ""]
         for pid in sorted(rnd.sample(ids, min(n, len(ids)))):
             principal = _fila(conn, pid)[3]
@@ -865,6 +887,7 @@ def main(argv=None):
                    "cambiadas": r2["fichas"]["cambiadas"], "segundos resolver_fichas": r2["fichas"]["segundos"]}
         print(f"segunda pasada: {segunda}")
     medida_despues = medida_fichas(conn)
+    r["fichas"]["club y temporada"] = len(uniones_de_club_y_temporada(conn))
     integridad = comprobar(conn)
     print(f"comprobaciones: {integridad}")
     if args.informe:

@@ -432,3 +432,12 @@ def test_una_aparicion_sin_dorsal_que_el_original_no_trae_es_un_goleador_sin_id(
     assert conn.execute("SELECT player_id FROM match_events").fetchone()[0] == pid_de(conn, "VIDAL, IKER@1.1")
     assert r["separar"]["apariciones sin dorsal que el original no trae (goleador: sin id)"] == 1
     assert r["separar"]["apariciones con dorsal que el original no trae (regla sin original)"] == 1
+
+
+def test_las_uniones_de_club_y_temporada_no_cuentan_las_de_u1(mundo):
+    # EVA se une por U1 (dos temporadas del club): 'club', pero no de la U0 de club (ronda 3).
+    conn, raws = mundo
+    M.migrate(conn, str(raws), log=quiet)
+    eva_sin = pid_de(conn, "MORA DIAZ, EVA@3.2")
+    assert fila(conn, eva_sin)[7] == "club"
+    assert eva_sin not in M.uniones_de_club_y_temporada(conn)
