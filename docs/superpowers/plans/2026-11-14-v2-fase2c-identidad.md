@@ -59,6 +59,16 @@ Sobre los originales (`scripts/fiflp_actas_*_raw.json`, 2019-20 a 2025-26), que 
 
 **Clave pública** de una identidad: su `fiflp_id` en decimal; sin identificador, `n` + los 9 primeros caracteres en base 36 del SHA-1 de `"<nombre normalizado>|<nombre del equipo>|<año de inicio de la temporada>"` (en minúsculas, relleno con ceros). La clave de la ficha es la de su principal; las de las demás identidades son **alias** que llevan a ella. Trozo (`shard`) de una clave: numérica, `id % 16`; `n…`, `parseInt(resto, 36) % 16`. Python y JavaScript deben dar lo mismo.
 
+## Correcciones durante la ejecución (14/11/2026)
+
+Las reglas de unión se ampliaron en tres rondas, cada una a partir de lo visto en el ensayo sobre la base real y con su medida entre jugadores con identificador (lo vigente, con cifras y decisiones, está en `docs/identidad.md`; el resultado del ensayo, en `docs/identidad-migracion.md`):
+
+1. **U0 de nombres cortos**: en un equipo y temporada, los identificadores de un solo uso (una aparición) de un nombre sin coma se unen a la única identidad asentada de ese nombre. Con ella, los nombres cortos uno a uno en el mismo club dan 97,8 % (después, 100 % los sin coma) y `UNIR_CORTOS_EN_CLUB = True`.
+2. **U0 con un apellido**: la U0 normal vale para todo nombre con coma, no solo con dos apellidos (un niño con un apellido tenía 39 fichas de un partido). **U1 entre una ficha sin identificador y una con identificador** del mismo club en temporadas seguidas, de uno a uno (nunca dos con identificador).
+3. **U0 de club**: mismo nombre con coma, mismo club y misma temporada, con como mucho una ficha con identificador → una ficha (el niño que juega en el prebenjamín del club y sube un partido al benjamín «B»). Medida: 99,4 % completos, 100 % un apellido.
+
+Resultado del ensayo final: 14.989 fichas (17.669 antes), 0 imposibles por edad, recuentos de todas las tablas idénticos; uniones `equipo` 3.039, `club` 791, `nombre` 180. La tarea 5 se hizo en la rama `fase2c-web` (fusionada) en paralelo con la 4. Textos de la ficha: «unido por nombre», con «(mismo equipo y temporada)» o «(mismo club)».
+
 ## Review Focus
 
 1. Un acta releída o reimportada (`_import_one` borra y reescribe): las identidades y las fichas quedan igual que antes (idempotencia de punta a punta, dos veces seguidas).
