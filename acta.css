@@ -430,6 +430,8 @@ abbr[title] { text-decoration: none; }
 .screen-head-text { flex: 1 1 auto; min-width: 0; }
 /* Nombre completo, con elipsis si no cabe a 320 px (spec §3.5). */
 .screen-head h1 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* La ficha del jugador: su nombre entero, en dos o más líneas si hace falta (nunca con «…»). */
+[data-screen="jugador"] .screen-head h1 { overflow: visible; white-space: normal; overflow-wrap: anywhere; }
 .screen-sub { margin-top: 2px; font-size: 12.5px; color: var(--mute); }
 /* Enlace o botón («Cambiar», «Mi grupo», «Otras ligas», «Compartir»): los dos en tinta y subrayados. */
 .screen-action {
