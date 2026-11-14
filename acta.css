@@ -1097,13 +1097,14 @@ abbr[title] { text-decoration: none; }
 .cal-actions { margin-bottom: 8px; }
 
 /* «Pronóstico final», la primera cifra de «La temporada en cifras» (projectionFigure de team-view.js,
- * 19/10/2026): la etiqueta de las casillas y, en una línea, el puesto, grande y en tinta («4.º»), los
- * puntos y, a la derecha, «Ver la tabla prevista ›», subrayado como .more. Toda la fila es el enlace (a la
+ * 19/10/2026): la etiqueta de las casillas y, en una línea, el puesto, grande y en tinta («4.º»), su margen
+ * en gris («· entre 2.º y 5.º»), los puntos y, a la derecha, «Ver la tabla prevista ›», subrayado como .more. Toda la fila es el enlace (a la
  * vista del pronóstico de la Tabla); si no cabe, «Ver la tabla prevista» pasa debajo. */
 .proj-figure { display: block; padding: 6px 8px 8px; color: inherit; text-decoration: none; }
 .proj-figure:focus-visible { outline-offset: -4px; }
 .proj-figure-main { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 10px; }
 .proj-figure-pos { font-size: 28px; font-weight: 800; line-height: 1.15; color: var(--ink); }
+.proj-figure-fan { font-size: 15px; font-weight: 700; color: var(--mute); }
 .proj-figure-pts { font-size: 15px; font-weight: 700; color: var(--text); }
 .proj-figure-more { margin-left: auto; font-size: 13px; font-weight: 700; color: var(--ink); text-decoration: underline; }
 @media (hover: hover) {

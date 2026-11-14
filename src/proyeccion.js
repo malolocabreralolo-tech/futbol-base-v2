@@ -4,8 +4,8 @@
  * aporta tanto»): «en base a la evolución de los resultados, […] una proyección de la clasificación final
  * en la que pueda quedar […] pronóstico tercero, o segundo, o quinto». Tras ver la primera versión (un
  * bloque con la tabla en cada ficha), lo quiso como una cifra: en «La temporada en cifras» de la ficha y
- * de Mi equipo, «Pronóstico final: 4.º, unos 45 puntos» (projectionFigure de team-view.js, con
- * projectPlaces), que abre la tabla prevista en un solo sitio, la Tabla del grupo (v=pronostico,
+ * de Mi equipo, «Pronóstico final: 4.º · entre 2.º y 6.º · unos 45 puntos» (projectionFigure de
+ * team-view.js, con projectStandings), que abre la tabla prevista en un solo sitio, la Tabla del grupo (v=pronostico,
  * projectionView de screen-tabla.js, con projectStandings; el router quita esa vista donde
  * projectionApplies da false). Puro e importable en Node sin DOM, como pronostico.js: recibe el Group de
  * model.js y la temporada del portal por parámetro y no lee ningún global de datos. Nada en la base ni en
@@ -83,11 +83,12 @@
  * prebenjamín (13 equipos, 144 partidos por jugar), en Chrome, en una página nueva que entra por #/ajustes
  * (sin nada pronosticado antes), tres de cada, con la CPU tal cual y frenada 4× (como un móvil lento):
  *   projectionApplies (si lo hay)                   4-5 ms     16-17 ms a 4×
- *   projectPlaces, después (puesto y puntos)        21-24 ms   56-71 ms
+ *   el puesto y los puntos, después (prepare)       21-24 ms   56-71 ms
  *   projectStandings, después (las simulaciones)    31-34 ms   88-93 ms
  *   projectStandings, todo de una vez               53-61 ms   156-170 ms
- * (lo de projectPlaces es, casi todo, el pronóstico de los 144 partidos y su ajuste). Por eso cada
- * pantalla pide solo lo que enseña (la web, abajo): las simulaciones, solo al abrir la tabla prevista. El
+ * (lo de prepare es, casi todo, el pronóstico de los 144 partidos y su ajuste). La cifra de la ficha y de
+ * Mi equipo también simula, que lleva el margen: una vez por grupo y día, en la caché que comparte con la
+ * tabla prevista (la web, abajo). Cuando solo simulaba la tabla prevista, el
  * primer pintado (mediana de 5, dos tandas, frente a una copia de origin/main, a 1×): la Tabla de PG1,
  * igual que sin el pronóstico (−3 y −5 ms; cuando simulaba al pintar, 66-77 ms más); Mi equipo con Las
  * Mesas Hu. (PG2), 21-24 ms más (cuando simulaba, 36-57 ms); a 4×, el ruido entre tandas (±150 ms) tapa
@@ -513,15 +514,12 @@ function explains(list, k, gf, gc) {
 }
 
 /* La de la web: con la clasificación que enseña (standingsStart) y lo jugado, lo que tiene marcador, si las
- * dos cuadran (startMatchesCalendar). Tres pasos, y cada uno, una vez por grupo, por `status` y por la
- * temporada del portal y el día (PROJECTIONS: pintar otra vez no vuelve a calcular nada); cada pantalla pide
- * solo lo que enseña (revisión del 19/10/2026: antes, la Tabla de cada grupo, la ficha y Mi equipo
- * simulaban en su primer pintado, y en frío, con la CPU frenada 4×, la Tabla de PG1 tardaba casi 0,3 s más
- * en salir):
+ * dos cuadran (startMatchesCalendar). Dos pasos, y cada uno, una vez por grupo, por `status` y por la
+ * temporada del portal y el día (PROJECTIONS: pintar otra vez no vuelve a calcular nada):
  * - projectionApplies, si lo hay, sin pronosticar nada (remaining): el enlace de la Tabla y el router;
- * - projectPlaces, el puesto y los puntos, sin simular (prepare): la cifra de la ficha y de Mi equipo;
- * - projectStandings, todo, con las simulaciones (drawn, sobre lo de projectPlaces): la tabla prevista.
- * Las tres van a una: projectionApplies es false justo cuando las otras dos dan null (salvo un grupo en
+ * - projectStandings, todo, con las simulaciones (prepare y drawn): la cifra de la ficha y de Mi equipo,
+ *   que lleva el margen, y la tabla prevista, con la misma entrada.
+ * Las dos van a una: projectionApplies es false justo cuando projectStandings da null (salvo un grupo en
  * que ningún partido tenga pronóstico, que con dos jornadas jugadas no pasa: LOOSE). Las opciones, las de
  * forecastMatch en la web (forecastOptions de ui.js). */
 const PROJECTIONS = new WeakMap();
@@ -552,11 +550,6 @@ function webPrepared(group, opts) {
   const entry = webEntry(group, opts);
   if (entry.prep === undefined) entry.prep = prepare(group, { start: standingsStart(group), ...entry.options });
   return entry.prep ? entry : null;
-}
-
-export function projectPlaces(group, opts = {}) {
-  const entry = webPrepared(group, opts);
-  return entry ? entry.prep.places : null;
 }
 
 export function projectStandings(group, opts = {}) {

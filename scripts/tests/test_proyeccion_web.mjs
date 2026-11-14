@@ -3,17 +3,16 @@
 // pronóstico en una tipo tabla, sino pónmelo, por ejemplo, la temporada en cifras, ahí me pones pronóstico
 // quinto, mis 55 puntos, y luego si pincho ahí […] ver esa tabla […], pero esa tabla no me la pongas en cada
 // uno de los equipos». Ahora:
-// - en «La temporada en cifras» de la ficha y de Mi equipo, la primera cifra, «Pronóstico final: 4.º, unos
-//   45 puntos · Ver la tabla prevista ›» (projectionFigure de team-view.js), un enlace a
+// - en «La temporada en cifras» de la ficha y de Mi equipo, la primera cifra, «Pronóstico final: 4.º · entre
+//   2.º y 6.º · unos 45 puntos · Ver la tabla prevista ›» (projectionFigure de team-view.js), un enlace a
 // - la tabla prevista, en un solo sitio: la Tabla del grupo, vista v=pronostico (projectionView de
 //   screen-tabla.js), fuera del selector de vistas, con el enlace de vuelta a la clasificación y, desde la
 //   clasificación, el enlace «Ver el pronóstico de la clasificación final ›»;
 // - el router (projectionParams): la vista solo donde hay pronóstico, `t` (el equipo resaltado) solo con
 //   ella, y las dos, sin entrada en el historial, como las demás vistas.
-// Revisión del 19/10/2026: cada pantalla pide solo lo que enseña (la cabecera de src/proyeccion.js): el
-// enlace y el router, projectionApplies (sin pronosticar nada); la cifra, projectPlaces (sin simular); y solo
-// la vista, projectStandings (con las simulaciones). La tabla prevista nombra a los equipos como la
-// clasificación (no con el nombre corto).
+// El enlace y el router piden projectionApplies (sin pronosticar nada); la cifra y la vista, projectStandings,
+// que la cifra lleva el margen («entre») y los dos comparten la misma simulación por grupo. La tabla prevista
+// nombra a los equipos como la clasificación (no con el nombre corto).
 // render(ctx) es pura: se prueba sobre el HTML, con las fixtures congeladas (la temporada del portal es
 // 2025-26) y `today` inyectado. El modelo (src/proyeccion.js) tiene sus pruebas en test_proyeccion.mjs; aquí,
 // lo que se pinta, dónde, y dónde no se pinta nada: benjamín, una temporada pasada o terminada, un retirado,
@@ -30,13 +29,19 @@ import { screen as tabla, projectionHref, PROJECTION_VIEW } from '../../src/scre
 import { historyMode, resolveParams } from '../../src/router.js';
 import { parseRoute, routeHref, teamHref } from '../../src/links.js';
 import { forecastOptions } from '../../src/ui.js';
-import { projectPlaces, projectStandings, projectionApplies, startMatchesCalendar } from '../../src/proyeccion.js';
+import * as proyeccion from '../../src/proyeccion.js';
+const { projectStandings, projectionApplies, startMatchesCalendar } = proyeccion;
 
 const s = (h) => String(h);
 const text = (h) => s(h).replace(/<[^>]*>/g, '').replace(/&quot;/g, '"').replace(/&#39;/g, "'")
   .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
 const titles = (h) => [...s(h).matchAll(/<h2 class="block-title">(.*?)<\/h2>/g)].map((m) => m[1]);
 const amp = (x) => x.replace(/&/g, '&amp;');
+// Lo que oye el lector de pantalla: sin lo que va con aria-hidden.
+const heard = (h) => text(s(h).replace(/<span aria-hidden="true">[^<]*<\/span>/g, ''));
+const NB = '\u00a0';
+// El margen de la cifra tras el puesto: «· entre 2.º y 5.º», sin partirse; nada si es un solo puesto.
+const fanHtml = (r) => (r.lo === r.hi ? '' : `<span class="proj-figure-fan"><span aria-hidden="true"> · </span><span class="vh">, </span>entre${NB}${r.lo}.º${NB}y${NB}${r.hi}.º</span>`);
 const TITLE = 'Pronóstico de la clasificación final';
 const figureOf = (out) => (s(out).match(/<a class="proj-figure"[\s\S]*?<\/a>/) || [null])[0];
 const figuresBox = (out) => (s(out).match(/<h2 class="block-title">La temporada en cifras<\/h2><\/div><div class="box">([\s\S]*?)<\/div><\/section>/) || [null, null])[1];
@@ -83,28 +88,57 @@ const target = (res) => (res.redirect ? routeHref(res.redirect.screen, res.redir
 
 // ── La cifra de «La temporada en cifras» ────────────────────────────────
 
-test('la ficha de Las Mesas Hu.: «Pronóstico final», la primera cifra, con su puesto y sus puntos, y enlace a la tabla prevista', () => {
+test('la ficha de Las Mesas Hu.: «Pronóstico final», la primera cifra, con su puesto, su margen y sus puntos, y enlace a la tabla prevista', () => {
   const out = ficha('Las Mesas Hu.');
   // Ni el bloque con la tabla (la primera versión) ni la evolución: la consulta, como antes de los dos.
   assert.deepEqual(sideOf(out), ['Clasificación', 'Goleadores del equipo', 'La temporada en cifras', 'Trayectoria']);
   assert.doesNotMatch(out, /Pronóstico de la clasificación final|Evolución de puntos|points-|class="standings"[^>]*>[^]*st-fan/);
   const me = projOf().rows.find((r) => r.team === 'Las Mesas Hu.');
+  assert.ok(me.lo < me.hi, `${me.lo}-${me.hi}: con dos jornadas, más de un puesto`);
   const href = routeHref('tabla', { s: PORTAL_SEASON, g: 'PG2', v: 'pronostico', t: 'Las Mesas Hu.' });
   assert.equal(href, '#/tabla?s=2025-2026&g=PG2&t=Las%20Mesas%20Hu.&v=pronostico');
   assert.equal(projectionHref(pg2Of(), 'Las Mesas Hu.'), href);
   // La primera de la caja, antes de «Goles a favor»; toda la cifra es el enlace.
   assert.equal(figuresBox(out).indexOf('<a class="proj-figure"'), 0);
-  assert.equal(figureOf(out), `<a class="proj-figure" href="${amp(href)}"><span class="cell-label">Pronóstico final<span class="vh">: </span></span><span class="proj-figure-main"><b class="proj-figure-pos">${me.pos}.º</b><span class="proj-figure-pts"><span class="vh">, </span>unos ${Math.round(me.pts)} puntos</span><span class="proj-figure-more"><span class="vh">. </span>Ver la tabla prevista<span aria-hidden="true"> ›</span></span></span></a>`);
+  assert.equal(figureOf(out), `<a class="proj-figure" href="${amp(href)}"><span class="cell-label">Pronóstico final<span class="vh">: </span></span><span class="proj-figure-main"><b class="proj-figure-pos">${me.pos}.º</b><span class="proj-figure-fan"><span aria-hidden="true"> · </span><span class="vh">, </span>entre${NB}${me.lo}.º${NB}y${NB}${me.hi}.º</span><span class="proj-figure-pts"><span class="vh">, </span>unos ${Math.round(me.pts)} puntos</span><span class="proj-figure-more"><span class="vh">. </span>Ver la tabla prevista<span aria-hidden="true"> ›</span></span></span></a>`);
   assert.match(figuresBox(out), /<\/a><dl class="cells cells-3"><div class="cell"><dt class="cell-label">Goles a favor<\/dt>/);
-  // Lo que oye el lector de pantalla: la frase entera, sin la flecha.
-  assert.equal(text(figureOf(out)).replace(' ›', ''), `Pronóstico final: ${me.pos}.º, unos ${Math.round(me.pts)} puntos. Ver la tabla prevista`);
+  // Lo que oye el lector de pantalla: la frase entera, sin el punto medio ni la flecha.
+  assert.equal(heard(figureOf(out)), `Pronóstico final: ${me.pos}.º, entre ${me.lo}.º y ${me.hi}.º, unos ${Math.round(me.pts)} puntos. Ver la tabla prevista`);
+});
+
+test('la cifra con un solo puesto en el margen (Acodetti, 3.º el 2/2/2026): sin «entre»', () => {
+  const opts = at('2026-02-02');
+  const me = projOf(opts).rows.find((r) => r.team === 'Acodetti');
+  assert.deepEqual([me.pos, me.lo, me.hi], [3, 3, 3]);
+  const fig = figureOf(ficha('Acodetti', opts));
+  assert.ok(fig.includes(`<b class="proj-figure-pos">3.º</b><span class="proj-figure-pts"><span class="vh">, </span>unos ${Math.round(me.pts)} puntos</span>`), fig);
+  assert.doesNotMatch(fig, /proj-figure-fan|entre/);
+  assert.equal(heard(fig), `Pronóstico final: 3.º, unos ${Math.round(me.pts)} puntos. Ver la tabla prevista`);
+});
+
+test('la cifra y la tabla prevista dicen lo mismo de cada equipo: el puesto y el margen («Entre»)', () => {
+  for (const opts of [at(), at('2026-02-02')]) {
+    const block = blockOf(table({ v: 'pronostico' }, opts));
+    const p = projOf(opts);
+    for (const r of p.rows) {
+      const row = block.match(new RegExp(`<td class="st-pos">(\\d+)</td><th scope="row" class="st-team">(?:(?!</tr>).)*?<span class="st-name">${amp(r.team)}</span>(?:(?!</tr>).)*?<td class="st-fan">([^<]*)</td>`));
+      assert.ok(row, r.team);
+      const fig = figureOf(ficha(r.team, opts));
+      if (r.played < 1) { assert.equal(fig, null, r.team); continue; }
+      const pos = fig.match(/<b class="proj-figure-pos">(\d+)\.º<\/b>/)[1];
+      const fan = (fig.match(/entre\u00a0(\d+)\.º\u00a0y\u00a0(\d+)\.º/) || []).slice(1);
+      assert.equal(pos, row[1], r.team);
+      assert.equal(fan.length ? `${fan[0]}.º–${fan[1]}.º` : `${pos}.º`, row[2], r.team);
+      assert.ok(fig.includes(`</b>${fanHtml(r)}<span class="proj-figure-pts">`), r.team);
+    }
+  }
 });
 
 test('la ficha de otro equipo del grupo: su puesto y sus puntos, y el enlace con su nombre (su fila, resaltada en la tabla)', () => {
   const huracan = projOf().rows.find((r) => r.team === 'AD Huracán');
   const fig = figureOf(ficha('AD Huracán'));
   assert.match(fig, /^<a class="proj-figure" href="#\/tabla\?s=2025-2026&amp;g=PG2&amp;t=AD%20Hurac%C3%A1n&amp;v=pronostico">/);
-  assert.match(fig, new RegExp(`<b class="proj-figure-pos">${huracan.pos}\\.º</b><span class="proj-figure-pts"><span class="vh">, </span>unos ${Math.round(huracan.pts)} puntos</span>`));
+  assert.ok(fig.includes(`<b class="proj-figure-pos">${huracan.pos}.º</b>${fanHtml(huracan)}<span class="proj-figure-pts"><span class="vh">, </span>unos ${Math.round(huracan.pts)} puntos</span>`), fig);
 });
 
 test('Mi equipo (Las Mesas Hu.): la misma cifra que su ficha, en su «La temporada en cifras»; ni bloque ni tabla', () => {
@@ -306,9 +340,8 @@ test('donde no hay pronóstico, v=pronostico es la vista por defecto y no hay en
   assert.doesNotMatch(table({}, done), /tabla-switch/);
 });
 
-test('cada pantalla pide solo lo que enseña: el enlace y el router, projectionApplies; la cifra, projectPlaces; las simulaciones, solo la vista', () => {
-  // Las tres van a una: projectionApplies es true justo cuando projectPlaces y projectStandings dan algo, y
-  // las dos dan el mismo puesto y los mismos puntos.
+test('el enlace y el router, projectionApplies; la cifra y la vista, projectStandings, con la misma simulación', () => {
+  // Las dos van a una: projectionApplies es true justo cuando projectStandings da algo.
   const cases = [
     ['PG2 del día', at(), 'PG2', true],
     ['una sola jornada', at('2025-10-13'), 'PG2', false],
@@ -321,23 +354,18 @@ test('cada pantalla pide solo lo que enseña: el enlace y el router, projectionA
     const group = ctx.model.group(PORTAL_SEASON, id);
     const o = forecastOptions(ctx);
     assert.equal(projectionApplies(group, o), want, label);
-    assert.equal(projectPlaces(group, o) !== null, want, label);
     assert.equal(projectStandings(group, o) !== null, want, label);
   }
-  const ctx = ctxFor('tabla', {}, at());
-  const group = ctx.model.group(PORTAL_SEASON, 'PG2');
-  const places = projectPlaces(group, forecastOptions(ctx));
-  const full = projectStandings(group, forecastOptions(ctx));
-  assert.equal(projectPlaces(group, forecastOptions(ctx)), places, 'una vez por grupo');
-  assert.deepEqual(full.rows.map(({ team, pos, pts, dg, gf, played }) => ({ team, pos, pts, dg, gf, played })), places.rows);
-  assert.ok(places.rows.every((r) => !('probs' in r) && !('lo' in r)), 'sin simular');
-  assert.deepEqual([places.matches, places.rounds], [full.matches, full.rounds]);
-  // En el código: la cifra (team-view.js) y el router no llaman a projectStandings; la Tabla, solo en su
-  // vista.
+  // La cifra (team-view.js) y la Tabla, con las mismas opciones (forecastOptions): la misma entrada de la
+  // caché, así que la simulación de un grupo se hace una sola vez para las dos. El router no pronostica.
   const src = (f) => readFileSync(new URL(`../../src/${f}`, import.meta.url), 'utf8');
-  assert.doesNotMatch(src('team-view.js'), /projectStandings/);
-  assert.match(src('team-view.js'), /projectPlaces\(group, forecastOptions\(ctx\)\)/);
-  assert.doesNotMatch(src('router.js'), /projectStandings|projectPlaces/);
+  assert.deepEqual([...src('team-view.js').matchAll(/^.*projectStandings\(.*$/gm)].map((m) => m[0].trim()),
+    ['const p = projectStandings(group, forecastOptions(ctx));']);
+  assert.match(src('screen-tabla.js'), /const options = forecastOptions\(ctx\);/);
+  assert.doesNotMatch(src('router.js'), /projectStandings/);
+  // Sin projectPlaces (el puesto sin simular): la cifra ya no lo usa.
+  assert.ok(!('projectPlaces' in proyeccion));
+  assert.doesNotMatch(src('team-view.js') + src('screen-tabla.js') + src('router.js'), /projectPlaces/);
   assert.match(src('router.js'), /projectionApplies\(group, forecastOptions\(ctx\)\)/);
   const calls = [...src('screen-tabla.js').matchAll(/^.*projectStandings\(.*$/gm)].map((m) => m[0].trim());
   assert.deepEqual(calls, ['const projection = applies && params.v === PROJECTION_VIEW ? projectStandings(group, options) : null;']);
@@ -383,6 +411,10 @@ test('estilos: la cifra, con el puesto grande y en tinta y el enlace subrayado; 
   const body = (sel, media = null) => rules.filter((r) => r.media === media && r.selector.split(',').map((x) => x.trim()).includes(sel)).map((r) => r.body).join(';');
   assert.match(body('.proj-figure-pos'), /color:\s*var\(--ink\)/);
   assert.match(body('.proj-figure-pos'), /font-weight:\s*800/);
+  // El margen, en gris y del tamaño de los puntos: lo que acompaña al puesto, no otra cifra.
+  assert.match(body('.proj-figure-fan'), /color:\s*var\(--mute\)/);
+  assert.match(body('.proj-figure-fan'), /font-size:\s*15px/);
+  assert.match(body('.proj-figure-fan'), /font-weight:\s*700/);
   assert.match(body('.proj-figure-more'), /color:\s*var\(--ink\)/);
   assert.match(body('.proj-figure-more'), /text-decoration:\s*underline/);
   assert.match(body('.proj-figure-main'), /flex-wrap:\s*wrap/);

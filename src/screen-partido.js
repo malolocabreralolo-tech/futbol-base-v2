@@ -151,12 +151,14 @@ function forecastBlock(match, group, ctx) {
   const side = (cls, who, p, title = null) => html`<div class="odds-item ${cls}"><dt${title ? html` title="${title}"` : ''}><span class="odds-key" aria-hidden="true"></span>${who}</dt><dd>${percent(p)}</dd></div>`;
   const odds = html`<div class="odds">${oddsBar(f.pHome, f.pDraw, f.pAway)}<dl class="odds-legend">${side('is-home', html`<span class="vh">Gana </span>${teamShort(f.home)}`, f.pHome, f.home)}${side('is-draw', 'Empate', f.pDraw)}${side('is-away', html`<span class="vh">Gana </span>${teamShort(f.away)}`, f.pAway, f.away)}</dl></div>`;
   const winner = f.pick === 'home' ? f.home : f.away;
+  // El marcador con lo probable que es él solo (pScore): «4–1 · 14 %», que se lee «4–1, con un 14 %».
+  const likely = html`${score(...f.score)}<span aria-hidden="true"> · </span><span class="vh">, con un </span>${percent(f.pScore)}`;
   const facts = cells(f.goalsAgree
     ? [
-      { label: 'Resultado más probable', value: score(...f.score), muted: true },
+      { label: 'Resultado más probable', value: likely, muted: true },
       { label: 'Goles esperados', value: `${decimal(f.xgHome, 1)} – ${decimal(f.xgAway, 1)}`, muted: true },
     ]
-    : [{ label: `Si gana ${teamShort(winner)}`, value: score(...f.score), muted: true }]);
+    : [{ label: `Si gana ${teamShort(winner)}`, value: likely, muted: true }]);
   const others = f.goalsAgree ? topScores(f.xgHome, f.xgAway, { n: 3, pick: f.pick }).slice(1).map((x) => score(...x.score)) : [];
   const also = others.length ? html`<p class="odds-also">También probables: ${listEs(others)}.</p>` : '';
   const far = f.ahead >= 2 ? ` Este partido se juega dentro de\u00a0${f.ahead}\u00a0jornadas: el pronóstico se recalcula con cada resultado nuevo.` : '';

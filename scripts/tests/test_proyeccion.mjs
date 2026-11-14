@@ -8,7 +8,7 @@ import { createHash } from 'node:crypto';
 import { buildGroup } from '../../src/model.js';
 import { PARAMS, forecastMatch, forecastOdds } from '../../src/pronostico.js';
 import {
-  SIM, fanMass, fanOf, playedBy, playedRounds, projectPlaces, projectStandings, projection, projectionApplies, simulate,
+  SIM, fanMass, fanOf, playedBy, playedRounds, projectStandings, projection, projectionApplies, simulate,
   standingsStart, startMatchesCalendar,
 } from '../../src/proyeccion.js';
 
@@ -310,23 +310,20 @@ test('startMatchesCalendar: un retirado que el calendario no trae, en una liga a
   assert.equal(startMatchesCalendar(withAbsent(3)), false, 'más veces de las que se enfrentan dos equipos');
 });
 
-test('sin simular (draw: false, projectPlaces): el mismo puesto y los mismos puntos que con las simulaciones; las tres de la web van a una', () => {
+test('sin simular (draw: false): el mismo puesto y los mismos puntos que con las simulaciones; las dos de la web van a una', () => {
   const group = makeGroup();
   const full = web(group);
   const places = web(group, { draw: false });
   assert.deepEqual(Object.keys(places).sort(), ['matches', 'rounds', 'rows']);
   assert.deepEqual(places.rows, full.rows.map(({ team, pos, pts, dg, gf, played }) => ({ team, pos, pts, dg, gf, played })));
   assert.deepEqual([places.matches, places.rounds], [full.matches, full.rounds]);
-  // En la web, las tres, con la misma caché: lo de projectPlaces es lo de projectStandings sin simular.
+  // En la web, projectionApplies dice que sí justo donde projectStandings da la proyección entera.
   const opts = { ...OPTS, today: '2026-10-19' };
   assert.equal(projectionApplies(group, opts), true);
-  assert.deepEqual(projectPlaces(group, opts), places);
-  assert.equal(projectPlaces(group, opts), projectPlaces(group, opts));
   assert.deepEqual(projectStandings(group, opts), full);
-  // Donde no hay, las tres dicen que no.
+  // Donde no hay, las dos dicen que no.
   for (const g of [makeGroup(BASE, { cat: 'benjamin' }), makeGroup(BASE.map(ms => ms.map(m => (m[3] == null ? [m[0], m[1], m[2], 2, 1, null, m[6], m[7]] : m))))]) {
     assert.equal(projectionApplies(g, opts), false);
-    assert.equal(projectPlaces(g, opts), null);
     assert.equal(projectStandings(g, opts), null);
   }
 });
