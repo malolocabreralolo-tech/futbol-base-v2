@@ -29,9 +29,11 @@ Nombre normalizado: sin tildes, en mayúsculas y con espacios simples (`identida
 
 | | Regla | `union_por` |
 |---|---|---|
-| U0 | Identidad de un solo uso: el mismo nombre completo en el mismo equipo y la misma temporada → la misma ficha. | `equipo` |
+| U0 | Identidad de un solo uso: el mismo nombre completo en el mismo equipo y la misma temporada → la misma ficha. Después, la de los **nombres cortos** (abajo). | `equipo` |
 | U1 | Mismo club, temporadas seguidas: identidades sin identificador con el mismo nombre, del mismo club, en temporadas consecutivas y compatibles. Los nombres cortos solo si `unir_cortos_en_club` (la medida de abajo). | `club` |
 | U2 | Candidata única: una ficha sin ningún identificador y de nombre completo se une a la otra ficha con ese nombre cuando es la **única** y son compatibles. Con dos o más, a ninguna. Los cortos nunca. | `nombre` |
+
+**U0 de los nombres cortos** (añadida el 14/11/2026, tras la medida de abajo): cubo de identidades **con identificador** y nombre corto, mismo nombre, mismo equipo y misma temporada. «De un solo uso» es la que tiene exactamente 1 aparición en total (sumando todas sus vistas); «asentada», todas las demás. Con **exactamente una** asentada, cada una de un solo uso se une a ella si caben; con dos o más asentadas (dos niños con el mismo nombre de pila en el equipo) o con ninguna (todas de un solo uso), no se une ninguna. Las sin identificador de nombre corto no entran (ya son una sola por nombre, equipo y temporada).
 
 Nada más une. Lo imposible por edad no se une nunca (tampoco en U0).
 
@@ -50,7 +52,7 @@ Nada más une. Lo imposible por edad no se une nunca (tampoco en U0).
 
 ## La medida de los nombres cortos
 
-`python3 scripts/medir_identidad.py` (solo lectura): con los originales de 2019-20 a 2023-24, cuando prebenjamín también traía el identificador, hace como si los jugadores con identificador no lo trajeran (cada nombre, equipo y temporada, una identidad sin identificador) y cuenta, de los pares que uniría U1 (mismo nombre, mismo club, temporadas consecutivas, compatibles), cuántos son el mismo niño (el mismo identificador, o el mismo niño tras U0) y cuántos no. Los equipos son los de la base, por el `CodActa` del acta (con los nombres de la federación, la letra de filial no sale bien). «Todos» cuenta cada niño de un lado con cada niño del otro; «uno a uno», lo que une de verdad el resolvedor (decisión 1). Salida del 14/11/2026:
+`python3 scripts/medir_identidad.py` (solo lectura): con los originales de 2019-20 a 2023-24, cuando prebenjamín también traía el identificador, hace como si los jugadores con identificador no lo trajeran (cada nombre, equipo y temporada, una identidad sin identificador) y cuenta, de los pares que uniría U1 (mismo nombre, mismo club, temporadas consecutivas, compatibles), cuántos son el mismo niño (el mismo identificador, o el mismo niño tras U0, la de los completos y la de los cortos: `resolver` sobre las identidades con identificador) y cuántos no. Los equipos son los de la base, por el `CodActa` del acta (con los nombres de la federación, la letra de filial no sale bien). «Todos» cuenta cada niño de un lado con cada niño del otro; «uno a uno», lo que une de verdad el resolvedor (decisión 1), y es la que decide. Salida del 14/11/2026:
 
 ```
 Originales: 2019-2020, 2020-2021, 2021-2022, 2022-2023, 2023-2024 (equipos de la base, por CodActa).
@@ -60,24 +62,22 @@ Originales: 2019-2020, 2020-2021, 2021-2022, 2022-2023, 2023-2024 (equipos de la
   apariciones: 261636
   apariciones sin id: 8
   apariciones con id: 261628
-  ids de la federación: 12027; niños tras U0: 9715
+  ids de la federación: 12027; niños tras U0: 9604
+  cubos de U0 de cortos: 29 con una asentada (se unen), 0 con dos o más (no se unen), 8 sin ninguna (no se unen)
 Pares todos:
   nombres      pares   mismo distinto mezcla precisión
   completos     4378    4365       13      0     99.7%
-  cortos         476     158      318      0     33.2%
+  cortos         443     158      285      0     35.7%
 Pares uno a uno:
   nombres      pares   mismo distinto mezcla precisión
   completos     3930    3919        6      5     99.7%
-  cortos         136     129        2      5     94.9%
-Precisión de los cortos (todos los pares) 33.2 % < 95 % → unir_cortos_en_club = False
-Variante informativa, si U0 uniera también los cortos (niños: 9524):
-  cortos, todos: 161 pares, 158 mismo, 3 distinto, 0 mezcla, precisión 98.1 %
-  cortos, uno a uno: 136 pares, 133 mismo, 2 distinto, 1 mezcla, precisión 97.8 %
+  cortos         136     133        2      1     97.8%
+Precisión de los cortos (uno a uno) 97.8 % ≥ 95 % → unir_cortos_en_club = True
 ```
 
-**Resultado: `unir_cortos_en_club = False`.** Los nombres cortos no se unen nunca.
+**Resultado: `unir_cortos_en_club = True`** (`identidad.UNIR_CORTOS_EN_CLUB`). Los cubos cuentan solo los que tienen algo que unir: con una asentada y alguna de un solo uso, con dos o más asentadas y alguna de un solo uso, o sin asentada y con dos o más de un solo uso.
 
-Lo que hay detrás del 33 %: los 318 pares distintos de los cortos tienen todos en un lado un identificador con una sola aparición. Son los identificadores de un solo uso de los niños con nombre corto, que U0 no une porque es solo para nombres completos: hay (nombre corto, equipo, temporada) con hasta 16 identificadores. Si U0 uniera también los cortos (la variante informativa, que no decide), la precisión de los cortos sería del 98 %. Cambiarlo sería cambiar U0, que es una regla decidida.
+Historia de la cifra: sin la U0 de los cortos, la misma medida daba 33,2 % (todos) y 94,9 % (uno a uno), y los 318 pares distintos de los cortos tenían todos en un lado un identificador con una sola aparición: los identificadores de un solo uso de los niños con nombre corto, que U0 no unía. Con la U0 de los cortos quedan 285 pares distintos en «todos», y todos siguen teniendo un identificador de una sola aparición (270, en los dos lados): identificadores de un solo uso que no se unen, sobre todo los de los 8 cubos sin ninguna asentada (de 2 a 30 cada uno). Ningún par distinto es de dos niños asentados.
 
 ## Deshacer una unión
 

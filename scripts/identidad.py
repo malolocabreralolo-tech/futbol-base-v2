@@ -31,8 +31,9 @@ NIVEL = {"PREBENJAMIN": 1, "BENJAMIN": 2, "ALEVIN": 3}
 # Años de nacimiento posibles de quien juega la temporada que empieza el año Y: [Y - a, Y - b].
 _EDAD = {1: (7, 5), 2: (9, 6), 3: (11, 8)}
 UNIONES = ("equipo", "club", "nombre")
-# Lo que dio la medida de los nombres cortos (scripts/medir_identidad.py, docs/identidad.md): 33 % < 95 %.
-UNIR_CORTOS_EN_CLUB = False
+# Lo que dio la medida de los nombres cortos con la U0 de los cortos (scripts/medir_identidad.py,
+# docs/identidad.md): pares de uno a uno, 97,8 % ≥ 95 %.
+UNIR_CORTOS_EN_CLUB = True
 
 # 'NOMBRE#id' (homónimo con id) o 'NOMBRE#2' (el segundo del mismo nombre en una alineación sin ids).
 _SUFIJO = re.compile(r"#\d+$")

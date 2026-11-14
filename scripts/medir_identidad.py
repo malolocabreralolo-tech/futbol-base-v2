@@ -5,9 +5,9 @@ Solo lectura (los originales de las actas y la base, abierta inmutable). Toma lo
 2019-20 a 2023-24, cuando todas las ligas (también prebenjamín) traían el id de la federación, y hace
 como si los jugadores con id no lo trajeran: cada (nombre, equipo, temporada) sería una identidad sin
 id. De los pares que uniría U1 (mismo nombre, mismo club, temporadas consecutivas, compatibles)
-cuenta cuántos son el mismo niño (el mismo id, o el mismo niño tras U0) y cuántos no, con nombres
-completos y cortos aparte. Con una precisión de los cortos del 95 % o más, `unir_cortos_en_club`
-es True (docs/identidad.md).
+cuenta cuántos son el mismo niño (el mismo id, o el mismo niño tras U0, también la de los cortos) y
+cuántos no, con nombres completos y cortos aparte. Con una precisión de los cortos del 95 % o más en
+los pares de uno a uno (como une U1), `unir_cortos_en_club` es True (docs/identidad.md).
 
 Los equipos son los de la base (el acta por su CodActa, `matches.cod_acta`): con los nombres de la
 federación ('ATLETICO HURACAN "A", A.D. A') la letra de filial no sale y cada filial parecería otro club.
@@ -23,7 +23,8 @@ from collections import Counter, defaultdict
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from categorias import category_of  # noqa: E402
-from identidad import NIVEL, Identidad, club, compatibles, nombre_completo, normalizar, resolver  # noqa: E402
+from identidad import (NIVEL, Identidad, club, compatibles, nombre_completo, normalizar, resolver,  # noqa: E402
+                       resumen_u0_cortos)
 
 SCRIPTS = os.path.dirname(os.path.abspath(__file__))
 TEMPORADAS = ["2019-2020", "2020-2021", "2021-2022", "2022-2023", "2023-2024"]
@@ -79,10 +80,8 @@ def _vista(anio, nivel, equipo, fechas):
             len(fechas))
 
 
-def ninos(filas, cortos_en_u0=False):
-    """{fiflp_id: niño} tras U0 (resolver sobre las identidades con id: con todas con id solo une U0).
-    Con `cortos_en_u0`, además, los cortos con el mismo nombre en el mismo equipo y temporada son el
-    mismo niño si caben (lo que U0 no hace): solo para la variante informativa del informe."""
+def identidades_con_id(filas):
+    """Una Identidad por id de la federación, con el nombre que más lleva y sus vistas."""
     nombres, fechas = defaultdict(Counter), defaultdict(list)
     for fid, norm, anio, nivel, equipo, fecha in filas:
         nombres[fid][norm] += 1
@@ -90,36 +89,14 @@ def ninos(filas, cortos_en_u0=False):
     vistas = defaultdict(list)
     for (fid, anio, nivel, equipo), fs in fechas.items():
         vistas[fid].append(_vista(anio, nivel, equipo, fs))
-    identidades = [Identidad(id=fid, norm=min(nombres[fid].items(), key=lambda kv: (-kv[1], kv[0]))[0],
-                             fiflp_id=fid, vistas=tuple(sorted(vistas[fid]))) for fid in nombres]
-    nino = {fid: p for fid, (p, _) in resolver(identidades, unir_cortos_en_club=False).items()}
-    if not cortos_en_u0:
-        return nino
-    miembros = defaultdict(set)
-    for fid, p in nino.items():
-        miembros[p].add(fid)
-    cubos = defaultdict(set)
-    for i in identidades:
-        if not nombre_completo(i.norm):
-            for anio, _, equipo, *_ in i.vistas:
-                cubos[(i.norm, equipo, anio)].add(i.id)
-    por_id = {i.id: i for i in identidades}
-    for clave in sorted(cubos):
-        semillas = []
-        for fid in sorted(cubos[clave], key=lambda f: (-sum(v[5] for v in por_id[f].vistas), f)):
-            p = nino[fid]
-            for s in semillas:
-                q = nino[s]
-                if q == p:
-                    break
-                if compatibles(*(por_id[f].vistas for f in miembros[p] | miembros[q])):
-                    for f in miembros.pop(p):
-                        nino[f] = q
-                        miembros[q].add(f)
-                    break
-            else:
-                semillas.append(fid)
-    return nino
+    return [Identidad(id=fid, norm=min(nombres[fid].items(), key=lambda kv: (-kv[1], kv[0]))[0],
+                      fiflp_id=fid, vistas=tuple(sorted(vistas[fid]))) for fid in nombres]
+
+
+def ninos(filas):
+    """{fiflp_id: niño} tras U0, la de los completos y la de los cortos: identidad.resolver sobre las
+    identidades con id (con todas con id solo une U0)."""
+    return {fid: p for fid, (p, _) in resolver(identidades_con_id(filas), unir_cortos_en_club=False).items()}
 
 
 def pares(filas, nino):
@@ -159,12 +136,16 @@ def pares(filas, nino):
     return out
 
 
-def informe(cuenta, nino, medida):
+def informe(cuenta, nino, medida, cubos=None):
     lineas = [f"Originales: {', '.join(TEMPORADAS)} (equipos de la base, por CodActa)."]
     for clave in ("actas", "actas de una categoría que no se publica", "actas sin partido en la base",
                   "apariciones", "apariciones sin id", "apariciones con id"):
         lineas.append(f"  {clave}: {cuenta[clave]}")
     lineas.append(f"  ids de la federación: {len(nino)}; niños tras U0: {len(set(nino.values()))}")
+    if cubos is not None:
+        lineas.append(f"  cubos de U0 de cortos: {cubos['una asentada']} con una asentada (se unen), "
+                      f"{cubos['dos o más asentadas']} con dos o más (no se unen), "
+                      f"{cubos['ninguna asentada']} sin ninguna (no se unen)")
     precision = {}
     for manera in ("todos", "uno a uno"):
         lineas.append(f"Pares {manera}:")
@@ -176,8 +157,9 @@ def informe(cuenta, nino, medida):
             precision[(manera, tipo)] = p
             lineas.append(f"  {tipo:<10} {total:>7} {c['mismo']:>7} {c['distinto']:>8} {c['mezcla']:>6} "
                           f"{100 * p:>8.1f}%")
-    decision = precision[("todos", "cortos")] >= UMBRAL
-    lineas.append(f"Precisión de los cortos (todos los pares) {100 * precision[('todos', 'cortos')]:.1f} % "
+    # Decide la de uno a uno: es como une U1.
+    decision = precision[("uno a uno", "cortos")] >= UMBRAL
+    lineas.append(f"Precisión de los cortos (uno a uno) {100 * precision[('uno a uno', 'cortos')]:.1f} % "
                   f"{'≥' if decision else '<'} {100 * UMBRAL:.0f} % → unir_cortos_en_club = {decision}")
     return "\n".join(lineas), decision
 
@@ -188,17 +170,8 @@ def main(argv=None):
     args = ap.parse_args(argv)
     filas, cuenta = apariciones(args.db)
     nino = ninos(filas)
-    texto, _ = informe(cuenta, nino, pares(filas, nino))
+    texto, _ = informe(cuenta, nino, pares(filas, nino), resumen_u0_cortos(identidades_con_id(filas)))
     print(texto)
-    # Variante informativa (no decide): los ids de un solo uso de un corto, como si U0 los uniera.
-    nino2 = ninos(filas, cortos_en_u0=True)
-    medida2 = pares(filas, nino2)
-    print(f"Variante informativa, si U0 uniera también los cortos (niños: {len(set(nino2.values()))}):")
-    for manera in ("todos", "uno a uno"):
-        c = medida2[(manera, "cortos")]
-        total = sum(c.values())
-        print(f"  cortos, {manera}: {total} pares, {c['mismo']} mismo, {c['distinto']} distinto, "
-              f"{c['mezcla']} mezcla, precisión {100 * c['mismo'] / total if total else 0:.1f} %")
 
 
 if __name__ == "__main__":
