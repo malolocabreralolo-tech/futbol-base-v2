@@ -4,6 +4,7 @@
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
 import { spawnSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ctxFor, datasetsFor } from './fixtures/rediseno/screens.mjs';
@@ -240,7 +241,7 @@ test('ficha unida: cada fila unida dice por qué; ninguna se suma a otra; las ot
   const groups = [...out.matchAll(/<span class="traj-group">([^<]+)<\/span>/g)].map(m => m[1]);
   assert.deepEqual(groups.slice(0, 4), [
     'Prebenjamín, Grupo 2 de Gran Canaria · 18 de titular',
-    'Prebenjamín, Grupo 2 de Gran Canaria · mismo jugador con otro identificador en el acta',
+    'Prebenjamín, Grupo 2 de Gran Canaria · unido por nombre (mismo equipo y temporada)',
     'BCB1 · 2 de titular · unido por nombre (mismo club)',
     'Prebenjamín, Grupo 2 de Gran Canaria · 10 de titular · 1 amarilla · unido por nombre',
   ]);
@@ -259,7 +260,7 @@ test('ficha sin ningún id: «En las actas figura solo con este nombre.»; sin h
   assert.match(out, /<h1>Leo Ruiz<\/h1>/);
   assert.match(out, /<p class="notice">En las actas figura solo con este nombre\.<\/p>/);
   assert.doesNotMatch(out, /Otras fichas con este mismo nombre/);
-  assert.doesNotMatch(out, /unido por nombre|otro identificador/);
+  assert.doesNotMatch(out, /unido por nombre/);
 });
 
 test('un alias abre la ficha a la que lleva (la URL no cambia) y el «Seguir» de esa ficha sigue al alias guardado', () => {
@@ -375,4 +376,27 @@ test('plantilla: agrupa por la clave de la ficha (dos niños con el mismo nombre
   // Los partidos de cada uno, por su clave: el segundo DANIEL solo jugó la jornada 1.
   assert.deepEqual(playerMatches(lineups, { group, team: 'A', player: 'DANIEL', id: OTRA }).map(x => x.match.roundKey), ['Jornada 1']);
   assert.deepEqual(playerMatches(lineups, { group, team: 'A', player: 'DANIEL', id: SIN_ID }).map(x => x.goals), [1, 2]);
+});
+
+test('fila unida sin motivo conocido: «unido por nombre», como las demás', () => {
+  const entry = { n: 'RUIZ, LEO', c: [['2025-2026', 'PG2', 'Las Mesas Hu.', 1, 0, 0, 0, 0, 1], ['2025-2026', 'PG2', 'Las Mesas Hu.', 1, 0, 0, 0, 0, 1, 'x']] };
+  const out = s(screen.render(ctxShards({ id: SIN_ID }, shardsWith({ [SIN_ID]: entry }))));
+  const groups = [...out.matchAll(/<span class="traj-group">([^<]+)<\/span>/g)].map(m => m[1]);
+  assert.deepEqual(groups, ['Prebenjamín, Grupo 2 de Gran Canaria · unido por nombre', 'Prebenjamín, Grupo 2 de Gran Canaria · unido por nombre']);
+});
+
+test('título de la pestaña: el nombre del jugador; sin jugador, el de la pantalla (null)', () => {
+  assert.equal(screen.title(ctxShards({ id: ID }, shardsWith({ [ID]: UNIDA }))), 'Leyre Serrano Dominguez');
+  assert.equal(screen.title(ctxShards({ id: SIN_ID }, shardsWith({ [ID]: UNIDA }))), 'Leyre Serrano Dominguez');
+  assert.equal(screen.title(ctxShards({}, {})), null);
+  assert.equal(screen.title(ctxShards({ id: '16' }, shardsWith({ [ID]: UNIDA }))), null);
+});
+
+test('acta.css: en la ficha del jugador el nombre parte línea en vez de cortarse; las demás cabeceras siguen igual', () => {
+  const css = readFileSync(join(ROOT, 'acta.css'), 'utf8');
+  const rule = css.match(/\[data-screen="jugador"\] \.screen-head h1 \{([^}]*)\}/);
+  assert.ok(rule, 'falta la regla de la ficha');
+  assert.match(rule[1], /white-space: normal/);
+  assert.match(rule[1], /overflow: visible/);
+  assert.match(css, /\.screen-head h1 \{ overflow: hidden; text-overflow: ellipsis; white-space: nowrap; \}/);
 });
