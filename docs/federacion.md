@@ -90,38 +90,55 @@ Lo que la federación publica de las categorías de la web y la temporada aún n
 
 ### La activación automática (`activar.yml`, desde el 14/11/2026, fase 2D de v2)
 
-Lo nuevo se carga solo, sin manos. El circuito:
+Lo nuevo se carga solo, sin manos, en **intentos cortos que se alternan con las pasadas del bot**: pasada → intento → pasada → intento… `activar.yml` nunca se relanza a sí mismo: GitHub guarda **una sola** ejecución en espera por grupo de concurrencia (si llega otra, la que esperaba se cancela), así que relanzarse cancelaría la pasada que espera, y un intento largo dejaría al bot sin pasadas ese rato.
 
 1. **El bot lo ve** (`update.yml`, arriba): `newCompetitions` y `newGroups` en `data-health.json`.
-2. **El bot lanza la activación** al acabar la pasada (paso «Lanzar la activación si hay algo nuevo», después del commit y antes de «Pasada en rojo»; solo si la pasada fue bien): `python3 scripts/source_health.py pendiente` imprime las competiciones pendientes que `activar.yml` no haya intentado en las últimas 6 h (`activation.tried` con `activation.at` de hace menos de 6 h: una activación que falla por algo que no se arregla sola no se relanza en cada pasada) y, si hay, `gh workflow run activar.yml -R malolocabreralolo-tech/futbol-base-v2 --ref main`. Un fallo al lanzarlo no pone la pasada en rojo (`continue-on-error`): la pasada siguiente lo vuelve a mirar. Por eso `update.yml` tiene `actions: write`.
-3. **`activar.yml`** (grupo de concurrencia `update-data`, el del bot: nunca escriben la base los dos a la vez; arranca en fila tras la pasada, sobre el `main` de ese momento):
-   - lo pendiente (`activar_auto.py --pendientes`, sin el freno de 6 h) y la tanda (`activar_auto.py --temporada`: el CodTemporada de la temporada en curso, 22 en 2026-27). **Sin nada pendiente no hace nada y acaba en verde** (con `SCRAPE_IDS` vacío la descarga lo bajaría todo);
+2. **El bot lanza el intento** al acabar la pasada (paso «Lanzar la activación si hay algo nuevo», después del commit y antes de «Pasada en rojo»; solo si la pasada fue bien): si `python3 scripts/source_health.py pendiente` sale con 0, `gh workflow run activar.yml -R malolocabreralolo-tech/futbol-base-v2 --ref main`. El intento arranca en fila tras la pasada (grupo `update-data`, sobre el `main` de ese momento). Un fallo al lanzarlo no pone la pasada en rojo (`continue-on-error`): la pasada siguiente lo vuelve a mirar. Por eso `update.yml` tiene `actions: write`. Cuándo lanza `pendiente` (con `activation` del `data-health.json`):
+
+   | lo pendiente (`newCompetitions`/`newGroups`) | lanza |
+   |---|---|
+   | nada | no |
+   | alguna competición que no está en `activation.tried` | sí, ya |
+   | todo intentado y todos sus fallos son «la descarga no está completa…» | sí, ya, mientras `activation.attempts` < 8; con 8, como la fila siguiente |
+   | todo intentado y algún fallo de otro tipo (sin convenio, verificación, código repetido, regenerar, pruebas…), o ninguno | cuando `activation.at` tenga 24 h (una vez al día: no se arregla solo) |
+
+   `activation.attempts` lo pone `activar_auto.py`: 1 si el conjunto de pendientes cambia y el anterior + 1 si es el mismo. Un intento que acaba igual que el publicado (nada activado, los mismos fallos, ninguno de descarga) y de hace menos de 24 h no reescribe `data-health.json` (ni commit ni despliegue); el del día siguiente sí, con su `at` nuevo (sin él, el freno lanzaría en cada pasada): como mucho un commit al día por algo que falla igual.
+3. **Un intento de `activar.yml`** (75 min como mucho; poco más que una pasada):
+   - lo pendiente (`activar_auto.py --pendientes`) y la tanda (`activar_auto.py --temporada`: el CodTemporada de la temporada en curso, 22 en 2026-27). **Sin nada pendiente no hace nada y acaba en verde** (con `SCRAPE_IDS` vacío la descarga lo bajaría todo);
    - el catálogo de la temporada en curso (`discover_fiflp_comps.py` con `DISCOVER_SEASONS`): una competición nueva no está en él hasta que se descubre, y la descarga sale de él;
-   - la descarga de lo pendiente: `fetch_fiflp_islas.py` con `ISLAS_SEASON=22` y `22al` (benjamín y prebenjamín; alevín) y `SCRAPE_IDS=<pendientes>` (cada tanda se queda con las de su categoría). Para a los 90 min (`ISLAS_HASTA`; el paso, a los 110): guarda cada grupo en el raw al acabarlo (`fetch_fiflp_islas.guardar_por_grupo`) y reanuda lo ya descargado. Nunca para el job;
+   - la descarga de lo pendiente: `fetch_fiflp_islas.py` con `ISLAS_SEASON=22` y `22al` (benjamín y prebenjamín; alevín) y `SCRAPE_IDS=<pendientes>` (cada tanda se queda con las de su categoría). Para a los **20 min** (`ISLAS_HASTA`; el paso, a los 30): guarda cada grupo en el raw al acabarlo (`fetch_fiflp_islas.guardar_por_grupo`) y el intento siguiente reanuda lo ya descargado. Nunca para el job;
    - sube lo descargado (catálogo, `scripts/fiflp_islas_*_raw.json` y `scripts/fiflp_islas_*_grupos.json`), siempre, aunque no se active nada;
    - `python3 scripts/activar_auto.py` (docs/temporada-nueva.md, «Activación automática»);
    - si cambió lo publicado (`data-*.js`, `index.html`, `sw.js` o `docs/temporadas/*-auto-*.json`), las dos suites; con todo en verde, sube la base, lo generado, el manifiesto y `data-health.json`; sin nada activado, solo `data-health.json` (lo intentado y por qué). **Si las suites fallan**, no se publica nada de la activación: la base y lo generado vuelven a lo publicado y se sube solo el `data-health.json` publicado, con lo intentado como fallido por «las pruebas fallaron tras activar» (`activar_auto.py --pruebas-fallaron`), y el job en rojo;
-   - **se relanza a sí mismo** (`gh workflow run activar.yml -R malolocabreralolo-tech/futbol-base-v2 --ref main -f intento=N`) solo si todo lo fallido es «la descarga no está completa» (lo único que arregla volver a descargar) y es el intento 1, 2 o 3 (`activar_auto.py --relanzar`). Un fallo de otro tipo no se relanza: lo vuelve a intentar el bot pasadas 6 h;
    - en rojo al final si algo no se activó (lo que sí, ya está publicado).
+
+**Cuánto tarda una fase nueva de 24 grupos.** Cada grupo es una página de clasificación, una de calendario y una por jornada (~5 s cada una con las esperas): unos 2 min por grupo sin freno, unos 10 grupos por intento de 20 min. Sin freno, 3 intentos; con el freno de la federación, más (hasta los 8). Cada ciclo es una pasada (~20-25 min) y un intento (~35-45 min con preparación, activación y suites):
+
+- **en fin de semana** (ventanas de partidos: viernes de 18 a 24, sábado y domingo de 10 a 24; una pasada cada hora): un intento por hora, la fase entra en **~3 h** sin freno (hasta ~8 h con él);
+- **entre semana** (una pasada cada 2 h): un intento cada 2 h, **~6 h** sin freno (hasta ~16 h).
+
+Con 8 intentos de descarga sin acabar (160 min de descarga, más de mil páginas), pasa a una vez al día.
+
+**Si una tanda manual cancela un intento en espera** (las de actas, goleadores o detalle lanzan `update.yml` al subir sus raw, y su pasada en espera cancela el intento que esperaba): no se pierde nada. El intento no llegó a escribir `activation`, así que la pasada siguiente lo vuelve a lanzar (lo nuevo, ya; una descarga a medias, otro intento).
 
 **Qué ve el dueño en «Datos y fuentes»:**
 
 - **Se activó todo**: los grupos nuevos salen en la web y la línea «La federación ha publicado…» de esa competición o grupo desaparece. El job, en verde.
-- **La descarga no acabó** (la federación frena; una fase nueva son cientos de páginas): «No se han podido cargar solos: <competición> (la descarga no está completa: faltan N grupos)» y la competición sigue como publicada y pendiente. Lo descargado se queda y el intento siguiente (hasta el 4.º) reanuda; tras el 4.º, el bot lo vuelve a lanzar pasadas 6 h.
-- **No encaja** (`sin convenio de código`, `verificación`, `código repetido`): la línea con su motivo; no se toca nada y sigue pendiente. Hay que arreglarlo a mano (docs/temporada-nueva.md); hasta entonces, el bot lo reintenta cada 6 h sin cambiar nada.
+- **La descarga no acabó**: «No se han podido cargar solos: <competición> (la descarga no está completa: faltan N grupos)» y la competición sigue como publicada y pendiente. Lo descargado se queda y el intento de después de la pasada siguiente reanuda (N baja de un intento a otro).
+- **No encaja** (`sin convenio de código`, `verificación`, `código repetido`): la línea con su motivo; no se toca nada y sigue pendiente. Hay que arreglarlo a mano (docs/temporada-nueva.md); hasta entonces, el bot lo reintenta una vez al día sin cambiar nada.
 - **Fase que la web no reconoce**: activado y publicado, pero en «otra-…»; la línea lo dice. Falta la regla en `src/model.js`.
-- **Las pruebas fallaron tras activar** o **no se pudo regenerar la web**: nada publicado, la línea lo dice y sigue pendiente.
+- **Las pruebas fallaron tras activar** o **no se pudo regenerar la web**: nada publicado, la línea lo dice y sigue pendiente (otro intento al día siguiente).
 
 **Pararla y lanzarla a mano:**
 
 ```bash
 gh workflow disable activar.yml -R malolocabreralolo-tech/futbol-base-v2   # parada: el bot sigue, su paso de lanzar falla sin ponerla en rojo
 gh workflow enable activar.yml -R malolocabreralolo-tech/futbol-base-v2    # otra vez en marcha
-gh workflow run activar.yml -R malolocabreralolo-tech/futbol-base-v2 --ref main   # a mano, sin esperar las 6 h; sin pendientes no hace nada
-gh run list -R malolocabreralolo-tech/futbol-base-v2 --workflow activar.yml --limit 5   # sus últimas ejecuciones
+gh workflow run activar.yml -R malolocabreralolo-tech/futbol-base-v2 --ref main   # un intento a mano, sin esperar; sin pendientes no hace nada
+gh run list -R malolocabreralolo-tech/futbol-base-v2 --workflow activar.yml --limit 5   # sus últimos intentos
 ```
 
-Mientras corre (hasta 2,5 h con una descarga larga), las pasadas del bot esperan en fila. GitHub solo guarda **una** ejecución en espera por grupo de concurrencia: si llega otra, la que esperaba se cancela. Una pasada lanzada mientras una activación espera la cancela (y el bot la vuelve a lanzar pasadas 6 h), y un relanzamiento de la cadena cancela la pasada que esperaba (el reloj lanza otra en su siguiente tick).
+Un intento a mano mientras una pasada espera la cancela (la lanza el reloj en su siguiente tick); mejor lanzarlo cuando no haya ninguna en marcha.
 
 ## Originales de las actas (desde el 14/11/2026, fase 2C de v2)
 

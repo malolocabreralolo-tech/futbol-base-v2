@@ -62,7 +62,7 @@ Por competición, en su propia transacción: el manifiesto de **solo** los grupo
 
 Motivos de fallo:
 
-- `sin convenio de código: <nombre>`: `comp_meta` no sabe qué código y fase darle. Hay que añadir el convenio en `scripts/fiflp_manifest.py` (con sus pruebas en `test_alevin_activacion.py`) y la regla de la web si hace falta; la pasada siguiente lo vuelve a intentar.
+- `sin convenio de código: <nombre>`: `comp_meta` no sabe qué código y fase darle. Hay que añadir el convenio en `scripts/fiflp_manifest.py` (con sus pruebas en `test_alevin_activacion.py`) y la regla de la web si hace falta; la activación automática lo vuelve a intentar una vez al día (o a mano: `gh workflow run activar.yml -R malolocabreralolo-tech/futbol-base-v2 --ref main`).
 - `la descarga no está completa: faltan N grupos` (o `… falta la lista de grupos de la federación`): para una competición entera, la descarga deja en `scripts/fiflp_islas_<tanda>_grupos.json` qué grupos lista la federación (`fetch_fiflp_2425.save_group_list`), y todos tienen que estar en el raw con calendario o tabla (uno guardado vacío cuenta como que falta). Se vuelve a descargar; lo ya descargado se conserva.
 - `verificación: <mensaje>`: lo que dice `verify_sources` (fechas de otra temporada, calendario de otro grupo, nombres que chocan…).
 - `código repetido: <código>`: el código del grupo nuevo (prefijo + número) ya lo tiene la temporada.
@@ -71,7 +71,7 @@ Motivos de fallo:
 
 Una copa o una eliminatoria sin clasificación en el raw (la Copa Benjamín, `CGC1`: una jornada a partido único) entra sin tabla: `fiflp_evidence` ya no le inventa filas a cero (una liga sin tabla todavía sí la recibe, como siempre) y `verify_sources` la da por buena con sus partidos. Un grupo que la federación no numera conserva su nombre («Eliminatoria previa»).
 
-En GitHub lo hace `activar.yml`, que lanza el bot cuando ve algo nuevo: descarga lo pendiente, llama a `activar_auto.py`, pasa las suites, sube el resultado y se relanza mientras solo falte descarga (hasta 4 intentos). Cómo funciona, qué se ve en «Datos y fuentes» en cada caso y cómo pararlo o lanzarlo a mano: [federacion.md](federacion.md), «La activación automática».
+En GitHub lo hace `activar.yml`, que lanza el bot al acabar cada pasada mientras haya algo nuevo que toque intentar (`source_health.py pendiente`): descarga lo pendiente 20 min, llama a `activar_auto.py`, pasa las suites y sube el resultado. Una descarga a medias sigue en el intento de después de la pasada siguiente (hasta 8: pasadas e intentos se alternan; una fase de 24 grupos tarda unas 3 h en fin de semana y unas 6 h entre semana sin freno); lo que no encaja se reintenta una vez al día. Cómo funciona, qué se ve en «Datos y fuentes» en cada caso y cómo pararlo o lanzarlo a mano: [federacion.md](federacion.md), «La activación automática».
 
 **Si falla, a mano:** el camino manual de arriba sigue valiendo tal cual. Con el bot y la activación automática parados como se explica arriba, `python3 scripts/activar_auto.py --dry-run` dice qué falla y por qué; arreglado el motivo, `python3 scripts/activar_auto.py` en local (con el raw al día tras `git pull`), las suites y la sonda, y el commit de la base, `data-*.js`, `index.html`, `sw.js`, `docs/temporadas/*-auto-*.json` y `data-health.json`. O el camino manual de arriba con `--comps`.
 
