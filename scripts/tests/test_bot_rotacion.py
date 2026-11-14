@@ -413,6 +413,9 @@ def test_each_priority_group_is_read_complete_before_the_next_and_nothing_starts
     (extras_turn), la página de competiciones se lee tras los prioritarios."""
     number = next(n for n in range(1000, 1004) if U.daily_turn("competiciones y directorio", n, 4))
     mine = {gid: code for gid, (code, _) in enumerate(season_groups(), 1) if code in MINE}
+    # La relectura de los originales (fase 2C) va al final de la pasada, tras todos los grupos: con ella, las
+    # actas de la base simulada, importadas sin original, también saldrían aquí. Primero, sin ella; abajo, con.
+    monkeypatch.setattr(U, "RELECTURA_POR_PASADA", 0)
     for actas in (0, 8):
         (passes, everyone), = [simulate(tmp_path, monkeypatch, commits=False, numbers=[number], page=page,
                                         actas=actas)]
@@ -434,6 +437,15 @@ def test_each_priority_group_is_read_complete_before_the_next_and_nothing_starts
         catalog = [i for i, u in enumerate(p["urls"]) if "NFG_CmpJornada" in u and "CodGrupo=" not in u]
         last_mine = max(i for i, o in enumerate(owner) if o in mine)
         assert catalog and catalog[0] > last_mine, actas
+    # Con la relectura: tampoco empieza nada pasado el plazo, y sus actas (como mucho RELECTURA_POR_PASADA)
+    # van detrás de lo último de cualquier grupo.
+    monkeypatch.setattr(U, "RELECTURA_POR_PASADA", 20)
+    (passes, _), = [simulate(tmp_path, monkeypatch, commits=False, numbers=[number], page=page, actas=0)]
+    p = passes[0]
+    assert p["last_start"] <= BUDGET and p["end"] <= BUDGET + page
+    actas = [i for i, u in enumerate(p["urls"]) if "CodActa=" in u]
+    last_group = max(i for i, u in enumerate(p["urls"]) if re.search(r"(?i)codgrupo=", u))
+    assert 0 < len(actas) <= 20 and actas[0] > last_group
 
 
 # ── Con el cupo de la federación (15/10/2026) ──────────────────────────────────
