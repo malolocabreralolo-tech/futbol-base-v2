@@ -669,9 +669,39 @@ def pares_juntas(conn) -> list[tuple[int, int]]:
     return sorted(pares)
 
 
-def resolver_fichas(conn, log=print) -> dict:
+# Las claves públicas de las identidades apartadas a mano de su ficha (docs/identidad.md, «Deshacer una
+# unión»): versionado, lo lee resolver_fichas en cada pasada.
+SEPARADAS = os.path.join(SCRIPTS, "identidad_separadas.json")
+
+
+def leer_separadas(conn, ruta=SEPARADAS, log=print) -> set[int]:
+    """Los ids de las filas de las claves de `ruta` (un id de la federación: todas las filas de ese id; 'n…':
+    la de esa clave guardada). Sin fichero o vacío, ninguna; una clave que no es de nadie se ignora con un
+    aviso. Un fichero que no es una lista de textos es un error (la pasada se para: nada a medias)."""
+    if not os.path.exists(ruta):
+        return set()
+    with open(ruta, encoding="utf-8") as f:
+        texto = f.read()
+    claves = json.loads(texto) if texto.strip() else []
+    if not isinstance(claves, list) or not all(isinstance(c, str) for c in claves):
+        raise ValueError(f"{ruta}: tiene que ser una lista de claves públicas (textos)")
+    tiene_clave = any(r[1] == "clave" for r in conn.execute("PRAGMA table_info(players)"))
+    ids = set()
+    for c in claves:
+        if c.isdigit():
+            filas = conn.execute("SELECT id FROM players WHERE fiflp_id=?", (int(c),)).fetchall()
+        else:
+            filas = conn.execute("SELECT id FROM players WHERE clave=?", (c,)).fetchall() if tiene_clave else []
+        if not filas:
+            log(f"  ! {os.path.basename(ruta)}: la clave {c} no es de ninguna identidad (se ignora)")
+        ids.update(pid for (pid,) in filas)
+    return ids
+
+
+def resolver_fichas(conn, log=print, separadas=SEPARADAS) -> dict:
     """Recalcula ficha_id y union_por de todas las filas (una transacción; solo escribe lo que cambia). Las
-    filas sin aparición ni suceso quedan sueltas (ficha_id y union_por a NULL)."""
+    filas sin aparición ni suceso quedan sueltas (ficha_id y union_por a NULL). Las identidades de las
+    claves de `separadas` (scripts/identidad_separadas.json) no se unen a nadie."""
     t0 = time.monotonic()
     asegurar_esquema(conn)
     # Antes que nada, cada identidad sin id con sus apariciones: los movimientos de equipo de la pasada
@@ -679,8 +709,9 @@ def resolver_fichas(conn, log=print) -> dict:
     realineadas = realinear(conn, log=log)
     ids = identidades(conn)
     juntas = pares_juntas(conn)
+    apartadas = leer_separadas(conn, separadas, log=log)
     t1 = time.monotonic()
-    fichas = resolver(ids, UNIR_CORTOS_EN_CLUB, juntas=juntas)
+    fichas = resolver(ids, UNIR_CORTOS_EN_CLUB, juntas=juntas, separadas=apartadas)
     t2 = time.monotonic()
     cambios = []
     for pid, ficha_id, union_por in conn.execute("SELECT id, ficha_id, union_por FROM players"):
@@ -698,7 +729,7 @@ def resolver_fichas(conn, log=print) -> dict:
     uniones = Counter(por for _, por in fichas.values() if por)
     out = {"identidades": len(ids), "fichas": sum(1 for k, (p, _) in fichas.items() if p == k),
            "uniones": dict(uniones), "cambiadas": len(cambios), "realinear": realineadas,
-           "juntas": len(juntas),
+           "juntas": len(juntas), "separadas": len(apartadas),
            "segundos": round(time.monotonic() - t0, 2), "segundos_cargar": round(t1 - t0, 2),
            "segundos_resolver": round(t2 - t1, 2)}
     log(f"  resolver_fichas: {out['identidades']} identidades → {out['fichas']} fichas, uniones {out['uniones']}, "

@@ -138,13 +138,15 @@ def _se_cruzan(a_ini, a_fin, b_ini, b_fin) -> bool:
 
 class _Ficha:
     """Lo que se mira de un conjunto de identidades para saber si cabe con otro. veta: las identidades que
-    salieron en la misma alineación que alguna de las suyas (otro niño, seguro)."""
-    __slots__ = ("miembros", "con_id", "ordinal", "lo", "hi", "tramos", "solape", "veta")
+    salieron en la misma alineación que alguna de las suyas (otro niño, seguro). sola: separada a mano
+    (scripts/identidad_separadas.json), no cabe con ninguna."""
+    __slots__ = ("miembros", "con_id", "ordinal", "lo", "hi", "tramos", "solape", "veta", "sola")
 
-    def __init__(self, miembros, vistas, con_id=False, ordinal=False, veta=()):
+    def __init__(self, miembros, vistas, con_id=False, ordinal=False, veta=(), sola=False):
         self.miembros = list(miembros)
         self.con_id, self.ordinal = con_id, ordinal
         self.veta = set(veta)
+        self.sola = sola
         self.lo, self.hi = -_INF, _INF
         self.tramos = {}            # (anio, nivel) -> [(club, primera, ultima)]
         self.solape = False
@@ -159,7 +161,7 @@ class _Ficha:
             otros.append(tramo)
 
     def cabe_con(self, otra) -> bool:
-        if self.solape or otra.solape or max(self.lo, otra.lo) > min(self.hi, otra.hi):
+        if self.sola or otra.sola or self.solape or otra.solape or max(self.lo, otra.lo) > min(self.hi, otra.hi):
             return False
         if (self.veta and not self.veta.isdisjoint(otra.miembros)) or \
                 (otra.veta and not otra.veta.isdisjoint(self.miembros)):
@@ -249,14 +251,18 @@ def resumen_u0_cortos(identidades) -> dict[str, int]:
 
 
 def resolver(identidades: list[Identidad], unir_cortos_en_club: bool,
-             juntas=()) -> dict[int, tuple[int, str | None]]:
+             juntas=(), separadas=()) -> dict[int, tuple[int, str | None]]:
     """{id de identidad: (id de la principal de su ficha, union_por)}; la principal se apunta a sí misma
     con None. union_por es la regla de la unión que juntó a esa identidad con la principal: deshacerla
     es apartarla de la ficha (ficha_id a NULL).
 
     juntas: pares (id, id) de identidades que salieron en un mismo partido con el mismo equipo: son dos
     niños, así que dos fichas con una de cada par no se unen por ninguna regla, ni directa ni a través de
-    otra (los pares con ids que no están se ignoran)."""
+    otra (los pares con ids que no están se ignoran).
+
+    separadas: ids de identidades que no se unen a nadie (su ficha son ellas solas): las que se apartaron a
+    mano de una unión. Siguen contando como otra ficha de su nombre (U1 de uno a uno, U2 candidata única):
+    así apartar una no hace que se una lo que antes no se unía."""
     por_id = {}
     for i in identidades:
         if i.id in por_id:
@@ -271,7 +277,7 @@ def resolver(identidades: list[Identidad], unir_cortos_en_club: bool,
     padre = {k: k for k in ids}
     fichas = {k: _Ficha([k], por_id[k].vistas, con_id=por_id[k].fiflp_id is not None,
                         ordinal=por_id[k].fiflp_id is None and bool(_SUFIJO.search(por_id[k].norm)),
-                        veta=veta.get(k, ()))
+                        veta=veta.get(k, ()), sola=k in separadas)
               for k in ids}
     uniones = []            # (regla, a, b) en el orden en que se hicieron
 

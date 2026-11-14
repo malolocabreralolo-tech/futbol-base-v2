@@ -1046,3 +1046,27 @@ def test_juntas_con_ids_que_no_estan_no_rompen():
     a, b, c = casos_juntas()
     assert resolver([a, b, c], unir_cortos_en_club=True, juntas=[(1, 99), (98, 97)]) == \
         resolver([a, b, c], unir_cortos_en_club=True)
+
+
+# ---------------------------------------------------------------------------
+# Separadas a mano (scripts/identidad_separadas.json)
+# ---------------------------------------------------------------------------
+
+def test_una_separada_no_se_une_a_nadie_y_sigue_contando_como_otra_ficha():
+    a, b, c = casos_juntas()
+    assert resolver([a, b, c], unir_cortos_en_club=True) == {1: (1, None), 2: (1, "equipo"), 3: (1, "equipo")}
+    r = resolver([a, b, c], unir_cortos_en_club=True, separadas={2})
+    assert r == {1: (1, None), 2: (2, None), 3: (1, "equipo")}
+    # La principal separada: las demás se unen entre ellas.
+    assert resolver([a, b, c], unir_cortos_en_club=True, separadas={1}) == {1: (1, None), 2: (2, None), 3: (2, "equipo")}
+    for semilla in range(5):
+        barajados = [a, b, c]
+        random.Random(semilla).shuffle(barajados)
+        assert resolver(barajados, unir_cortos_en_club=True, separadas={2}) == r
+    # Una separada cuenta como otra ficha del nombre: U2 ya no tiene candidata única.
+    con = ident(10, "VEGA MESA, LUZ", 500010, v(2024, BEN, "Teror"))
+    sin = ident(11, "VEGA MESA, LUZ", None, v(2022, PRE, "Arucas"))
+    otra = ident(12, "VEGA MESA, LUZ", None, v(2020, PRE, "Moya"))
+    assert juntos(resolver([con, sin], unir_cortos_en_club=True), 10, 11)
+    assert resolver([con, sin, otra], unir_cortos_en_club=True, separadas={12}) == \
+        {10: (10, None), 11: (11, None), 12: (12, None)}

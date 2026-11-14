@@ -639,3 +639,46 @@ def test_dos_con_id_del_mismo_nombre_en_el_mismo_partido_no_se_unen():
     assert fila(conn, c)[6:] == (a, "equipo")
     assert M.pares_juntas(conn) == [(a, b)]
     assert M.resolver_fichas(conn, log=quiet)["cambiadas"] == 0
+
+
+# ── Deshacer una unión a mano: scripts/identidad_separadas.json ─────────────────────────────────
+
+def test_una_identidad_de_identidad_separadas_no_se_une_y_al_quitarla_vuelve(tmp_path):
+    conn = base()
+    nuevo(conn, 61, 2, 3, 4, "2025-10-04", acta([(4, "SOL, ANA", 501)]))
+    nuevo(conn, 62, 2, 3, 1, "2025-10-11", acta([(4, "SOL, ANA", None)]))
+    nuevo(conn, 63, 2, 3, 2, "2025-10-18", acta([(4, "SOL, ANA", 503)]))
+    ruta = tmp_path / "identidad_separadas.json"
+    con, uso = (conn.execute("SELECT id FROM players WHERE fiflp_id=?", (f,)).fetchone()[0] for f in (501, 503))
+    sin, clave_sin = conn.execute("SELECT id, clave FROM players WHERE norm_name='SOL, ANA@3.2'").fetchone()
+    M.resolver_fichas(conn, log=quiet, separadas=str(ruta))           # sin fichero: nada
+    assert fila(conn, sin)[6:] == (con, "equipo") and fila(conn, uso)[6:] == (con, "equipo")
+    ruta.write_text(json.dumps([clave_sin, "503"]), encoding="utf-8")
+    r = M.resolver_fichas(conn, log=quiet, separadas=str(ruta))
+    assert r["separadas"] == 2
+    assert fila(conn, sin)[6:] == (None, None) and fila(conn, uso)[6:] == (None, None)
+    assert M.resolver_fichas(conn, log=quiet, separadas=str(ruta))["cambiadas"] == 0     # aguanta la pasada
+    ruta.write_text("[]", encoding="utf-8")
+    M.resolver_fichas(conn, log=quiet, separadas=str(ruta))
+    assert fila(conn, sin)[6:] == (con, "equipo") and fila(conn, uso)[6:] == (con, "equipo")
+
+
+def test_una_clave_desconocida_en_identidad_separadas_se_ignora_con_un_aviso(tmp_path):
+    conn = base()
+    nuevo(conn, 61, 2, 3, 4, "2025-10-04", acta([(4, "SOL, ANA", 501)]))
+    ruta = tmp_path / "identidad_separadas.json"
+    ruta.write_text(json.dumps(["n0abc12345", "999999"]), encoding="utf-8")
+    lineas = []
+    r = M.resolver_fichas(conn, log=lineas.append, separadas=str(ruta))
+    assert r["separadas"] == 0
+    assert sum("n0abc12345" in x for x in lineas) == 1 and sum("999999" in x for x in lineas) == 1
+    ruta.write_text("", encoding="utf-8")                              # vacío: nada
+    assert M.resolver_fichas(conn, log=quiet, separadas=str(ruta))["separadas"] == 0
+
+
+def test_el_fichero_de_separadas_del_repositorio_es_una_lista_de_claves():
+    import re
+    claves = json.loads((ROOT / "scripts" / "identidad_separadas.json").read_text(encoding="utf-8"))
+    assert isinstance(claves, list)
+    assert all(isinstance(c, str) and re.fullmatch(r"\d+|n[0-9a-z]{9}", c) for c in claves)
+    assert len(claves) == len(set(claves))
