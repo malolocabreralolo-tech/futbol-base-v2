@@ -482,7 +482,8 @@
     "status": "pending"
   },
   "runHealth": {
-    "ok": true
+    "ok": true,
+    "drySince": "2026-11-14T23:43:30+00:00"
   },
   "activation": {
     "at": "2026-11-14T20:13:57+00:00",
@@ -512,81 +513,115 @@
     "attempts": 2
   },
   "run": {
-    "pass": 29,
+    "pass": 30,
     "groups": 79,
-    "refreshed": 38,
+    "refreshed": 0,
     "priority": [
-      "FF5",
-      "AL18",
-      "ALEL2"
+      "PG2",
+      "AL20",
+      "AL4"
     ],
     "fresh": [
-      "PG2",
       "EL2",
-      "AL4",
+      "FF5",
       "AL9",
-      "AL20",
-      "ALEL1"
+      "AL18",
+      "ALEL1",
+      "ALEL2"
     ],
     "resting": [],
     "deferred": [
-      "FF19",
-      "LZ1",
+      "AL20",
+      "AL4",
+      "AL21",
+      "FF20",
+      "FF21",
+      "AL22",
+      "FF22",
+      "AL23",
+      "PG3",
+      "FF23",
+      "AL24",
+      "FF24",
+      "AL25",
+      "FV11",
+      "AL17",
+      "FV12",
+      "AL19",
+      "FF18",
+      "PG4",
       "AL28",
-      "PLZ1",
-      "LZ2",
+      "FF19",
       "AL29",
-      "LZ3",
+      "LZ1",
+      "LZ2",
       "AL30",
-      "LZ4",
+      "LZ3",
+      "PLZ1",
       "AL31",
-      "LZ5",
-      "PLZ2",
+      "LZ4",
       "AL32",
-      "FV13",
+      "LZ5",
       "AL26",
-      "FV14",
+      "FV13",
+      "PLZ2",
       "AL27",
+      "FV14",
+      "AL8",
       "FF8",
       "CGC1",
-      "AL8",
-      "PFV2",
-      "EL1",
       "AL1",
-      "FF1",
+      "EL1",
       "AL2",
-      "FF2",
+      "PFV2",
+      "FF1",
       "AL3",
+      "FF2",
       "FF3",
-      "PFV1",
       "AL5",
       "FF4",
       "AL6",
       "FF6",
+      "PFV1",
       "AL7",
-      "FF7"
+      "FF7",
+      "AL16",
+      "FF17",
+      "FF9",
+      "AL10",
+      "FF10",
+      "AL11",
+      "PG1",
+      "FF11",
+      "AL12",
+      "FF12",
+      "FF13",
+      "AL13",
+      "FF14",
+      "AL14",
+      "FF15",
+      "PFV3",
+      "AL15",
+      "FF16"
     ],
-    "unserved": [],
+    "unserved": [
+      "PG2"
+    ],
     "extrasDeferred": [],
-    "seconds": 959,
-    "pages": 137,
-    "extras": [
-      "competiciones",
-      "directorio"
-    ],
-    "calendarShows": {
-      "other": 24
-    },
-    "groupSelects": {
-      "seen": 38,
-      "of": 38
-    },
+    "seconds": 783,
+    "pages": 11,
+    "blocked": true,
     "rawBackfill": {
-      "read": 15,
+      "read": 0,
       "left": 824
-    }
+    },
+    "pauses": 1,
+    "resumed": 0,
+    "brakeAfter": [
+      0
+    ]
   },
-  "checkedAt": "2026-11-14T22:52:48+00:00",
+  "checkedAt": "2026-11-14T23:45:22+00:00",
   "lastDataChange": "2026-11-14",
   "dataVersion": "20261114v",
   "summary": {
