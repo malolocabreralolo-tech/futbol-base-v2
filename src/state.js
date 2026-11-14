@@ -1,6 +1,7 @@
 // Carga de datos y funciones de dominio heredadas (spec §5.2). Desde el corte de B2 no guarda
 // estado de interfaz (S y FEATURED), no pinta HTML y no toca el DOM al importarse: la URL es la
 // fuente de verdad, myteam.js y store.js guardan mi equipo y ui.js pinta los escudos.
+import { isPlayerKey } from './links.js';
 
 /* Goleadores de un grupo, de GOL_BENJ o GOL_PREBENJ ([{ id, g, s: [[jugador, equipo, goles,
  * partidos]] }], lo que da model.scorers; cada entrada lleva el código del grupo en `id`):
@@ -369,11 +370,17 @@ export async function ensureLineups(season, group) {
   return _lineupsPromise[key];
 }
 
-/* Las fichas de jugador: data-jugadores-<k>.js, el trozo del id de la federación módulo
- * JUGADORES_SHARDS (generate_js.jugadores_files). Como ensureLineups: un vuelo por trozo, null
- * si falla (sin guardarlo, para reintentar) y el texto parseado, nunca el global. */
+/* Las fichas de jugador: data-jugadores-<k>.js, el trozo de su clave (generate_js.jugadores_files),
+ * el mismo que identidad.trozo: numérica, su valor módulo JUGADORES_SHARDS; «n…», las 9 cifras en base
+ * 36 módulo JUGADORES_SHARDS (caben enteras en un número: 36^9 < 2^53). null si no es una clave. Como
+ * ensureLineups: un vuelo por trozo, null si falla (sin guardarlo, para reintentar) y el texto
+ * parseado, nunca el global. */
 export const JUGADORES_SHARDS = 16;
-export const jugadoresShard = (id) => Number(id) % JUGADORES_SHARDS;
+export function jugadoresShard(id) {
+  const key = String(id ?? '');
+  if (!isPlayerKey(key)) return null;
+  return (key[0] === 'n' ? parseInt(key.slice(1), 36) : Number(key)) % JUGADORES_SHARDS;
+}
 const _jugadores = {};
 const _jugadoresPromise = {};
 

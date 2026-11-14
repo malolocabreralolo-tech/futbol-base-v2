@@ -582,17 +582,21 @@ def generate_alevin_js(conn):
 
 def coverage_summary(conn):
     """Lo que guarda la base, para «Fuentes»: por temporada [nombre, grupos, partidos, con
-    resultado, con acta, jugadores con alineación, goles con autor]; equipos con ficha (equipación
-    y campo), campos con coordenadas y el tamaño de la base en MB (de 5 en 5, para que no cambie en
-    cada pasada del bot)."""
+    resultado, con acta, jugadores con alineación (fichas, no identidades de acta), goles con autor];
+    equipos con ficha (equipación y campo), campos con coordenadas y el tamaño de la base en MB (de 5
+    en 5, para que no cambie en cada pasada del bot)."""
     seasons = []
+    ficha = "COALESCE(p.ficha_id, p.id)" if _has_table(conn, "players") and any(
+        r[1] == "ficha_id" for r in conn.execute("PRAGMA table_info(players)")) else "a.player_id"
     for sid, name in conn.execute("SELECT id, name FROM seasons ORDER BY start_year DESC"):
         groups, matches, played, actas = conn.execute(
             """SELECT count(DISTINCT g.id), count(m.id), count(m.home_score), count(m.cod_acta)
                FROM groups g LEFT JOIN matches m ON m.group_id = g.id WHERE g.season_id = ?""", (sid,)).fetchone()
+        # Jugadores = fichas (fase 2C): las identidades de acta de un mismo niño cuentan una vez.
         players = conn.execute(
-            """SELECT count(DISTINCT a.player_id) FROM appearances a JOIN matches m ON m.id = a.match_id
-               JOIN groups g ON g.id = m.group_id WHERE g.season_id = ?""", (sid,)).fetchone()[0] \
+            f"""SELECT count(DISTINCT {ficha}) FROM appearances a JOIN players p ON p.id = a.player_id
+                JOIN matches m ON m.id = a.match_id
+                JOIN groups g ON g.id = m.group_id WHERE g.season_id = ?""", (sid,)).fetchone()[0] \
             if _has_table(conn, "appearances") else 0
         # Por partido, la fuente que más goles con autor da (el acta o la cronología del portal): las dos
         # cuentan los mismos goles.
@@ -741,11 +745,13 @@ def lineups_const(season_name, code):
     return f"LINEUPS_{_season_const_suffix(season_name)}_{code}"
 
 
-def lineups_entries(conn, season_name, code=None):
+def lineups_entries(conn, season_name, code=None, claves=None):
     """[(clave, entrada)] de las actas de la temporada (o de un grupo): la clave es
        "<home>|<away>|<hs>-<as>" y la entrada { s, gr, cod, home:[...], away:[...],
        events:[...], coachH, coachA, ref, delH?, delA? } (s = temporada, gr = código
-       del grupo, cod = matches.cod_acta)."""
+       del grupo, cod = matches.cod_acta). Cada jugador y el autor de cada suceso llevan "id" (y el que
+       entra en un cambio, "id2") con la clave de SU ficha, si se publica (claves_de_ficha, que se puede
+       pasar ya hecha en `claves` para no rehacerla grupo a grupo)."""
     season_id = conn.execute("SELECT id FROM seasons WHERE name=?", (season_name,)).fetchone()
     if not season_id:
         return []
@@ -755,7 +761,8 @@ def lineups_entries(conn, season_name, code=None):
         JOIN teams t1 ON t1.id=m.home_team_id JOIN teams t2 ON t2.id=m.away_team_id
        WHERE g.season_id=? AND m.cod_acta IS NOT NULL AND (? IS NULL OR g.code=?)
        ORDER BY m.id""", (season_id[0], code, code)).fetchall()
-    has_id = any(r[1] == "fiflp_id" for r in conn.execute("PRAGMA table_info(players)"))
+    if claves is None:
+        claves = claves_de_ficha(conn)
     has_all = _has_table(conn, "match_staff_all")
     # Los empatados en rol y dorsal, en el orden del acta: appearances.ord (el id de la fila en una
     # base de antes de migrate_compactar).
@@ -764,27 +771,31 @@ def lineups_entries(conn, season_name, code=None):
     for mid, h, a, hs, asc, code, cod in rows:
         key = _match_key(h, a, hs, asc)
         apps = conn.execute(f"""
-          SELECT a.team_id, p.full_name, a.dorsal, a.role, a.goals, a.yellow, a.red,
-                 {"p.fiflp_id" if has_id else "NULL"}
+          SELECT a.team_id, p.full_name, a.dorsal, a.role, a.goals, a.yellow, a.red, p.id
             FROM appearances a JOIN players p ON p.id=a.player_id
            WHERE a.match_id=? ORDER BY a.role DESC, a.dorsal, {tiebreak}""", (mid,)).fetchall()
         home_team_id = conn.execute("SELECT home_team_id FROM matches WHERE id=?", (mid,)).fetchone()[0]
 
         def player(r):
-            # id: el del jugador en la federación (estable entre temporadas), si se conoce.
+            # id: la clave de su ficha (data-jugadores), la misma en todas sus actas.
             out = {"n": r[1], "dn": r[2], "r": r[3], "g": r[4], "y": r[5], "rd": r[6]}
-            if r[7] is not None:
-                out["id"] = r[7]
+            if r[7] in claves:
+                out["id"] = _id_publico(claves[r[7]])
             return out
+
+        def with_id(ev, pid, field="id"):
+            if pid in claves:
+                ev[field] = _id_publico(claves[pid])
+            return ev
         home = [player(r) for r in apps if r[0] == home_team_id]
         away = [player(r) for r in apps if r[0] != home_team_id]
         evs = conn.execute("""
-          SELECT e.id, e.kind, e.team_id, p.full_name, e.minute, e.goal_type, e.pair_id
+          SELECT e.id, e.kind, e.team_id, p.full_name, e.minute, e.goal_type, e.pair_id, e.player_id
             FROM match_events e JOIN players p ON p.id=e.player_id
            WHERE e.match_id=? ORDER BY COALESCE(e.minute,9999), e.id""", (mid,)).fetchall()
         events = []
         handled = set()  # event ids already emitted as half of a sub pair
-        for eid, kind, tid, name, mn, gt, pid in evs:
+        for eid, kind, tid, name, mn, gt, pid, who in evs:
             side = "h" if tid == home_team_id else "a"
             if kind in ("sub_in", "sub_out") and pid:
                 if eid in handled:
@@ -794,22 +805,25 @@ def lineups_entries(conn, season_name, code=None):
                 # whose id == pid — never this event itself.
                 pair = next((e for e in evs if e[0] == pid), None)
                 pair_name = pair[3] if pair else None
+                pair_who = pair[7] if pair else None
                 ev = {"t": "sub", "s": side, "m": mn,
                       "n": name if kind == "sub_out" else pair_name,
                       "n2": name if kind == "sub_in" else pair_name}
+                with_id(ev, who if kind == "sub_out" else pair_who)
+                with_id(ev, who if kind == "sub_in" else pair_who, "id2")
                 events.append(ev)
                 handled.add(eid)
                 handled.add(pid)
             elif kind in ("sub_in", "sub_out"):
-                events.append({"t": kind, "s": side, "n": name, "m": mn})
+                events.append(with_id({"t": kind, "s": side, "n": name, "m": mn}, who))
             elif kind == "goal":
                 # Un gol en propia puerta suma al rival: el lado del gol es el
                 # contrario al del jugador que lo marca.
                 if gt == "own":
                     side = "a" if side == "h" else "h"
-                events.append({"t": "goal", "s": side, "n": name, "m": mn, "gt": gt})
+                events.append(with_id({"t": "goal", "s": side, "n": name, "m": mn, "gt": gt}, who))
             else:
-                events.append({"t": kind, "s": side, "n": name, "m": mn})
+                events.append(with_id({"t": kind, "s": side, "n": name, "m": mn}, who))
         ref = conn.execute("SELECT name FROM match_staff WHERE match_id=? AND kind='referee'", (mid,)).fetchone()
         ch = conn.execute("SELECT name FROM match_staff WHERE match_id=? AND kind='coach' AND team_id=?", (mid, home_team_id)).fetchone()
         ca = conn.execute("SELECT name FROM match_staff WHERE match_id=? AND kind='coach' AND team_id!=?", (mid, home_team_id)).fetchone()
@@ -840,14 +854,14 @@ def lineups_entries(conn, season_name, code=None):
     return pairs
 
 
-def generate_lineups_js(conn, season_name, code):
+def generate_lineups_js(conn, season_name, code, claves=None):
     """data-lineups-<S>-<grupo>.js: las actas de UN grupo de la temporada.
        const LINEUPS_<YYYY_YYYY>_<grupo> = { "<home>|<away>|<hs>-<as>": { s, gr, cod, ... } };
        Una clave que comparten dos o más partidos del grupo es
        { dup: true, list: [ {s, gr, cod, home, ...}, ... ] }.
        Por grupo y no por temporada: una temporada entera con todas sus actas
        pesa ~10 MB, y la ficha de un equipo o un partido solo necesita su grupo."""
-    obj = _keyed_or_dup(lineups_entries(conn, season_name, code))
+    obj = _keyed_or_dup(lineups_entries(conn, season_name, code, claves))
     return ("// Auto-generated by scripts/generate_js.py — do not edit\n"
             "const " + lineups_const(season_name, code) + " = " + json.dumps(obj, ensure_ascii=False) + ";\n")
 
@@ -859,11 +873,12 @@ def lineups_files(conn):
     """{fichero: contenido} de los data-lineups-<S>-<grupo>.js: uno por grupo con
        alguna acta."""
     out = {}
+    claves = claves_de_ficha(conn)          # una vez, no grupo a grupo
     for sname, code in conn.execute("""
         SELECT DISTINCT s.name, g.code FROM matches m JOIN groups g ON g.id=m.group_id
           JOIN seasons s ON s.id=g.season_id
          WHERE m.cod_acta IS NOT NULL ORDER BY s.name, g.code""").fetchall():
-        out[f"data-lineups-{sname}-{code}.js"] = generate_lineups_js(conn, sname, code)
+        out[f"data-lineups-{sname}-{code}.js"] = generate_lineups_js(conn, sname, code, claves)
     return out
 
 
@@ -884,9 +899,57 @@ def write_lineups(conn, root=None):
     return files
 
 
-# La ficha de cada jugador (por su id de la federación, el mismo niño de prebenjamín a benjamín y de
-# una temporada a otra): 16 ficheros, el del id módulo 16, para que abrir una ficha no baje todas.
+# La ficha de cada niño (fase 2C, docs/identidad.md: una o varias identidades de acta con una principal):
+# 16 ficheros, el de su clave pública (identidad.trozo), para que abrir una ficha no baje todas.
 JUGADORES_SHARDS = 16
+# union_por → el motivo corto de una fila unida en data-jugadores (la ficha lo dice en esa línea).
+_MOTIVO = {"equipo": "e", "club": "c", "nombre": "n"}
+
+
+def _fichas(conn):
+    """Las identidades de acta con su clave pública y su ficha, para publicar:
+    {"clave": {player_id: clave de la identidad}, "ficha": {player_id: id de la principal},
+     "por": {player_id: union_por}, "publicadas": {id de la principal} (fichas con alguna aparición)}.
+    Sin las columnas de la fase 2C (una base sin migrar), cada fila es su ficha y solo las de fiflp_id
+    tienen clave, como antes. El gol «sin nombre publicado» y las filas sin id ni equipo no tienen."""
+    from identidad import clave_publica          # aquí: identidad.py importa generate_js
+    from migrate_identidad import nombre_base
+    cols = {r[1] for r in conn.execute("PRAGMA table_info(players)")}
+    if "fiflp_id" not in cols:
+        return {"clave": {}, "ficha": {}, "por": {}, "publicadas": set(), "nombre": {}}
+    c2 = {"ficha_id", "union_por", "team_id", "season_id", "ordinal"} <= cols
+    sel = ("p.ficha_id, p.union_por, t.name, s.start_year, p.ordinal" if c2 else "NULL, NULL, NULL, NULL, NULL")
+    join = ("LEFT JOIN teams t ON t.id = p.team_id LEFT JOIN seasons s ON s.id = p.season_id" if c2 else "")
+    filas = conn.execute(f"SELECT p.id, p.norm_name, p.fiflp_id, {sel} FROM players p {join}").fetchall()
+    existe = {r[0] for r in filas}
+    clave, ficha, por, nombre = {}, {}, {}, {}
+    for pid, norm_name, fid, ficha_id, union_por, equipo, anio, ordinal in filas:
+        base = nombre_base(norm_name)
+        nombre[pid] = base
+        ficha[pid] = ficha_id if ficha_id in existe else pid
+        if ficha[pid] != pid:
+            por[pid] = union_por
+        if fid is not None:
+            clave[pid] = str(int(fid))
+        elif equipo is not None and anio is not None and base and not base.startswith("#"):
+            clave[pid] = clave_publica(None, base + (f"#{ordinal}" if ordinal and ordinal > 1 else ""), equipo, anio)
+    con_apariciones = {pid for (pid,) in conn.execute("SELECT DISTINCT player_id FROM appearances")} \
+        if _has_table(conn, "appearances") else set()
+    publicadas = {ficha[pid] for pid in con_apariciones if pid in ficha and ficha[pid] in clave}
+    return {"clave": clave, "ficha": ficha, "por": por, "publicadas": publicadas, "nombre": nombre}
+
+
+def claves_de_ficha(conn, fichas=None):
+    """{player_id: clave de SU ficha} de las identidades cuya ficha se publica en data-jugadores (lo que
+    llevan las alineaciones y los sucesos en "id"); las demás, sin clave."""
+    f = fichas or _fichas(conn)
+    return {pid: f["clave"][p] for pid, p in f["ficha"].items() if p in f["publicadas"]}
+
+
+def _id_publico(clave):
+    """La clave como va en "id" de las alineaciones: un número si es un id de la federación (como hasta
+    ahora) y el texto 'n…' si no."""
+    return int(clave) if clave and clave.isdigit() else clave
 
 
 def _season_day(text, start_year):
@@ -906,13 +969,23 @@ def _season_day(text, start_year):
 
 def jugadores_files(conn):
     """{fichero: contenido} de los data-jugadores-<k>.js: const JUGADORES_<k> =
-       {"p": {"<fiflp_id>": {"n": nombre, "c": [[temporada, grupo, equipo,
-       partidos, titular, goles, amarillas, rojas], ...]}}, "g": {"<temporada>/
-       <grupo>": [categoría, nombre, fase, isla]}}: una fila por grupo y equipo,
-       en orden de temporada y de primer partido del grupo, y de cada grupo lo
-       que la app necesita para nombrarlo (model.groupLabel)."""
+       {"p": {"<clave>": {"n": nombre, "c": [fila, ...], "s"?: 1, "h"?: [[clave, equipo, temporada], ...],
+                          "al"?: [alias, ...]}},
+        "a": {"<alias>": "<clave>"},
+        "g": {"<temporada>/<grupo>": [categoría, nombre, fase, isla]}}.
+       Una entrada por ficha con alguna aparición, en el trozo de su clave (la de su principal), con las
+       apariciones de todas sus identidades: una fila [temporada, grupo, equipo, partidos, titular, goles,
+       amarillas, rojas] por identidad, grupo y equipo, en orden de temporada y de primer partido del grupo;
+       la de una identidad unida lleva además 1 y el motivo ("e" equipo, "c" club, "n" nombre) y no se suma
+       a la de la principal. "s": 1, ninguna identidad con id; "h", las otras fichas con el mismo nombre
+       normalizado (su último equipo y temporada); "al", sus alias. Cada alias (la clave de una identidad
+       no principal con aparición o suceso) va en "a" del trozo DEL ALIAS, para abrirlo sin saber la clave.
+       "g": de cada grupo, lo que la app necesita para nombrarlo (model.groupLabel)."""
     if not any(r[1] == "fiflp_id" for r in conn.execute("PRAGMA table_info(players)")):
         return {}
+    from identidad import trozo
+    f = _fichas(conn)
+    clave, ficha, publicadas = f["clave"], f["ficha"], f["publicadas"]
     # El primer día de cada grupo (las fechas vienen en tres formatos).
     first_day = {}
     for gid, day, start in conn.execute("""SELECT m.group_id, m.date, s.start_year FROM matches m
@@ -921,22 +994,64 @@ def jugadores_files(conn):
         if iso and (gid not in first_day or iso < first_day[gid]):
             first_day[gid] = iso
     rows = conn.execute("""
-        SELECT p.fiflp_id, p.full_name, s.name, s.start_year, g.id, g.code, t.name, COUNT(*),
+        SELECT p.id, s.name, s.start_year, g.id, g.code, t.name, COUNT(*),
                SUM(a.role='starter'), SUM(a.goals), SUM(a.yellow), SUM(a.red),
                LOWER(c.name), g.name, g.phase, g.island
           FROM appearances a JOIN players p ON p.id=a.player_id
           JOIN matches m ON m.id=a.match_id JOIN groups g ON g.id=m.group_id
           JOIN seasons s ON s.id=g.season_id JOIN teams t ON t.id=a.team_id
           JOIN categories c ON c.id=g.category_id
-         WHERE p.fiflp_id IS NOT NULL
          GROUP BY p.id, g.id, a.team_id""").fetchall()
-    rows.sort(key=lambda r: (r[0], r[3], first_day.get(r[4], "9999"), r[5], r[6]))
-    shards = [{"p": {}, "g": {}} for _ in range(JUGADORES_SHARDS)]
-    for fid, name, season, _, _, code, team, pj, tit, goals, yellow, red, cat, gname, phase, island in rows:
-        shard = shards[fid % JUGADORES_SHARDS]
-        shard["p"].setdefault(str(fid), {"n": name, "c": []})["c"].append(
-            [season, code, team, pj, tit, goals, yellow, red])
-        shard["g"].setdefault(f"{season}/{code}", [cat, gname, phase, island])
+    names = dict(conn.execute("SELECT id, full_name FROM players"))
+    fids = {pid for (pid,) in conn.execute("SELECT id FROM players WHERE fiflp_id IS NOT NULL")}
+    # Por ficha: sus filas en orden de temporada y primer día del grupo; a igualdad, la de la principal antes.
+    por_ficha = {}
+    for pid, season, year, gid, code, team, pj, tit, goals, yellow, red, cat, gname, phase, island in rows:
+        principal = ficha.get(pid)
+        if principal not in publicadas:
+            continue
+        motivo = [] if principal == pid else [1, _MOTIVO.get(f["por"].get(pid))] if f["por"].get(pid) in _MOTIVO else [1]
+        por_ficha.setdefault(principal, []).append(
+            ((year, first_day.get(gid, "9999"), code, team, len(motivo), motivo),
+             [season, code, team, pj, tit, goals, yellow, red, *motivo], (season, code, cat, gname, phase, island)))
+    for filas in por_ficha.values():
+        filas.sort(key=lambda x: x[0])
+    miembros = {}
+    for pid, principal in ficha.items():
+        miembros.setdefault(principal, []).append(pid)
+    con_algo = {pid for (pid,) in conn.execute("SELECT DISTINCT player_id FROM appearances")}
+    if _has_table(conn, "match_events"):
+        con_algo |= {pid for (pid,) in conn.execute("SELECT DISTINCT player_id FROM match_events")}
+    # Las otras fichas con el mismo nombre normalizado (el de la principal): [clave, último equipo, temporada].
+    por_nombre = {}
+    for principal in publicadas:
+        por_nombre.setdefault(f["nombre"][principal], []).append(principal)
+    ultimo = {p: (filas[-1][1][2], filas[-1][1][0]) for p, filas in por_ficha.items()}
+
+    def orden(k):
+        return (0, int(k), "") if k.isdigit() else (1, 0, k)
+
+    shards = [{"p": {}, "a": {}, "g": {}} for _ in range(JUGADORES_SHARDS)]
+    for principal in sorted(por_ficha, key=lambda p: orden(clave[p])):
+        k = clave[principal]
+        shard = shards[trozo(k, JUGADORES_SHARDS)]
+        entry = {"n": names[principal], "c": [fila for _, fila, _ in por_ficha[principal]]}
+        for season, code, cat, gname, phase, island in (g for _, _, g in por_ficha[principal]):
+            shard["g"].setdefault(f"{season}/{code}", [cat, gname, phase, island])
+        if not any(m in fids for m in miembros[principal]):
+            entry["s"] = 1
+        # La más reciente primero; a igualdad, por clave.
+        otras = sorted(sorted((p for p in por_nombre[f["nombre"][principal]] if p != principal and p in ultimo),
+                              key=lambda p: orden(clave[p])), key=lambda p: ultimo[p][1], reverse=True)
+        if otras:
+            entry["h"] = [[clave[p], *ultimo[p]] for p in otras]
+        alias = sorted((clave[m] for m in miembros[principal] if m != principal and m in clave and m in con_algo),
+                       key=orden)
+        if alias:
+            entry["al"] = alias
+            for a in alias:
+                shards[trozo(a, JUGADORES_SHARDS)]["a"][a] = k
+        shard["p"][k] = entry
     return {f"data-jugadores-{k}.js": f"const JUGADORES_{k} = "
             + json.dumps(shard, ensure_ascii=False, separators=(",", ":")) + ";\n"
             for k, shard in enumerate(shards)}

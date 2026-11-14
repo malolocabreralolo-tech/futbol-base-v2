@@ -218,9 +218,14 @@ export function teamHref(season, groupId, team) {
   return routeHref('equipo', { s: season, g: groupId, t: team });
 }
 
-// La ficha de un jugador por su id de la federación (el `id` de las actas), o null sin él.
+// La clave pública de una ficha de jugador (fase 2C, docs/identidad.md): el id de la federación o, sin
+// él, «n» + 9 cifras en base 36. La aceptan la ruta, los seguidos y los trozos de data-jugadores.
+export const PLAYER_KEY = /^(?:\d+|n[0-9a-z]{9})$/;
+export const isPlayerKey = (id) => id != null && PLAYER_KEY.test(String(id));
+
+// La ficha de un jugador por su clave (el `id` de las actas), o null sin ella.
 export function playerHref(id) {
-  return id != null && /^\d+$/.test(String(id)) ? routeHref('jugador', { id: String(id) }) : null;
+  return isPlayerKey(id) ? routeHref('jugador', { id: String(id) }) : null;
 }
 
 // Enlaces antiguos ('#section=…', compartidos por WhatsApp) → ruta nueva (tabla de §4.1).

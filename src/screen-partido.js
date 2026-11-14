@@ -166,10 +166,16 @@ function forecastBlock(match, group, ctx) {
 
 const noName = html`<span class="pt-noname">sin nombre</span>`;
 const minuteOf = (goal) => (goal.minute != null ? html`<span class="pt-g-min">${goal.minute}'</span>` : '');
+// El goleador, con el enlace a su ficha si el acta da su clave (los de futbolaspalmas no la tienen).
+const scorerOf = (goal) => {
+  if (!goal.name) return noName;
+  const href = playerHref(goal.id);
+  return href ? html`<a href="${href}">${goal.name}</a>` : goal.name;
+};
 
 // Cronología en tres columnas (spec §4.5): goleador local | minuto y marcador parcial | goleador visitante.
 function goalsTable(goals, match, mine) {
-  const scorer = (goal, side) => (goal.side !== side ? '' : goal.name || noName);
+  const scorer = (goal, side) => (goal.side !== side ? '' : scorerOf(goal));
   const cls = (base, side) => (mine === side ? `${base} pt-mine` : base);
   const rows = goals.map((goal) => html`<tr><td class="${cls('pt-g-home', 'home')}">${scorer(goal, 'home')}</td><td class="pt-g-mid">${minuteOf(goal)}${goal.minute != null && goal.score ? ' ' : ''}${goal.score ? html`<b class="pt-g-score">${dashed(goal.score)}</b>` : ''}</td><td class="${cls('pt-g-away', 'away')}">${scorer(goal, 'away')}</td></tr>`);
   return html`<table class="pt-goals"><caption class="vh">Goles en orden: local a la izquierda y visitante a la derecha</caption><thead><tr><th scope="col" class="pt-g-home"><span class="vh">${match.home} (local)</span></th><th scope="col" class="pt-g-mid"><span class="vh">Minuto y marcador</span></th><th scope="col" class="pt-g-away"><span class="vh">${match.away} (visitante)</span></th></tr></thead><tbody>${rows}</tbody></table>`;
@@ -182,12 +188,14 @@ function goalsLists(goals, match, mine) {
     const scorers = new Map();
     for (const goal of goals) {
       if (goal.side !== side) continue;
-      const entry = scorers.get(goal.name) || { name: goal.name, count: 0, minutes: [] };
+      // Cada goleador una vez: por la clave de su ficha si la hay (dos homónimos, dos líneas); si no, por el nombre.
+      const key = goal.id != null && goal.name ? `id:${goal.id}|${goal.name}` : `n:${goal.name}`;
+      const entry = scorers.get(key) || { name: goal.name, id: goal.id, count: 0, minutes: [] };
       entry.count += 1;
       if (goal.minute != null) entry.minutes.push(`${goal.minute}'`);
-      scorers.set(goal.name, entry);
+      scorers.set(key, entry);
     }
-    const items = [...scorers.values()].map((s) => html`<li>${s.name || noName}${s.count > 1 ? html` <span class="pt-glist-n">(${s.count}<span class="vh"> goles</span>)</span>` : ''}${s.minutes.length ? html` <span class="pt-g-min">${s.minutes.join(', ')}</span>` : ''}</li>`);
+    const items = [...scorers.values()].map((s) => html`<li>${scorerOf(s)}${s.count > 1 ? html` <span class="pt-glist-n">(${s.count}<span class="vh"> goles</span>)</span>` : ''}${s.minutes.length ? html` <span class="pt-g-min">${s.minutes.join(', ')}</span>` : ''}</li>`);
     return html`<div class="${mine === side ? 'pt-glist pt-mine' : 'pt-glist'}"><h3 class="pt-glist-head"><span class="pt-side">${label}</span> ${name}</h3>${items.length
       ? html`<ul>${items}</ul>`
       : html`<p class="pt-glist-none">Sin goles</p>`}</div>`;
