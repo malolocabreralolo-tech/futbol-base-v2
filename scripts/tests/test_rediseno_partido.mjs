@@ -531,7 +531,7 @@ test('acta.css: cada clase de la pantalla existe; marcador de 40 px; pulsables d
     assert.ok(m, `no hay regla para «${selector}»`);
     return m[1];
   };
-  assert.match(rule('.pt-score'), /font-size:\s*40px/);
+  assert.match(rule('.pt-score'), /font-size:\s*2\.5rem/);
   assert.match(rule('.pt-score'), /font-weight:\s*800/);
   for (const sel of ['.pt-h2h-row', '.pt-prev-toggle', '.pt-acta']) assert.match(rule(sel), /(min-)?height:\s*44px/, sel);
   const current = rule('.pt-h2h-row.is-current');

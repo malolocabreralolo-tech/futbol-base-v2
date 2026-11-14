@@ -413,7 +413,7 @@ test('estilos: la cifra, con el puesto grande y en tinta y el enlace subrayado; 
   assert.match(body('.proj-figure-pos'), /font-weight:\s*800/);
   // El margen, en gris y del tamaño de los puntos: lo que acompaña al puesto, no otra cifra.
   assert.match(body('.proj-figure-fan'), /color:\s*var\(--mute\)/);
-  assert.match(body('.proj-figure-fan'), /font-size:\s*15px/);
+  assert.match(body('.proj-figure-fan'), /font-size:\s*0\.9375rem/);
   assert.match(body('.proj-figure-fan'), /font-weight:\s*700/);
   assert.match(body('.proj-figure-more'), /color:\s*var\(--ink\)/);
   assert.match(body('.proj-figure-more'), /text-decoration:\s*underline/);

@@ -68,14 +68,14 @@ body {
   background: var(--paper);
   color: var(--text);
   font-family: 'Public Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-  font-size: 13.5px;
+  font-size: 0.84375rem;
   line-height: 1.45;
   font-variant-numeric: tabular-nums;
   padding-bottom: calc(64px + env(safe-area-inset-bottom));
 }
 
 h1, h2, h3, p, dl, dd { margin: 0; }
-h1 { font-size: 19px; font-weight: 800; line-height: 1.2; }
+h1 { font-size: 1.1875rem; font-weight: 800; line-height: 1.2; }
 a { color: var(--ink); text-underline-offset: 3px; }
 button, input, select, textarea { font: inherit; color: inherit; }
 button { background: none; border: 0; padding: 0; cursor: pointer; }
@@ -122,8 +122,8 @@ abbr[title] { text-decoration: none; }
   column-gap: 8px;
   margin-bottom: 7px;
 }
-.block-title { font-size: 15px; font-weight: 800; line-height: 1.25; color: var(--ink); }
-.block-context { min-width: 0; font-size: 12.5px; font-weight: 600; color: var(--mute); text-align: right; }
+.block-title { font-size: 0.9375rem; font-weight: 800; line-height: 1.25; color: var(--ink); }
+.block-context { min-width: 0; font-size: 0.78125rem; font-weight: 600; color: var(--mute); text-align: right; }
 
 .box { border: 1.5px solid var(--ink); background: var(--paper); }
 .box > * + * { border-top: 1px solid var(--rule); }
@@ -141,9 +141,9 @@ abbr[title] { text-decoration: none; }
 .cells-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .cells-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
 .cell { min-width: 0; padding: 6px 8px 7px; background: var(--paper); }
-.cell-label { font-size: 11.5px; color: var(--mute); }
-.cell-value { font-size: 17px; font-weight: 800; line-height: 1.3; color: var(--ink); overflow-wrap: anywhere; }
-.cell.is-muted .cell-value { font-size: 13.5px; font-weight: 600; color: var(--mute); }
+.cell-label { font-size: 0.71875rem; color: var(--mute); }
+.cell-value { font-size: 1.0625rem; font-weight: 800; line-height: 1.3; color: var(--ink); overflow-wrap: anywhere; }
+.cell.is-muted .cell-value { font-size: 0.84375rem; font-weight: 600; color: var(--mute); }
 
 /* ── Fila de partido ──────────────────────────────────────────────────── */
 
@@ -158,7 +158,7 @@ abbr[title] { text-decoration: none; }
   text-decoration: none;
 }
 .box > .match-row + .match-row { border-top-color: var(--line); }
-.match-time { font-size: 11.5px; color: var(--mute); }
+.match-time { font-size: 0.71875rem; color: var(--mute); }
 .match-team { display: flex; align-items: center; gap: 5px; min-width: 0; }
 .match-home { justify-content: flex-end; text-align: right; }
 .match-away { justify-content: flex-start; }
@@ -166,18 +166,18 @@ abbr[title] { text-decoration: none; }
 .match-score {
   padding: 3px 0;
   border: 1px solid var(--rule);
-  font-size: 15px;
+  font-size: 0.9375rem;
   font-weight: 800;
   line-height: 1.3;
   text-align: center;
 }
 .match-score.is-pending { color: var(--mute); font-weight: 600; }
-.match-note { grid-column: 2 / -1; font-size: 12.5px; font-weight: 600; color: var(--mute); text-align: center; }
+.match-note { grid-column: 2 / -1; font-size: 0.78125rem; font-weight: 600; color: var(--mute); text-align: center; }
 /* El pronóstico de un partido sin jugar (forecastLine de ui.js; prebenjamín de la temporada en curso,
  * 17/10/2026): debajo, a lo ancho de los dos equipos y nunca en la casilla del marcador, que sigue con su
  * «–»; más pequeño que los nombres, sin negrita y en --mute, también en la fila propia (en tinta y 800). */
 .match-forecast,
-.match-row.is-mine .match-forecast { grid-column: 2 / -1; font-size: 12px; font-weight: 400; line-height: 1.3; color: var(--mute); text-align: center; }
+.match-row.is-mine .match-forecast { grid-column: 2 / -1; font-size: 0.75rem; font-weight: 400; line-height: 1.3; color: var(--mute); text-align: center; }
 .match-row.is-mine {
   background: var(--mark);
   color: var(--ink);
@@ -200,7 +200,7 @@ abbr[title] { text-decoration: none; }
   height: auto;
   padding: 6px 3px;
   border-bottom: 1.5px solid var(--ink);
-  font-size: 11.5px;
+  font-size: 0.71875rem;
   font-weight: 600;
   color: var(--mute);
   white-space: nowrap;
@@ -224,7 +224,7 @@ abbr[title] { text-decoration: none; }
   text-decoration: none;
 }
 .st-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.st-retired { font-size: 11.5px; font-weight: 400; color: var(--mute); }
+.st-retired { font-size: 0.71875rem; font-weight: 400; color: var(--mute); }
 .standings tr.is-mine > * { background: var(--mark); color: var(--ink); font-weight: 800; }
 .standings tr.is-mine > :first-child { box-shadow: inset 3px 0 0 var(--ink); }
 
@@ -237,7 +237,7 @@ abbr[title] { text-decoration: none; }
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  font-size: 10px;
+  font-size: 0.625rem;
   font-weight: 800;
   line-height: 1;
 }
@@ -256,7 +256,7 @@ abbr[title] { text-decoration: none; }
   min-width: 0;
   min-height: 44px;
   padding: 0 4px;
-  font-size: 13.5px;
+  font-size: 0.84375rem;
   font-weight: 700;
   color: var(--ink);
   text-align: center;
@@ -272,7 +272,7 @@ abbr[title] { text-decoration: none; }
   justify-content: center;
   min-height: 44px;
   padding: 0 4px;
-  font-size: 13.5px;
+  font-size: 0.84375rem;
   font-weight: 700;
   color: var(--ink);
   text-align: center;
@@ -285,7 +285,7 @@ abbr[title] { text-decoration: none; }
  * «Enlace copiado.» o el enlace, si no se pudo copiar, para copiarlo a mano. Nunca display: none,
  * o dejaría de anunciarse (decisión 111), y el enlace parte donde haga falta: sin desplazamiento
  * horizontal a 320 px. Vacía, no ocupa sitio. */
-.share-status { font-size: 12.5px; font-weight: 600; color: var(--mute); text-align: right; overflow-wrap: anywhere; }
+.share-status { font-size: 0.78125rem; font-weight: 600; color: var(--mute); text-align: right; overflow-wrap: anywhere; }
 .share-status:not(:empty) { margin-top: 6px; }
 
 /* ── Escudo y monograma ───────────────────────────────────────────────── */
@@ -307,13 +307,13 @@ abbr[title] { text-decoration: none; }
 .crest-16, .mono-16 { width: 16px; height: 16px; }
 .crest-32, .mono-32 { width: 32px; height: 32px; }
 .crest-46, .mono-46 { width: 46px; height: 46px; }
-.mono-16 { font-size: 7.5px; }
-.mono-32 { font-size: 12px; }
-.mono-46 { font-size: 16px; }
+.mono-16 { font-size: 0.46875rem; }
+.mono-32 { font-size: 0.75rem; }
+.mono-46 { font-size: 1rem; }
 
 /* ── Aviso y vacío ────────────────────────────────────────────────────── */
 
-.notice { margin-top: 10px; font-size: 12.5px; color: var(--mute); }
+.notice { margin-top: 10px; font-size: 0.78125rem; color: var(--mute); }
 .notice b { font-weight: 700; color: var(--text); }
 .empty { padding: 12px; border: 1.5px dashed var(--rule); color: var(--mute); }
 
@@ -341,7 +341,7 @@ abbr[title] { text-decoration: none; }
   gap: 3px;
   max-width: 160px;
   min-height: 44px;
-  font-size: 11.5px;
+  font-size: 0.71875rem;
   font-weight: 600;
   color: var(--mute);
   text-decoration: none;
@@ -364,7 +364,7 @@ abbr[title] { text-decoration: none; }
     padding: 0 6px;
     background: var(--paper);
     color: var(--ink);
-    font-size: 10.5px;
+    font-size: 0.65625rem;
     font-weight: 700;
     line-height: 1;
     pointer-events: none;
@@ -393,7 +393,7 @@ abbr[title] { text-decoration: none; }
     max-width: none;
     min-height: 48px;
     padding: 0 14px;
-    font-size: 13.5px;
+    font-size: 0.84375rem;
   }
   .tab-icon { width: auto; height: auto; }
   .tab-icon svg { width: 20px; height: 20px; }
@@ -432,7 +432,7 @@ abbr[title] { text-decoration: none; }
 .screen-head h1 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 /* La ficha del jugador: su nombre entero, en dos o más líneas si hace falta (nunca con «…»). */
 [data-screen="jugador"] .screen-head h1 { overflow: visible; white-space: normal; overflow-wrap: anywhere; }
-.screen-sub { margin-top: 2px; font-size: 12.5px; color: var(--mute); }
+.screen-sub { margin-top: 2px; font-size: 0.78125rem; color: var(--mute); }
 /* Enlace o botón («Cambiar», «Mi grupo», «Otras ligas», «Compartir»): los dos en tinta y subrayados. */
 .screen-action {
   display: inline-flex;
@@ -452,7 +452,7 @@ abbr[title] { text-decoration: none; }
   width: 44px;
   min-height: 44px;
   margin: 0 -8px 0 -12px;
-  font-size: 28px;
+  font-size: 1.75rem;
   font-weight: 700;
   line-height: 1;
   color: var(--ink);
@@ -475,8 +475,8 @@ abbr[title] { text-decoration: none; }
   text-decoration: none;
 }
 .choice-text { display: flex; flex-direction: column; min-width: 0; }
-.choice-name { font-size: 15px; font-weight: 800; color: var(--ink); overflow-wrap: anywhere; }
-.choice-label { font-size: 12.5px; color: var(--mute); }
+.choice-name { font-size: 0.9375rem; font-weight: 800; color: var(--ink); overflow-wrap: anywhere; }
+.choice-label { font-size: 0.78125rem; color: var(--mute); }
 .choice-none { font-weight: 700; color: var(--ink); text-decoration: underline; }
 .home-cta { margin-top: 10px; }
 
@@ -520,7 +520,7 @@ abbr[title] { text-decoration: none; }
 .error-text { padding: 12px; font-weight: 600; }
 /* El aviso de una carga que la pantalla no necesita para pintarse (los datos de alevín en Explorar y en
  * Ligas sin categoría): el texto y «Reintentar», sin el peso de la caja de error. */
-.partial-text { padding: 12px; font-size: 13.5px; }
+.partial-text { padding: 12px; font-size: 0.84375rem; }
 .partial-box .buttons { border-top: 1px solid var(--rule); }
 
 /* ── Escritorio: marca a la izquierda y pestañas, 1120 px (spec §4.8) ─── */
@@ -544,14 +544,14 @@ abbr[title] { text-decoration: none; }
     align-items: baseline;
     gap: 6px;
     min-height: 44px;
-    font-size: 17px;
+    font-size: 1.0625rem;
     font-weight: 800;
     color: var(--ink);
     text-decoration: none;
   }
   .brand-place { font-weight: 600; color: var(--mute); }
   /* «v2» distingue esta web de v1, abiertas una al lado de otra: pequeña, en la tinta del tema. */
-  .brand-version { font-size: 12.5px; font-weight: 600; color: var(--ink); }
+  .brand-version { font-size: 0.78125rem; font-weight: 600; color: var(--ink); }
   .shell-bar .tabbar { margin-left: auto; }
   .shell-offline .notice { max-width: 1120px; }
 }
@@ -571,8 +571,8 @@ abbr[title] { text-decoration: none; }
   text-decoration: underline;
 }
 
-.home-note { padding: 10px 12px; font-size: 13.5px; font-weight: 600; color: var(--mute); text-align: center; }
-.home-fresh { margin-top: 14px; font-size: 12.5px; color: var(--mute); }
+.home-note { padding: 10px 12px; font-size: 0.84375rem; font-weight: 600; color: var(--mute); text-align: center; }
+.home-fresh { margin-top: 14px; font-size: 0.78125rem; color: var(--mute); }
 /* El aviso de estado de los datos, bajo la cabecera: el de .notice, algo más separado de la raya. */
 .home-status { margin-top: 12px; }
 /* Columnas de la portada: en móvil, una debajo de otra, y nunca más anchas que la página. */
@@ -587,23 +587,23 @@ abbr[title] { text-decoration: none; }
   padding: 14px 8px 12px;
 }
 .fixture-team { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; text-align: center; }
-.fixture-side { margin-top: 4px; font-size: 12.5px; color: var(--mute); }
+.fixture-side { margin-top: 4px; font-size: 0.78125rem; color: var(--mute); }
 .fixture-name {
   max-width: 100%;
-  font-size: 15px;
+  font-size: 0.9375rem;
   font-weight: 800;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.fixture-vs { align-self: center; padding: 0 6px; font-size: 19px; font-weight: 800; color: var(--rule); }
+.fixture-vs { align-self: center; padding: 0 6px; font-size: 1.1875rem; font-weight: 800; color: var(--rule); }
 /* Su pronóstico (forecastLine de ui.js, 17/10/2026), la misma línea discreta de la Jornada, bajo los dos. */
-.fixture-forecast { grid-column: 1 / -1; margin-top: 2px; font-size: 12.5px; line-height: 1.3; color: var(--mute); text-align: center; }
+.fixture-forecast { grid-column: 1 / -1; margin-top: 2px; font-size: 0.78125rem; line-height: 1.3; color: var(--mute); text-align: center; }
 .fixture-venue { display: flex; flex-direction: column; gap: 1px; padding: 6px 8px 8px; }
-.fixture-place { font-size: 15px; overflow-wrap: anywhere; }
-.fixture-place.is-muted { font-size: 13.5px; font-weight: 600; color: var(--mute); }
+.fixture-place { font-size: 0.9375rem; overflow-wrap: anywhere; }
+.fixture-place.is-muted { font-size: 0.84375rem; font-weight: 600; color: var(--mute); }
 /* Superficie y tipo del campo (directorio de campos de la federación). */
-.fixture-place-kind { display: block; font-size: 13px; color: var(--mute); margin-top: 2px; }
+.fixture-place-kind { display: block; font-size: 0.8125rem; color: var(--mute); margin-top: 2px; }
 
 .result {
   display: grid;
@@ -615,7 +615,7 @@ abbr[title] { text-decoration: none; }
   color: var(--text);
   text-decoration: none;
 }
-.result-score { font-size: 40px; font-weight: 800; line-height: 1; color: var(--ink); }
+.result-score { font-size: 2.5rem; font-weight: 800; line-height: 1; color: var(--ink); }
 
 /* Últimos cinco: una casilla por partido, cada una abre su ficha */
 .last5 { display: grid; gap: 1px; margin: 0; padding: 0; list-style: none; background: var(--rule); }
@@ -637,10 +637,10 @@ abbr[title] { text-decoration: none; }
   color: var(--text);
   text-decoration: none;
 }
-.last5-score { font-size: 17px; font-weight: 800; line-height: 1.2; }
+.last5-score { font-size: 1.0625rem; font-weight: 800; line-height: 1.2; }
 .last5-rival {
   max-width: 100%;
-  font-size: 12.5px;
+  font-size: 0.78125rem;
   color: var(--mute);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -654,7 +654,7 @@ abbr[title] { text-decoration: none; }
   height: auto;
   padding: 6px 8px;
   border-bottom: 1.5px solid var(--ink);
-  font-size: 11.5px;
+  font-size: 0.71875rem;
   font-weight: 600;
   color: var(--mute);
 }
@@ -662,7 +662,7 @@ abbr[title] { text-decoration: none; }
 .scorers .sc-name { text-align: left; font-weight: 400; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .scorers .sc-goals { width: 60px; }
 .scorers .sc-games { width: 44px; }
-.scorers td.sc-goals { font-size: 17px; font-weight: 800; color: var(--ink); }
+.scorers td.sc-goals { font-size: 1.0625rem; font-weight: 800; color: var(--ink); }
 
 @media (hover: hover) {
   a.last5-cell:hover .last5-score,
@@ -672,9 +672,9 @@ abbr[title] { text-decoration: none; }
 
 /* ── Mi equipo, estado D: temporada siguiente, «Así terminó» y «Verano» ── */
 
-.box-text { padding: 10px 12px 12px; font-size: 15px; line-height: 1.5; }
+.box-text { padding: 10px 12px 12px; font-size: 0.9375rem; line-height: 1.5; }
 .home-top { display: flex; flex-direction: column; gap: 1px; padding: 6px 8px 8px; }
-.home-top-name { font-size: 15px; overflow-wrap: anywhere; }
+.home-top-name { font-size: 0.9375rem; overflow-wrap: anywhere; }
 .summer { margin: 0; padding: 0; list-style: none; }
 .summer > li + li { border-top: 1px solid var(--line); }
 .summer-row {
@@ -687,16 +687,16 @@ abbr[title] { text-decoration: none; }
   color: var(--text);
   text-decoration: none;
 }
-.summer-what { grid-column: 1 / -1; font-size: 12.5px; color: var(--mute); }
-.summer-main { min-width: 0; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.summer-score { font-size: 17px; font-weight: 800; }
+.summer-what { grid-column: 1 / -1; font-size: 0.78125rem; color: var(--mute); }
+.summer-main { min-width: 0; font-size: 0.9375rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.summer-score { font-size: 1.0625rem; font-weight: 800; }
 .summer-note {
   grid-column: 1 / -1;
   justify-self: end;
   margin-top: 4px;
   padding: 1px 6px;
   border: 1px solid var(--rule);
-  font-size: 12.5px;
+  font-size: 0.78125rem;
   font-weight: 700;
   color: var(--ink);
 }
@@ -705,7 +705,7 @@ abbr[title] { text-decoration: none; }
  * (con su .ics); en móvil, al final. */
 .cal { margin: 0; padding: 0; list-style: none; }
 .box.cal > li + li { border-top-color: var(--line); }
-.cal-when { padding: 6px 6px 0; font-size: 11.5px; font-weight: 600; color: var(--mute); }
+.cal-when { padding: 6px 6px 0; font-size: 0.71875rem; font-weight: 600; color: var(--mute); }
 
 /* Dos columnas en escritorio (spec §4.8); en móvil, una debajo de otra */
 @media (min-width: 1024px) {
@@ -734,7 +734,7 @@ abbr[title] { text-decoration: none; }
   align-items: center;
   justify-content: center;
   min-height: 56px;
-  font-size: 24px;
+  font-size: 1.5rem;
   font-weight: 700;
   color: var(--ink);
   text-decoration: none;
@@ -747,10 +747,10 @@ abbr[title] { text-decoration: none; }
   border-left: 1px solid var(--rule);
   text-align: center;
 }
-.round-title { font-size: 17px; font-weight: 800; line-height: 1.3; }
-.round-dates { font-size: 12.5px; font-weight: 600; color: var(--mute); }
+.round-title { font-size: 1.0625rem; font-weight: 800; line-height: 1.3; }
+.round-dates { font-size: 0.78125rem; font-weight: 600; color: var(--mute); }
 .day { min-width: 0; }
-.day-title { margin: 16px 0 6px; font-size: 13.5px; font-weight: 700; color: var(--mute); }
+.day-title { margin: 16px 0 6px; font-size: 0.84375rem; font-weight: 700; color: var(--mute); }
 .round-actions { margin-top: 16px; }
 
 /* Escritorio: los días en dos columnas si caben (spec §4.8); uno solo ocupa todo el ancho. */
@@ -812,7 +812,7 @@ abbr[title] { text-decoration: none; }
   padding: 0 10px;
   border-radius: 22px;
   background: var(--line);
-  font-size: 15px;
+  font-size: 0.9375rem;
   font-weight: 700;
   color: var(--text);
   text-decoration: none;
@@ -836,7 +836,7 @@ abbr[title] { text-decoration: none; }
 /* «Todos los grupos» (Jornada sin g): un bloque por grupo, con su caja de partidos y el día encima de
  * los de cada día; en escritorio, los grupos en dos columnas. */
 .block-mine { font-weight: 600; color: var(--mute); }
-.match-day { padding: 8px 8px 0; font-size: 12.5px; font-weight: 700; color: var(--mute); }
+.match-day { padding: 8px 8px 0; font-size: 0.78125rem; font-weight: 700; color: var(--mute); }
 .box > .match-day + .match-row { border-top: 0; }
 @media (min-width: 1024px) {
   .round-groups {
@@ -887,10 +887,10 @@ abbr[title] { text-decoration: none; }
  * el espacio se perdería). El pronóstico, con las clases de la clasificación (.standings, la fila resaltada en .is-mine)
  * y una columna más, la del abanico («2.º–4.º»), en --mute; en escritorio, a 640 px como mucho: con
  * cuatro columnas, a todo el ancho, los puntos quedarían lejísimos del nombre. */
-.tabla-switch { margin-top: 14px; font-size: 13.5px; }
+.tabla-switch { margin-top: 14px; font-size: 0.84375rem; }
 .tabla-switch .more { gap: 0.3em; text-decoration: none; }
 .tabla-switch-label { text-decoration: underline; }
-.standings .st-fan { width: 74px; padding-left: 6px; font-size: 12.5px; color: var(--mute); white-space: nowrap; }
+.standings .st-fan { width: 74px; padding-left: 6px; font-size: 0.78125rem; color: var(--mute); white-space: nowrap; }
 
 /* Móvil y tableta: una sola tabla con todas las columnas; cada vista deja las suyas. */
 @media (max-width: 1023.98px) {
@@ -928,22 +928,22 @@ abbr[title] { text-decoration: none; }
   padding: 14px 8px 12px;
 }
 .pt-team { display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 0; text-align: center; }
-.pt-side { font-size: 12.5px; font-weight: 400; color: var(--mute); }
+.pt-side { font-size: 0.78125rem; font-weight: 400; color: var(--mute); }
 /* Nombre completo; si no cabe en dos líneas, cortado con elipsis (spec §3.5). */
 .pt-name {
   display: -webkit-box;
   max-width: 100%;
   overflow: hidden;
-  font-size: 15px;
+  font-size: 0.9375rem;
   font-weight: 800;
   line-height: 1.25;
   overflow-wrap: anywhere;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
 }
-.pt-score { font-size: 40px; font-weight: 800; line-height: 1; white-space: nowrap; }
+.pt-score { font-size: 2.5rem; font-weight: 800; line-height: 1; white-space: nowrap; }
 .pt-score.is-pending { font-weight: 600; color: var(--mute); }
-.pt-penalties { padding: 8px 10px; font-size: 12.5px; font-weight: 700; color: var(--mute); text-align: center; }
+.pt-penalties { padding: 8px 10px; font-size: 0.78125rem; font-weight: 700; color: var(--mute); text-align: center; }
 .pt-tanda { white-space: nowrap; }
 
 /* Pronóstico (17/10/2026): la barra fina del 1X2 (oddsBar de ui.js), tres tramos sólidos (local en
@@ -963,13 +963,13 @@ abbr[title] { text-decoration: none; }
 .odds-item { min-width: 0; }
 .odds-item.is-draw { text-align: center; }
 .odds-item.is-away { text-align: right; }
-.odds-item dt { font-size: 12.5px; color: var(--mute); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.odds-item dd { font-size: 15px; font-weight: 800; }
+.odds-item dt { font-size: 0.78125rem; color: var(--mute); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.odds-item dd { font-size: 0.9375rem; font-weight: 800; }
 .odds-key { display: inline-block; width: 9px; height: 9px; margin-right: 5px; vertical-align: 0; }
 .is-home .odds-key { background: var(--ink); }
 .is-draw .odds-key { background: var(--mute); }
 .is-away .odds-key { background: var(--text); }
-.odds-also { padding: 8px 10px; font-size: 12.5px; color: var(--mute); }
+.odds-also { padding: 8px 10px; font-size: 0.78125rem; color: var(--mute); }
 
 /* Goles: tres columnas (local | minuto y marcador | visitante) o dos listas. */
 .pt-goals { width: 100%; border-collapse: collapse; table-layout: fixed; }
@@ -980,7 +980,7 @@ abbr[title] { text-decoration: none; }
 .pt-g-away { text-align: left; font-weight: 700; }
 .pt-g-mid { width: 88px; text-align: center; white-space: nowrap; }
 .pt-goals td.pt-g-mid { border-right: 1px solid var(--rule); border-left: 1px solid var(--rule); }
-.pt-g-min { font-size: 12.5px; font-weight: 400; color: var(--mute); }
+.pt-g-min { font-size: 0.78125rem; font-weight: 400; color: var(--mute); }
 .pt-g-score { font-weight: 800; }
 .pt-noname { font-weight: 400; color: var(--mute); }
 /* El goleador enlaza a su ficha como el jugador de la alineación: en su tinta, con el subrayado suave. */
@@ -989,7 +989,7 @@ abbr[title] { text-decoration: none; }
 .pt-glists { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .pt-glist { min-width: 0; padding: 8px 10px 10px; }
 .pt-glist + .pt-glist { border-left: 1px solid var(--rule); }
-.pt-glist-head { overflow: hidden; font-size: 13.5px; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+.pt-glist-head { overflow: hidden; font-size: 0.84375rem; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
 .pt-glist-head .pt-side { display: block; }
 .pt-glist ul { margin: 4px 0 0; padding: 0; list-style: none; }
 .pt-glist li { padding: 3px 0; font-weight: 700; }
@@ -1000,17 +1000,17 @@ abbr[title] { text-decoration: none; }
 .pt-lu-teams { display: grid; grid-template-columns: minmax(0, 1fr); }
 .pt-lu-team { min-width: 0; padding: 10px 10px 12px; }
 .pt-lu-team + .pt-lu-team { border-top: 1px solid var(--rule); }
-.pt-lu-head { font-size: 15px; font-weight: 800; }
+.pt-lu-head { font-size: 0.9375rem; font-weight: 800; }
 .pt-lu-head .pt-side { margin-right: 4px; }
 .pt-lineup { width: 100%; margin-top: 6px; border-collapse: collapse; }
 .pt-lineup th, .pt-lineup td { padding: 6px 4px; border-bottom: 1px solid var(--line); font-weight: 400; text-align: left; vertical-align: top; }
-.pt-lineup thead th { padding-top: 0; border-bottom: 1.5px solid var(--ink); font-size: 11.5px; font-weight: 600; color: var(--mute); }
+.pt-lineup thead th { padding-top: 0; border-bottom: 1.5px solid var(--ink); font-size: 0.71875rem; font-weight: 600; color: var(--mute); }
 .pt-lineup .pt-player { overflow-wrap: anywhere; }
 .pt-lineup .pt-player a { color: inherit; text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; }
 .pt-lineup .pt-dorsal { width: 38px; padding-right: 10px; color: var(--mute); text-align: right; }
 .pt-lineup .pt-pgoals { width: 52px; font-weight: 800; color: var(--ink); text-align: right; }
 .pt-lineup thead .pt-pgoals { font-weight: 600; color: var(--mute); }
-.pt-lu-group th { padding-top: 10px; font-size: 12.5px; font-weight: 700; color: var(--mute); }
+.pt-lu-group th { padding-top: 10px; font-size: 0.78125rem; font-weight: 700; color: var(--mute); }
 .pt-staff { margin-top: 8px; }
 .pt-staff-label, .pt-none { color: var(--mute); }
 .pt-lu-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; column-gap: 12px; padding: 2px 10px; }
@@ -1029,7 +1029,7 @@ abbr[title] { text-decoration: none; }
   text-decoration: none;
 }
 .box > .pt-h2h-row + .pt-h2h-row { border-top-color: var(--line); }
-.pt-h2h-when { font-size: 12.5px; line-height: 1.3; color: var(--mute); }
+.pt-h2h-when { font-size: 0.78125rem; line-height: 1.3; color: var(--mute); }
 .pt-h2h-teams { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .pt-h2h-score { font-weight: 800; white-space: nowrap; }
 .pt-h2h-score.is-pending { font-weight: 600; color: var(--mute); }
@@ -1049,7 +1049,7 @@ abbr[title] { text-decoration: none; }
   color: var(--ink);
 }
 .pt-prev { margin-top: 10px; }
-.pt-prev-head { margin: 12px 0 6px; font-size: 12.5px; font-weight: 700; color: var(--mute); }
+.pt-prev-head { margin: 12px 0 6px; font-size: 0.78125rem; font-weight: 700; color: var(--mute); }
 .pt-prev-head:first-child { margin-top: 0; }
 .pt-loading { color: var(--mute); }
 
@@ -1103,10 +1103,10 @@ abbr[title] { text-decoration: none; }
 .proj-figure { display: block; padding: 6px 8px 8px; color: inherit; text-decoration: none; }
 .proj-figure:focus-visible { outline-offset: -4px; }
 .proj-figure-main { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 10px; }
-.proj-figure-pos { font-size: 28px; font-weight: 800; line-height: 1.15; color: var(--ink); }
-.proj-figure-fan { font-size: 15px; font-weight: 700; color: var(--mute); }
-.proj-figure-pts { font-size: 15px; font-weight: 700; color: var(--text); }
-.proj-figure-more { margin-left: auto; font-size: 13px; font-weight: 700; color: var(--ink); text-decoration: underline; }
+.proj-figure-pos { font-size: 1.75rem; font-weight: 800; line-height: 1.15; color: var(--ink); }
+.proj-figure-fan { font-size: 0.9375rem; font-weight: 700; color: var(--mute); }
+.proj-figure-pts { font-size: 0.9375rem; font-weight: 700; color: var(--text); }
+.proj-figure-more { margin-left: auto; font-size: 0.8125rem; font-weight: 700; color: var(--ink); text-decoration: underline; }
 @media (hover: hover) {
   a.proj-figure:hover { background: var(--mark); }
 }
@@ -1114,13 +1114,13 @@ abbr[title] { text-decoration: none; }
 /* Plantilla: N.º, jugador (el botón que despliega sus partidos), PJ, titular y goles. */
 .squad { width: 100%; border-collapse: collapse; table-layout: fixed; }
 .squad th, .squad td { padding: 0 6px; border-bottom: 1px solid var(--line); font-weight: 400; text-align: right; }
-.squad thead th { padding: 6px; border-bottom: 1.5px solid var(--ink); font-size: 11.5px; font-weight: 600; color: var(--mute); white-space: nowrap; }
+.squad thead th { padding: 6px; border-bottom: 1.5px solid var(--ink); font-size: 0.71875rem; font-weight: 600; color: var(--mute); white-space: nowrap; }
 .squad tbody tr:last-child > * { border-bottom: 0; }
 .squad .sq-dorsal { width: 38px; color: var(--mute); }
 .squad .sq-name { text-align: left; }
 .squad .sq-num { width: 36px; }
 .squad .sq-goals { width: 52px; }
-.squad td.sq-goals { font-size: 15px; font-weight: 800; color: var(--ink); }
+.squad td.sq-goals { font-size: 0.9375rem; font-weight: 800; color: var(--ink); }
 .squad-player {
   display: flex;
   align-items: center;
@@ -1146,10 +1146,10 @@ abbr[title] { text-decoration: none; }
   text-decoration: none;
 }
 .squad-matches > li + li { border-top: 1px solid var(--line); }
-.squad-when { grid-column: 1 / -1; font-size: 11.5px; font-weight: 600; color: var(--mute); }
+.squad-when { grid-column: 1 / -1; font-size: 0.71875rem; font-weight: 600; color: var(--mute); }
 .squad-rival { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .squad-score { font-weight: 800; white-space: nowrap; }
-.squad-goals { font-size: 12.5px; color: var(--mute); white-space: nowrap; }
+.squad-goals { font-size: 0.78125rem; color: var(--mute); white-space: nowrap; }
 /* «Ver su trayectoria»: la ficha del jugador, bajo sus partidos. */
 .squad-more { margin: 8px 10px 0; }
 
@@ -1166,7 +1166,7 @@ abbr[title] { text-decoration: none; }
 }
 .team-panel { margin-top: 10px; }
 .team-loading { color: var(--mute); }
-.traj-season { margin: 12px 0 6px; font-size: 12.5px; font-weight: 700; color: var(--mute); }
+.traj-season { margin: 12px 0 6px; font-size: 0.78125rem; font-weight: 700; color: var(--mute); }
 .traj-season:first-child { margin-top: 0; }
 .traj-row {
   display: grid;
@@ -1180,9 +1180,9 @@ abbr[title] { text-decoration: none; }
 }
 .box > .traj-row + .traj-row { border-top-color: var(--line); }
 .traj-team { min-width: 0; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.traj-group { grid-column: 1; min-width: 0; font-size: 12.5px; color: var(--mute); }
+.traj-group { grid-column: 1; min-width: 0; font-size: 0.78125rem; color: var(--mute); }
 .traj-pos { grid-column: 2; grid-row: 1; font-weight: 800; white-space: nowrap; }
-.traj-pts { grid-column: 2; grid-row: 2; font-size: 12.5px; color: var(--mute); text-align: right; white-space: nowrap; }
+.traj-pts { grid-column: 2; grid-row: 2; font-size: 0.78125rem; color: var(--mute); text-align: right; white-space: nowrap; }
 
 @media (hover: hover) {
   a.squad-match:hover .squad-rival,
@@ -1211,7 +1211,7 @@ abbr[title] { text-decoration: none; }
   padding: 0;
   border: 0;
   background: transparent;
-  font-size: 17px;
+  font-size: 1.0625rem;
   -webkit-appearance: none;
   appearance: none;
 }
@@ -1234,8 +1234,8 @@ abbr[title] { text-decoration: none; }
   text-decoration: none;
 }
 .search-result-text { display: flex; flex-direction: column; min-width: 0; }
-.search-result-name { font-size: 15px; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.search-result-label { font-size: 12.5px; color: var(--mute); }
+.search-result-name { font-size: 0.9375rem; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.search-result-label { font-size: 0.78125rem; color: var(--mute); }
 
 /* Vistos hace poco: fichas en tinta, una al lado de otra, que parten de línea si no caben. */
 .recent { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
@@ -1252,12 +1252,12 @@ abbr[title] { text-decoration: none; }
   color: var(--text);
   text-decoration: none;
 }
-.recent-name { min-width: 0; font-size: 15px; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.recent-meta { flex: none; font-size: 12.5px; color: var(--mute); }
+.recent-name { min-width: 0; font-size: 0.9375rem; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.recent-meta { flex: none; font-size: 0.78125rem; color: var(--mute); }
 
 /* Listas de enlaces (Ligas, Copas y torneos, Más, y los grupos de Ligas): una fila por enlace, con el
  * contexto a la derecha; las categorías, con el fondo del resalte (maqueta 5-4). */
-.link-head { padding: 8px 12px; background: var(--mark); font-size: 13.5px; font-weight: 800; color: var(--ink); }
+.link-head { padding: 8px 12px; background: var(--mark); font-size: 0.84375rem; font-weight: 800; color: var(--ink); }
 .link-list { margin: 0; padding: 0; list-style: none; }
 .link-list > li + li { border-top: 1px solid var(--line); }
 .link-row {
@@ -1271,13 +1271,13 @@ abbr[title] { text-decoration: none; }
   text-decoration: none;
 }
 .link-row-main { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
-.link-row-title { font-size: 15px; font-weight: 800; overflow-wrap: anywhere; }
-.link-row-detail { font-size: 12.5px; color: var(--mute); overflow-wrap: anywhere; }
-.link-row-context { flex: none; max-width: 45%; font-size: 13.5px; color: var(--mute); text-align: right; }
+.link-row-title { font-size: 0.9375rem; font-weight: 800; overflow-wrap: anywhere; }
+.link-row-detail { font-size: 0.78125rem; color: var(--mute); overflow-wrap: anywhere; }
+.link-row-context { flex: none; max-width: 45%; font-size: 0.84375rem; color: var(--mute); text-align: right; }
 
 /* Selector de temporada: el botón de la cabecera y su lista, que se abre debajo, a la derecha. */
 .season-picker { position: relative; flex: none; }
-.season-toggle { gap: 5px; font-size: 17px; }
+.season-toggle { gap: 5px; font-size: 1.0625rem; }
 .season-caret { display: inline-block; width: 0; height: 0; border-top: 6px solid currentColor; border-right: 5px solid transparent; border-left: 5px solid transparent; }
 .season-menu {
   position: absolute;
@@ -1345,7 +1345,7 @@ abbr[title] { text-decoration: none; }
 
 /* El campeón, arriba: su escudo y su nombre en tinta; debajo, la final. */
 .cup-champion { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 10px 12px; }
-.cup-champion-name { min-width: 0; font-size: 17px; font-weight: 800; color: var(--ink); overflow-wrap: anywhere; }
+.cup-champion-name { min-width: 0; font-size: 1.0625rem; font-weight: 800; color: var(--ink); overflow-wrap: anywhere; }
 .cup-champion.is-mine { background: var(--mark); box-shadow: inset 3px 0 0 var(--ink); }
 
 /* Pestañas de ronda: botones que desplazan el cuadro (mount); la ronda a la vista, rellena de tinta.
@@ -1382,8 +1382,8 @@ abbr[title] { text-decoration: none; }
 }
 .bracket-round { flex: 0 0 100%; min-width: 0; scroll-snap-align: start; }
 .bracket-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
-.bracket-title { font-size: 13.5px; font-weight: 800; }
-.bracket-date { font-size: 12.5px; font-weight: 600; color: var(--mute); }
+.bracket-title { font-size: 0.84375rem; font-weight: 800; }
+.bracket-date { font-size: 0.78125rem; font-weight: 600; color: var(--mute); }
 .bracket-matches { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
 
 /* Un partido del cuadro: los dos equipos en dos líneas con sus goles; quién pasó, en negrita. */
@@ -1396,12 +1396,12 @@ abbr[title] { text-decoration: none; }
   color: var(--text);
   text-decoration: none;
 }
-.bm-when { font-size: 11.5px; color: var(--mute); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bm-when { font-size: 0.71875rem; color: var(--mute); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bm-team { display: flex; align-items: center; gap: 6px; min-width: 0; }
 .bm-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .bm-goals { flex: none; min-width: 22px; font-weight: 800; text-align: right; }
 .bm-team.is-through { font-weight: 800; }
-.bm-note { font-size: 12.5px; font-weight: 600; color: var(--mute); }
+.bm-note { font-size: 0.78125rem; font-weight: 600; color: var(--mute); }
 .bm-note.is-conflict { color: var(--ink); }
 /* El camino de mi equipo: el resalte propio (spec §3.3), sin óvalo. */
 .bm.is-mine { background: var(--mark); box-shadow: inset 3px 0 0 var(--ink); }
@@ -1435,7 +1435,7 @@ abbr[title] { text-decoration: none; }
 /* ── Goleadores: la lista completa con su buscador (spec §4.7) ─────────── */
 
 .gol-cats { margin-top: 14px; }
-.gol-count { margin: 12px 0 6px; font-size: 12.5px; font-weight: 600; color: var(--mute); }
+.gol-count { margin: 12px 0 6px; font-size: 0.78125rem; font-weight: 600; color: var(--mute); }
 /* La tabla de los goleadores del grupo de la Tabla (.group-scorers), con el puesto más ancho y el
  * jugador en dos líneas: su nombre y, debajo, su equipo, que abre la ficha. El enlace mide 44 px de
  * alto, pero sus márgenes negativos no agrandan la fila. El puesto llega a 4 cifras («2140» en
@@ -1452,7 +1452,7 @@ abbr[title] { text-decoration: none; }
   min-width: 0;
   min-height: 44px;
   margin: -12px 0;
-  font-size: 12.5px;
+  font-size: 0.78125rem;
   font-weight: 600;
   color: var(--ink);
   text-decoration: none;
@@ -1497,11 +1497,11 @@ abbr[title] { text-decoration: none; }
   color: var(--text);
   text-decoration: none;
 }
-.rc-what { grid-column: 1 / -1; font-size: 12.5px; color: var(--mute); }
-.rc-subject { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 15px; font-weight: 700; }
+.rc-what { grid-column: 1 / -1; font-size: 0.78125rem; color: var(--mute); }
+.rc-subject { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 0.9375rem; font-weight: 700; }
 .rc-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.rc-figure { font-size: 17px; font-weight: 800; color: var(--ink); white-space: nowrap; }
-.rc-detail { grid-column: 1 / -1; font-size: 12.5px; color: var(--mute); }
+.rc-figure { font-size: 1.0625rem; font-weight: 800; color: var(--ink); white-space: nowrap; }
+.rc-detail { grid-column: 1 / -1; font-size: 0.78125rem; color: var(--mute); }
 .rc-detail:empty { display: none; }
 /* Máximos goleadores: la tabla de la clasificación, con el equipo debajo del jugador. */
 .rc-scorers .st-pos { width: 28px; }
@@ -1509,7 +1509,7 @@ abbr[title] { text-decoration: none; }
 .rc-scorers .sc-pj { width: 36px; }
 .rc-scorers td.sc-goals { font-weight: 800; color: var(--ink); }
 .rc-who { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
-.rc-team { font-size: 12.5px; color: var(--mute); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rc-team { font-size: 0.78125rem; color: var(--mute); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 @media (hover: hover) {
   a.rc-row:hover .rc-name { text-decoration: underline; }
@@ -1542,8 +1542,8 @@ abbr[title] { text-decoration: none; }
   color: var(--ink);
   text-decoration: none;
 }
-.tp-name { font-size: 17px; font-weight: 800; }
-.tp-now { padding: 1px 6px; border: 1px solid var(--rule); font-size: 12.5px; font-weight: 700; }
+.tp-name { font-size: 1.0625rem; font-weight: 800; }
+.tp-now { padding: 1px 6px; border: 1px solid var(--rule); font-size: 0.78125rem; font-weight: 700; }
 .tp-records {
   display: flex;
   flex: none;
@@ -1572,16 +1572,16 @@ abbr[title] { text-decoration: none; }
   text-decoration: none;
 }
 .fu-name { min-width: 0; font-weight: 700; overflow-wrap: anywhere; }
-.fu-state { font-size: 12.5px; font-weight: 600; color: var(--mute); white-space: nowrap; }
+.fu-state { font-size: 0.78125rem; font-weight: 600; color: var(--mute); white-space: nowrap; }
 .fu-state.is-alert { font-weight: 800; color: var(--ink); }
-.fu-detail { grid-column: 1 / -1; font-size: 12.5px; color: var(--mute); overflow-wrap: anywhere; }
+.fu-detail { grid-column: 1 / -1; font-size: 0.78125rem; color: var(--mute); overflow-wrap: anywhere; }
 
 /* ── Ajustes: mi equipo y «Borrar datos de esta app» en dos pasos (decisión 29 de B3) ─── */
 
 .aj-team { display: flex; align-items: center; gap: 10px; min-height: 56px; padding: 8px 12px; }
 .aj-team-text { display: flex; flex: 1 1 auto; flex-direction: column; min-width: 0; }
-.aj-team-name { font-size: 15px; font-weight: 800; color: var(--ink); overflow-wrap: anywhere; }
-.aj-team-label { font-size: 12.5px; color: var(--mute); }
+.aj-team-name { font-size: 0.9375rem; font-weight: 800; color: var(--ink); overflow-wrap: anywhere; }
+.aj-team-label { font-size: 0.78125rem; color: var(--mute); }
 .aj-clear { width: 100%; }
 .aj-warning { padding: 10px 12px; font-weight: 700; }
 .aj-confirm .buttons { border-top: 1px solid var(--rule); }

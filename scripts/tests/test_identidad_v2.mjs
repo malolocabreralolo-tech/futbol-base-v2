@@ -47,7 +47,7 @@ test('la marca «v2»: pequeña, en la tinta del tema y en la línea base del no
   assert.ok(version, 'falta la regla de .brand-version');
   assert.match(version, /color:\s*var\(--ink\)/);
   assert.doesNotMatch(version, /#[0-9a-f]{3,8}\b|rgb|hsl/i, 'sin colores a mano');
-  const px = (body, prop) => Number((body.match(new RegExp(`${prop}:\\s*([\\d.]+)px`)) || [])[1]);
+  const px = (body, prop) => Number((body.match(new RegExp(`${prop}:\\s*([\\d.]+)rem`)) || [])[1]) * 16;
   const brand = rule('.brand').split(';').filter((d) => !/display:\s*none/.test(d)).join(';');
   assert.ok(px(version, 'font-size') < px(brand, 'font-size'), 'más pequeña que el nombre');
   assert.ok(Number((version.match(/font-weight:\s*(\d+)/) || [])[1]) < Number((brand.match(/font-weight:\s*(\d+)/) || [])[1]), 'con menos peso');

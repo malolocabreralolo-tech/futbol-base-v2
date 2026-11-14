@@ -622,7 +622,7 @@ test('estilos de la portada: pulsables de 44 px y nombres con elipsis', () => {
   }
   assert.match(decl('.scorers thead th'), /border-bottom:\s*1\.5px solid var\(--ink\)/);
   assert.match(decl('.last5'), /background:\s*var\(--rule\)/, 'las divisiones de las casillas van en --rule');
-  assert.match(decl('.result-score'), /font-size:\s*40px/, 'el marcador grande es el de 40 px de la escala');
+  assert.match(decl('.result-score'), /font-size:\s*2\.5rem/, 'el marcador grande es el de 40 px de la escala');
   const home = RULES.filter(r => /home|fixture|last5|scorers|choice|result|\.more/.test(r.selector)).map(r => r.body).join(';');
   assert.doesNotMatch(home, /text-transform|border-radius|box-shadow/);
 });

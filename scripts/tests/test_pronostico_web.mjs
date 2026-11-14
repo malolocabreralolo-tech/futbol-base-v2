@@ -572,10 +572,10 @@ test('estilos: la línea, pequeña, sin negrita y en --mute (también en la fila
   for (const sel of ['.match-forecast', '.match-row.is-mine .match-forecast']) {
     assert.match(body(sel), /color:\s*var\(--mute\)/, sel);
     assert.match(body(sel), /font-weight:\s*400/, sel);
-    assert.match(body(sel), /font-size:\s*12px/, sel);
+    assert.match(body(sel), /font-size:\s*0\.75rem/, sel);
     assert.match(body(sel), /grid-column:\s*2 \/ -1/, sel);
   }
-  assert.match(body('.match-score'), /font-size:\s*15px/, 'el marcador real, más grande');
+  assert.match(body('.match-score'), /font-size:\s*0\.9375rem/, 'el marcador real, más grande');
   assert.match(body('.fixture-forecast'), /color:\s*var\(--mute\)/);
   assert.match(body('.odds-home'), /fill:\s*var\(--ink\)/);
   // El empate, en --mute (de 3:1 para arriba sobre el papel en los dos temas; --draw, a 1,24:1, no se veía).

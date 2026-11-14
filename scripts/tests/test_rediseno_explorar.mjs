@@ -434,7 +434,7 @@ test('registro: Explorar es la pantalla de #/explorar; y el CSS: solo clases que
   const rules = cssRules();
   const decl = (sel) => rules.filter((r) => r.media === null && r.selector.split(/\s*,\s*/).includes(sel)).map((r) => r.body).join(';');
   for (const sel of ['.search-result', '.recent-chip', '.link-row', '.season-option', '.screen-action']) assert.match(decl(sel), /min-height:\s*(4[4-9]|5\d)px/, sel);
-  assert.ok(Number(decl('.search-input').match(/font-size:\s*(\d+)px/)[1]) >= 16, 'iOS no amplía la página al enfocar el buscador');
+  assert.ok(Number(decl('.search-input').match(/font-size:\s*([\d.]+)rem/)[1]) * 16 >= 16, 'iOS no amplía la página al enfocar el buscador');
   assert.doesNotMatch(decl('.season-menu'), /display:/, 'el atributo hidden cierra la lista');
   const recent = [{ s: PORTAL_SEASON, g: 'PG2', t: 'AD Huracán' }, { s: '2023-2024', g: 'SF1', t: 'X' }];
   const html = [render({ q: 'hurac' }, { recent }, { champions: true }), render({ q: 'h' }), render({ q: 'zzz' })].join('');

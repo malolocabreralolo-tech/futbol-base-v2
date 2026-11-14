@@ -54,6 +54,14 @@ test('cifras tabulares y Public Sans con system-ui de respaldo en todo el docume
   assert.deepEqual(atajos.map(r => r.selector), []);
 });
 
+// En rem la letra sigue el tamaño que el usuario elige en su navegador; la raíz se queda en el suyo.
+test('letra en rem: ninguna declaración font-size en px y html sin font-size', () => {
+  const tamanos = RULES.flatMap(r => [...r.body.matchAll(/(?:^|;)\s*font-size\s*:\s*([^;]+)/g)].map(m => ({ selector: r.selector, valor: m[1].trim() })));
+  assert.ok(tamanos.length > 100, `solo ${tamanos.length} declaraciones font-size`);
+  assert.deepEqual(tamanos.filter(t => !/^\d*\.?\d+rem$/.test(t.valor)), [], 'todas en rem');
+  assert.doesNotMatch(RULES.filter(r => r.selector === 'html').map(r => r.body).join(';'), /font-size/);
+});
+
 test('etiquetas en frase normal: nada en mayúsculas forzadas', () => {
   assert.doesNotMatch(SRC, /text-transform:\s*uppercase/);
   assert.doesNotMatch(SRC, /font-variant(-caps)?:\s*(all-)?small-caps/);
