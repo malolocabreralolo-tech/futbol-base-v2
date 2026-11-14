@@ -133,13 +133,14 @@ def test_an_error_status_is_a_page_that_did_not_load():
     page = FakePage(statuses=[503, 200])
     assert C.goto(page, GROUP, sleep=slept.append, log=said.append)
     assert slept == [15] and len(page.gotos) == 2 and "503" in said[0]
-    for status in (503, 429, 500):
+    for status in (503, 429, 500, 403, 404):
         slept.clear()
         page = FakePage(statuses=[status] * 3)
         assert not C.goto(page, GROUP, sleep=slept.append, log=lambda *_: None), status
         assert slept == [15, 30] and len(page.gotos) == 3 and page.waits == []
-    # Lo demás es una página: un 404 (la lee el lector) o sin respuesta.
-    for statuses in ([404], [200], []):
+    # Lo demás es una página: un 200 o sin respuesta. Hasta el 14/11/2026 también un 4xx (la leía el lector):
+    # un 403 a todo eran páginas vacías leídas y la pasada acababa en verde (fase 2B de v2, pasada sana).
+    for statuses in ([200], []):
         assert C.goto(FakePage(statuses=statuses), GROUP, sleep=slept.append, log=lambda *_: None)
 
 
@@ -457,6 +458,23 @@ def test_with_no_page_loaded_yet_the_season_catalog_tells_dead_pages_from_the_br
         assert not fed.goto(page, GROUP)
     assert fed.goto(page, GROUP)
     assert [u for u, _ in page.gotos][-2:] == [catalog, GROUP] and fed.pauses == 1 and fed.brakes == 1
+
+
+def test_a_403_is_a_page_that_did_not_load_but_not_a_brake_signal():
+    """Un 403 (o otro 4xx que no es el 429) no carga, con sus reintentos, como un 500: no es señal del freno
+    (BRAKE_STATUSES no cambia), y tres seguidas sin cargar bloquean (BLOCKED_AFTER) si la federación no
+    sirve otra página."""
+    assert 403 not in C.BRAKE_STATUSES
+    why = []
+    assert not C.goto(FakePage(statuses=[403] * 3), GROUP, sleep=lambda s: None, log=lambda *_: None, why=why)
+    assert why == ["responde 403"] * 3 and C.REFUSED not in why
+    b = Brake(start=10 ** 9)
+    fed, page = b.fed(deadline=1000.0 + 25 * 60, max_pauses=0), b.page()
+    page.statuses = [403] * (3 * C.BLOCKED_AFTER + 1)       # cada una con sus 3 intentos, y la de competiciones
+    for n in range(C.BLOCKED_AFTER - 1):
+        assert not fed.goto(page, GROUP) and fed.brakes == 0 and not fed.blocked
+    assert not fed.goto(page, GROUP)
+    assert fed.blocked and fed.failures == C.BLOCKED_AFTER and fed.served == 0
 
 
 def test_a_503_or_a_429_is_a_brake_signal_without_asking_another_page():

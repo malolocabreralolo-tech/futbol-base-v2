@@ -11,11 +11,11 @@ grupos, 19 min de primera pasada; con la Segunda Fase y alevín no cabría en el
     lectores saben qué hacer con una página vacía (como antes tras los 2,5 s);
   - la pausa entre peticiones, educada pero menor: FIFLP_DELAY segundos («1-1.5» por defecto, con
     jitter; «2-3.5» era la de antes);
-  - una página de error de la federación (un 5xx, como el 503 de Apache cuando bloquea, o un 429) no
-    es una página cargada: se reintenta como una que no carga y, con BLOCKED_AFTER seguidas, el bot
+  - una página de error de la federación (un 5xx, como el 503 de Apache cuando bloquea, o un 4xx, como
+    un 429 o un 403) no es una página cargada: se reintenta como una que no carga y, con BLOCKED_AFTER seguidas, el bot
     deja de pedirle más en esa pasada (Federacion.blocked). Un 503 o un 429 («no disponible»,
     «demasiadas peticiones») es además señal del freno, como una página vacía: la federación, no la
-    página. Un 500 (u otro 5xx) o un corte de conexión, no: puede ser la URL;
+    página. Un 500 (u otro 5xx), un 403 (u otro 4xx) o un corte de conexión, no: puede ser la URL;
   - el RITMO: entre dos peticiones, al menos FIFLP_MIN_INTERVAL segundos (DEFAULT_INTERVAL, 7: el de
     antes de octubre, ~6,8 s por página), por rápido que cargue cada página. Por cortesía: el freno no
     depende del ritmo (abajo);
@@ -259,16 +259,18 @@ def _closed(page, error):
 
 def _refused(response):
     """¿La federación contestó con una página de error (un 503 de Apache cuando bloquea o se cae, un
-    429 por ir deprisa)? page.goto no lanza con ellas. Sin respuesta (las páginas de prueba), no."""
+    429 por ir deprisa, un 403 o un 404)? page.goto no lanza con ellas. Sin respuesta (las páginas de
+    prueba), no. Desde la fase 2B de v2 (14/11/2026), cualquier 4xx: un 403 a todo se leía como páginas
+    vacías y la pasada acababa en verde sin haber leído nada."""
     status = getattr(response, "status", None)
-    return isinstance(status, int) and (status >= 500 or status == 429)
+    return isinstance(status, int) and status >= 400
 
 
 def goto(page, url, deadline=None, retries=3, ready_ms=None, hosts=FIFLP_HOSTS, sleep=time.sleep, log=print,
          clock=time.monotonic, why=None):
     """Carga `url` y espera a que esté lista para el lector (ready_selector y hojas de estilo). Hasta
     `retries` intentos, con 15 y 30 s entre ellos, nunca más allá de `deadline` (en `clock`): una página
-    que no carga (o que la federación sirve con un 5xx o un 429) se deja para la próxima pasada. Una
+    que no carga (o que la federación sirve con un 5xx o un 4xx) se deja para la próxima pasada. Una
     página VACÍA (el freno) no se reintenta: la misma página 10 s después sigue vacía y el bloqueo dura
     ~5 min (15/10/2026); Federacion espera el freno. True si cargó. En `why` (una lista), el motivo de
     cada intento fallido: EMPTY o REFUSED si fue el freno (vacía, o un BRAKE_STATUSES), CLOSED si se
