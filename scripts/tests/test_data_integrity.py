@@ -178,6 +178,21 @@ class TestGeneratedFiles:
         assert isinstance(s, list)
         assert all("name" in entry for entry in s)
 
+    def test_seasons_detail_matches_matchdetail(self):
+        """"detail": true marca exactamente las temporadas con alguna entrada en data-matchdetail.js:
+        la web solo lo pide para ellas, y una sin la marca no enseñaría su cronología."""
+        p = os.path.join(ROOT, "data-matchdetail.js")
+        if not os.path.exists(p):
+            pytest.skip("data-matchdetail.js not present")
+        with open(p, encoding="utf-8") as f:
+            m = re.search(r"const MATCH_DETAIL=(.*);\s*$", f.read(), re.DOTALL)
+        assert m, "data-matchdetail.js doesn't match expected MATCH_DETAIL={...}; pattern"
+        entries = [e for v in json.loads(m.group(1)).values() for e in (v["list"] if v.get("dup") else [v])]
+        with_detail = {e["s"] for e in entries}
+        seasons = _load_seasons_js()
+        assert {s["name"] for s in seasons if s.get("detail")} == with_detail
+        assert all(s["detail"] is True for s in seasons if "detail" in s)
+
     def test_per_season_files_exist_for_each_historical(self):
         """Every non-current season in data-seasons.js must have a corresponding
         data-season-YYYY-YYYY.js file (otherwise the lazy loader 404s)."""

@@ -67,7 +67,7 @@ const FROZEN = (() => {
     'data-history.js': js([['HISTORY', raw.history]]),
     'data-goleadores.js': js([['GOL_BENJ', []], ['GOL_PREBENJ', []]]),
     'data-shields.js': js([['SHIELDS', fixture('shields')]]),
-    'data-seasons.js': js([['SEASONS', [{ name: '2025-2026', current: true }, { name: '2024-2025', current: false }]]]),
+    'data-seasons.js': js([['SEASONS', [{ name: '2025-2026', current: true, detail: true }, { name: '2024-2025', current: false }]]]),
     'data-maspalomas-cup-2026.js': js([['MASPALOMAS_CUP_BENJAMIN', cups.benjamin], ['MASPALOMAS_CUP_PREBENJAMIN', cups.prebenjamin]]),
     'data-season-2024-2025.js': js([['SEASON_2024_2025', { name: '2024-2025', current: false, benjamin: past.benjamin, prebenjamin: past.prebenjamin }]]),
     'data-matchdetail.js': js([['MATCH_DETAIL', fixture('matchdetail')]]),

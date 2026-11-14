@@ -16,7 +16,8 @@ import {
 } from '../../src/screen-partido.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
-const SEASONS = [{ name: '2025-2026', current: true }, { name: '2024-2025', current: false }];
+// 2025-26 lleva `detail` (tiene entradas en data-matchdetail.js), como el data-seasons.js real.
+const SEASONS = [{ name: '2025-2026', current: true, detail: true }, { name: '2024-2025', current: false }];
 const TODAY = '2026-09-23';
 
 // Registro de datos con la forma de B2 (datasetsFrom de la Tarea 3), con la cronología y las actas
@@ -389,7 +390,7 @@ test('previousPanelContent: un fallo tras cargar (dato mal formado) da la caja d
   }
 });
 
-test('needs pide la cronología, las actas del grupo del partido y, si es pasada, la temporada, que es la única que rechaza', async () => {
+test('needs pide la cronología si la temporada la tiene, las actas del grupo del partido y, si es pasada, la temporada, que es la única que rechaza', async () => {
   const calls = [];
   const loaders = {
     ensureMatchDetail: async () => { calls.push('cronología'); return { k: 1 }; },
@@ -404,14 +405,14 @@ test('needs pide la cronología, las actas del grupo del partido y, si es pasada
   assert.deepEqual([ds.matchDetail, ds.lineups['2025-2026/PG2']], [{ k: 1 }, {}]);
   calls.length = 0;
   await Promise.all(partidoNeeds({ s: '2024-2025', g: 'PGC2' }, ds, loaders));
-  assert.deepEqual(calls, ['cronología', 'actas 2024-2025 PGC2', 'temporada 2024-2025']);
+  assert.deepEqual(calls, ['actas 2024-2025 PGC2', 'temporada 2024-2025'], '2024-25 no tiene cronología');
   assert.equal(ds.lineups['2024-2025/PGC2'], null, 'el fallo queda anotado para la caja de error');
   assert.equal(ds.seasonRaw['2024-2025'].name, '2024-2025');
   // Sin `s`, la temporada actual de SEASONS; una temporada ya cargada no se pide otra vez.
   calls.length = 0;
   await Promise.all(partidoNeeds({ g: 'PG2' }, ds, loaders));
   await Promise.all(partidoNeeds({ s: '2024-2025', g: 'PGC2' }, ds, loaders));
-  assert.deepEqual(calls, ['cronología', 'actas 2025-2026 PG2', 'cronología', 'actas 2024-2025 PGC2']);
+  assert.deepEqual(calls, ['cronología', 'actas 2025-2026 PG2', 'actas 2024-2025 PGC2']);
   // La temporada del partido es imprescindible: si no llega, la carga rechaza con «la temporada …»,
   // el <qué> de la caja de error del router. Cronología y actas no rechazan nunca.
   const failing = { ...loaders, ensureSeasonData: async () => null };
@@ -420,6 +421,40 @@ test('needs pide la cronología, las actas del grupo del partido y, si es pasada
   assert.equal(ds2.seasonRaw['2023-2024'], undefined);
   assert.equal(screen.id, 'partido');
   assert.equal(typeof screen.needs, 'function');
+});
+
+test('needs: la cronología solo para una temporada con `detail` en SEASONS, no para 2026-27 ni para 2024-25', async () => {
+  const calls = [];
+  const loaders = {
+    ensureMatchDetail: async () => { calls.push('cronología'); return {}; },
+    ensureLineups: async (s, g) => { calls.push(`actas ${s} ${g}`); return {}; },
+    ensureSeasonData: async (s) => { calls.push(`temporada ${s}`); return { name: s, current: false, benjamin: [], prebenjamin: [] }; },
+  };
+  const seasons = [{ name: '2026-2027', current: true }, { name: '2025-2026', current: false, detail: true }, { name: '2024-2025', current: false }];
+  const ds = { seasons, seasonRaw: {}, lineups: {}, matchDetail: null };
+  await Promise.all(partidoNeeds({ s: '2026-2027', g: 'PG2' }, ds, loaders));
+  await Promise.all(partidoNeeds({ s: '2024-2025', g: 'PGC2' }, ds, loaders));
+  assert.deepEqual(calls, ['actas 2026-2027 PG2', 'actas 2024-2025 PGC2', 'temporada 2024-2025']);
+  assert.equal(ds.matchDetail, null);
+  calls.length = 0;
+  await Promise.all(partidoNeeds({ s: '2025-2026', g: 'PG2' }, ds, loaders));
+  assert.deepEqual(calls, ['cronología', 'actas 2025-2026 PG2', 'temporada 2025-2026']);
+  assert.deepEqual(ds.matchDetail, {});
+});
+
+test('Una temporada sin `detail`: los goles del acta, sin la cronología y sin caja de error', () => {
+  const ds = datasetsFrom();
+  ds.seasons = [{ name: '2025-2026', current: true }, { name: '2024-2025', current: false }];
+  ds.matchDetail = null;
+  // Acta sin cronología (A1, jornada 11): sus listas, como con la cronología cargada.
+  const j11 = blockOf(render(A1_J11, { datasets: ds }), 'Goles');
+  assert.ok(!failBox(j11, 'la cronología de goles'));
+  assert.equal(j11, blockOf(render(A1_J11), 'Goles'));
+  // Un partido con cronología en data-matchdetail.js (A1, jornada 1): sin `detail` no se mira; el acta.
+  const j1 = blockOf(render(A1_J1, { datasets: ds }), 'Goles');
+  assert.ok(!failBox(j1, 'la cronología de goles'));
+  assert.ok(text(j1).startsWith('Goles según el acta'));
+  assert.ok(text(blockOf(render(A1_J1), 'Goles')).startsWith('Goles minuto a minuto'), 'con `detail`, la cronología');
 });
 
 test('Partido que no está: vacío con enlace a la jornada, nunca una pantalla en blanco; enlaces antiguos con el número', () => {

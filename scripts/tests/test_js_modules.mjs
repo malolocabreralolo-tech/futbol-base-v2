@@ -86,10 +86,12 @@ test('data-seasons.js loads with SEASONS array', () => {
   assert.ok(Array.isArray(SEASONS), 'SEASONS should be an array');
   assert.ok(SEASONS.length >= 2, 'should have at least 2 seasons');
   assert.ok(SEASONS.some(s => s.current === true), 'one season must be marked current');
-  // After optimization: only {name, current} keys (no inline group data)
+  // Solo {name, current} y, en las temporadas con cronología, detail: true (sin datos de grupos).
   for (const s of SEASONS) {
     assert.ok(typeof s.name === 'string' && /^\d{4}-\d{4}$/.test(s.name),
       `season name should be YYYY-YYYY: ${s.name}`);
+    assert.ok(Object.keys(s).every((k) => ['name', 'current', 'detail'].includes(k)), `claves de ${s.name}`);
+    assert.ok(!('detail' in s) || s.detail === true, `detail de ${s.name}`);
   }
 });
 

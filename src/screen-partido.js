@@ -203,8 +203,14 @@ function goalsLists(goals, match, mine) {
   return html`<div class="pt-glists">${list('home', match.home, 'Local')}${list('away', match.away, 'Visitante')}</div>`;
 }
 
+// La temporada tiene cronología en data-matchdetail.js: su entrada de SEASONS lleva `detail`.
+function withDetail(seasons, season) {
+  return (seasons || []).some((entry) => entry && entry.name === season && entry.detail === true);
+}
+
 function goalsBlock(match, group, ctx) {
-  const detail = ctx.datasets.matchDetail;
+  // Una temporada sin `detail` no tiene cronología: se sigue con el acta.
+  const detail = withDetail(ctx.datasets.seasons, match.season) ? ctx.datasets.matchDetail : {};
   const lineups = (ctx.datasets.lineups || {})[lineupsKey(match.season, match.groupId)];
   // Sin data-matchdetail.js no se sabe si hay cronología de futbolaspalmas, que
   // manda sobre el acta: caja de error, nunca el acta en su lugar.
@@ -446,8 +452,8 @@ export function render(ctx) {
   return screenHtml(html`${head}<div class="pt-cols"><div class="pt-main">${main}</div><div class="pt-aside">${side}</div></div>`);
 }
 
-// Cargas perezosas (spec §5.4): la cronología, las actas del grupo del
-// partido y, si es pasada, la temporada. Los cargadores devuelven null si
+// Cargas perezosas (spec §5.4): la cronología (si la temporada la tiene), las
+// actas del grupo del partido y, si es pasada, la temporada. Los cargadores devuelven null si
 // fallan. La cronología y las actas son opcionales: el bloque que las necesita
 // pinta la caja de error y el resto se pinta. La temporada es imprescindible:
 // sin ella, la carga rechaza y el router pinta la caja de la pantalla entera.
@@ -458,7 +464,7 @@ export function partidoNeeds(params, datasets, loaders = LOADERS) {
   const g = params && params.g;
   if (!datasets.lineups) datasets.lineups = {};
   if (!datasets.seasonRaw) datasets.seasonRaw = {};
-  const loads = [loaders.ensureMatchDetail().then((data) => { datasets.matchDetail = data; })];
+  const loads = withDetail(seasons, s) ? [loaders.ensureMatchDetail().then((data) => { datasets.matchDetail = data; })] : [];
   if (g) loads.push(loaders.ensureLineups(s, g).then((data) => { datasets.lineups[lineupsKey(s, g)] = data; }));
   const listed = seasons.find((x) => x.name === s);
   if (listed && !listed.current && !datasets.seasonRaw[s]) {
@@ -532,7 +538,7 @@ function retryMatchBlock(section, ctx, id, button) {
   const data = ctx.datasets;
   const lineups = data.lineups || (data.lineups = {});
   const load = () => Promise.all([
-    id === GOALS_ID && data.matchDetail == null ? LOADERS.ensureMatchDetail().then((d) => { data.matchDetail = d; }) : null,
+    id === GOALS_ID && data.matchDetail == null && withDetail(data.seasons, match.season) ? LOADERS.ensureMatchDetail().then((d) => { data.matchDetail = d; }) : null,
     lineups[lineupsKey(match.season, match.groupId)] == null
       ? LOADERS.ensureLineups(match.season, match.groupId).then((d) => { lineups[lineupsKey(match.season, match.groupId)] = d; })
       : null,

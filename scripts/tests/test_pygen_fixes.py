@@ -1176,6 +1176,64 @@ class TestMatchKeyCollisions:
         assert len(ff15["g"]) == 12 and ff15["g"][-1][2] == "1-11"
 
 
+# ─── Fase 3, tarea 3: data-seasons.js marca las temporadas con cronología ────
+
+class TestSeasonsDetail:
+    """La web solo pide data-matchdetail.js para las temporadas que tienen alguna entrada en él:
+    data-seasons.js las marca con "detail": true, sacado de las mismas entradas."""
+
+    def _seed(self, conn):
+        conn.executescript("""
+          UPDATE seasons SET is_current = 0 WHERE id = 1;
+          INSERT INTO seasons (id, name, start_year, end_year, is_current)
+            VALUES (2, '2026-2027', 2026, 2027, 1), (3, '2024-2025', 2024, 2025, 0);
+          INSERT INTO groups (id, season_id, category_id, code, name, phase)
+            VALUES (1, 1, 2, 'PG2', 'Grupo 2', 'Gran Canaria'),
+                   (2, 2, 2, 'PG2', 'Grupo 2', 'Gran Canaria'),
+                   (3, 3, 2, 'PG2', 'Grupo 2', 'Gran Canaria');
+          INSERT INTO teams (id, name) VALUES (1, 'Home FC'), (2, 'Away FC');
+          INSERT INTO matches (id, group_id, jornada, date, home_team_id, away_team_id,
+                               home_score, away_score)
+            VALUES (1, 1, 'Jornada 1', '06/06', 1, 2, 1, 0),
+                   (2, 2, 'Jornada 1', '2026-10-03', 1, 2, 2, 0),
+                   (3, 3, 'Jornada 1', '2024-10-05', 1, 2, 1, 0);
+          INSERT INTO goals (match_id, minute, player_name, running_score, side, type)
+            VALUES (1, 10, 'A. B.', '1-0', 'h', 'r');
+        """)
+
+    def test_solo_las_temporadas_con_entradas_llevan_detail(self):
+        from scripts.generate_js import generate_seasons_js
+        conn = _synth_conn()
+        self._seed(conn)
+        lean, _ = generate_seasons_js(conn)
+        assert lean == ('const SEASONS=[{"name":"2026-2027","current":true},'
+                        '{"name":"2025-2026","current":false,"detail":true},'
+                        '{"name":"2024-2025","current":false}];\n')
+
+    def test_una_clave_repetida_marca_las_temporadas_de_todas_sus_entradas(self):
+        from scripts.generate_js import generate_seasons_js
+        conn = _synth_conn()
+        self._seed(conn)
+        # El mismo Home FC–Away FC 1-0 en 2024-25: la clave sale como {dup, list}.
+        conn.execute("INSERT INTO goals (match_id, minute, player_name, running_score, side, type) "
+                     "VALUES (3, 20, 'C. D.', '1-0', 'h', 'r')")
+        lean, _ = generate_seasons_js(conn)
+        seasons = _parse_tail_const(lean, "SEASONS")
+        assert [s["name"] for s in seasons if s.get("detail")] == ["2025-2026", "2024-2025"]
+
+    def test_sale_de_las_mismas_entradas_que_data_matchdetail(self):
+        from scripts.generate_js import _match_details, generate_matchdetail_js, generate_seasons_js
+        conn = _synth_conn()
+        self._seed(conn)
+        details = _match_details(conn)
+        assert generate_matchdetail_js(conn, details) == generate_matchdetail_js(conn)
+        # Con las entradas que se le pasan (las que se escriben), no con otra consulta.
+        lean, _ = generate_seasons_js(conn, {})
+        assert "detail" not in lean
+        lean, _ = generate_seasons_js(conn, details)
+        assert '"name":"2025-2026","current":false,"detail":true' in lean
+
+
 # ─── B4 (decisión 1): las salidas del generador, sin los datos retirados ─────
 
 # Lo que B4 retiró: nadie lo lee (el ⚽ de las listas se fue con la app anterior, Récords sale del

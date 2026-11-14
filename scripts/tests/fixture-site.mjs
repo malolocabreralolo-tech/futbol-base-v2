@@ -15,8 +15,9 @@ export const STORE_KEY = 'fb2:almacen';
 const DEFAULT_TEAM = { cat: 'prebenjamin', groupId: 'PG2', name: 'Las Mesas Hu.' };
 const LAS_MESAS_2526 = { name: 'Las Mesas Hu.', season: '2025-2026', cat: 'prebenjamin', groupId: 'PG2' };
 // SEASONS con cada temporada del portal: files() sirve el archivo de cada temporada pasada (decisión 31).
-const SEASONS_2526 = [{ name: '2025-2026', current: true }, { name: '2024-2025', current: false }, { name: '2023-2024', current: false }];
-const SEASONS_2627 = [{ name: '2026-2027', current: true }, { name: '2025-2026', current: false }, { name: '2024-2025', current: false }];
+// 2025-26 lleva `detail`, como en el data-seasons.js real: la cronología de las fixtures es suya.
+const SEASONS_2526 = [{ name: '2025-2026', current: true, detail: true }, { name: '2024-2025', current: false }, { name: '2023-2024', current: false }];
+const SEASONS_2627 = [{ name: '2026-2027', current: true }, { name: '2025-2026', current: false, detail: true }, { name: '2024-2025', current: false }];
 // data-health.json de las fixtures es el del 23/09/2026 (D y E). En los mundos de otro día, sus
 // fechas pasan a la víspera, la comprobación de la noche anterior: la frescura de la portada nunca
 // es de un día posterior al «hoy» del mundo.

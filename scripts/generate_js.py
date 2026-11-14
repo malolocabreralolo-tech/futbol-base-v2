@@ -726,14 +726,22 @@ def _fp_goal_entries(conn):
     return pairs
 
 
-def generate_matchdetail_js(conn):
-    """Generate data-matchdetail.js with goal details per match."""
+def generate_matchdetail_js(conn, details=None):
+    """Generate data-matchdetail.js with goal details per match. `details`: las entradas de
+    _match_details ya calculadas (main las comparte con data-seasons.js)."""
     header = (
         "// data-matchdetail.js — generado por scripts/generate_js.py\n"
         "// NO editar manualmente — usar scripts/update.sh para regenerar\n\n"
     )
-    js = header + "const MATCH_DETAIL=" + js_val(_match_details(conn)) + ";"
+    details = _match_details(conn) if details is None else details
+    js = header + "const MATCH_DETAIL=" + js_val(details) + ";"
     return js
+
+
+def detail_seasons(details):
+    """Las temporadas con alguna entrada en MATCH_DETAIL (las de una clave repetida, todas)."""
+    return {entry["s"] for value in details.values()
+            for entry in (value["list"] if value.get("dup") else [value])}
 
 
 def _season_const_suffix(season_name):
@@ -1393,15 +1401,17 @@ def get_historical_jornadas(conn, group_id, include_details=False):
     return dict(sorted(jornadas.items(), key=lambda x: _jornada_sort_key(x[0])))
 
 
-def generate_seasons_js(conn):
+def generate_seasons_js(conn, details=None):
     """Generate data-seasons.js with list of available seasons + historical data.
 
     Returns (js_string_for_lean_file, full_seasons_list_with_groups).
 
     The lean file (data-seasons.js) only contains [{name, current}] entries —
-    enough for the season selector dropdown. Per-season group/match data is
-    written to data-season-YYYY-YYYY.js by generate_per_season_files() and
-    fetched lazily by src/state.js loadSeasonData() when the user switches
+    enough for the season selector dropdown — y "detail": true en las temporadas con alguna
+    entrada en data-matchdetail.js (detail_seasons de `details`, las mismas entradas que main
+    escribe en ese fichero; sin ellas, se calculan), para que la web solo lo pida para ellas.
+    Per-season group/match data is written to data-season-YYYY-YYYY.js by
+    generate_per_season_files() and fetched lazily by src/state.js loadSeasonData() when the user switches
     to a historical season. This keeps initial page load small (was 484KB,
     now ~200B for season list).
     """
@@ -1410,7 +1420,9 @@ def generate_seasons_js(conn):
     ).fetchall()
 
     # Lean version for the eager-loaded data-seasons.js
-    lean_list = [{"name": n, "current": bool(c)} for _, n, c in seasons]
+    with_detail = detail_seasons(_match_details(conn) if details is None else details)
+    lean_list = [{"name": n, "current": bool(c), **({"detail": True} if n in with_detail else {})}
+                 for _, n, c in seasons]
 
     # Full version (with group data) used by generate_per_season_files
     seasons_list = []
@@ -1689,7 +1701,8 @@ def main():
     write_file("data-history.js", generate_history_js(conn))
 
     print("4. data-matchdetail.js")
-    write_file("data-matchdetail.js", generate_matchdetail_js(conn))
+    details = _match_details(conn)
+    write_file("data-matchdetail.js", generate_matchdetail_js(conn, details))
 
     print("5. data-goleadores.js")
     write_file("data-goleadores.js", generate_goleadores_js(conn))
@@ -1697,7 +1710,7 @@ def main():
     print("6. data-shields.js  [skipped - maintained manually]")
 
     print("7. data-seasons.js")
-    seasons_js, seasons_list = generate_seasons_js(conn)
+    seasons_js, seasons_list = generate_seasons_js(conn, details)
     write_file("data-seasons.js", seasons_js)
 
     print("8. data-season-*.js (per-season lazy-loaded files)")

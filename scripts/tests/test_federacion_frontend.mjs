@@ -28,7 +28,7 @@ test('Partido: los delegados del acta, solo si constan', () => {
   assert.ok(key, 'la fixture trae el acta de A1 J3');
   lineups[key].delH = { equipo: 'PEREZ GARCIA, ANA', campo: 'LOPEZ DIAZ, LUIS' };
   const datasets = baseDatasets(fixture('current-2025-2026'), {
-    golBenj: [], golPrebenj: [], seasons: [{ name: '2025-2026', current: true }], matchDetail: fixture('matchdetail'),
+    golBenj: [], golPrebenj: [], seasons: [{ name: '2025-2026', current: true, detail: true }], matchDetail: fixture('matchdetail'),
     lineups: { ...seasonLineups('2025-2026'), '2025-2026/A1': lineups }, health: fixture('health'),
   });
   const params = { s: '2025-2026', g: 'A1', r: 'Jornada 3', h: 'Unión Viera', a: 'Santidad' };

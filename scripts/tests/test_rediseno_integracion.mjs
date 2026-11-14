@@ -77,7 +77,7 @@ test('myTeamToSave: un cambio de temporada nunca se guarda solo, con una categor
 // Los data-*.js inmediatos, como los globales del navegador, y los perezosos por fetch.
 const GLOBALS = ['BENJAMIN', 'PREBENJAMIN', 'HISTORY', 'GOL_BENJ', 'GOL_PREBENJ', 'SHIELDS', 'SEASONS',
   'MASPALOMAS_CUP_BENJAMIN', 'MASPALOMAS_CUP_PREBENJAMIN'];
-function installData(season, { without = [], seasons = [{ name: '2025-2026', current: true }] } = {}) {
+function installData(season, { without = [], seasons = [{ name: '2025-2026', current: true, detail: true }] } = {}) {
   const cups = fixture('cups-2025-2026');
   const values = { BENJAMIN: season.benjamin, PREBENJAMIN: season.prebenjamin, HISTORY: season.history,
     GOL_BENJ: [], GOL_PREBENJ: [], SHIELDS: shields, SEASONS: seasons,
@@ -208,7 +208,7 @@ test('el router deja pasar lo que las pantallas saben leer: la jornada por su n�
 });
 
 // Las temporadas que publica SEASONS cuando hay archivo: la actual y 2024/25.
-const WITH_PAST = [{ name: '2025-2026', current: true }, { name: '2024-2025', current: false }];
+const WITH_PAST = [{ name: '2025-2026', current: true, detail: true }, { name: '2024-2025', current: false }];
 
 test('temporada pasada que la pantalla no pide (Equipo): la carga el router y la pinta, nunca la caja de error (I4(a)); la ficha va a «Vistos hace poco»', async (t) => {
   const errorSpy = t.mock.method(console, 'error');
