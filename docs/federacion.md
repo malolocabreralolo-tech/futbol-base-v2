@@ -79,6 +79,19 @@ Actas publicadas: un fichero por grupo, `data-lineups-<S>-<grupo>.js` (`const LI
 
 Jugadores: `players.fiflp_id` es el id de la federación (el mismo niño de prebenjamín a benjamín). Un gol en propia puerta no suma al jugador y en las alineaciones publicadas va del lado al que suma.
 
+## Pasada sana (desde el 14/11/2026, fase 2B de v2)
+
+Hasta entonces el bot podía acabar en verde sin haber leído nada (un 403 a todo se leía como páginas vacías). Ahora cada pasada tiene un veredicto, `pasada_sana.veredicto` (función pura), que `update_fiflp.update_groups` calcula con lo que devuelve `run_passes` (`estados` de los grupos leídos, `previstos` = leídos + sin servir por el freno + aplazados por plazo, y `vacias`) y guarda en `data-health.json` como `runHealth` (`source_health.set_run_health`). La pasada está en rojo, con un motivo por regla y en este orden:
+
+1. **interrumpida**: la federación no se pudo consultar (sin navegador, una excepción en `run_passes`); el error, recortado a 200 caracteres;
+2. **jornada leída vacía** que la base tiene con partidos (`update_fiflp.JornadaVacia`: el grupo no escribe nada y queda en error). No lo es la que la federación vació porque movió sus partidos sin jugar a otra jornada leída en la misma llamada, ni ninguna de un grupo sin jornadas en la base;
+3. **ningún grupo servido**: había grupos previstos y ninguno acabó en `ok`;
+4. si no se cumplió la 3, **más de un tercio** de los grupos leídos en `error` o `rejected`.
+
+Cada motivo nombra como mucho 12 códigos («y N más»). El freno y la rotación no son fallo: una pasada con freno que leyó bien algunos grupos es sana, y los grupos de otras categorías (`FIFLP_CATS`, `source_health.carry`) no cuentan. Un 403 (o cualquier 4xx) es una página que no carga (`fiflp_carga._refused`), con sus reintentos, pero no es señal del freno (`BRAKE_STATUSES` no cambia).
+
+`runHealth`: `{"ok": true}` (sin hora: una pasada sana tras otra no reescribe el informe) o `{"ok": false, "reasons": [...], "since": ...}`, con el `since` de la primera pasada en rojo seguida. Una ejecución sin federación lo arrastra tal cual; una que falla después (`finish(failed=True)`) lo pone en rojo con «la pasada se interrumpió antes de terminar» si no lo estaba. En rojo, los datos de los grupos leídos bien se publican igual: el rojo no borra ni retiene nada. Órdenes sobre el fichero del disco: `python3 scripts/source_health.py veredicto` (sale con 1 y escribe los motivos si está en rojo) y `python3 scripts/source_health.py marcar "<motivo>"` (lo pone en rojo, sin tocar nada más del informe).
+
 ## El reloj de las pasadas (`reloj.yml`, desde el 17/10/2026)
 
 Desde el 16/10/2026 a las 11:50 UTC el cron de `update.yml` era `'23 */2 * * *'`, y en ~26 h GitHub lo disparó 5 veces de las 13 que tocaban (el 16/10 a las 16:48 y 21:24 UTC; el 17/10 a las 00:36, 07:03 y 12:16): en la práctica, una pasada cada 4-6 h. Desde el 17/10/2026 `update.yml` no tiene cron (solo `workflow_dispatch`) y lo lanza **el reloj**, `reloj.yml` («Reloj de las pasadas»): un tick cada 15 min (`'7,22,37,52 * * * *'`: nunca a en punto ni a y media, que GitHub retrasa o pierde más) que lee las últimas ejecuciones de `update.yml` (`gh run list -R malolocabreralolo-tech/futbol-base-v2 --workflow update.yml --json number,event,status,conclusion,createdAt,startedAt`), decide con `scripts/reloj_pasadas.py` y, si toca, lanza `gh workflow run update.yml -R malolocabreralolo-tech/futbol-base-v2 --ref main` (el `GITHUB_TOKEN` sí puede lanzar un `workflow_dispatch`, como las tandas de la federación al subir sus raw: `actas-federacion.yml`, `goleadores-federacion.yml` y `detalle-federacion.yml`). Un tick perdido solo retrasa la pasada hasta el siguiente que llegue. Para parar las pasadas, se desactiva `reloj.yml` en Actions (y las tandas, que también lanzan el bot).
