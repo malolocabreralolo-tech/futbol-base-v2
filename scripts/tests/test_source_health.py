@@ -162,6 +162,7 @@ def test_the_bot_run_tells_finish_whether_it_failed(portal, monkeypatch):
     import generate_js
     import migrate_categories
     import migrate_compactar
+    import migrate_identidad
     import migrate_team_names
     import update_fiflp
 
@@ -177,6 +178,8 @@ def test_the_bot_run_tells_finish_whether_it_failed(portal, monkeypatch):
     for name, module in (("migrate", migrate_categories), ("migrate", migrate_compactar),
                          ("migrate", migrate_team_names)):
         monkeypatch.setattr(module, name, lambda conn: None)
+    for name in ("asegurar_esquema", "resolver_fichas"):
+        monkeypatch.setattr(migrate_identidad, name, lambda conn: None)
     monkeypatch.setattr(FB, "get_connection", Conn)
     monkeypatch.setattr(FB, "init_db", lambda conn: None)
     monkeypatch.setattr(FB, "active_season", lambda conn: (1, "2025-2026"))

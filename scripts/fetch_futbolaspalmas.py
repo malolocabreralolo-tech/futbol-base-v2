@@ -927,6 +927,10 @@ def main():
     # Un fallo para la pasada: lo que escribe actas solo sabe hacerlo en el esquema compacto.
     from migrate_compactar import migrate as migrate_compactar
     migrate_compactar(conn)
+    # Las columnas de las identidades de acta (fase 2C), antes de importar ninguna: el importador no sabe
+    # escribir un jugador sin id sin ellas. Idempotente; un fallo para la pasada.
+    import migrate_identidad
+    migrate_identidad.asegurar_esquema(conn)
     # Los equipos que se llevaron la fila de otro club al activar sus grupos (la Fase Previa alevín de
     # 2026-27), antes de leer la federación: el bot casa sus nombres con los de la clasificación del grupo.
     # Idempotente; un fallo se apunta y no para la actualización.
@@ -955,6 +959,9 @@ def main():
             update_groups(conn, season_id)
         update_fp_app(conn, season_name)
         import_past_seasons(conn)
+        # Las fichas, una vez, con todas las actas importadas y los jugadores sin uso ya podados (el último
+        # paso de import_past_seasons). Un fallo para la pasada: no se publican fichas a medias.
+        migrate_identidad.resolver_fichas(conn)
         from generate_js import main as generate_main
         generate_main()
         failed = False
