@@ -195,9 +195,10 @@ def test_reimportar_las_actas_deja_las_mismas_identidades_y_las_mismas_fichas():
     conn = base()
     pasada(conn)
     primera = foto(conn)
-    # Hay uniones de verdad (si no, la prueba no prueba nada): NOA sin id en 2025-26 y con id en 2026-27.
+    # Hay uniones de verdad (si no, la prueba no prueba nada): NOA sin id en 2025-26 y con id en 2026-27,
+    # del mismo club: U1 (desde la ronda 2 de la tarea 2, antes que U2).
     noa = conn.execute("SELECT id FROM players WHERE fiflp_id=81").fetchone()[0]
-    assert conn.execute("SELECT union_por FROM players WHERE ficha_id=?", (noa,)).fetchall() == [("nombre",)]
+    assert conn.execute("SELECT union_por FROM players WHERE ficha_id=?", (noa,)).fetchall() == [("club",)]
     assert conn.execute("SELECT count(*) FROM players WHERE ficha_id IS NOT NULL").fetchone()[0] >= 2
     for _ in range(2):
         for mid, a in ACTAS.items():

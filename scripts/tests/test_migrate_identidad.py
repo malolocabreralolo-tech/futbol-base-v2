@@ -290,16 +290,17 @@ def test_lo_que_no_casa_se_cuenta_y_no_se_toca(mundo):
 def test_las_fichas_unen_lo_compatible_y_los_punteros_son_buenos(mundo):
     conn, raws = mundo
     r = M.migrate(conn, str(raws), log=quiet)
-    # EVA sin id (prebenjamín 2025-26) y con id (benjamín 2026-27): U2, la única otra ficha con su nombre.
+    # EVA sin id (prebenjamín 2025-26) y con id (benjamín 2026-27), del mismo club: U1 (desde la ronda 2
+    # de la tarea 2, antes que U2, que también la uniría: es la única otra ficha con su nombre).
     eva_sin, eva = pid_de(conn, "MORA DIAZ, EVA@3.2"), conn.execute(
         "SELECT id FROM players WHERE fiflp_id=601").fetchone()[0]
-    assert fila(conn, eva_sin)[6:] == (eva, "nombre")
+    assert fila(conn, eva_sin)[6:] == (eva, "club")
     assert fila(conn, eva)[6:] == (None, None)
     # ANA sin id (prebenjamín 2025-26) no se une a la ANA con id (benjamín 2023-24): imposible por edad.
     assert fila(conn, pid_de(conn, "PEREZ PEREZ, ANA@3.2"))[6] is None
     # Ninguna ficha_id apunta a una fila que no existe ni a una secundaria.
     assert M.comprobar(conn)["punteros malos"] == 0
-    assert r["fichas"]["uniones"].get("nombre", 0) >= 1
+    assert r["fichas"]["uniones"].get("club", 0) >= 1
     assert M.medida_fichas(conn)["cuenta"].get("imposibles por edad", 0) == 0
 
 
