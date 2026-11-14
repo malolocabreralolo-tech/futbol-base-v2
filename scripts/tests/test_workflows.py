@@ -41,7 +41,7 @@ import yaml
 ROOT = Path(__file__).resolve().parents[2]
 WF_DIR = ROOT / ".github" / "workflows"
 
-OWNED = ["update.yml", "tests.yml", "fetch-fiflp.yml", "fetch-fiflp-actas.yml", "reloj.yml"]
+OWNED = ["update.yml", "tests.yml", "fetch-fiflp.yml", "fetch-fiflp-actas.yml", "reloj.yml", "activar.yml"]
 
 
 def _load(name):
@@ -444,12 +444,13 @@ def test_update_no_abre_issues():
     no se quieren avisos fuera de la web. Las nuevas siguen en newCompetitions de data-health.json, que
     enseña «Datos y fuentes» (update_fiflp.check_competitions)."""
     data = _load("update.yml")
-    assert data["permissions"] == {"contents": "write"}
+    # actions: write desde la fase 2D (14/11/2026), solo para lanzar activar.yml (su paso, el único con GH_TOKEN).
+    assert data["permissions"] == {"contents": "write", "actions": "write"}
     assert "permissions" not in data["jobs"]["update"], "los del job sustituirían a los del workflow"
     for step in _steps(data, "update"):
         assert "avisar_competiciones" not in (step.get("run") or ""), step.get("name")
         assert "gh issue" not in (step.get("run") or ""), step.get("name")
-        assert "GH_TOKEN" not in (step.get("env") or {}), step.get("name")
+        assert "GH_TOKEN" not in (step.get("env") or {}) or step.get("name") == LANZAR, step.get("name")
     assert not (ROOT / "scripts" / "avisar_competiciones.py").exists()
 
 
@@ -671,7 +672,7 @@ def test_tests_yml_paths_cover_fonts_icons_and_crests():
 NODE24 = {"actions/checkout": "v5", "actions/setup-python": "v6", "actions/setup-node": "v5"}
 
 
-@pytest.mark.parametrize("name", ["tests.yml", "update.yml", "reloj.yml"])
+@pytest.mark.parametrize("name", ["tests.yml", "update.yml", "reloj.yml", "activar.yml"])
 def test_actions_run_on_node24(name):
     data = _load(name)
     uses = [step["uses"] for job in data["jobs"].values() for step in job["steps"] if "uses" in step]
@@ -869,3 +870,404 @@ def test_the_bot_works_on_the_current_main_not_on_the_dispatch_commit():
     steps = _load("update.yml")["jobs"]["update"]["steps"]
     checkout = next(s for s in steps if str(s.get("uses", "")).startswith("actions/checkout"))
     assert checkout.get("with", {}).get("ref") == "main"
+
+
+# ------------------------------------------------------------ activar.yml
+#
+# Fase 2D (14/11/2026): activar.yml activa solo lo que el bot apuntó como nuevo (newCompetitions y newGroups
+# de data-health.json): catálogo, descarga de lo pendiente, activar_auto.py, pruebas y subida. Lo lanza el bot
+# (update.yml, «Lanzar la activación si hay algo nuevo»), se relanza a sí mismo mientras solo falte descarga
+# (hasta 4 intentos) y se lanza a mano. Los guiones de sus pasos se ejecutan con bash en repositorios de
+# mentira con su remoto, con un gh de mentira que apunta lo que se le pide.
+
+V2_REPO = "malolocabreralolo-tech/futbol-base-v2"
+ACTIVAR_STEPS = ["Checkout", "Set up Python", "Qué hay pendiente", "Instalar dependencias de test",
+                 "Instalar Playwright (federación)", "Catálogo de la temporada", "Descargar lo pendiente",
+                 "Subir lo descargado", "Activar", "Cambios en la web", "Tests Python (bloquean el commit si fallan)",
+                 "Tests Node (bloquean el commit si fallan)", "Subir la activación",
+                 "Publicar el fallo si las pruebas fallan", "Relanzar si falta descarga", "Activación en rojo"]
+PENDING = "steps.pendientes.outputs.ids != ''"
+
+
+def _activar():
+    data = _load("activar.yml")
+    assert list(data["jobs"]) == ["activar"]
+    return data, data["jobs"]["activar"]
+
+
+def _activar_step(name):
+    _, job = _activar()
+    return next(s for s in job["steps"] if s.get("name") == name)
+
+
+def test_activar_is_dispatched_by_hand_or_by_the_chain_with_its_attempt():
+    """Solo workflow_dispatch (lo lanzan el bot, la cadena y el dueño a mano), con la entrada intento (por
+    defecto 1, no obligatoria: el bot y a mano no la pasan); nada interpolado en los guiones."""
+    data, job = _activar()
+    trig = _triggers(data)
+    assert set(trig) == {"workflow_dispatch"}
+    inputs = trig["workflow_dispatch"]["inputs"]
+    assert set(inputs) == {"intento"}
+    assert inputs["intento"]["required"] is False and str(inputs["intento"]["default"]) == "1"
+    for step in job["steps"]:
+        assert "${{" not in (step.get("run") or ""), step.get("name")
+
+
+def test_activar_is_the_only_other_writer_of_the_db_and_works_on_main():
+    """Un solo escritor de la base a la vez: el mismo grupo de concurrencia que update.yml, sin cancelar; parte
+    del main de cuando arranca (en fila tras una pasada que acaba de subir la base); permisos para subir y para
+    relanzarse (actions: write), solo en el workflow."""
+    data, job = _activar()
+    assert data["concurrency"] == {"group": "update-data", "cancel-in-progress": False}
+    assert data["permissions"] == {"contents": "write", "actions": "write"}
+    assert "permissions" not in job
+    checkout = next(s for s in job["steps"] if str(s.get("uses", "")).startswith("actions/checkout"))
+    assert checkout["with"]["ref"] == "main"
+    assert job["runs-on"] == "ubuntu-24.04"
+
+
+def test_activar_steps_in_order():
+    _, job = _activar()
+    assert [s.get("name") for s in job["steps"]] == ACTIVAR_STEPS
+
+
+def test_activar_does_nothing_when_nothing_is_pending():
+    """Con SCRAPE_IDS vacío fetch_fiflp_islas.py lo bajaría TODO: sin pendientes no se instala, ni se descarga,
+    ni se activa nada (y lo que viene después depende de que se activara) y el job acaba en verde."""
+    _, job = _activar()
+    by_name = {s["name"]: s for s in job["steps"]}
+    for name in ACTIVAR_STEPS[3:9]:
+        assert PENDING in by_name[name]["if"], name
+    for name in ACTIVAR_STEPS[9:]:
+        cond = by_name[name]["if"]
+        assert "steps.activar.outcome" in cond or "steps.cambios.outputs.datos" in cond or "steps.pytest.outcome" in cond, name
+
+
+def test_activar_reads_what_is_pending_and_the_tanda_without_hardcoding_it(tmp_path):
+    """El guion de verdad del primer paso, sobre el repositorio (solo lee): los ids de activar_auto.py
+    --pendientes y el CodTemporada de la temporada en curso (activar_auto.py --temporada), a GITHUB_OUTPUT."""
+    step = _activar_step("Qué hay pendiente")
+    assert step.get("id") == "pendientes"
+    assert "python3 scripts/activar_auto.py --pendientes" in step["run"]
+    assert "python3 scripts/activar_auto.py --temporada" in step["run"]
+    out = tmp_path / "salida"
+    done = subprocess.run(["bash", "-e", "-c", step["run"]], cwd=ROOT, env={**os.environ, "GITHUB_OUTPUT": str(out)},
+                          capture_output=True, text=True, timeout=60)
+    assert done.returncode == 0, done.stdout + done.stderr
+    lines = out.read_text().splitlines()
+    assert len(lines) == 2 and re.fullmatch(r"ids=[0-9,]*", lines[0]) and re.fullmatch(r"codigo=\d+", lines[1]), lines
+
+
+def test_activar_refreshes_the_catalog_of_the_current_season_only():
+    step = _activar_step("Catálogo de la temporada")
+    assert step["run"].strip() == "python3 scripts/discover_fiflp_comps.py"
+    assert step["env"]["DISCOVER_SEASONS"] == "${{ steps.pendientes.outputs.codigo }}"
+    assert step.get("continue-on-error") is True, "sin catálogo nuevo se descarga con el que hay"
+    assert step.get("timeout-minutes", 99) <= 15
+
+
+def test_activar_downloads_both_tandas_with_a_deadline_inside_the_step_timeout():
+    """Una fase nueva son cientos de páginas y la federación frena: la descarga tiene plazo (ISLAS_HASTA,
+    fetch_fiflp_islas.guardar_por_grupo guarda grupo a grupo y para al pasarlo) por debajo del timeout del
+    paso, con margen para el último grupo, y nunca para el job (continue-on-error). Las dos tandas de la
+    temporada (benjamín y prebenjamín, alevín) con la misma lista: cada una filtra por su categoría."""
+    _, job = _activar()
+    step = _activar_step("Descargar lo pendiente")
+    assert step.get("id") == "descarga" and step.get("continue-on-error") is True
+    assert step["env"]["SCRAPE_IDS"] == "${{ steps.pendientes.outputs.ids }}"
+    assert step["env"]["CODIGO"] == "${{ steps.pendientes.outputs.codigo }}"
+    assert step["env"].get("PYTHONUNBUFFERED") == "1"
+    run = step["run"]
+    assert 'for TANDA in "$CODIGO" "${CODIGO}al"' in run
+    assert 'ISLAS_SEASON="$TANDA" python3 scripts/fetch_fiflp_islas.py' in run
+    minutes = int(re.search(r"ISLAS_HASTA=\$\(\( \$\(date \+%s\) \+ (\d+) \* 60 \)\)", run).group(1))
+    assert 60 <= minutes and minutes + 15 <= step["timeout-minutes"], (minutes, step["timeout-minutes"])
+    # El job: la descarga entera, más preparación, catálogo, activación, pruebas y subidas (~30 min).
+    assert step["timeout-minutes"] + 30 <= job["timeout-minutes"]
+
+
+def _repo(tmp_path, files):
+    """Un clon de un repositorio de mentira con su remoto y `files` publicados. Devuelve (git, remoto, clon,
+    entorno)."""
+    tmp_path.mkdir(parents=True)
+    env = {**os.environ, "GIT_CONFIG_GLOBAL": str(tmp_path / "gitconfig"), "GIT_CONFIG_NOSYSTEM": "1",
+           "RUNNER_TEMP": str(tmp_path / "runner")}
+    (tmp_path / "runner").mkdir()
+    (tmp_path / "gitconfig").write_text("[init]\n\tdefaultBranch = main\n[user]\n\tname = t\n\temail = t@t\n")
+
+    def git(*args, cwd):
+        return subprocess.run(["git", *args], cwd=cwd, env=env, check=True, capture_output=True, text=True).stdout
+
+    remote, work = tmp_path / "remoto.git", tmp_path / "clon"
+    git("init", "--bare", "-b", "main", str(remote), cwd=tmp_path)
+    git("clone", str(remote), str(work), cwd=tmp_path)
+    for name, text in files.items():
+        (work / name).parent.mkdir(parents=True, exist_ok=True)
+        (work / name).write_text(text, encoding="utf-8")
+    git("add", ".", cwd=work)
+    git("commit", "-m", "publicado", cwd=work)
+    git("push", "origin", "main", cwd=work)
+    return git, remote, work, env
+
+
+PUBLISHED = {"data-x.js": "publicado", "index.html": "i", "sw.js": "s", "futbolbase.db": "base",
+             "data-health.json": '{"publicado": true}', "scripts/fiflp_comps_catalog.json": "{}",
+             "scripts/fiflp_islas_22_raw.json": "[]", "docs/temporadas/2026-2027.json": "{}"}
+
+
+def _activation_run(work):
+    """Lo que deja una activación en el árbol: la base, lo generado, un data-*.js nuevo, su manifiesto y
+    data-health.json con el resultado."""
+    for name, text in (("futbolbase.db", "base activada"), ("data-x.js", "activado"), ("data-y.js", "nuevo"),
+                       ("index.html", "i2"), ("sw.js", "s2"), ("docs/temporadas/2026-2027-auto-20261114.json", "{}"),
+                       ("data-health.json", '{"de esta ejecucion": true}')):
+        (work / name).write_text(text, encoding="utf-8")
+
+
+def _last_commit(git, remote):
+    return sorted(git("show", "--name-only", "--format=", "main", cwd=remote).split())
+
+
+def test_activar_uploads_what_it_downloaded_first_and_only_that(tmp_path):
+    """Lo descargado (catálogo, raw y lista de grupos de la federación) se sube siempre, también tras un corte,
+    antes de activar: el intento siguiente reanuda desde ahí. Nada de la base ni de lo publicado."""
+    step = _activar_step("Subir lo descargado")
+    assert step["if"] == "${{ !cancelled() && " + PENDING + " }}"
+    git, remote, work, env = _repo(tmp_path / "descarga", PUBLISHED)
+    (work / "scripts" / "fiflp_islas_22_raw.json").write_text('[{"grupo": 1}]')
+    (work / "scripts" / "fiflp_islas_22_grupos.json").write_text('{"1": {}}')
+    (work / "scripts" / "fiflp_comps_catalog.json").write_text('{"nuevo": 1}')
+    (work / "futbolbase.db").write_text("otros bytes")
+    (work / "data-health.json").write_text('{"otro": 1}')
+    env = {**env, "INTENTO": "2"}
+    done = subprocess.run(["bash", "-e", "-c", step["run"]], cwd=work, env=env, capture_output=True, text=True, timeout=60)
+    assert done.returncode == 0, done.stdout + done.stderr
+    assert _last_commit(git, remote) == ["scripts/fiflp_comps_catalog.json", "scripts/fiflp_islas_22_grupos.json",
+                                         "scripts/fiflp_islas_22_raw.json"]
+    # Sin nada descargado (sin lista de grupos todavía, ni raw nuevo): nada que subir, y en verde.
+    git2, remote2, work2, env2 = _repo(tmp_path / "nada", PUBLISHED)
+    done = subprocess.run(["bash", "-e", "-c", step["run"]], cwd=work2, env=env2, capture_output=True, text=True, timeout=60)
+    assert done.returncode == 0 and _last_commit(git2, remote2) == sorted(PUBLISHED), done.stdout + done.stderr
+    for line in re.findall(r"git add .*", step["run"]):
+        assert not re.search(r"futbolbase\.db|data-\*\.js|data-health\.json", line), line
+    assert "git pull --rebase --autostash origin main" in step["run"] and "git rebase --abort" in step["run"]
+
+
+def test_activar_runs_activar_auto_without_stopping_the_job():
+    step = _activar_step("Activar")
+    assert step.get("id") == "activar" and step.get("continue-on-error") is True
+    assert step["run"].strip() == "python3 scripts/activar_auto.py"
+    assert step["if"] == "${{ !cancelled() && " + PENDING + " }}"
+
+
+def test_activar_runs_the_suites_only_when_the_web_changed(tmp_path):
+    """Las suites, solo si la activación cambió lo publicado (data-*.js, index.html, sw.js o su manifiesto: la
+    base cambia de bytes aunque no cambie nada, update.yml); el guion de verdad del paso que lo mira."""
+    step = _activar_step("Cambios en la web")
+    assert step.get("id") == "cambios"
+    for name, step_id in (("Tests Python (bloquean el commit si fallan)", "pytest"),
+                          ("Tests Node (bloquean el commit si fallan)", "node")):
+        suite = _activar_step(name)
+        assert suite.get("id") == step_id and suite["if"] == "steps.cambios.outputs.datos == 'true'", name
+        assert not suite.get("continue-on-error")
+    assert re.search(r"python3 -m pytest scripts/tests/", _activar_step("Tests Python (bloquean el commit si fallan)")["run"])
+    assert "node --test scripts/tests/test_*.mjs" in _activar_step("Tests Node (bloquean el commit si fallan)")["run"]
+    for case, change, expected in (("solo-base", "futbolbase.db", "false"), ("datos", "data-x.js", "true"),
+                                   ("nuevo", "data-y.js", "true"),
+                                   ("manifiesto", "docs/temporadas/2026-2027-auto-20261114.json", "true")):
+        _, _, work, env = _repo(tmp_path / case, PUBLISHED)
+        (work / change).write_text("cambiado", encoding="utf-8")
+        (work / "data-health.json").write_text("{}", encoding="utf-8")
+        out = tmp_path / case / "salida"
+        done = subprocess.run(["bash", "-e", "-c", step["run"]], cwd=work, env={**env, "GITHUB_OUTPUT": str(out)},
+                              capture_output=True, text=True, timeout=60)
+        assert done.returncode == 0 and out.read_text() == f"datos={expected}\n", (case, done.stdout + done.stderr)
+
+
+def test_activar_commits_the_data_only_with_green_suites(tmp_path):
+    """El commit de datos va después de las suites y solo con todo en verde (success(): una suite en rojo deja
+    el job en rojo y el paso no corre). Con datos, la base, lo generado, el manifiesto y data-health.json; sin
+    ellos (nada activado: todo falló), solo data-health.json (lo intentado y por qué: «Datos y fuentes» y el
+    freno de 6 h), aunque la base haya cambiado de bytes."""
+    _, job = _activar()
+    names = [s["name"] for s in job["steps"]]
+    step = _activar_step("Subir la activación")
+    assert step["if"] == "${{ success() && steps.activar.outcome != 'skipped' }}"
+    assert names.index("Tests Node (bloquean el commit si fallan)") < names.index("Subir la activación")
+    assert step["env"]["DATOS"] == "${{ steps.cambios.outputs.datos }}"
+    for datos, expected in (("true", ["data-health.json", "data-x.js", "data-y.js",
+                                      "docs/temporadas/2026-2027-auto-20261114.json", "futbolbase.db", "index.html",
+                                      "sw.js"]),
+                            ("false", ["data-health.json"])):
+        git, remote, work, env = _repo(tmp_path / datos, PUBLISHED)
+        _activation_run(work)
+        done = subprocess.run(["bash", "-e", "-c", step["run"]], cwd=work, env={**env, "DATOS": datos},
+                              capture_output=True, text=True, timeout=60)
+        assert done.returncode == 0, done.stdout + done.stderr
+        assert _last_commit(git, remote) == expected, datos
+    assert "for vez in 1 2 3" in step["run"] and "git pull --rebase --autostash origin main" in step["run"]
+    assert "git rebase --abort" in step["run"]
+
+
+FAKE_PRUEBAS = (
+    "import json, sys\n"
+    "assert sys.argv[1] == '--pruebas-fallaron'\n"
+    "ejecucion = json.load(open(sys.argv[2]))\n"
+    "d = json.load(open('data-health.json'))\n"
+    "d['activation'] = {'failed': [{'reason': 'las pruebas fallaron tras activar'}], 'de': ejecucion}\n"
+    "json.dump(d, open('data-health.json', 'w'))\n")
+
+
+def test_when_the_suites_fail_after_activating_only_the_published_report_goes_up_in_red(tmp_path):
+    """Las suites en rojo tras activar: la base y lo generado vuelven a lo publicado (también los nuevos fuera),
+    y se sube solo data-health.json, el publicado, con lo intentado como fallido por las pruebas
+    (activar_auto.py --pruebas-fallaron, con el informe de esta ejecución). El job, en rojo."""
+    step = _activar_step("Publicar el fallo si las pruebas fallan")
+    assert step["if"] == "${{ !cancelled() && (steps.pytest.outcome == 'failure' || steps.node.outcome == 'failure') }}"
+    git, remote, work, env = _repo(tmp_path / "pruebas", PUBLISHED)
+    (work / "scripts" / "activar_auto.py").write_text(FAKE_PRUEBAS, encoding="utf-8")
+    git("add", ".", cwd=work)
+    git("commit", "-m", "el guion", cwd=work)
+    git("push", "origin", "main", cwd=work)
+    _activation_run(work)
+    done = subprocess.run(["bash", "-e", "-c", step["run"]], cwd=work, env=env, capture_output=True, text=True, timeout=60)
+    log = done.stdout + done.stderr
+    assert done.returncode == 1, log
+    assert _last_commit(git, remote) == ["data-health.json"], log
+    published = json.loads(git("show", "main:data-health.json", cwd=remote))
+    assert published == {"publicado": True, "activation": {
+        "failed": [{"reason": "las pruebas fallaron tras activar"}], "de": {"de esta ejecucion": True}}}, log
+    for name in ("futbolbase.db", "data-x.js", "index.html", "sw.js"):
+        assert (work / name).read_text() == PUBLISHED[name], name
+    assert not (work / "data-y.js").exists() and not (work / "docs/temporadas/2026-2027-auto-20261114.json").exists()
+    assert [l.strip() for l in step["run"].strip().splitlines()][-1] == "exit 1"
+    assert re.findall(r"git add .*", step["run"]) == ["git add data-health.json"]
+
+
+def _run_relaunch(tmp_path, intento, failed):
+    """El guion de verdad de «Relanzar si falta descarga», con el activar_auto.py de verdad (una copia de
+    scripts/*.py, que lee el data-health.json de la copia) y un gh de mentira que apunta lo que se le pide.
+    Devuelve (código de salida, las órdenes de gh, la salida)."""
+    import shutil
+    step = _activar_step("Relanzar si falta descarga")
+    work = tmp_path / "arbol"
+    (work / "scripts").mkdir(parents=True)
+    for path in (ROOT / "scripts").glob("*.py"):
+        shutil.copy2(path, work / "scripts" / path.name)
+    (work / "data-health.json").write_text(json.dumps({"activation": {
+        "at": "2026-11-14T10:00:00+00:00", "activated": [], "tried": ["1"], "failed": failed}}), encoding="utf-8")
+    bin_dir, calls = tmp_path / "bin", tmp_path / "gh-llamadas"
+    bin_dir.mkdir()
+    (bin_dir / "gh").write_text(f'#!/bin/bash\necho "$*" >> "{calls}"\n', encoding="utf-8")
+    (bin_dir / "gh").chmod(0o755)
+    env = {**os.environ, "PATH": f"{bin_dir}{os.pathsep}{os.environ.get('PATH', '')}", "GH_TOKEN": "x",
+           "INTENTO": intento}
+    done = subprocess.run(["bash", "-e", "-c", step["run"]], cwd=work, env=env, capture_output=True, text=True, timeout=60)
+    return done.returncode, (calls.read_text().splitlines() if calls.exists() else []), done.stdout + done.stderr
+
+
+def test_activar_relaunches_itself_only_for_an_incomplete_download_and_at_most_4_times(tmp_path):
+    """Review Focus 5: una descarga cortada (el plazo, el freno) se reanuda en el intento siguiente, que lanza
+    el mismo job sobre main con intento + 1; el 4.º no relanza, ni un fallo que no es de la descarga (relanzar
+    no lo arregla: lo vuelve a intentar el bot pasadas 6 h, source_health.py pendiente)."""
+    step = _activar_step("Relanzar si falta descarga")
+    assert step["if"] == "${{ !cancelled() && steps.activar.outcome == 'failure' }}"
+    assert step["env"] == {"GH_TOKEN": "${{ github.token }}", "INTENTO": "${{ inputs.intento }}"}
+    descarga = [{"competition": "1", "name": "X", "reason": "la descarga no está completa: faltan 3 grupos"},
+                {"competition": "2", "name": "Y", "reason": "la descarga no está completa: falta la lista de grupos de la federación"}]
+    code, calls, log = _run_relaunch(tmp_path / "uno", "1", descarga)
+    assert code == 0 and calls == [f"workflow run activar.yml -R {V2_REPO} --ref main -f intento=2"], log
+    code, calls, log = _run_relaunch(tmp_path / "tres", "3", descarga)
+    assert code == 0 and calls == [f"workflow run activar.yml -R {V2_REPO} --ref main -f intento=4"], log
+    code, calls, log = _run_relaunch(tmp_path / "cuatro", "4", descarga)
+    assert code == 0 and calls == [], log
+    otro = descarga[:1] + [{"competition": "3", "name": "Z", "reason": "sin convenio de código: Z"}]
+    code, calls, log = _run_relaunch(tmp_path / "otro", "1", otro)
+    assert code == 0 and calls == [], log
+    code, calls, log = _run_relaunch(tmp_path / "pruebas", "1", [{"competition": "1", "name": "X",
+                                                                  "reason": "las pruebas fallaron tras activar"}])
+    assert code == 0 and calls == [], log
+    code, calls, log = _run_relaunch(tmp_path / "vacio", "", descarga)          # a mano o desde el bot: el 1
+    assert code == 0 and calls == [f"workflow run activar.yml -R {V2_REPO} --ref main -f intento=2"], log
+
+
+def test_activar_ends_in_red_when_something_could_not_be_activated():
+    """Rojo al final si algo no se activó (activar_auto.py salió con 1), después de subir el resultado y de
+    relanzar: lo que sí se activó ya está publicado."""
+    _, job = _activar()
+    step = job["steps"][-1]
+    assert step["name"] == "Activación en rojo"
+    assert step["if"] == "${{ !cancelled() && steps.activar.outcome == 'failure' }}"
+    assert [l.strip() for l in step["run"].strip().splitlines()][-1] == "exit 1"
+
+
+# ------------------------------------------ update.yml lanza activar.yml
+
+LANZAR = "Lanzar la activación si hay algo nuevo"
+
+
+def test_update_launches_activar_when_something_new_is_pending():
+    """Al acabar una pasada sana, si hay competiciones o grupos nuevos que activar.yml no haya intentado en las
+    últimas 6 h (source_health.py pendiente), lo lanza sobre main (queda en fila: concurrency update-data). Un
+    fallo al lanzarlo no pone la pasada en rojo: la pasada siguiente lo vuelve a mirar."""
+    steps, step = _update_step(LANZAR)
+    names = [s.get("name") for s in steps]
+    assert names.index("Commit y push si hay cambios") < names.index(DIAGNOSTICO) < names.index(LANZAR) \
+        < names.index("Pasada en rojo")
+    assert step["if"] == "success()" and step.get("continue-on-error") is True
+    assert step["env"] == {"GH_TOKEN": "${{ github.token }}"}
+    assert "python3 scripts/source_health.py pendiente" in step["run"]
+    assert f"gh workflow run activar.yml -R {V2_REPO} --ref main" in step["run"]
+    assert "${{" not in step["run"]
+
+
+def _run_launch(tmp_path, report, gh_exit=0):
+    """El guion de verdad del paso que lanza, con el source_health.py de verdad (copiado con lo que importa:
+    lee el data-health.json de la copia) y un gh de mentira. (código de salida, órdenes de gh, salida)."""
+    import shutil
+    _, step = _update_step(LANZAR)
+    work = tmp_path / "arbol"
+    (work / "scripts").mkdir(parents=True)
+    for name in ("source_health.py", "portal_config.py"):
+        shutil.copy2(ROOT / "scripts" / name, work / "scripts" / name)
+    (work / "data-health.json").write_text(json.dumps(report), encoding="utf-8")
+    bin_dir, calls = tmp_path / "bin", tmp_path / "gh-llamadas"
+    bin_dir.mkdir()
+    (bin_dir / "gh").write_text(f'#!/bin/bash\necho "$*" >> "{calls}"\nexit {gh_exit}\n', encoding="utf-8")
+    (bin_dir / "gh").chmod(0o755)
+    env = {**os.environ, "PATH": f"{bin_dir}{os.pathsep}{os.environ.get('PATH', '')}", "GH_TOKEN": "x"}
+    done = subprocess.run(["bash", "-e", "-c", step["run"]], cwd=work, env=env, capture_output=True, text=True, timeout=60)
+    return done.returncode, (calls.read_text().splitlines() if calls.exists() else []), done.stdout + done.stderr
+
+
+def test_update_launch_step_runs_for_real(tmp_path):
+    new = {"newCompetitions": [{"id": "55400001", "name": "LIGA X", "firstSeen": "2026-11-14"}]}
+    code, calls, log = _run_launch(tmp_path / "nuevo", new)
+    assert code == 0 and calls == [f"workflow run activar.yml -R {V2_REPO} --ref main"], log
+    code, calls, log = _run_launch(tmp_path / "nada", {"groups": {}})
+    assert code == 0 and calls == [], log
+    from datetime import datetime, timezone
+    tried = {**new, "activation": {"at": datetime.now(timezone.utc).isoformat(), "tried": ["55400001"],
+                                   "activated": [], "failed": []}}
+    code, calls, log = _run_launch(tmp_path / "intentado", tried)
+    assert code == 0 and calls == [], log
+    code, calls, log = _run_launch(tmp_path / "gh-falla", new, gh_exit=1)
+    assert code != 0 and len(calls) == 1, log                 # en rojo el paso, no la pasada (continue-on-error)
+
+
+def test_tests_yml_paths_cover_activar():
+    trig = _triggers(_load("tests.yml"))
+    for event in ("push", "pull_request"):
+        assert ".github/workflows/activar.yml" in trig[event]["paths"], event
+
+
+def test_how_to_stop_and_launch_activar_is_written_down():
+    """docs/federacion.md dice cómo parar la activación automática (desactivar activar.yml) y cómo lanzarla a
+    mano; y el arranque de temporada, que el camino manual sigue valiendo (parando también activar.yml)."""
+    fed = (ROOT / "docs" / "federacion.md").read_text(encoding="utf-8")
+    for order in (f"gh workflow disable activar.yml -R {V2_REPO}", f"gh workflow enable activar.yml -R {V2_REPO}",
+                  f"gh workflow run activar.yml -R {V2_REPO}"):
+        assert order in fed, order
+    nueva = (ROOT / "docs" / "temporada-nueva.md").read_text(encoding="utf-8")
+    assert f"gh workflow disable activar.yml -R {V2_REPO}" in nueva
+    assert f"gh workflow enable activar.yml -R {V2_REPO}" in nueva

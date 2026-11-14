@@ -20,8 +20,11 @@ on:
         default: ''
         type: string
 
+# actions: write, desde la fase 2D (14/11/2026), solo para lanzar activar.yml («Lanzar la activación si hay
+# algo nuevo»).
 permissions:
   contents: write
+  actions: write
 
 concurrency:
   group: update-data
@@ -171,6 +174,23 @@ jobs:
             done
           fi
           exit 1
+
+      # Fase 2D (14/11/2026): si la pasada ha apuntado competiciones o grupos nuevos (newCompetitions,
+      # newGroups) que activar.yml no haya intentado en las últimas 6 h (source_health.py pendiente), lo lanza
+      # sobre main; arranca en fila tras esta pasada (concurrency update-data). Un fallo al lanzarlo no pone la
+      # pasada en rojo: la pasada siguiente lo vuelve a mirar.
+      - name: Lanzar la activación si hay algo nuevo
+        if: success()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if IDS=$(python3 scripts/source_health.py pendiente); then
+            echo "Pendiente de activar: $IDS"
+            gh workflow run activar.yml -R malolocabreralolo-tech/futbol-base-v2 --ref main
+          else
+            echo "Nada nuevo que activar."
+          fi
 
       # El veredicto de la pasada (runHealth, update_fiflp y source_health.set_run_health) pone el job en rojo,
       # después del commit: los datos de los grupos leídos bien ya están publicados. Si algo anterior falló,

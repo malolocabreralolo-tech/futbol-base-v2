@@ -1,0 +1,234 @@
+name: Activación automática
+
+# Activa sola lo que el bot (update.yml) apuntó como nuevo en data-health.json: las competiciones de
+# newCompetitions (enteras) y los grupos de newGroups (solo esos). Pone al día el catálogo, descarga lo
+# pendiente, lo activa con scripts/activar_auto.py, pasa las pruebas y sube el resultado (fase 2D de v2,
+# 14/11/2026). Lo lanza el bot al acabar una pasada si hay algo pendiente que no se haya intentado en las
+# últimas 6 h (source_health.py pendiente); se relanza a sí mismo mientras solo falte descarga, hasta el
+# intento 4 (activar_auto.py --relanzar); y se puede lanzar a mano. Para pararlo:
+# gh workflow disable activar.yml -R malolocabreralolo-tech/futbol-base-v2. Ver docs/federacion.md,
+# «Competiciones y grupos nuevos».
+on:
+  workflow_dispatch:          # el bot (update.yml), la propia cadena y a mano desde GitHub
+    inputs:
+      intento:
+        description: 'Intento de la cadena (1 a 4; a mano, 1)'
+        required: false
+        default: '1'
+        type: string
+
+permissions:
+  contents: write
+  actions: write
+
+# El grupo de update.yml: un solo escritor de futbolbase.db a la vez (una pasada y una activación nunca se
+# pisan; la que llega espera a la otra, sin cancelarla).
+concurrency:
+  group: update-data
+  cancel-in-progress: false
+
+jobs:
+  activar:
+    # La imagen fijada y las acciones en Node 24, como update.yml (test_workflows.py).
+    runs-on: ubuntu-24.04
+    # La descarga (110 min como mucho) y ~30 más: preparación, catálogo, activación, pruebas y subidas.
+    timeout-minutes: 150
+
+    steps:
+      # ref: main, el main de AHORA: lanzado por el bot, arranca en fila tras la pasada que acaba de subir la
+      # base (como update.yml).
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: main
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      # Lo pendiente, de data-health.json (sin el freno de 6 h: el bot ya lo miró, y la cadena y a mano lo
+      # quieren ya); la tanda, de la temporada en curso de la base (22 en 2026-27), no escrita a fuego.
+      - name: Qué hay pendiente
+        id: pendientes
+        run: |
+          IDS=$(python3 scripts/activar_auto.py --pendientes)
+          CODIGO=$(python3 scripts/activar_auto.py --temporada)
+          echo "Pendiente: ${IDS:-nada} (CodTemporada $CODIGO)"
+          echo "ids=$IDS" >> "$GITHUB_OUTPUT"
+          echo "codigo=$CODIGO" >> "$GITHUB_OUTPUT"
+
+      # Sin nada pendiente no se hace nada (con SCRAPE_IDS vacío la descarga lo bajaría TODO) y acaba en verde.
+      - name: Instalar dependencias de test
+        if: steps.pendientes.outputs.ids != ''
+        run: pip install pytest pyyaml
+
+      - name: Instalar Playwright (federación)
+        if: steps.pendientes.outputs.ids != ''
+        run: |
+          pip install playwright
+          playwright install chromium --with-deps
+
+      # Una competición nueva no está en el catálogo hasta que se descubre, y la descarga sale de él
+      # (fetch_fiflp_islas.comps_from_catalog). Si falla, se descarga con el que hay.
+      - name: Catálogo de la temporada
+        if: steps.pendientes.outputs.ids != ''
+        continue-on-error: true
+        timeout-minutes: 10
+        env:
+          DISCOVER_SEASONS: ${{ steps.pendientes.outputs.codigo }}
+          PYTHONUNBUFFERED: '1'
+        run: python3 scripts/discover_fiflp_comps.py
+
+      # Una fase nueva son cientos de páginas (una por grupo y jornada) y la federación frena: la descarga para
+      # a los 90 min (ISLAS_HASTA; fetch_fiflp_islas.guardar_por_grupo guarda cada grupo al acabarlo) y el
+      # intento siguiente la reanuda. Las dos tandas con la misma lista: cada una filtra por su categoría
+      # (benjamín y prebenjamín; alevín). Nunca para el job: lo descargado se sube igual.
+      - name: Descargar lo pendiente
+        id: descarga
+        if: steps.pendientes.outputs.ids != ''
+        continue-on-error: true
+        timeout-minutes: 110
+        env:
+          CODIGO: ${{ steps.pendientes.outputs.codigo }}
+          SCRAPE_IDS: ${{ steps.pendientes.outputs.ids }}
+          PYTHONUNBUFFERED: '1'
+        run: |
+          export ISLAS_HASTA=$(( $(date +%s) + 90 * 60 ))
+          for TANDA in "$CODIGO" "${CODIGO}al"; do
+            if [ "$(date +%s)" -ge "$ISLAS_HASTA" ]; then echo "Sin plazo para la tanda $TANDA: el intento siguiente"; break; fi
+            ISLAS_SEASON="$TANDA" python3 scripts/fetch_fiflp_islas.py || echo "La tanda $TANDA no acabó: el intento siguiente la reanuda"
+          done
+
+      # Primero lo descargado (catálogo, raw y lista de grupos de la federación), siempre (también tras un
+      # corte) y aunque no se active nada, como fetch-fiflp-islas.yml: el intento siguiente reanuda desde ahí.
+      - name: Subir lo descargado
+        if: ${{ !cancelled() && steps.pendientes.outputs.ids != '' }}
+        env:
+          INTENTO: ${{ inputs.intento }}
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add scripts/fiflp_comps_catalog.json
+          # Sin lista de grupos todavía, el patrón no casa con nada: no es un error.
+          git add 'scripts/fiflp_islas_*_raw.json' 2>/dev/null || true
+          git add 'scripts/fiflp_islas_*_grupos.json' 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "Nada descargado que subir."
+            exit 0
+          fi
+          git commit -m "Activación automática: descarga de la federación (intento ${INTENTO:-1})"
+          # Solo sus ficheros: si main se ha movido, se rebasa y se reintenta, como update.yml.
+          for vez in 1 2 3; do
+            if git push; then break; fi
+            if [ "$vez" = 3 ]; then exit 1; fi
+            git pull --rebase --autostash origin main || { git rebase --abort; echo "conflicto con main: se sube en el intento siguiente"; exit 1; }
+          done
+
+      # Activa lo que encaja (cada competición en su transacción), regenera, pasa la sonda y escribe
+      # activation en data-health.json. Sale con 1 si algo falló (lo activado se queda): no para el job, que
+      # sube el resultado y se pone en rojo al final.
+      - name: Activar
+        id: activar
+        if: ${{ !cancelled() && steps.pendientes.outputs.ids != '' }}
+        continue-on-error: true
+        env:
+          PYTHONUNBUFFERED: '1'
+        run: python3 scripts/activar_auto.py
+
+      # ¿Cambió lo publicado? generate_js solo reescribe data-*.js, index.html y sw.js si cambian los datos, y
+      # el manifiesto (docs/temporadas/*-auto-*.json) solo se escribe al activar; la base no sirve: cambia de
+      # bytes aunque no cambie nada (update.yml) y vuelve a su copia si generar falla.
+      - name: Cambios en la web
+        id: cambios
+        if: ${{ !cancelled() && steps.activar.outcome != 'skipped' }}
+        run: |
+          if [ -n "$(git status --porcelain -- 'data-*.js' index.html sw.js 'docs/temporadas/*-auto-*.json')" ]; then
+            echo "datos=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "datos=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Como en update.yml: los push con GITHUB_TOKEN no lanzan tests.yml, así que las suites van aquí, sobre
+      # la web recién activada y antes del commit.
+      - name: Tests Python (bloquean el commit si fallan)
+        id: pytest
+        if: steps.cambios.outputs.datos == 'true'
+        run: python3 -m pytest scripts/tests/ -q
+
+      - name: Tests Node (bloquean el commit si fallan)
+        id: node
+        if: steps.cambios.outputs.datos == 'true'
+        run: node --test scripts/tests/test_*.mjs
+
+      # Solo con todo en verde (success(): una suite en rojo deja el job en rojo y esto no corre). Con datos, la
+      # base, lo generado y su manifiesto; siempre, data-health.json: lo intentado y por qué (activation), que
+      # enseña «Datos y fuentes» y frena los relanzamientos desde el bot (activation.tried).
+      - name: Subir la activación
+        if: ${{ success() && steps.activar.outcome != 'skipped' }}
+        env:
+          DATOS: ${{ steps.cambios.outputs.datos }}
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          if [ "$DATOS" = true ]; then
+            git add 'data-*.js' index.html sw.js futbolbase.db
+            git add 'docs/temporadas/*-auto-*.json' 2>/dev/null || true
+          fi
+          git add data-health.json
+          if git diff --cached --quiet; then
+            echo "Nada que subir."
+            exit 0
+          fi
+          git commit -m "Activación automática $(date '+%d/%m/%Y %H:%M UTC')"
+          for vez in 1 2 3; do
+            if git push; then break; fi
+            if [ "$vez" = 3 ]; then exit 1; fi
+            git pull --rebase --autostash origin main || { git rebase --abort; echo "conflicto con main: lo rehará el intento siguiente"; exit 1; }
+          done
+
+      # Las suites en rojo tras activar: no se publica nada de la activación. La base y lo generado vuelven a
+      # lo publicado (y los ficheros nuevos, fuera); data-health.json, el publicado, con lo intentado como
+      # fallido por las pruebas (activar_auto.py --pruebas-fallaron, con el informe de esta ejecución: su
+      # tried frena los relanzamientos). Solo se sube ese fichero, y el job en rojo.
+      - name: Publicar el fallo si las pruebas fallan
+        if: ${{ !cancelled() && (steps.pytest.outcome == 'failure' || steps.node.outcome == 'failure') }}
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          cp data-health.json "$RUNNER_TEMP/activacion.json"
+          git checkout HEAD -- futbolbase.db 'data-*.js' index.html sw.js data-health.json
+          git checkout HEAD -- 'docs/temporadas/*-auto-*.json' 2>/dev/null || true
+          git clean -fq -- 'data-*.js' 'docs/temporadas/*-auto-*.json'
+          python3 scripts/activar_auto.py --pruebas-fallaron "$RUNNER_TEMP/activacion.json"
+          git add data-health.json
+          if ! git diff --cached --quiet; then
+            git commit -m "Activación automática: las pruebas fallaron $(date '+%d/%m/%Y %H:%M UTC')"
+            for vez in 1 2 3; do
+              if git push; then break; fi
+              if [ "$vez" = 3 ]; then break; fi
+              git pull --rebase --autostash origin main || { git rebase --abort; echo "conflicto con main"; break; }
+            done
+          fi
+          exit 1
+
+      # Solo si todo lo fallido es la descarga incompleta (lo único que arregla volver a descargar) y quedan
+      # intentos (el 4.º no relanza): activar_auto.py --relanzar lo decide con el data-health.json del disco.
+      # El intento siguiente reanuda la descarga; si una pasada del bot llega antes, va en fila (update-data).
+      - name: Relanzar si falta descarga
+        if: ${{ !cancelled() && steps.activar.outcome == 'failure' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INTENTO: ${{ inputs.intento }}
+        run: |
+          if SIGUIENTE=$(python3 scripts/activar_auto.py --relanzar "${INTENTO:-1}"); then
+            echo "La descarga no está completa: intento $SIGUIENTE."
+            gh workflow run activar.yml -R malolocabreralolo-tech/futbol-base-v2 --ref main -f intento="$SIGUIENTE"
+          fi
+
+      # El rojo, al final: lo que sí se activó ya está publicado y el resultado subido.
+      - name: Activación en rojo
+        if: ${{ !cancelled() && steps.activar.outcome == 'failure' }}
+        run: |
+          echo "No se ha podido activar todo: activation.failed en data-health.json («Datos y fuentes»)."
+          exit 1
