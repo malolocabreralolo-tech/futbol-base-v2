@@ -7,6 +7,7 @@ depende del orden de entrada ni de lo que se resolvió antes), con las reglas de
 
     U0  mismo nombre con coma, mismo equipo y temporada (el id de un solo uso)    union_por 'equipo'
         y, sin coma y con id, la de 1 aparición con la única asentada del cubo
+    U0  de club: mismo nombre con coma, mismo club y temporada, ≤ 1 ficha con id   union_por 'club'
     U1  mismo nombre, mismo club, temporadas seguidas, no las dos con id         union_por 'club'
     U2  sin id y nombre completo, con la única otra ficha de ese nombre          union_por 'nombre'
 
@@ -34,6 +35,10 @@ UNIONES = ("equipo", "club", "nombre")
 # Lo que dio la medida de los nombres sin coma (scripts/medir_identidad.py, docs/identidad.md): pares de
 # uno a uno, 100 % ≥ 95 %. Los de coma (completos o de un apellido) se unen en el club siempre.
 UNIR_CORTOS_EN_CLUB = True
+# U0 de club (ronda 3): medida entre jugadores con id, mismo nombre, club y temporada en equipos distintos
+# (scripts/medir_identidad.py): completos 99,4 % y un apellido 100 %, los dos ≥ 95 %.
+U0_CLUB_COMPLETOS = True
+U0_CLUB_UN_APELLIDO = True
 
 # 'NOMBRE#id' (homónimo con id) o 'NOMBRE#2' (el segundo del mismo nombre en una alineación sin ids).
 _SUFIJO = re.compile(r"#\d+$")
@@ -298,6 +303,28 @@ def resolver(identidades: list[Identidad], unir_cortos_en_club: bool) -> dict[in
         if len(asentadas) == 1:
             for m in sueltas:
                 unir(asentadas[0].id, m.id, "equipo")
+
+    # U0 de club: mismo nombre con coma, mismo club y misma temporada en equipos distintos («X» y «X B»).
+    # Con dos o más fichas con id en el cubo no se une nada (no se sabe de cuál es la que no lo tiene); una
+    # ficha con ordinal lo bloquea. Cada ficha, a la primera del cubo con la que quepa, como en U0.
+    cubos_club = {}
+    for i in validas:
+        base = _base(_nombre(i))
+        if not nombre_con_coma(base) or not (U0_CLUB_COMPLETOS if nombre_completo(base) else U0_CLUB_UN_APELLIDO):
+            continue
+        for anio, _, equipo, *_ in i.vistas:
+            c = club(equipo or "")
+            if c:
+                cubos_club.setdefault((base, c, anio), set()).add(raiz(i.id))
+    for clave in sorted(cubos_club):
+        raices = {raiz(r) for r in cubos_club[clave]}
+        if len(raices) < 2 or sum(fichas[r].con_id for r in raices) > 1 or any(fichas[r].ordinal for r in raices):
+            continue
+        semillas = []
+        orden = sorted(raices, key=lambda r: min(_orden_principal(por_id[k]) for k in fichas[r].miembros))
+        for m in orden:
+            if not any(raiz(s) == raiz(m) or unir(s, m, "club") for s in semillas):
+                semillas.append(m)
 
     # U1: mismo nombre, mismo club, temporadas seguidas, entre dos fichas que no tienen id las dos (manda
     # el id). Solo de uno a uno: con dos fichas de ese nombre en el club en una de las dos temporadas (con
