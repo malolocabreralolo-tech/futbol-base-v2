@@ -621,3 +621,21 @@ def test_la_aparicion_que_chocaria_se_queda_donde_esta():
     assert r["choques"] == 1 and r["movidas"] == 0
     assert dict(conn.execute("SELECT player_id, team_id FROM appearances WHERE match_id=41")) == {lia3: 4, lia4: 4}
     assert M.realinear(conn, log=quiet)["choques"] == 1
+
+
+# ── Dos de la misma alineación no son el mismo niño ─────────────────────────────────────────────
+
+def test_dos_con_id_del_mismo_nombre_en_el_mismo_partido_no_se_unen():
+    """El caso real: dos ids del mismo nombre, equipo y temporada que jugaron el MISMO partido. Sin esa
+    señal, U0 los unía; un tercer id de un solo uso del mismo nombre va a uno solo (el de más partidos)."""
+    conn = base()
+    nuevo(conn, 51, 2, 3, 4, "2025-10-04", acta([(4, "SOL, ANA", 501), (9, "SOL, ANA", 502)]))
+    nuevo(conn, 52, 2, 3, 1, "2025-10-11", acta([(4, "SOL, ANA", 501)]))
+    nuevo(conn, 53, 2, 3, 2, "2025-10-18", acta([(4, "SOL, ANA", 503)]))
+    r = M.resolver_fichas(conn, log=quiet)
+    assert r["juntas"] == 1
+    a, b, c = (conn.execute("SELECT id FROM players WHERE fiflp_id=?", (f,)).fetchone()[0] for f in (501, 502, 503))
+    assert fila(conn, a)[6:] == (None, None) and fila(conn, b)[6:] == (None, None)
+    assert fila(conn, c)[6:] == (a, "equipo")
+    assert M.pares_juntas(conn) == [(a, b)]
+    assert M.resolver_fichas(conn, log=quiet)["cambiadas"] == 0

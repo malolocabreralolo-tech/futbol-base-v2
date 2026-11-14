@@ -653,6 +653,22 @@ def identidades(conn) -> list[Identidad]:
     return out
 
 
+def pares_juntas(conn) -> list[tuple[int, int]]:
+    """[(id, id)] de las identidades del mismo nombre (nombre_base) que salen en un mismo partido con el
+    mismo equipo: dos niños (identidad.resolver no las une). Solo las del mismo nombre: las demás no las
+    une ninguna regla. Una pasada por appearances en el orden de su clave primaria."""
+    base = {pid: nombre_base(n) for pid, n in conn.execute("SELECT id, norm_name FROM players")}
+    pares, grupo, vistos = set(), None, {}
+    for mid, tid, pid in conn.execute("SELECT match_id, team_id, player_id FROM appearances ORDER BY match_id, team_id"):
+        if (mid, tid) != grupo:
+            grupo, vistos = (mid, tid), {}
+        b = base.get(pid)
+        for otro in vistos.get(b, ()):
+            pares.add((min(otro, pid), max(otro, pid)))
+        vistos.setdefault(b, []).append(pid)
+    return sorted(pares)
+
+
 def resolver_fichas(conn, log=print) -> dict:
     """Recalcula ficha_id y union_por de todas las filas (una transacción; solo escribe lo que cambia). Las
     filas sin aparición ni suceso quedan sueltas (ficha_id y union_por a NULL)."""
@@ -662,8 +678,9 @@ def resolver_fichas(conn, log=print) -> dict:
     # (merge_twin_teams y compañía) no miran players.
     realineadas = realinear(conn, log=log)
     ids = identidades(conn)
+    juntas = pares_juntas(conn)
     t1 = time.monotonic()
-    fichas = resolver(ids, UNIR_CORTOS_EN_CLUB)
+    fichas = resolver(ids, UNIR_CORTOS_EN_CLUB, juntas=juntas)
     t2 = time.monotonic()
     cambios = []
     for pid, ficha_id, union_por in conn.execute("SELECT id, ficha_id, union_por FROM players"):
@@ -681,6 +698,7 @@ def resolver_fichas(conn, log=print) -> dict:
     uniones = Counter(por for _, por in fichas.values() if por)
     out = {"identidades": len(ids), "fichas": sum(1 for k, (p, _) in fichas.items() if p == k),
            "uniones": dict(uniones), "cambiadas": len(cambios), "realinear": realineadas,
+           "juntas": len(juntas),
            "segundos": round(time.monotonic() - t0, 2), "segundos_cargar": round(t1 - t0, 2),
            "segundos_resolver": round(t2 - t1, 2)}
     log(f"  resolver_fichas: {out['identidades']} identidades → {out['fichas']} fichas, uniones {out['uniones']}, "

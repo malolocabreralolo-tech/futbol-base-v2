@@ -12,7 +12,7 @@ depende del orden de entrada ni de lo que se resolvió antes), con las reglas de
     U2  sin id y nombre completo, con la única otra ficha de ese nombre          union_por 'nombre'
 
 y ninguna unión entre conjuntos incompatibles (edad imposible o dos clubes a la vez en la misma
-categoría). Ante la duda, dos fichas mejor que una mezclada: cada «Decisión» de docs/identidad.md es la
+categoría) ni entre dos que salieron en la misma alineación (`juntas`). Ante la duda, dos fichas mejor que una mezclada: cada «Decisión» de docs/identidad.md es la
 lectura de una regla que une menos.
 
 `clave_publica` y `trozo` tienen su gemelo en JavaScript (la web): la tabla de
@@ -137,12 +137,14 @@ def _se_cruzan(a_ini, a_fin, b_ini, b_fin) -> bool:
 
 
 class _Ficha:
-    """Lo que se mira de un conjunto de identidades para saber si cabe con otro."""
-    __slots__ = ("miembros", "con_id", "ordinal", "lo", "hi", "tramos", "solape")
+    """Lo que se mira de un conjunto de identidades para saber si cabe con otro. veta: las identidades que
+    salieron en la misma alineación que alguna de las suyas (otro niño, seguro)."""
+    __slots__ = ("miembros", "con_id", "ordinal", "lo", "hi", "tramos", "solape", "veta")
 
-    def __init__(self, miembros, vistas, con_id=False, ordinal=False):
+    def __init__(self, miembros, vistas, con_id=False, ordinal=False, veta=()):
         self.miembros = list(miembros)
         self.con_id, self.ordinal = con_id, ordinal
+        self.veta = set(veta)
         self.lo, self.hi = -_INF, _INF
         self.tramos = {}            # (anio, nivel) -> [(club, primera, ultima)]
         self.solape = False
@@ -159,6 +161,9 @@ class _Ficha:
     def cabe_con(self, otra) -> bool:
         if self.solape or otra.solape or max(self.lo, otra.lo) > min(self.hi, otra.hi):
             return False
+        if (self.veta and not self.veta.isdisjoint(otra.miembros)) or \
+                (otra.veta and not otra.veta.isdisjoint(self.miembros)):
+            return False
         menor, mayor = sorted((self.tramos, otra.tramos), key=len)
         for clave, tramos in menor.items():
             for c, i, f in mayor.get(clave, ()):
@@ -171,6 +176,7 @@ class _Ficha:
         self.con_id = self.con_id or otra.con_id
         self.ordinal = self.ordinal or otra.ordinal
         self.lo, self.hi = max(self.lo, otra.lo), min(self.hi, otra.hi)
+        self.veta |= otra.veta
         for clave, tramos in otra.tramos.items():
             self.tramos.setdefault(clave, []).extend(tramos)
 
@@ -242,19 +248,30 @@ def resumen_u0_cortos(identidades) -> dict[str, int]:
     return out
 
 
-def resolver(identidades: list[Identidad], unir_cortos_en_club: bool) -> dict[int, tuple[int, str | None]]:
+def resolver(identidades: list[Identidad], unir_cortos_en_club: bool,
+             juntas=()) -> dict[int, tuple[int, str | None]]:
     """{id de identidad: (id de la principal de su ficha, union_por)}; la principal se apunta a sí misma
     con None. union_por es la regla de la unión que juntó a esa identidad con la principal: deshacerla
-    es apartarla de la ficha (ficha_id a NULL)."""
+    es apartarla de la ficha (ficha_id a NULL).
+
+    juntas: pares (id, id) de identidades que salieron en un mismo partido con el mismo equipo: son dos
+    niños, así que dos fichas con una de cada par no se unen por ninguna regla, ni directa ni a través de
+    otra (los pares con ids que no están se ignoran)."""
     por_id = {}
     for i in identidades:
         if i.id in por_id:
             raise ValueError(f"identidad repetida: {i.id}")
         por_id[i.id] = i
     ids = sorted(por_id)
+    veta = {}
+    for a, b in juntas:
+        if a in por_id and b in por_id and a != b:
+            veta.setdefault(a, set()).add(b)
+            veta.setdefault(b, set()).add(a)
     padre = {k: k for k in ids}
     fichas = {k: _Ficha([k], por_id[k].vistas, con_id=por_id[k].fiflp_id is not None,
-                        ordinal=por_id[k].fiflp_id is None and bool(_SUFIJO.search(por_id[k].norm)))
+                        ordinal=por_id[k].fiflp_id is None and bool(_SUFIJO.search(por_id[k].norm)),
+                        veta=veta.get(k, ()))
               for k in ids}
     uniones = []            # (regla, a, b) en el orden en que se hicieron
 

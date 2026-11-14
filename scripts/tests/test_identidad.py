@@ -980,3 +980,69 @@ def test_la_medida_de_la_u0_de_club():
 def test_la_u0_de_club_esta_activa_por_la_medida():
     # La medida del 14/11/2026 (docs/identidad.md): completos 99,4 %, un apellido 100 %.
     assert identidad.U0_CLUB_COMPLETOS is True and identidad.U0_CLUB_UN_APELLIDO is True
+
+
+# ---------------------------------------------------------------------------
+# Juntas en una alineación: nunca el mismo niño
+# ---------------------------------------------------------------------------
+
+def casos_juntas():
+    """Dos con id del mismo nombre que jugaron el mismo partido en el mismo equipo (A y B, `juntas`); C, un
+    id de un solo uso del mismo nombre, equipo y temporada; S, uno sin id en la misma alineación que A."""
+    a = ident(1, "SOL RUIZ, ANA", 500001, v(2024, BEN, "Teror", n=10))
+    b = ident(2, "SOL RUIZ, ANA#500002", 500002, v(2024, BEN, "Teror", n=8))
+    c = ident(3, "SOL RUIZ, ANA#500003", 500003, v(2024, BEN, "Teror", n=1, ini="2024-11-09", fin="2024-11-09"))
+    return [a, b, c]
+
+
+def punto_fijo_juntas(base, r, juntas, cortos=True):
+    """punto_fijo con los pares llevados a las principales de sus fichas."""
+    por_id = {i.id: i for i in base}
+    vistas = {}
+    for i, (p, _) in r.items():
+        vistas.setdefault(p, []).extend(por_id[i].vistas)
+    fichas_ = [Identidad(id=p, norm=por_id[p].norm, fiflp_id=por_id[p].fiflp_id, vistas=tuple(vs))
+               for p, vs in vistas.items()]
+    pares = {(r[x][0], r[y][0]) for x, y in juntas}
+    return resolver(fichas_, unir_cortos_en_club=cortos, juntas=pares) == {p: (p, None) for p in vistas}
+
+
+def test_dos_con_id_en_la_misma_alineacion_son_dos_fichas():
+    a, b, _ = casos_juntas()
+    assert juntos(resolver([a, b], unir_cortos_en_club=True), 1, 2)          # sin saberlo, U0 los une
+    for par in ((1, 2), (2, 1)):
+        r = resolver([a, b], unir_cortos_en_club=True, juntas=[par])
+        assert r == {1: (1, None), 2: (2, None)}
+
+
+def test_la_tercera_de_un_solo_uso_va_a_una_sola_y_siempre_a_la_misma():
+    casos = casos_juntas()
+    juntas = [(2, 1)]
+    esperado = resolver(casos, unir_cortos_en_club=True, juntas=juntas)
+    assert esperado == {1: (1, None), 2: (2, None), 3: (1, "equipo")}       # a la asentada con más partidos
+    for semilla in range(8):
+        barajados = list(casos)
+        random.Random(semilla).shuffle(barajados)
+        assert resolver(barajados, unir_cortos_en_club=True, juntas=juntas) == esperado
+    assert punto_fijo_juntas(casos, esperado, juntas)
+
+
+def test_juntas_tampoco_se_unen_a_traves_de_otra():
+    """Una sin id en la misma alineación que A: ni con A ni con la ficha a la que A se unió (C), ni por U2."""
+    a, _, c = casos_juntas()
+    s = ident(4, "SOL RUIZ, ANA", None, v(2024, BEN, "Teror", n=3))
+    juntas = [(1, 4)]
+    r = resolver([a, c, s], unir_cortos_en_club=True, juntas=juntas)
+    assert juntos(r, 1, 3) and not juntos(r, 1, 4)
+    assert resolver([a, c, s], unir_cortos_en_club=True) == {1: (1, None), 3: (1, "equipo"), 4: (1, "equipo")}
+    for semilla in range(5):
+        barajados = [a, c, s]
+        random.Random(semilla).shuffle(barajados)
+        assert resolver(barajados, unir_cortos_en_club=True, juntas=juntas) == r
+    assert punto_fijo_juntas([a, c, s], r, juntas)
+
+
+def test_juntas_con_ids_que_no_estan_no_rompen():
+    a, b, c = casos_juntas()
+    assert resolver([a, b, c], unir_cortos_en_club=True, juntas=[(1, 99), (98, 97)]) == \
+        resolver([a, b, c], unir_cortos_en_club=True)
