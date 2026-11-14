@@ -67,7 +67,7 @@ Las reglas de unión se ampliaron en tres rondas, cada una a partir de lo visto 
 2. **U0 con un apellido**: la U0 normal vale para todo nombre con coma, no solo con dos apellidos (un niño con un apellido tenía 39 fichas de un partido). **U1 entre una ficha sin identificador y una con identificador** del mismo club en temporadas seguidas, de uno a uno (nunca dos con identificador).
 3. **U0 de club**: mismo nombre con coma, mismo club y misma temporada, con como mucho una ficha con identificador → una ficha (el niño que juega en el prebenjamín del club y sube un partido al benjamín «B»). Medida: 99,4 % completos, 100 % un apellido.
 
-Resultado del ensayo final: 14.989 fichas (17.669 antes), 0 imposibles por edad, recuentos de todas las tablas idénticos; uniones `equipo` 3.039, `club` 791, `nombre` 180. La tarea 5 se hizo en la rama `fase2c-web` (fusionada) en paralelo con la 4. Textos de la ficha: «unido por nombre», con «(mismo equipo y temporada)» o «(mismo club)».
+Resultado del ensayo final (tras los arreglos de la revisión final: `realinear`, `players.clave`, `identidad_separadas.json` y los pares de una misma alineación): 14.990 fichas (17.669 antes), 0 imposibles por edad, recuentos de todas las tablas idénticos; uniones `equipo` 3.038, `club` 791, `nombre` 180. La tarea 5 se hizo en la rama `fase2c-web` (fusionada) en paralelo con la 4. Textos de la ficha: «unido por nombre», con «(mismo equipo y temporada)» o «(mismo club)».
 
 ## Review Focus
 
