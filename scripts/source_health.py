@@ -43,7 +43,7 @@ def begin(season):
     _timed = set()
     _report = {"version": 1, "season": season, "groups": {},
                "nextSeason": _previous.get("nextSeason", {"name": load_config()["nextSeason"], "status": "pending"})}
-    _carry_new_competitions()
+    _carry_new()
     _carry_run_health()
 
 
@@ -51,12 +51,18 @@ def _same_season():
     return bool(_report and _previous and _previous.get("season") == _report["season"])
 
 
-def _carry_new_competitions():
-    """Las competiciones nuevas siguen hasta que el bot vuelva a leer el desplegable (sin
+# Lo nuevo de la federación que la web aún no tiene: las competiciones (update_fiflp.check_competitions) y
+# los grupos nuevos de las que ya sigue (update_fiflp.new_groups). Con significado: reescriben el informe.
+NEW_KEYS = ("newCompetitions", "newGroups")
+
+
+def _carry_new():
+    """Las competiciones y los grupos nuevos siguen hasta que el bot vuelva a leer su desplegable (sin
     federación en esta pasada o si falla la lectura, se quedan); con otra temporada, fuera."""
-    items = _previous.get("newCompetitions") if _same_season() else None
-    if isinstance(items, list) and items:
-        _report["newCompetitions"] = items
+    for key in NEW_KEYS:
+        items = _previous.get(key) if _same_season() else None
+        if isinstance(items, list) and items:
+            _report[key] = items
 
 
 def _carry_run_health():
@@ -108,6 +114,22 @@ def set_new_competitions(items):
         _report["newCompetitions"] = list(items)
     else:
         _report.pop("newCompetitions", None)
+
+
+def new_groups():
+    """[{competition, competitionName, id, name, firstSeen}]: los grupos de la federación de competiciones
+    que la temporada ya sigue y que la temporada no tiene."""
+    return list((_report or {}).get("newGroups") or [])
+
+
+def set_new_groups(items):
+    """Los que acaba de calcular update_fiflp.new_groups al final de la pasada (vacía: ninguno)."""
+    if _report is None:
+        return
+    if items:
+        _report["newGroups"] = list(items)
+    else:
+        _report.pop("newGroups", None)
 
 
 def previous_groups():

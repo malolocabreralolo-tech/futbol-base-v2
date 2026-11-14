@@ -672,6 +672,94 @@ def check_competitions(page, F, conn, season_id, today, log=print):
     return fresh
 
 
+# ── Grupos nuevos de las competiciones que la web ya sigue (fase 2D, 14/11/2026) ──
+
+# El desplegable de grupos de la competición (el mismo JS que fetch_fiflp_2425.scrape_competition), en el
+# calendario de cada grupo que el bot ya carga: un «Grupo 25» añadido o una fase nueva publicada como grupos
+# de la misma competición no los ve check_competitions (la competición ya se sigue).
+GRUPOS_JS = """() => {
+    const sel = document.querySelector('select[name="grupo"]');
+    return sel ? Array.from(sel.options).filter(o => o.value && o.value !== '0')
+                   .map(o => ({value: o.value, text: o.text.trim()})) : [];
+}"""
+
+
+def group_select(page, comp, selects):
+    """DIAGNÓSTICO sin peticiones: los grupos que lista el desplegable de grupos del calendario ya cargado
+    (GRUPOS_JS), acumulados en `selects` ({"seen": calendarios con desplegable, "of": calendarios mirados,
+    "groups": {CodCompeticion: {CodGrupo: nombre}}}). Si esa página de la federación lo trae no se sabe
+    (no hay ninguna guardada): seen lo dirá tras la primera pasada real. Nunca falla: es solo lo visto."""
+    selects["of"] = selects.get("of", 0) + 1
+    try:
+        options = page.evaluate(GRUPOS_JS)
+    except Exception:
+        return
+    names = {}
+    for o in options if isinstance(options, list) else []:
+        if not isinstance(o, dict):
+            continue
+        gid, name = str(o.get("value") or "").strip(), re.sub(r"\s+", " ", str(o.get("text") or "")).strip()
+        if gid.isdigit() and gid != "0" and name:
+            names[gid] = name
+    if names:
+        selects["seen"] = selects.get("seen", 0) + 1
+        selects.setdefault("groups", {}).setdefault(str(comp), {}).update(names)
+
+
+def season_groups(conn, season_id):
+    """Los (CodCompeticion, CodGrupo) de los grupos de la temporada (sus URL)."""
+    return {ids for u in _season_urls(conn, season_id) for ids in [fiflp_ids(u)] if ids}
+
+
+def competition_names(conn, season_id):
+    """{CodCompeticion: nombre} de las competiciones de la temporada, con el nombre de la web: el full_name
+    de su primer grupo sin « - GRUPO …» (o su fase, o su nombre)."""
+    out = {}
+    for url, full, phase, name in conn.execute(
+            "SELECT url, full_name, phase, name FROM groups WHERE season_id=? AND url LIKE '%fiflp.com%' "
+            "ORDER BY id", (season_id,)):
+        ids = fiflp_ids(url)
+        label = re.sub(r"(?i)\s+-\s+grupo\b.*$", "", (full or "").strip()).strip() or (phase or "").strip() \
+            or (name or "").strip()
+        if ids and label and ids[0] not in out:
+            out[ids[0]] = label
+    return out
+
+
+def new_groups(seen, known, previous=(), today=None, names=None):
+    """[{competition, competitionName, id, name, firstSeen}], ordenados por competición y grupo: los de los
+    desplegables leídos (`seen`: {CodCompeticion: {CodGrupo: nombre}}, group_select) de las competiciones
+    de `known` (los (CodCompeticion, CodGrupo) de la temporada) que la temporada no tiene. firstSeen y,
+    sin `names` ({CodCompeticion: nombre}), competitionName, los de `previous` (así el informe no cambia de
+    una pasada a otra). Los de `previous` de una competición cuyo desplegable no se leyó siguen; los de una
+    que se leyó y ya no los trae, y los ya activados (en `known`), fuera."""
+    day = (today or date.today()).isoformat()
+    names = names or {}
+    comps = {c for c, _ in known}
+    before = {}
+    for g in previous or []:
+        if isinstance(g, dict) and str(g.get("competition") or "").isdigit() and str(g.get("id") or "").isdigit():
+            before[(str(g["competition"]), str(g["id"]))] = g
+    read = {str(c) for c, options in (seen or {}).items() if isinstance(options, dict) and options}
+    out = {}
+    for comp, options in (seen or {}).items():
+        comp = str(comp)
+        if comp not in comps or not isinstance(options, dict):
+            continue
+        for gid, name in options.items():
+            gid, name = str(gid).strip(), re.sub(r"\s+", " ", str(name or "")).strip()
+            if not gid.isdigit() or not name or (comp, gid) in known:
+                continue
+            old = before.get((comp, gid)) or {}
+            out[(comp, gid)] = {"competition": comp, "competitionName": names.get(comp) or old.get("competitionName")
+                                or comp, "id": gid, "name": name, "firstSeen": old.get("firstSeen") or day}
+    for key, old in before.items():
+        if key[0] in read or key in known or key[0] not in comps or key in out:
+            continue
+        out[key] = {**old, **({"competitionName": names[key[0]]} if names.get(key[0]) else {})}
+    return [out[k] for k in sorted(out, key=lambda k: (int(k[0]), int(k[1])))]
+
+
 def option_round(text):
     """'3 - 17-10-2026' (así lo escribe FIFLP; también con barras) ->
     ('Jornada 3', date(2026, 10, 17)); sin fecha, None. La jornada única de una copa, sin « - »
@@ -1169,7 +1257,7 @@ def calendar_check(shown, read, labels):
     return ("unread" if value else "unselected"), None
 
 
-def scrape_group(page, F, url, stored, today, full=False, check=None):
+def scrape_group(page, F, url, stored, today, full=False, check=None, selects=None):
     """(standings crudas, {jornada: [partidos crudos]}) de un grupo de FIFLP; `full`: todas las
     jornadas ya jugadas (rounds_to_refresh). Si la federación no sirve el calendario o una jornada,
     NotServed: lo leído se queda en memoria y no se escribe nada del grupo (update_group no llega a
@@ -1179,7 +1267,8 @@ def scrape_group(page, F, url, stored, today, full=False, check=None):
     calendario recargado) va a la red, no a la caché HTTP: fiflp_render.goto, por F.goto. Cuesta 2 páginas
     (clasificación y calendario) más una por jornada de rounds_to_refresh. `check` (un dict): cuenta qué
     enseña el calendario frente a las jornadas leídas por su URL (calendar_shows, calendar_check: «same»,
-    «different», «other», «unread», «unselected» o «empty»), sin pedir nada más."""
+    «different», «other», «unread», «unselected» o «empty»), sin pedir nada más. `selects` (un dict): los
+    grupos que lista el desplegable de grupos del calendario (group_select), también sin pedir nada."""
     comp, code = fiflp_ids(url)
     season = re.search(r"CodTemporada=(\d+)", url).group(1)
     base = f"{F.BASE}/NFG_VisClasificacion?cod_primaria=1000120&CodTemporada={season}"
@@ -1205,6 +1294,9 @@ def scrape_group(page, F, url, stored, today, full=False, check=None):
         elif not F.goto(page, calendar):
             raise NotServed("la federación no sirvió las jornadas del grupo")
         options = page.evaluate(JORNADAS_JS)
+    # Antes de calendar_shows: su aplanado quita lo oculto, y el formulario de los desplegables puede estarlo.
+    if selects is not None:
+        group_select(page, comp, selects)
     if not options and stored:
         raise RuntimeError("la federación no sirvió las jornadas del grupo")
     picked = rounds_to_refresh(options, stored, today, full)
@@ -1906,6 +1998,7 @@ def run_passes(page, F, conn, season_id, groups, today, pending, deadline_second
     # grupos cuyos goleadores o actas el plazo o la federación no dejaron acabar.
     cut, tried, unloaded, budget = [], set(), set(), MAX_ACTAS_PER_RUN
     shows = {}                          # ¿qué enseña el calendario? (calendar_shows, calendar_check)
+    selects = {"seen": 0, "of": 0, "groups": {}}     # los desplegables de grupos vistos (group_select)
     extras_done = set()
 
     def note(code, notes):
@@ -1967,7 +2060,7 @@ def run_passes(page, F, conn, season_id, groups, today, pending, deadline_second
         stamps[code], brakes, before = stamp(), brake_signals(), results_digest(conn, group_id)
         try:
             raw_standings, raw_rounds = scrape_group(page, F, url, stored_rounds(conn, group_id), today,
-                                                     full=group_id in full, check=shows)
+                                                     full=group_id in full, check=shows, selects=selects)
             status, msg = update_group(conn, group_id, code, raw_standings, raw_rounds)
             if status == "ok" and group_id in full:
                 conn.execute("DELETE FROM fiflp_full_pending WHERE group_id=?", (group_id,))
@@ -2098,6 +2191,17 @@ def run_passes(page, F, conn, season_id, groups, today, pending, deadline_second
     if backfill:
         budget -= backfill[0]
         print(f"  Originales de las actas: {backfill[0]} releídas, quedan {backfill[1]}", flush=True)
+    # Los grupos nuevos de lo visto en los desplegables de grupos (sin páginas de más): un fallo, impreso;
+    # data-health.json se queda con los de antes (source_health.begin los arrastra).
+    try:
+        fresh_groups = new_groups(selects["groups"], season_groups(conn, season_id), source_health.new_groups(),
+                                  today, competition_names(conn, season_id))
+        source_health.set_new_groups(fresh_groups)
+        if fresh_groups:
+            print("  Grupos nuevos en la federación: " + "; ".join(
+                f"{g['competitionName']}, {g['name']} ({g['id']})" for g in fresh_groups), flush=True)
+    except Exception as e:
+        print(f"  ! grupos nuevos: {e}")
     elapsed, idle = clock() - start, paused()
     pages = getattr(F, "pages", None)
     pages = pages - pages_before if pages is not None and pages_before is not None else None
@@ -2149,6 +2253,7 @@ def run_passes(page, F, conn, season_id, groups, today, pending, deadline_second
         "seconds": round(clock() - start), **({"pages": pages} if pages else {}),
         **({"extras": sorted(extras_done)} if extras_done else {}), **({"blocked": True} if blocked() else {}),
         **({"calendarShows": dict(sorted(shows.items()))} if shows else {}),
+        **({"groupSelects": {"seen": selects["seen"], "of": selects["of"]}} if selects["of"] else {}),
         **({"rawBackfill": {"read": backfill[0], "left": backfill[1]}} if backfill else {}),
         **({"pauses": pauses, "resumed": getattr(F, "resumed", 0),
             "brakeAfter": list(getattr(F, "brake_after", []))} if pauses else {})})
