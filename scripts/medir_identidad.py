@@ -6,8 +6,9 @@ Solo lectura (los originales de las actas y la base, abierta inmutable). Toma lo
 como si los jugadores con id no lo trajeran: cada (nombre, equipo, temporada) sería una identidad sin
 id. De los pares que uniría U1 (mismo nombre, mismo club, temporadas consecutivas, compatibles)
 cuenta cuántos son el mismo niño (el mismo id, o el mismo niño tras U0, también la de los cortos) y
-cuántos no, con nombres completos y cortos aparte. Con una precisión de los cortos del 95 % o más en
-los pares de uno a uno (como une U1), `unir_cortos_en_club` es True (docs/identidad.md).
+cuántos no, con nombres completos (dos apellidos), de un apellido y sin coma aparte. Con una precisión
+de los sin coma del 95 % o más en los pares de uno a uno (como une U1), `unir_cortos_en_club` es True
+(docs/identidad.md); los de coma, completos o de un apellido, se unen siempre.
 
 Los equipos son los de la base (el acta por su CodActa, `matches.cod_acta`): con los nombres de la
 federación ('ATLETICO HURACAN "A", A.D. A') la letra de filial no sale y cada filial parecería otro club.
@@ -23,8 +24,8 @@ from collections import Counter, defaultdict
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from categorias import category_of  # noqa: E402
-from identidad import (NIVEL, Identidad, club, compatibles, nombre_completo, normalizar, resolver,  # noqa: E402
-                       resumen_u0_cortos)
+from identidad import (NIVEL, Identidad, club, compatibles, nombre_completo, nombre_con_coma,  # noqa: E402
+                       normalizar, resolver, resumen_u0_cortos)
 
 SCRIPTS = os.path.dirname(os.path.abspath(__file__))
 TEMPORADAS = ["2019-2020", "2020-2021", "2021-2022", "2022-2023", "2023-2024"]
@@ -119,7 +120,7 @@ def pares(filas, nino):
         despues = lado.get((norm, c, anio + 1))
         if not c or not despues:
             continue
-        tipo = "completos" if nombre_completo(norm) else "cortos"
+        tipo = "completos" if nombre_completo(norm) else "un apellido" if nombre_con_coma(norm) else "sin coma"
         for ea, na in aqui:
             for eb, nb in despues:
                 va = _vista(anio, na, ea, fechas[(norm, ea, anio, na)])
@@ -143,23 +144,23 @@ def informe(cuenta, nino, medida, cubos=None):
         lineas.append(f"  {clave}: {cuenta[clave]}")
     lineas.append(f"  ids de la federación: {len(nino)}; niños tras U0: {len(set(nino.values()))}")
     if cubos is not None:
-        lineas.append(f"  cubos de U0 de cortos: {cubos['una asentada']} con una asentada (se unen), "
+        lineas.append(f"  cubos de U0 sin coma: {cubos['una asentada']} con una asentada (se unen), "
                       f"{cubos['dos o más asentadas']} con dos o más (no se unen), "
                       f"{cubos['ninguna asentada']} sin ninguna (no se unen)")
     precision = {}
     for manera in ("todos", "uno a uno"):
         lineas.append(f"Pares {manera}:")
-        lineas.append(f"  {'nombres':<10} {'pares':>7} {'mismo':>7} {'distinto':>8} {'mezcla':>6} {'precisión':>9}")
-        for tipo in ("completos", "cortos"):
+        lineas.append(f"  {'nombres':<11} {'pares':>7} {'mismo':>7} {'distinto':>8} {'mezcla':>6} {'precisión':>9}")
+        for tipo in ("completos", "un apellido", "sin coma"):
             c = medida[(manera, tipo)]
             total = sum(c.values())
             p = c["mismo"] / total if total else 0.0
             precision[(manera, tipo)] = p
-            lineas.append(f"  {tipo:<10} {total:>7} {c['mismo']:>7} {c['distinto']:>8} {c['mezcla']:>6} "
+            lineas.append(f"  {tipo:<11} {total:>7} {c['mismo']:>7} {c['distinto']:>8} {c['mezcla']:>6} "
                           f"{100 * p:>8.1f}%")
-    # Decide la de uno a uno: es como une U1.
-    decision = precision[("uno a uno", "cortos")] >= UMBRAL
-    lineas.append(f"Precisión de los cortos (uno a uno) {100 * precision[('uno a uno', 'cortos')]:.1f} % "
+    # Decide la de uno a uno (es como une U1) de los nombres sin coma: los que tienen coma se unen siempre.
+    decision = precision[("uno a uno", "sin coma")] >= UMBRAL
+    lineas.append(f"Precisión sin coma (uno a uno) {100 * precision[('uno a uno', 'sin coma')]:.1f} % "
                   f"{'≥' if decision else '<'} {100 * UMBRAL:.0f} % → unir_cortos_en_club = {decision}")
     return "\n".join(lineas), decision
 

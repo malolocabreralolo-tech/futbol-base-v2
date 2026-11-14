@@ -784,10 +784,11 @@ def test_la_medida_cuenta_los_pares_de_u1():
     nino = M.ninos(filas)
     assert nino[3] == nino[4] and nino[1] != nino[2] and nino[9] == nino[1]
     medida = M.pares(filas, nino)
-    assert medida[("todos", "cortos")] == {"mismo": 1, "distinto": 1}
+    assert medida[("todos", "sin coma")] == {"mismo": 1, "distinto": 1}
     assert medida[("todos", "completos")] == {"mismo": 1}
+    assert medida[("todos", "un apellido")] == {}         # «PEREZ, IKER» no cabe por edad
     # Uno a uno: dos LUCAS del club en 2021, no cuenta; ANA sí (una identidad sin id con los dos ids).
-    assert medida[("uno a uno", "cortos")] == {}
+    assert medida[("uno a uno", "sin coma")] == {}
     assert medida[("uno a uno", "completos")] == {"mismo": 1}
     texto, decision = M.informe(Counter(), nino, medida)
     assert decision is False and "unir_cortos_en_club = False" in texto
@@ -797,16 +798,17 @@ def test_la_medida_cuenta_los_pares_de_u1():
 
 def test_la_medida_decide_por_los_pares_de_uno_a_uno():
     import medir_identidad as M
-    medida = {("todos", "cortos"): Counter(mismo=1, distinto=9), ("uno a uno", "cortos"): Counter(mismo=19, mezcla=1),
-              ("todos", "completos"): Counter(), ("uno a uno", "completos"): Counter()}
+    medida = {("todos", "sin coma"): Counter(mismo=1, distinto=9), ("uno a uno", "sin coma"): Counter(mismo=19, mezcla=1),
+              ("todos", "completos"): Counter(), ("uno a uno", "completos"): Counter(),
+              ("todos", "un apellido"): Counter(distinto=5), ("uno a uno", "un apellido"): Counter(distinto=5)}
     texto, decision = M.informe(Counter(), {}, medida, {"una asentada": 2, "dos o más asentadas": 1,
                                                        "ninguna asentada": 3})
     assert decision is True and "unir_cortos_en_club = True" in texto
     assert "2 con una asentada" in texto and "1 con dos o más" in texto and "3 sin ninguna" in texto
-    medida[("uno a uno", "cortos")] = Counter(mismo=18, distinto=2)
+    medida[("uno a uno", "sin coma")] = Counter(mismo=18, distinto=2)
     assert M.informe(Counter(), {}, medida)[1] is False
 
 
 def test_los_cortos_se_unen_en_el_club():
-    # La medida del 14/11/2026 con la U0 de los cortos (docs/identidad.md): uno a uno, 97,8 % ≥ 95 %.
+    # La medida del 14/11/2026 (docs/identidad.md): sin coma, uno a uno, 100 % ≥ 95 %.
     assert UNIR_CORTOS_EN_CLUB is True
