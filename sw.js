@@ -1,4 +1,4 @@
-const CACHE_NAME = 'futbolbase2-v20261114g';
+const CACHE_NAME = 'futbolbase2-v20261114h';
 const CRESTS_CACHE = 'futbolbase2-escudos-21f9b5f8';
 const OFFLINE_URL = './index.html';
 
