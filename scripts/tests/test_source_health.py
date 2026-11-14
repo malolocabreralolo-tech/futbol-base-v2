@@ -197,3 +197,104 @@ def test_the_bot_run_tells_finish_whether_it_failed(portal, monkeypatch):
     monkeypatch.setattr(generate_js, "main", lambda: None)
     FB.main()
     assert seen == [True, False]
+
+
+# ── runHealth: el veredicto de la pasada del bot de la federación (pasada_sana) ──
+
+def bot_run(now, reasons=None, failed=False, season="2025-2026"):
+    """Una ejecución con federación (set_run_health con `reasons`) o sin ella (reasons None)."""
+    source_health.begin(season)
+    for code, status, message in OK:
+        source_health.record(code, f"https://example.test/{code}", status, message, now=now)
+    if reasons is not None:
+        source_health.set_run_health(reasons, now=now)
+    source_health.finish(now=now, failed=failed)
+    return source_health.REPORT_PATH.read_text()
+
+
+def test_a_healthy_pass_is_ok_and_a_second_one_does_not_rewrite_the_report(portal):
+    first = bot_run(T0, [])
+    assert json.loads(first)["runHealth"] == {"ok": True}
+    assert bot_run(T0 + timedelta(hours=5), []) == first
+
+
+def test_a_red_pass_keeps_its_since_until_a_healthy_one(portal):
+    """Review Focus 4: dos pasadas en rojo seguidas, `since` no cambia; la tercera, sana, vuelve a ok."""
+    report = json.loads(bot_run(T0, ["m"]))
+    assert report["runHealth"] == {"ok": False, "reasons": ["m"], "since": T0.isoformat(timespec="seconds")}
+    later = T0 + timedelta(hours=2)
+    report = json.loads(bot_run(later, ["m", "n"]))
+    assert report["runHealth"] == {"ok": False, "reasons": ["m", "n"], "since": T0.isoformat(timespec="seconds")}
+    assert report["checkedAt"] == later.isoformat(timespec="seconds")       # un cambio con significado
+    report = json.loads(bot_run(T0 + timedelta(hours=4), []))
+    assert report["runHealth"] == {"ok": True}
+
+
+def test_a_run_without_the_federation_carries_the_previous_run_health(portal):
+    """Review Focus 3: sin federación (FIFLP_UPDATE sin poner) nadie llama a set_run_health."""
+    red = json.loads(bot_run(T0, ["m"]))["runHealth"]
+    assert json.loads(bot_run(T0 + timedelta(days=2)))["runHealth"] == red
+    bot_run(T0 + timedelta(days=3), [])
+    assert json.loads(bot_run(T0 + timedelta(days=5)))["runHealth"] == {"ok": True}
+
+
+def test_another_season_does_not_carry_the_run_health(portal):
+    bot_run(T0, ["m"])
+    assert "runHealth" not in json.loads(bot_run(T0 + timedelta(hours=1), season="2026-2027"))
+    report = json.loads(bot_run(T0 + timedelta(hours=2), ["m"], season="2027-2028"))
+    assert report["runHealth"]["since"] == (T0 + timedelta(hours=2)).isoformat(timespec="seconds")
+
+
+def test_a_failed_run_is_red_unless_it_already_was(portal):
+    report = json.loads(bot_run(T0, [], failed=True))
+    assert report["runHealth"] == {"ok": False, "reasons": ["la pasada se interrumpió antes de terminar"],
+                                   "since": T0.isoformat(timespec="seconds")}
+    report = json.loads(bot_run(T0 + timedelta(hours=1), ["m"], failed=True))
+    assert report["runHealth"] == {"ok": False, "reasons": ["m"], "since": T0.isoformat(timespec="seconds")}
+
+
+def test_run_health_is_not_volatile():
+    assert "runHealth" not in source_health.VOLATILE
+    assert source_health.meaningful({"runHealth": {"ok": True}}) != source_health.meaningful({"runHealth": {
+        "ok": False, "reasons": ["m"], "since": "x"}})
+
+
+def test_the_verdict_order_exits_with_1_only_when_red(portal, capsys):
+    path = source_health.REPORT_PATH
+    assert source_health.main(["veredicto"]) == 0                   # sin informe
+    path.write_text(json.dumps({"season": "2025-2026", "groups": {}}))
+    assert source_health.main(["veredicto"]) == 0                   # sin runHealth
+    path.write_text(json.dumps({"runHealth": {"ok": True}}))
+    assert source_health.main(["veredicto"]) == 0
+    path.write_text(json.dumps({"runHealth": {"ok": False, "reasons": ["m", "n"], "since": "x"}}))
+    capsys.readouterr()
+    assert source_health.main(["veredicto"]) == 1
+    out = capsys.readouterr().out
+    assert "m" in out and "n" in out
+
+
+def test_the_mark_order_turns_the_report_red_without_touching_anything_else(portal):
+    bot_run(T0, [])
+    before = json.loads(source_health.REPORT_PATH.read_text())
+    assert source_health.main(["marcar", "fallaron las pruebas"]) == 0
+    after = json.loads(source_health.REPORT_PATH.read_text())
+    health = after.pop("runHealth")
+    assert health["ok"] is False and health["reasons"] == ["fallaron las pruebas"] and health["since"]
+    before.pop("runHealth")
+    assert after == before                       # ni groups ni checkedAt
+    assert source_health.main(["veredicto"]) == 1
+
+
+def test_the_mark_order_on_a_red_report_adds_its_reason_and_keeps_since(portal):
+    bot_run(T0, ["m"])
+    assert source_health.main(["marcar", "x"]) == 0
+    assert source_health.main(["marcar", "x"]) == 0
+    health = json.loads(source_health.REPORT_PATH.read_text())["runHealth"]
+    assert health == {"ok": False, "reasons": ["m", "x"], "since": T0.isoformat(timespec="seconds")}
+
+
+def test_the_orders_run_from_the_command_line():
+    import subprocess
+    script = Path(source_health.__file__)
+    done = subprocess.run([sys.executable, str(script), "no-existe"], capture_output=True, text=True)
+    assert done.returncode == 2 and "veredicto" in done.stderr

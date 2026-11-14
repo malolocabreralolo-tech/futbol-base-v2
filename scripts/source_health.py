@@ -3,6 +3,7 @@ from datetime import datetime, timedelta, timezone
 import json
 from pathlib import Path
 import re
+import sys
 from portal_config import load_config
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -16,6 +17,8 @@ HEARTBEAT = timedelta(hours=24)
 VOLATILE = ("checkedAt", "run")
 # Y en cada grupo: la hora de su comprobación.
 GROUP_VOLATILE = ("checkedAt",)
+# El motivo de runHealth de una ejecución que falla tras la pasada (finish(failed=True)).
+INTERRUPTED = "la pasada se interrumpió antes de terminar"
 _report = None
 _previous = None
 # Los grupos cuya hora de comprobación se publica aunque no cambie nada más (record(publish_time=True)): los
@@ -41,6 +44,7 @@ def begin(season):
     _report = {"version": 1, "season": season, "groups": {},
                "nextSeason": _previous.get("nextSeason", {"name": load_config()["nextSeason"], "status": "pending"})}
     _carry_new_competitions()
+    _carry_run_health()
 
 
 def _same_season():
@@ -53,6 +57,29 @@ def _carry_new_competitions():
     items = _previous.get("newCompetitions") if _same_season() else None
     if isinstance(items, list) and items:
         _report["newCompetitions"] = items
+
+
+def _carry_run_health():
+    """El veredicto de la última pasada sigue mientras nadie lo cambie: una ejecución sin federación
+    (FIFLP_UPDATE sin poner) no lo juzga. Con otra temporada, fuera."""
+    health = _previous.get("runHealth") if _same_season() else None
+    if isinstance(health, dict):
+        _report["runHealth"] = dict(health)
+
+
+def _red(previous, reasons, now=None):
+    """runHealth en rojo con `reasons`; `since`, el de `previous` si ya estaba en rojo (cuándo empezó)."""
+    since = previous.get("since") if isinstance(previous, dict) and previous.get("ok") is False else None
+    return {"ok": False, "reasons": list(reasons), "since": since or _stamp(now)}
+
+
+def set_run_health(reasons, now=None):
+    """El veredicto de la pasada del bot de la federación (pasada_sana.veredicto: sin motivos, sana). Sana,
+    sin hora: una pasada sana tras otra sana no reescribe el informe (runHealth no es VOLATILE)."""
+    if _report is None:
+        return
+    previous = (_previous or {}).get("runHealth") if _same_season() else None
+    _report["runHealth"] = _red(previous, reasons, now) if reasons else {"ok": True}
 
 
 def new_competitions():
@@ -153,9 +180,12 @@ def finish(now=None, failed=False):
     lo pasa desde su finally), sin sus comprobaciones correctas (_discard_checks)."""
     if _report is None:
         return
+    now = now or datetime.now(timezone.utc)
     if failed:
         _discard_checks()
-    now = now or datetime.now(timezone.utc)
+        # Lo publicado de una ejecución fallida es el diagnóstico: en rojo, si la pasada no lo estaba ya.
+        if (_report.get("runHealth") or {}).get("ok") is not False:
+            set_run_health([INTERRUPTED], now)
     _report["checkedAt"] = _stamp(now)
     text = (ROOT / "index.html").read_text()
     match = re.search(r"Última actualización: (\d{2})/(\d{2})/(\d{4})", text)
@@ -175,3 +205,32 @@ def finish(now=None, failed=False):
     if not timed and meaningful(_report) == meaningful(_previous or {}) and _is_recent(_previous, now):
         return
     REPORT_PATH.write_text(json.dumps(_report, ensure_ascii=False, indent=2) + "\n")
+
+
+def main(argv=None):
+    """Las órdenes sobre data-health.json del disco (update.yml, después del commit):
+      veredicto         sale con 1, e imprime los motivos, si la última pasada está en rojo (runHealth.ok
+                        falso); con 0 si es sana o no hay veredicto;
+      marcar "<motivo>" pone runHealth en rojo con ese motivo (con `since` y los motivos de antes si ya lo
+                        estaba) y escribe el fichero, sin tocar nada más del informe."""
+    args = sys.argv[1:] if argv is None else list(argv)
+    if args == ["veredicto"]:
+        health = _read_previous().get("runHealth")
+        if isinstance(health, dict) and health.get("ok") is False:
+            for reason in health.get("reasons") or ["sin motivo"]:
+                print(f"Pasada en rojo: {reason}")
+            return 1
+        return 0
+    if len(args) == 2 and args[0] == "marcar":
+        report = _read_previous()
+        health = report.get("runHealth")
+        before = list(health.get("reasons") or []) if isinstance(health, dict) and health.get("ok") is False else []
+        report["runHealth"] = _red(health, before + [args[1]] if args[1] not in before else before)
+        REPORT_PATH.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n")
+        return 0
+    print('uso: source_health.py veredicto | marcar "<motivo>"', file=sys.stderr)
+    return 2
+
+
+if __name__ == "__main__":
+    sys.exit(main())
