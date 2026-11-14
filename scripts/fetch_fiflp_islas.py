@@ -22,6 +22,10 @@ Uso:
     ISLAS_SEASON=22 python3 scripts/fetch_fiflp_islas.py   # 2026-27, IDs del catálogo
     ISLAS_SEASON=22 SCRAPE_IDS=54977017 python3 …          # solo esa (se añade al raw de la tanda)
     ISLAS_SEASON=22al python3 scripts/fetch_fiflp_islas.py # alevín de Gran Canaria de 2026-27
+    ISLAS_HASTA=$(( $(date +%s) + 5400 )) ISLAS_SEASON=22 …  # para a los 90 min (activar.yml)
+
+Cada grupo se guarda en el raw al acabarlo (guardar_por_grupo) y, con ISLAS_HASTA, la descarga para al
+pasar esa hora, tras guardar el grupo que acaba: la reanuda la ejecución siguiente.
 
 En las temporadas del catálogo (CATALOG_SEASONS), la tanda elige la categoría
 (categorias.category_of): '22' es benjamín y prebenjamín y '22al' (sufijo «al»),
@@ -197,10 +201,55 @@ def drop_empty_groups(path):
     return len(data) - len(kept)
 
 
+class Plazo(Exception):
+    """Se acabó el plazo de la descarga (ISLAS_HASTA): lo descargado ya está guardado en el raw."""
+
+
+def plazo_de(env=None):
+    """ISLAS_HASTA (segundos desde 1970, lo pone activar.yml): la hora a la que la descarga para; None, sin plazo."""
+    env = os.environ if env is None else env
+    try:
+        return float(env.get("ISLAS_HASTA") or "")
+    except ValueError:
+        return None
+
+
+def guardar_por_grupo(path, hasta=None, now=None):
+    """El ON_GROUP de fetch_fiflp_2425: añade cada grupo al raw al acabarlo (sin repetir uno ya guardado, con
+    escritura atómica) y, pasado `hasta`, para con Plazo después de guardarlo. Sin él, el raw se guardaba al
+    acabar cada competición, y un corte (el plazo del paso, el freno) a mitad de una grande la perdía entera:
+    el intento siguiente la empezaba de cero y nunca la acababa."""
+    import json
+    import time
+    now = now or time.time
+
+    def hook(gdata):
+        try:
+            with open(path, encoding="utf-8") as f:
+                data = json.load(f)
+        except (OSError, ValueError):
+            data = []
+        keys = {(str(g.get("competition_id")), str(g.get("group_id"))) for g in data}
+        if (str(gdata.get("competition_id")), str(gdata.get("group_id"))) not in keys:
+            data.append(gdata)
+            tmp = f"{path}.tmp"
+            with open(tmp, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+            os.replace(tmp, path)
+        if hasta is not None and now() >= hasta:
+            raise Plazo(f"plazo de la descarga agotado tras {gdata.get('competition_id')}_{gdata.get('group_id')}")
+    return hook
+
+
 if __name__ == "__main__":
     print(f"Temporada {SEASON} · {len(F.COMPETITIONS)} competiciones · "
           f"salida {os.path.basename(F.OUTPUT_PATH)}")
     vacios = drop_empty_groups(F.OUTPUT_PATH)
     if vacios:
         print(f"{vacios} grupos vacíos del raw se vuelven a intentar")
-    F.main()
+    F.ON_GROUP = guardar_por_grupo(F.OUTPUT_PATH, plazo_de())
+    try:
+        F.main()
+    except Plazo as error:
+        # No es un fallo: lo que queda lo baja el intento siguiente (reanuda por grupo).
+        print(f"\n{error}: lo que falta se descarga en el intento siguiente")

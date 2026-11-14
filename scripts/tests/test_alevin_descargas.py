@@ -75,6 +75,64 @@ def test_an_unknown_tanda_still_stops(monkeypatch):
         islas(monkeypatch, "23al")
 
 
+# ── La descarga de activar.yml: grupo a grupo y con plazo (fase 2D, tarea 3) ──
+
+def raw_group(comp, group, jornadas=1):
+    return {"competition_id": comp, "group_id": group, "group_name": f"GRUPO {group}", "standings": [],
+            "jornadas": [{"num": str(j), "date": "", "matches": []} for j in range(jornadas)]}
+
+
+def test_the_download_saves_each_group_as_it_ends_and_stops_at_its_deadline(monkeypatch, tmp_path):
+    """Una fase nueva son cientos de páginas y la federación frena: activar.yml la baja con plazo
+    (ISLAS_HASTA) y la reanuda en el intento siguiente. El raw se guardaba al acabar cada competición, y un
+    corte a mitad de una grande lo perdía todo de ella; ahora, cada grupo al acabarlo (sin repetirlo ni
+    perder los de antes, con escritura atómica) y, pasado el plazo, para tras guardar el que acaba."""
+    I = islas(monkeypatch, "22")
+    path = tmp_path / "fiflp_islas_22_raw.json"
+    path.write_text(json.dumps([raw_group("1", "10")]), encoding="utf-8")
+    clock = [100.0]
+    hook = I.guardar_por_grupo(str(path), hasta=150.0, now=lambda: clock[0])
+    hook(raw_group("2", "20"))
+    hook(raw_group("2", "20", jornadas=2))                  # el mismo grupo otra vez: no se repite
+    assert [(g["competition_id"], g["group_id"]) for g in json.loads(path.read_text())] == [("1", "10"), ("2", "20")]
+    clock[0] = 150.0
+    with pytest.raises(I.Plazo):
+        hook(raw_group("2", "21"))
+    assert [g["group_id"] for g in json.loads(path.read_text())] == ["10", "20", "21"]   # guardado antes de parar
+    assert not (tmp_path / "fiflp_islas_22_raw.json.tmp").exists()
+    fresh = tmp_path / "nuevo_raw.json"
+    I.guardar_por_grupo(str(fresh))(raw_group("3", "30"))   # sin raw todavía y sin plazo
+    assert [g["group_id"] for g in json.loads(fresh.read_text())] == ["30"]
+    assert I.plazo_de({"ISLAS_HASTA": "1700000000"}) == 1700000000.0
+    assert I.plazo_de({"ISLAS_HASTA": ""}) is None and I.plazo_de({"ISLAS_HASTA": "x"}) is None and I.plazo_de({}) is None
+
+
+class GroupsPage:
+    """La página de una competición con dos grupos y sin jornadas en el calendario."""
+    def evaluate(self, script):
+        return [{"value": "11", "text": "GRUPO 1"}, {"value": "12", "text": "GRUPO 2"}] if "grupo" in script else []
+
+    def wait_for_timeout(self, ms):
+        pass
+
+
+def test_the_scraper_calls_its_group_hook_for_each_group(monkeypatch):
+    import fetch_fiflp_2425 as F
+    monkeypatch.setattr(F, "GROUPS_PATH", None)
+    monkeypatch.setattr(F, "goto", lambda page, url, retries=3: "CodGrupo" not in url)   # el calendario no carga
+    monkeypatch.setattr(F, "parse_standings", lambda page: [{"team": "A"}])
+    monkeypatch.setattr(F, "delay", lambda extra=0: None)
+    seen = []
+    monkeypatch.setattr(F, "ON_GROUP", lambda g: seen.append(g["group_id"]))
+    comp = {"id": "5", "name": "LIGA X", "cat": "benjamin", "island": "grancanaria", "phase": "LIGA X"}
+    got = F.scrape_competition(GroupsPage(), comp, done={"5_12"})
+    assert [g["group_id"] for g in got] == ["11"] and seen == ["11"]
+    monkeypatch.setattr(F, "goto", lambda page, url, retries=3: True)            # y con el calendario
+    seen.clear()
+    assert [g["group_id"] for g in F.scrape_competition(GroupsPage(), comp, done=set())] == ["11", "12"]
+    assert seen == ["11", "12"]
+
+
 # ── fetch_fiflp_actas.py / fetch_fiflp_goleadores.py / fetch_fiflp_detalle.py ─
 
 def test_actas_know_2026_27_and_choose_by_category():

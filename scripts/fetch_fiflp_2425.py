@@ -57,6 +57,17 @@ def save(data):
 # pone la tanda de las islas (fetch_fiflp_islas.py: fiflp_islas_<tanda>_grupos.json); None, nada.
 GROUPS_PATH = None
 
+# Se llama con cada grupo al acabarlo (fetch_fiflp_islas.guardar_por_grupo, en activar.yml: guarda el raw
+# grupo a grupo y para al plazo, para que un corte a mitad de una competición grande no la pierda entera);
+# None, nada.
+ON_GROUP = None
+
+
+def _group_done(results, gdata):
+    results.append(gdata)
+    if ON_GROUP:
+        ON_GROUP(gdata)
+
 
 def save_group_list(comp_id, groups, path=None):
     """Apunta los grupos del desplegable de una competición ([{value, text}]) en GROUPS_PATH, con
@@ -371,7 +382,7 @@ def scrape_competition(page, comp, done):
                        f"&CodGrupo={grp['value']}")
         if not goto(page, jornada_url):
             print(" [jornada page timeout]")
-            results.append(gdata)
+            _group_done(results, gdata)
             continue
 
         jornada_opts = []
@@ -410,7 +421,7 @@ def scrape_competition(page, comp, done):
         total = sum(len(j["matches"]) for j in gdata["jornadas"])
         played = sum(1 for j in gdata["jornadas"] for m in j["matches"] if m["hs"] is not None)
         print(f" -> {total}p ({played}j)")
-        results.append(gdata)
+        _group_done(results, gdata)
 
     return results
 
