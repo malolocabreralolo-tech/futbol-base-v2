@@ -130,7 +130,8 @@ export function buildCalendar(matches, { season = PORTAL.season, group = '', nam
     let hash = 2166136261;
     for (const char of `${season}|${group}|${match.home}|${match.away}|${match.jor || match.jornada}`) hash = Math.imul(hash ^ char.codePointAt(0), 16777619) >>> 0;
     lines.push('BEGIN:VEVENT', `UID:${hash}@futbolbase-laspalmas`, 'DTSTAMP:' + now.toISOString().replace(/[-:]/g, '').replace(/\.\d{3}/, ''));
-    lines.push(time ? 'DTSTART:' + kickoffUTC(date, time) : 'DTSTART;VALUE=DATE:' + date.replace(/-/g, ''));
+    // Con hora, una de duración: sin DTEND ni DURATION el evento duraría 0 minutos (RFC 5545).
+    lines.push(...(time ? ['DTSTART:' + kickoffUTC(date, time), 'DURATION:PT1H'] : ['DTSTART;VALUE=DATE:' + date.replace(/-/g, '')]));
     lines.push('SUMMARY:' + icsText(`${match.home} – ${match.away}`));
     lines.push('DESCRIPTION:' + icsText(`${match.jor || match.jornada || ''} · ${season.replace('-', '/')}\n${time ? 'Horario de Canarias.' : 'Horario por confirmar.'}\nConsulta la web para posibles cambios.`));
     if (match.venue) lines.push('LOCATION:' + icsText(match.venue));

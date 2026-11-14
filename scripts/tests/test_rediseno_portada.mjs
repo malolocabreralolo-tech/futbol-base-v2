@@ -445,7 +445,7 @@ test('shareData y matchCalendar: el enlace absoluto al partido y su .ics con la 
   });
   const ics = matchCalendar(next, a2, { url: data.url, now: new Date('2026-05-20T10:00:00Z') });
   assert.equal((ics.match(/BEGIN:VEVENT/g) || []).length, 1);
-  assert.match(ics, /\r\nDTSTART:20260523T080000Z\r\n/, 'las 09:00 de Canarias en verano son las 08:00 UTC');
+  assert.match(ics, /\r\nDTSTART:20260523T080000Z\r\nDURATION:PT1H\r\n/, 'las 09:00 de Canarias en verano son las 08:00 UTC');
   assert.match(ics, /\r\nSUMMARY:Las Mesas Hu\. – Simusetti\r\n/);
   assert.match(ics, /\r\nLOCATION:Pepe Gonçalvez\r\n/);
 });

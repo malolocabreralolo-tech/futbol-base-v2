@@ -22,8 +22,10 @@ test('ICS preserves Unicode, stable identities, line folding, and unknown kickof
   const calendar = buildCalendar(matches, { group: 'PG2', now: new Date('2026-09-09T12:00Z') });
   assert.equal((calendar.match(/BEGIN:VEVENT/g) || []).length, 2);
   assert.ok(calendar.endsWith('END:VCALENDAR\r\n'));
-  assert.match(calendar, /DTSTART:20260602T163000Z/);
-  assert.match(calendar, /DTSTART;VALUE=DATE:20260603/);
+  // Con hora, una hora de duración (sin ella, el evento duraría 0 minutos); el de día entero, sin.
+  assert.match(calendar, /\r\nDTSTART:20260602T163000Z\r\nDURATION:PT1H\r\n/);
+  assert.match(calendar, /\r\nDTSTART;VALUE=DATE:20260603\r\nSUMMARY:/);
+  assert.equal((calendar.match(/DURATION:/g) || []).length, 1);
   assert.match(calendar, /LOCATION:Campo\\nCentro/);
   assert.match(calendar, /Unión\\; A\\, B/);
   for (const line of calendar.split('\r\n')) assert.ok(Buffer.byteLength(line, 'utf8') <= 75);

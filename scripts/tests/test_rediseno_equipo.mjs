@@ -122,7 +122,7 @@ test('teamCalendarEvents (decisión 15): todos los partidos con fecha del equipo
   const ics = buildCalendar(events, { season: group.season, group: group.id, name: 'AD Huracán', now: new Date('2026-03-01T12:00:00Z') });
   assert.equal((ics.match(/BEGIN:VEVENT/g) || []).length, 26);
   assert.match(ics, /\r\nX-WR-CALNAME:AD Huracán\r\n/);
-  assert.match(ics, /\r\nDTSTART:20251012T080000Z\r\nSUMMARY:Telde – AD Huracán\r\n/, 'las 09:00 de Canarias en octubre son las 08:00 UTC');
+  assert.match(ics, /\r\nDTSTART:20251012T080000Z\r\nDURATION:PT1H\r\nSUMMARY:Telde – AD Huracán\r\n/, 'las 09:00 de Canarias en octubre son las 08:00 UTC');
   // Un partido sin fecha no puede ir en un calendario; uno sin hora va como día entero.
   const raw = currentAt('2026-03-01');
   raw.history.PG2['Jornada 1'].find((row) => row[2] === 'AD Huracán')[0] = '';
