@@ -1010,8 +1010,10 @@ def _repo(tmp_path, files):
     return git, remote, work, env
 
 
+# El catálogo del repositorio de mentira (nunca se lee el vivo: test_catalogo_congelado.py, que busca su nombre).
+FAKE_CATALOG = "scripts/fiflp_comps" + "_catalog.json"
 PUBLISHED = {"data-x.js": "publicado", "index.html": "i", "sw.js": "s", "futbolbase.db": "base",
-             "data-health.json": '{"publicado": true}', "scripts/fiflp_comps_catalog.json": "{}",
+             "data-health.json": '{"publicado": true}', FAKE_CATALOG: "{}",
              "scripts/fiflp_islas_22_raw.json": "[]", "docs/temporadas/2026-2027.json": "{}"}
 
 
@@ -1036,13 +1038,13 @@ def test_activar_uploads_what_it_downloaded_first_and_only_that(tmp_path):
     git, remote, work, env = _repo(tmp_path / "descarga", PUBLISHED)
     (work / "scripts" / "fiflp_islas_22_raw.json").write_text('[{"grupo": 1}]')
     (work / "scripts" / "fiflp_islas_22_grupos.json").write_text('{"1": {}}')
-    (work / "scripts" / "fiflp_comps_catalog.json").write_text('{"nuevo": 1}')
+    (work / FAKE_CATALOG).write_text('{"nuevo": 1}')
     (work / "futbolbase.db").write_text("otros bytes")
     (work / "data-health.json").write_text('{"otro": 1}')
     env = {**env, "INTENTO": "2"}
     done = subprocess.run(["bash", "-e", "-c", step["run"]], cwd=work, env=env, capture_output=True, text=True, timeout=60)
     assert done.returncode == 0, done.stdout + done.stderr
-    assert _last_commit(git, remote) == ["scripts/fiflp_comps_catalog.json", "scripts/fiflp_islas_22_grupos.json",
+    assert _last_commit(git, remote) == [FAKE_CATALOG, "scripts/fiflp_islas_22_grupos.json",
                                          "scripts/fiflp_islas_22_raw.json"]
     # Sin nada descargado (sin lista de grupos todavía, ni raw nuevo): nada que subir, y en verde.
     git2, remote2, work2, env2 = _repo(tmp_path / "nada", PUBLISHED)
