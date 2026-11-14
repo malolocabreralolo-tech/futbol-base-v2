@@ -15,6 +15,8 @@ Las apariciones y los sucesos cuelgan siempre de la identidad de acta y no se mu
 
 Nombre normalizado: sin tildes, en mayúsculas y con espacios simples (`identidad.normalizar`, la misma que `import_fiflp_actas._norm_player`).
 
+**El importador** (`import_fiflp_actas._import_one`, también el del bot) crea y usa estas identidades desde la fase 2C (`_get_or_create_player(conn, nombre, fiflp_id, team_id, season_id, ordinal)`): con id, la fila de ese id (nunca adopta una fila sin id ni devuelve la de otro id por el nombre); sin id, la de su nombre, el equipo y la temporada del partido, y el ordinal por dorsal como arriba. Quien sale en un suceso y no en la alineación de su lado es el de la alineación con el mismo nombre normalizado si lo hay (con dos o más, el último, como con el nombre exacto); si no, la identidad sin id de su equipo y temporada. Reimportar un acta deja las mismas filas. Cada pasada del bot, después de importar y de podar (`prune_players`, que no borra una fila a la que apunta otra por `ficha_id`) y antes de publicar, llama a `migrate_identidad.resolver_fichas`; si falla, la pasada se para.
+
 ## Las reglas
 
 **Nombre completo**: con coma, dos o más palabras antes y al menos una después («APELLIDO APELLIDO, NOMBRE»). Lo demás (nombre de pila suelto, un solo apellido, sin coma) es **nombre corto**. El sufijo `#…` no cuenta.

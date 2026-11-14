@@ -1,9 +1,10 @@
 """La migración de la fase 2C (migrate_identidad): cada aparición a su identidad de acta según el original,
 sin perder ni borrar nada, y las fichas por encima (docs/identidad.md).
 
-Sobre una base pequeña montada aquí con el importador de verdad (_import_one, que pega por el nombre las
-apariciones sin id a la fila de otro niño, como hizo con la base real) y unos originales escritos en una
-carpeta temporal. Nombres inventados."""
+Sobre una base pequeña montada aquí con el importador de verdad (_import_one) con el _get_or_create_player
+de antes de la fase 2C (_pegado_por_nombre, que pega por el nombre las apariciones sin id a la fila de otro
+niño, como hizo con la base real) y unos originales escritos en una carpeta temporal. Nombres inventados."""
+import contextlib
 import json
 import sqlite3
 import sys
@@ -56,10 +57,48 @@ def acta(local=(), visitante=(), sucesos=()):
                        for i, (s, n, k) in enumerate(sucesos)]}
 
 
+def _pegado_por_nombre(conn, name, fiflp_id=None, team_id=None, season_id=None, ordinal=1):
+    """El _get_or_create_player de antes de la fase 2C (tal cual, sin la comprobación de la columna
+    fiflp_id): por el id y, si no, por el nombre normalizado en toda la base, adoptando la fila sin id si
+    el nombre lleva coma. El equipo, la temporada y el ordinal no los usaba."""
+    norm = I._norm_player(name)
+    with_id = fiflp_id is not None
+    if with_id:
+        r = conn.execute("SELECT id FROM players WHERE fiflp_id=?", (fiflp_id,)).fetchone()
+        if r:
+            return r[0]
+    r = conn.execute("SELECT id, " + ("fiflp_id" if with_id else "NULL") +
+                     " FROM players WHERE norm_name=?", (norm,)).fetchone()
+    adopt = r and r[1] is None and (not with_id or "," in name)
+    if r and (not with_id or r[1] == fiflp_id or adopt):
+        if with_id and r[1] is None:
+            conn.execute("UPDATE players SET fiflp_id=? WHERE id=?", (fiflp_id, r[0]))
+        return r[0]
+    if r:
+        norm = f"{norm}#{fiflp_id}"
+    if with_id:
+        return conn.execute("INSERT INTO players(full_name, norm_name, fiflp_id) VALUES(?, ?, ?)",
+                            (name, norm, fiflp_id)).lastrowid
+    return conn.execute("INSERT INTO players(full_name, norm_name) VALUES(?, ?)", (name, norm)).lastrowid
+
+
+@contextlib.contextmanager
+def importador_de_antes():
+    """_import_one con el _get_or_create_player de antes: lo que había en la base al migrar."""
+    nuevo = I._get_or_create_player
+    I._get_or_create_player = _pegado_por_nombre
+    try:
+        yield
+    finally:
+        I._get_or_create_player = nuevo
+
+
 def importa(conn, mid, gid, local, visitante, fecha, cod, a, raws=None, base_acta=None):
-    """Un partido con su acta importada como lo hizo el importador; el original va a `raws` (por temporada)."""
+    """Un partido con su acta importada como lo hizo el importador de antes de la fase 2C; el original va a
+    `raws` (por temporada)."""
     partido(conn, mid, gid, local, visitante, fecha, cod)
-    I._import_one(conn, cod, base_acta or a, mid)
+    with importador_de_antes():
+        I._import_one(conn, cod, base_acta or a, mid)
     conn.commit()
     if raws is not None:
         raws[cod] = a
@@ -130,7 +169,10 @@ def mundo(tmp_path):
 
 
 def test_el_esquema_es_idempotente():
-    conn = base()
+    # La tabla players de antes de la fase 2C (migrate_actas_schema ya trae las columnas nuevas).
+    conn = sqlite3.connect(":memory:")
+    conn.execute("CREATE TABLE players (id INTEGER PRIMARY KEY, full_name TEXT NOT NULL, norm_name TEXT NOT NULL "
+                 "UNIQUE, fiflp_id INTEGER)")
     assert M.asegurar_esquema(conn) is True
     assert M.asegurar_esquema(conn) is False
     cols = {r[1] for r in conn.execute("PRAGMA table_info(players)")}

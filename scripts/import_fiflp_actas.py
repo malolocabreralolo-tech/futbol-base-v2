@@ -28,6 +28,7 @@ try:
     from scripts.fiflp_acta import clean_scorer, scorer_minute
     from scripts.migrate_actas_schema import STAFF_KINDS
     from scripts import actas_lotes
+    from scripts.migrate_identidad import norm_sin_id
 except ImportError:
     # Direct CLI run (`python3 scripts/import_fiflp_actas.py`): sys.path[0] is
     # scripts/, so the `scripts.` package is not importable. Add the repo root.
@@ -36,6 +37,7 @@ except ImportError:
     from scripts.fiflp_acta import clean_scorer, scorer_minute
     from scripts.migrate_actas_schema import STAFF_KINDS
     from scripts import actas_lotes
+    from scripts.migrate_identidad import norm_sin_id
 
 UNMATCHED_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fiflp_actas_unmatched.json")
 
@@ -51,39 +53,74 @@ def _norm_player(name: str) -> str:
     return s
 
 
-def _has_fiflp_id(conn) -> bool:
-    return any(r[1] == "fiflp_id" for r in conn.execute("PRAGMA table_info(players)"))
+def _tiene_identidades(conn) -> bool:
+    return {"team_id", "season_id", "ordinal"} <= {r[1] for r in conn.execute("PRAGMA table_info(players)")}
 
 
-def _get_or_create_player(conn, name: str, fiflp_id: int = None) -> int:
-    """El jugador por su id de la federación (estable entre temporadas: el
-    mismo niño de prebenjamín a benjamín) y, si no, por nombre normalizado.
-    Un homónimo con otro id de la federación es OTRO niño: entra con la clave
-    'NOMBRE#id' para no fundirlos."""
+def _fiflp_id(valor):
+    """El id de la federación de una fila del acta, o None (los raws traen None, '' o 0 sin id)."""
+    return int(valor) if valor not in (None, "", 0) else None
+
+
+def _get_or_create_player(conn, name: str, fiflp_id: int = None, team_id: int = None, season_id: int = None,
+                          ordinal: int = 1) -> int:
+    """La identidad de acta del jugador (docs/identidad.md), creándola si falta.
+
+    Con id de la federación: la fila de ese id (el mismo niño de prebenjamín a benjamín), en cualquier
+    equipo y temporada; nueva con 'NOMBRE', o 'NOMBRE#id' si otra fila ya tiene ese nombre. Nunca se le
+    pone el id a una fila que no lo tenía ni se devuelve la de otro id por el nombre.
+    Sin id: la fila sin id de (nombre normalizado, equipo, temporada, ordinal), con norm_name
+    'NOMBRE@<equipo>.<temporada>' ('#n' si es el n-ésimo homónimo de la alineación). Sin equipo o
+    temporada no se puede saber cuál es: error, nunca un pegado por nombre."""
     norm = _norm_player(name)
-    with_id = fiflp_id is not None and _has_fiflp_id(conn)
-    if with_id:
-        r = conn.execute("SELECT id FROM players WHERE fiflp_id=?", (fiflp_id,)).fetchone()
+    if fiflp_id is not None:
+        r = conn.execute("SELECT id FROM players WHERE fiflp_id=? ORDER BY id LIMIT 1", (fiflp_id,)).fetchone()
         if r:
             return r[0]
-    r = conn.execute("SELECT id, " + ("fiflp_id" if with_id else "NULL") +
-                     " FROM players WHERE norm_name=?", (norm,)).fetchone()
-    # Una fila antigua sin id solo se adopta si el nombre lleva apellidos: un
-    # nombre de pila suelto ('LUCAS', como publica la federación a algunos
-    # niños) es de cualquiera, y le daría al niño nuevo la historia de otro.
-    adopt = r and r[1] is None and (not with_id or "," in name)
-    if r and (not with_id or r[1] == fiflp_id or adopt):
-        if with_id and r[1] is None:
-            conn.execute("UPDATE players SET fiflp_id=? WHERE id=?", (fiflp_id, r[0]))
+        clave, n = norm, 1
+        while conn.execute("SELECT 1 FROM players WHERE norm_name=?", (clave,)).fetchone():
+            clave = f"{norm}#{fiflp_id}" if n == 1 else f"{norm}#{fiflp_id}.{n}"
+            n += 1
+        return conn.execute("INSERT INTO players(full_name, norm_name, fiflp_id) VALUES(?, ?, ?)",
+                            (name, clave, fiflp_id)).lastrowid
+    if team_id is None or season_id is None:
+        raise ValueError(f"un jugador sin id de la federación ({name!r}) necesita equipo y temporada: "
+                         "sin ellos se pegaría por el nombre a otro niño")
+    if not _tiene_identidades(conn):
+        raise RuntimeError("players no tiene las columnas de las identidades de acta: "
+                           "migrate_identidad.asegurar_esquema(conn) antes de importar")
+    # El primero del nombre guarda el ordinal vacío, como la migración (migrate_identidad.separar).
+    ordinal = ordinal if ordinal and ordinal > 1 else None
+    clave = norm_sin_id(norm, team_id, season_id, ordinal)
+    r = conn.execute("SELECT id FROM players WHERE norm_name=?", (clave,)).fetchone()
+    if r:
         return r[0]
-    if r:                                   # mismo nombre, otro id: homónimo
-        norm = f"{norm}#{fiflp_id}"
-    if with_id:
-        cur = conn.execute("INSERT INTO players(full_name, norm_name, fiflp_id) VALUES(?, ?, ?)",
-                           (name, norm, fiflp_id))
-    else:
-        cur = conn.execute("INSERT INTO players(full_name, norm_name) VALUES(?, ?)", (name, norm))
-    return cur.lastrowid
+    return conn.execute("INSERT INTO players(full_name, norm_name, team_id, season_id, ordinal) VALUES (?,?,?,?,?)",
+                        (name, clave, team_id, season_id, ordinal)).lastrowid
+
+
+def _clave_dorsal(dorsal, orden):
+    """Orden de los homónimos de una alineación: el dorsal más bajo primero; sin dorsal, detrás, por orden
+    de aparición (la misma que migrate_identidad._clave_dorsal)."""
+    return (dorsal is None, dorsal if dorsal is not None else 0, orden)
+
+
+def _ordinales(lineups: dict, team_of: dict) -> dict:
+    """{(lado, posición en la alineación): ordinal} de los jugadores sin id: 1 si es el único de su nombre
+    normalizado en la alineación de su equipo; si no, 1, 2, 3… por _clave_dorsal."""
+    grupos: dict = {}
+    orden = 0
+    for side in ("home", "away"):
+        for i, p in enumerate(lineups.get(side) or []):
+            if _fiflp_id(p.get("fiflp_id")) is None:
+                grupos.setdefault((team_of[side], _norm_player(p["name"])), []).append(
+                    (_clave_dorsal(p.get("dorsal"), orden), (side, i)))
+            orden += 1
+    out = {}
+    for lista in grupos.values():
+        for rango, (_, pos) in enumerate(sorted(lista), start=1):
+            out[pos] = rango
+    return out
 
 
 ANON_NORM = "#SIN NOMBRE PUBLICADO"
@@ -173,13 +210,24 @@ def _import_one(conn, cod_acta: int, acta: dict, mid: int = None) -> bool:
 
     # Insert appearances and build name -> (player_id, team_id) map. ord: el orden del acta (local,
     # visitante y los que solo salen en los sucesos), que desempata la alineación publicada.
+    # La identidad sin id es de un equipo y una temporada: las del partido.
+    home_id, away_id, season_id = conn.execute(
+        "SELECT m.home_team_id, m.away_team_id, g.season_id FROM matches m JOIN groups g ON g.id=m.group_id "
+        "WHERE m.id=?", (mid,)).fetchone()
+    team_of = {"home": home_id, "away": away_id}
+    lineups = acta.get("lineups") or {}
+    ordinal = _ordinales(lineups, team_of)
     name_to_pid: dict = {}
+    norm_to_pids: dict = {}     # (lado, nombre normalizado) -> [(player_id, team_id)] en el orden del acta
     order = 0
     for side in ("home", "away"):
-        team_id = _team_id_by_side(conn, mid, side)
-        for p in (acta.get("lineups") or {}).get(side, []):
-            pid = _get_or_create_player(conn, p["name"], p.get("fiflp_id"))
+        team_id = team_of[side]
+        for i, p in enumerate(lineups.get(side) or []):
+            fid = _fiflp_id(p.get("fiflp_id"))
+            pid = _get_or_create_player(conn, p["name"], fid, team_id, season_id,
+                                        1 if fid is not None else ordinal[(side, i)])
             name_to_pid[(side, p["name"])] = (pid, team_id)
+            norm_to_pids.setdefault((side, _norm_player(p["name"])), []).append((pid, team_id))
             conn.execute(
                 """INSERT INTO appearances
                        (match_id, team_id, player_id, dorsal, role, goals, yellow, red, ord)
@@ -210,10 +258,16 @@ def _import_one(conn, cod_acta: int, acta: dict, mid: int = None) -> bool:
             continue
         key = (side, ev["player_name"])
 
-        # Player in event but not in lineup (e.g. scorer who was unlisted sub)
+        # El mismo nombre que uno de la alineación de su lado salvo tildes o mayúsculas: es él. Con dos o
+        # más así, el último, como con el nombre exacto (name_to_pid se queda con el último).
+        if key not in name_to_pid and norm_to_pids.get((side, _norm_player(ev["player_name"]))):
+            name_to_pid[key] = norm_to_pids[(side, _norm_player(ev["player_name"]))][-1]
+
+        # Player in event but not in lineup (e.g. scorer who was unlisted sub): la identidad sin id de su
+        # equipo y temporada (los goleadores vienen sin id), nunca la de otro niño por el nombre.
         if key not in name_to_pid:
-            pid = _get_or_create_player(conn, ev["player_name"])
             team_id = _team_id_by_side(conn, mid, side)
+            pid = _get_or_create_player(conn, ev["player_name"], None, team_id, season_id)
             order += conn.execute(
                 """INSERT OR IGNORE INTO appearances
                        (match_id, team_id, player_id, dorsal, role, goals, yellow, red, ord)
@@ -979,10 +1033,14 @@ def import_changed_raws(conn, folder: str = SCRIPTS_DIR, log=print) -> dict:
 def prune_players(conn, log=print) -> int:
     """Borra los jugadores que ya no salen en ninguna alineación ni suceso (los
     que dejó una importación anterior, como los «(') NOMBRE» de goles cuyo minuto
-    no publicó la federación). Devuelve cuántos."""
-    n = conn.execute("""DELETE FROM players WHERE
+    no publicó la federación). Devuelve cuántos. Nunca la principal de una ficha
+    a la que apunta otra por ficha_id (resolver_fichas la suelta y entonces sí)."""
+    ficha = ("AND NOT EXISTS (SELECT 1 FROM players q WHERE q.ficha_id=players.id)"
+             if any(r[1] == "ficha_id" for r in conn.execute("PRAGMA table_info(players)")) else "")
+    n = conn.execute(f"""DELETE FROM players WHERE
                           NOT EXISTS (SELECT 1 FROM appearances a WHERE a.player_id=players.id)
-                          AND NOT EXISTS (SELECT 1 FROM match_events e WHERE e.player_id=players.id)""").rowcount
+                          AND NOT EXISTS (SELECT 1 FROM match_events e WHERE e.player_id=players.id)
+                          {ficha}""").rowcount
     conn.commit()
     if n:
         log(f"  {n} jugadores sin alineaciones ni sucesos borrados")

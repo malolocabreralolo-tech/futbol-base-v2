@@ -144,9 +144,12 @@ def test_the_same_child_keeps_one_player_row_across_seasons_and_homonyms_do_not_
     conn = base()
     a = _get_or_create_player(conn, "PEREZ, GAEL", 101)
     assert _get_or_create_player(conn, "PÉREZ, GAEL", 101) == a        # mismo niño, otra grafía
+    assert _get_or_create_player(conn, "PEREZ, GAEL", 101, 2, 1) == a  # en otro equipo y temporada: manda el id
     b = _get_or_create_player(conn, "PEREZ, GAEL", 202)                 # otro niño, mismo nombre
     assert a != b
     assert _get_or_create_player(conn, "PEREZ, GAEL", 202) == b
+    # Sin id, el mismo nombre no es ninguno de los dos: su identidad es la de su equipo y temporada.
+    assert _get_or_create_player(conn, "PEREZ, GAEL", None, 1, 1) not in (a, b)
 
 
 # ── Goleadores del grupo ─────────────────────────────────────────────────
@@ -308,12 +311,17 @@ def test_a_round_that_contradicts_a_checked_score_asks_for_the_acta_again():
 
 
 def test_a_first_name_alone_does_not_inherit_an_old_players_history():
+    # Fase 2C: una fila vieja sin id no se adopta nunca, tampoco con nombre completo (antes, «PEREZ, ANA»
+    # sí): pegarla por el nombre le daba al niño la historia de otro. Las une, si acaso, resolver_fichas.
     from import_fiflp_actas import _get_or_create_player
     conn = base()
     old = conn.execute("INSERT INTO players(full_name, norm_name) VALUES ('LUCAS', 'LUCAS')").lastrowid
     assert _get_or_create_player(conn, "LUCAS", 555) != old
     full = conn.execute("INSERT INTO players(full_name, norm_name) VALUES ('PEREZ, ANA', 'PEREZ, ANA')").lastrowid
-    assert _get_or_create_player(conn, "PEREZ, ANA", 777) == full
+    assert _get_or_create_player(conn, "PEREZ, ANA", 777) != full
+    assert conn.execute("SELECT fiflp_id FROM players WHERE id IN (?, ?)", (old, full)).fetchall() == [(None,), (None,)]
+    # Y sin id tampoco: la de su equipo y temporada, no la vieja.
+    assert _get_or_create_player(conn, "LUCAS", None, 1, 1) != old
 
 
 class _Page:
