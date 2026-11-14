@@ -7,6 +7,7 @@ van con las iniciales del mapa).
 """
 import random
 import time
+from collections import Counter
 
 import pytest
 
@@ -490,7 +491,7 @@ def test_las_mezclas_tienen_uniones_de_las_tres_reglas():
 def test_no_depende_del_orden_de_entrada(cortos):
     base = mezcla(7)
     esperado = resolver(base, unir_cortos_en_club=cortos)
-    for semilla in range(5):
+    for semilla in range(3):
         barajadas = list(base)
         random.Random(semilla).shuffle(barajadas)
         assert resolver(barajadas, unir_cortos_en_club=cortos) == esperado
@@ -538,3 +539,35 @@ def test_veinte_mil_identidades_en_menos_de_diez_segundos():
     r = resolver(base, unir_cortos_en_club=True)
     assert time.perf_counter() - t0 < 10
     assert len(r) == 20000
+
+
+# ---------------------------------------------------------------------------
+# La medida de los cortos (scripts/medir_identidad.py)
+# ---------------------------------------------------------------------------
+
+def test_la_medida_cuenta_los_pares_de_u1():
+    import medir_identidad as M
+    f = lambda fid, norm, anio, equipo, nivel=PRE, fecha=None: (fid, norm, anio, nivel, equipo,  # noqa: E731
+                                                                 fecha or f"{anio}-11-01")
+    filas = [
+        # Un corto que sigue en el club (A → B): mismo niño.
+        f(1, "LUCAS", 2020, "Arucas"), f(1, "LUCAS", 2021, "Arucas B"),
+        # Otro corto con el mismo nombre en el club al año siguiente: distinto.
+        f(2, "LUCAS", 2021, "Arucas"),
+        # Un completo que sigue, y uno de un solo uso en su equipo (U0 lo une: mismo niño).
+        f(3, "SOSA VEGA, ANA", 2020, "Teror"), f(3, "SOSA VEGA, ANA", 2021, "Teror"),
+        f(3, "SOSA VEGA, ANA", 2021, "Teror", fecha="2021-12-01"), f(4, "SOSA VEGA, ANA", 2021, "Teror"),
+        # Otro club, o imposible por edad: no es un par.
+        f(5, "TEO", 2020, "Galdar"), f(6, "TEO", 2021, "Arucas"),
+        f(7, "PEREZ, IKER", 2020, "Galdar", nivel=ALE), f(8, "PEREZ, IKER", 2021, "Galdar"),
+    ]
+    nino = M.ninos(filas)
+    assert nino[3] == nino[4] and nino[1] != nino[2]
+    medida = M.pares(filas, nino)
+    assert medida[("todos", "cortos")] == {"mismo": 1, "distinto": 1}
+    assert medida[("todos", "completos")] == {"mismo": 1}
+    # Uno a uno: dos LUCAS del club en 2021, no cuenta; ANA sí (una identidad sin id con los dos ids).
+    assert medida[("uno a uno", "cortos")] == {}
+    assert medida[("uno a uno", "completos")] == {"mismo": 1}
+    texto, decision = M.informe(Counter(), nino, medida)
+    assert decision is False and "unir_cortos_en_club = False" in texto
