@@ -27,6 +27,10 @@
   Claude-Session: https://claude.ai/code/session_013YEDWLhBHY2k5emLFbvcpv
   ```
 
+## Corrección durante la ejecución (14/11/2026)
+
+La regla 3 de la tarea 1 («ningún grupo servido → rojo») se cambió tras mirar los registros reales del bot: 3 de las últimas 16 pasadas leyeron 0 grupos porque el runner salía por una IP que la federación frena desde la primera página, y la pasada siguiente leía con normalidad. Como quedó: una pasada **seca** (grupos previstos y ninguno `ok`) no es roja; lo es cuando la racha de pasadas secas dura más de 6 h (`runHealth.drySince`, `pasada_sana.LIMITE_SECA_HORAS`). En una pasada seca no se aplica la regla del tercio. Lo vigente está en `docs/federacion.md`, apartado «Pasada sana». En la misma ronda se arregló `option_round` para la jornada única de la copa (`14-11-2026 ( Única )`), que no se releía el día de sus partidos.
+
 ## Review Focus
 
 1. Pasada con freno: 6 grupos `ok`, 20 `unserved`, 0 errores → verde, `runHealth.ok` cierto.
