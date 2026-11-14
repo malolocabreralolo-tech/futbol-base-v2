@@ -903,7 +903,8 @@ function scorerName(raw, type) {
 
 /* Goles de un partido (§4.5): la cronología de futbolaspalmas si hay una
  * entrada inequívoca; si no, los goles del acta (sin marcador parcial si le
- * falta algún minuto); si no, null. mismatch compara los goles de cada lado
+ * falta algún minuto); si no, null. Cada gol del acta lleva en `id` la clave de
+ * la ficha de su autor, si la tiene. mismatch compara los goles de cada lado
  * con el marcador: {timeline: 'h-a', score: 'h-a'} si no cuadran. */
 export function timelineFor(match, matchDetail, lineups) {
   if (match.hs == null || match.as == null) return null;
@@ -913,6 +914,7 @@ export function timelineFor(match, matchDetail, lineups) {
   const detail = entryForMatch(matchDetail && matchDetail[key], match);
   if (detail) {
     source = 'futbolaspalmas';
+    // futbolaspalmas no dice quién es cada goleador en las actas: sin clave de ficha.
     goals = (detail.g || []).map(([minute, name, score, s, type]) => ({
       minute: minute ?? null, score: score || null, side: side(s), name: scorerName(name, type),
     }));
@@ -929,7 +931,8 @@ export function timelineFor(match, matchDetail, lineups) {
     let h = 0, a = 0;
     goals = events.map(event => {
       if (event.s === 'h') h += 1; else a += 1;
-      return { minute: event.m ?? null, score: timed ? `${h}-${a}` : null, side: side(event.s), name: scorerName(event.n, event.gt) };
+      return { minute: event.m ?? null, score: timed ? `${h}-${a}` : null, side: side(event.s), name: scorerName(event.n, event.gt),
+        ...(event.id != null ? { id: event.id } : {}) };
     });
   }
   const home = goals.filter(goal => goal.side === 'home').length;
@@ -1360,7 +1363,9 @@ export function teamSquad(lineups, { group, team }) {
   const players = new Map();
   list.forEach(({ acta, side }, at) => {
     for (const p of acta[side]) {
-      const row = players.get(p.n) || { name: p.n, dorsals: new Map(), ap: 0, st: 0, g: 0, y: 0, rd: 0 };
+      // Por la clave de su ficha: dos niños con el mismo nombre son dos filas. Sin clave, por el nombre.
+      const key = p.id != null ? `id:${p.id}` : `n:${p.n}`;
+      const row = players.get(key) || { name: p.n, dorsals: new Map(), ap: 0, st: 0, g: 0, y: 0, rd: 0 };
       if (row.id == null && p.id != null) row.id = p.id;
       row.ap += 1;
       if (p.r === 'starter') row.st += 1;
@@ -1368,11 +1373,11 @@ export function teamSquad(lineups, { group, team }) {
       row.y += p.y | 0;
       row.rd += p.rd | 0;
       if (p.dn != null) row.dorsals.set(p.dn, { n: (row.dorsals.get(p.dn)?.n || 0) + 1, at });
-      players.set(p.n, row);
+      players.set(key, row);
     }
   });
   const dorsalOf = dorsals => [...dorsals].sort(([, a], [, b]) => b.n - a.n || b.at - a.at)[0]?.[0] ?? null;
-  // id: el de la federación (su ficha de jugador), si el acta lo trae.
+  // id: la clave de su ficha de jugador, si el acta la trae.
   const rows = [...players.values()].map(({ name, id, dorsals, ap, st, g, y, rd }) => ({ name, ...(id != null ? { id } : {}), dorsal: dorsalOf(dorsals), ap, st, g, y, rd }));
   rows.sort((a, b) => b.g - a.g || b.ap - a.ap || playerName(a.name).localeCompare(playerName(b.name), 'es'));
   return { rows, actas: list.length, skipped, groupActas: groupActas(lineups, group) };
@@ -1380,10 +1385,12 @@ export function teamSquad(lineups, { group, team }) {
 
 /* Los partidos de un jugador del equipo en el grupo, en orden de fecha, desde las mismas actas que
  * la plantilla: [{ match, side, goals }], con `match` el partido del modelo (su marcador y su enlace)
- * y `side` el lado de su equipo, para dar el marcador desde su equipo (§4.6). */
-export function playerMatches(lineups, { group, team, player }) {
+ * y `side` el lado de su equipo, para dar el marcador desde su equipo (§4.6). Con `id` (la clave de su
+ * ficha), los de esa ficha; sin ella, los de su nombre. */
+export function playerMatches(lineups, { group, team, player, id = null }) {
+  const his = id != null ? (x => x.id != null && String(x.id) === String(id)) : (x => x.n === player);
   return teamActas(lineups, group, team).list.flatMap(({ match, acta, side }) => {
-    const p = acta[side].find(x => x.n === player);
+    const p = acta[side].find(his);
     return p ? [{ match, side, goals: p.g | 0 }] : [];
   });
 }

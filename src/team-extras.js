@@ -21,14 +21,14 @@ export const SQUAD_ID = 'plantilla';
 // Los partidos de un jugador, con el marcador desde su equipo, cada uno a su ficha. Lo pinta mount
 // al desplegarlo (spec §5.1: nada oculto generado).
 export function playerDetail(lineups, group, team, player, id = null) {
-  const items = playerMatches(lineups, { group, team, player }).map(({ match, side, goals }) => {
+  const items = playerMatches(lineups, { group, team, player, id }).map(({ match, side, goals }) => {
     const home = side === 'home';
     const rival = home ? match.away : match.home;
     const round = group.rounds.find(r => r.key === match.roundKey);
     const when = [round ? round.label : match.roundKey, weekdayDate(match.dateISO)].filter(Boolean).join(' · ');
     return html`<li><a class="squad-match" href="${matchHref(match)}"><span class="squad-when">${when}</span><span class="squad-rival">${home ? 'en casa contra' : 'fuera contra'} ${teamShort(rival)}</span><span class="squad-score">${home ? score(match.hs, match.as) : score(match.as, match.hs)}</span><span class="squad-goals">${goals ? countLabel(goals, 'gol', 'goles') : 'sin goles'}</span></a></li>`;
   });
-  // Con su id de la federación, su ficha: todas sus temporadas y equipos.
+  // Con la clave de su ficha, su ficha: todas sus temporadas y equipos.
   const href = playerHref(id);
   return html`<ul class="squad-matches">${items}</ul>${href ? html`<p class="squad-more"><a class="more" href="${href}">Ver su trayectoria</a></p>` : ''}`;
 }

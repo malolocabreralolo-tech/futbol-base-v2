@@ -10,7 +10,7 @@
 //   poco y «Borrar datos».
 // No toca el navegador al importarse: startRouter recibe `window`.
 import { Html } from './html.js';
-import { parseRoute, routeHref, translateLegacy } from './links.js';
+import { isPlayerKey, parseRoute, routeHref, translateLegacy } from './links.js';
 import { CATEGORIES, competitions, findGroup, findMatch, findRound, seasonLabel } from './model.js';
 import { defaultCategory, myTeamIn, routeIsMine, sameClub } from './myteam.js';
 import { skeleton, errorScreen, routeNotice, routeTitle, updateTabbar } from './shell.js';
@@ -139,8 +139,8 @@ export function resolveParams(route, ctx) {
   const screen = route.screen;
   const raw = route.params || {};
   if (NO_PARAMS.has(screen)) return { params: {} };
-  // Jugador: solo su id de la federación (un número); su ficha no depende de ninguna temporada.
-  if (screen === 'jugador') return { params: /^\d+$/.test(raw.id || '') ? { id: raw.id } : {} };
+  // Jugador: solo su clave (isPlayerKey); su ficha no depende de ninguna temporada.
+  if (screen === 'jugador') return { params: isPlayerKey(raw.id) ? { id: raw.id } : {} };
   const portal = ctx.portal.season;
   if (raw.s && raw.s !== portal && !knownSeason(ctx, raw.s)) {
     return redirect(screen, omit(raw, 's'), `No existe la temporada ${seasonLabel(raw.s)}; te enseñamos la actual`);

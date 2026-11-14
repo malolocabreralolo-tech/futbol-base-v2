@@ -1,12 +1,14 @@
-// Jugadores seguidos (la ficha de jugador, #/jugador?id): FOLLOWED_KEY = [{ id, n }], el
-// id de la federación (el mismo niño de una temporada a otra) y su nombre, el último seguido primero,
-// sin repetidos y como máximo MAX_FOLLOWED. Puro e importable en Node: recibe el Storage (o una
+// Jugadores seguidos (la ficha de jugador, #/jugador?id): FOLLOWED_KEY = [{ id, n }], la
+// clave de su ficha (isPlayerKey: el id de la federación o «n…») y su nombre, el último seguido primero,
+// sin repetidos y como máximo MAX_FOLLOWED. Una clave que hoy es alias de otra ficha sigue valiendo: la
+// ficha la reconoce (screen-jugador). Puro e importable en Node: recibe el Storage (o una
 // función que lo devuelve) y lo envuelve con safeStorage; si falla, la lista vive en memoria.
 import { FOLLOWED_KEY, safeStorage } from './store.js';
+import { isPlayerKey } from './links.js';
 
 export const MAX_FOLLOWED = 12;
 
-const isPlayer = p => p !== null && typeof p === 'object' && /^\d+$/.test(String(p.id ?? ''))
+const isPlayer = p => p !== null && typeof p === 'object' && isPlayerKey(p.id)
   && typeof p.n === 'string' && p.n !== '';
 
 export function cleanFollowed(list) {
