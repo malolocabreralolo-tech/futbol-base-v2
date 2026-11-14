@@ -292,6 +292,17 @@ test('la ruta inicial pasa por needs, render y mount; marca la barra y no mueve 
   assert.deepEqual(router.current(), { screen: '', params: {} });
 });
 
+test('una pantalla con title(ctx) pone su título en la pestaña; sin él (o null), el de la ruta', async () => {
+  const b = fakeBrowser('#/jugador?id=7');
+  const jugador = { ...screen('jugador'), title: (ctx) => (ctx.params.id === '7' ? 'Ana Perez' : null) };
+  const router = startRouter({ screens: { jugador }, root: b.root, getContext: context(), window: b.win });
+  await router.idle();
+  assert.equal(b.doc.title, 'Ana Perez · Fútbol Base Las Palmas v2');
+  b.click({ href: '#/jugador?id=8' });
+  await router.idle();
+  assert.equal(b.doc.title, 'Jugador · Fútbol Base Las Palmas v2');
+});
+
 test('needs recibe la temporada del portal del contexto: ninguna pantalla la lee de config.js (R2-1)', async () => {
   const b = fakeBrowser('#/tabla?g=PG2');
   const received = [];

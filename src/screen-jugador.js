@@ -36,8 +36,9 @@ function followedId(ctx, { id, key, player }) {
   return ids.find(k => isFollowed(list, k)) || null;
 }
 
-// Por qué una fila llegó a la ficha, si llegó por una unión (generate_js._MOTIVO).
-const UNION = { e: 'mismo jugador con otro identificador en el acta', c: 'unido por nombre (mismo club)', n: 'unido por nombre' };
+// Por qué una fila llegó a la ficha, si llegó por una unión (generate_js._MOTIVO). «e» no dice «otro
+// identificador»: U0 también une una identidad sin id a la de su mismo equipo y temporada.
+const UNION = { e: 'unido por nombre (mismo equipo y temporada)', c: 'unido por nombre (mismo club)', n: 'unido por nombre' };
 
 // El nombre del grupo, como en el resto de la app (groupLabel), con lo que trae el trozo.
 function where(shard, season, code) {
@@ -52,7 +53,7 @@ function stint(shard, row) {
   // Como la trayectoria del club: el equipo y su grupo a la izquierda; los goles y los partidos a la
   // derecha (cortos: caben a 320 px). De titular, las tarjetas y, al final, por qué se unió, con el grupo.
   const cards = [yellow ? countLabel(yellow, 'amarilla', 'amarillas') : '', red ? countLabel(red, 'roja', 'rojas') : ''];
-  const union = united ? UNION[why] || 'unido a esta ficha' : '';
+  const union = united ? UNION[why] || UNION.n : '';
   const detail = [where(shard, season, code), tit ? `${tit} de titular` : '', ...cards, union].filter(Boolean).join(' · ');
   return html`<a class="traj-row" href="${teamHref(season, code, team)}"><span class="traj-team">${team}</span><span class="traj-group">${detail}</span><span class="traj-pos">${goals ? countLabel(goals, 'gol', 'goles') : 'sin goles'}</span><span class="traj-pts">${countLabel(pj, 'partido', 'partidos')}</span></a>`;
 }
@@ -134,4 +135,6 @@ export const screen = {
   },
   render,
   mount,
+  // El título de la pestaña: el nombre del jugador (el router le añade el del sitio); sin él, null.
+  title: (ctx) => { const { player } = locate(ctx); return player ? playerName(player.n) : null; },
 };

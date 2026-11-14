@@ -620,6 +620,9 @@ export function startRouter({ screens, root, getContext, window: win, actions = 
       const view = screen.render(ctx);
       if (!(view instanceof Html)) throw new TypeError(`render de ${screen.id} no devolvió Html`);
       paint(withNotice(String(view), notice));
+      // Una pantalla con title(ctx) (la ficha del jugador: su nombre) pone el suyo; sin él, el de la ruta.
+      const named = typeof screen.title === 'function' ? screen.title(ctx) : null;
+      if (named) doc.title = `${named} · ${baseTitle}`;
       if (Object.hasOwn(PRIMARY, route.screen)) rememberPrimary(PRIMARY[route.screen]);
       if (screen.mount) {
         // Si el mount navega (nav.go, nav.replace, saveMyTeam…) de forma síncrona, la navegación
