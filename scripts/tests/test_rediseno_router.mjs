@@ -158,6 +158,27 @@ test('Partido: vale si findMatch lo encuentra (su ronda, o el único h–a del g
     { params: { s: '2024-2025', g: 'PGC2', r: 'Jornada 1', h: 'x', a: 'y' }, pending: true });
 });
 
+test('Partido con otra grafía de sus equipos: el único partido del grupo con esos nombres normalizados, sin aviso; con dos, el aviso de siempre', () => {
+  // El visitante sin su punto final (la URL de un enlace compartido que perdió el «.»): en su jornada.
+  assert.deepEqual(target(resolve('#/partido?g=PG2&r=Jornada%2030&h=Las%20Mesas%20Hu&a=AD%20Huracan')),
+    ['#/partido?g=PG2&r=Jornada%2030&h=Las%20Mesas%20Hu.&a=AD%20Hurac%C3%A1n', null]);
+  // Sin jornada, o con otra, el único del grupo, con su jornada; con la temporada, se conserva.
+  const j15 = findMatch(group('PG2'), { h: 'AD Huracán', a: 'Las Mesas Hu.' });
+  const r15 = group('PG2').rounds.find((round) => round.matches.includes(j15)).key;
+  assert.deepEqual(target(resolve('#/partido?s=2025-2026&g=PG2&h=AD%20Hurac%C3%A1n&a=Las%20Mesas%20Hu')),
+    [routeHref('partido', { s: '2025-2026', g: 'PG2', r: r15, h: 'AD Huracán', a: 'Las Mesas Hu.' }), null]);
+  assert.deepEqual(target(resolve('#/partido?g=PG2&r=Jornada%2030&h=AD%20Huracan&a=Las%20Mesas%20Hu')),
+    [routeHref('partido', { g: 'PG2', r: r15, h: 'AD Huracán', a: 'Las Mesas Hu.' }), null]);
+  // Dos partidos del grupo con esos nombres normalizados: no se adivina.
+  const pg2 = group('PG2');
+  const twin = { ...j15, away: 'LAS MESAS HU' };
+  const twins = { ...pg2, rounds: pg2.rounds.map((round) => (round.key === r15 ? { ...round, matches: [...round.matches, twin] } : round)) };
+  const base = context()();
+  const ctx = { ...base, model: { ...base.model, group: (season, id) => (id === 'PG2' ? twins : base.model.group(season, id)) } };
+  assert.deepEqual(target(resolveParams(parseRoute('#/partido?g=PG2&h=AD%20Huracan&a=Las%20Mesas%20Hu'), ctx)),
+    ['#/jornada?g=PG2', 'No encontramos ese partido']);
+});
+
 test('Equipo: g es obligatorio; sin él, el equipo se busca en Explorar', () => {
   assert.deepEqual(resolve('#/equipo?g=PG2&t=Las%20Mesas%20Hu.'), { params: { g: 'PG2', t: 'Las Mesas Hu.', s: PORTAL } });
   assert.deepEqual(target(resolve('#/equipo?t=Las%20Mesas%20Hu.')), ['#/explorar?q=Las%20Mesas%20Hu.', null]);

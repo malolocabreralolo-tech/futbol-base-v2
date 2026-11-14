@@ -150,7 +150,7 @@ export function resolveParams(route, ctx) {
   if (wrong.length) return redirect(screen, Object.fromEntries(Object.entries(raw).filter(([key]) => !wrong.includes(key))));
   const params = { ...raw, s: raw.s || portal };
   if (screen === 'jornada' || screen === 'tabla') return leagueParams(screen, raw, params, ctx);
-  if (screen === 'partido') return matchParams(params, ctx);
+  if (screen === 'partido') return matchParams(raw, params, ctx);
   if (screen === 'equipo') return teamParams(raw, params, ctx);
   // Explorar, Ligas, Copa, Goleadores y Récords (decisión 2 de B3): con una temporada pasada sin
   // cargar, pendientes. La carga el router (I4(a) de B2): ninguna pantalla pide la de su ruta.
@@ -238,8 +238,10 @@ function competitionParams(raw, params, ctx) {
 }
 
 // Partido: vale si findMatch lo encuentra, igual que la pantalla (en su ronda o, si ahí no está, el
-// único h–a del grupo); si no, a su jornada, con aviso.
-function matchParams(params, ctx) {
+// único h–a del grupo). Si no, otra grafía de sus equipos («Las Mesas Hu», sin el punto que se pierde
+// al final de una URL): con un solo partido de esos nombres normalizados, la ruta pasa a la suya, sin
+// aviso y con la `s` que traía (como Equipo); con ninguno o con varios, a su jornada, con aviso.
+function matchParams(raw, params, ctx) {
   const season = ctx.model.season(params.s);
   if (!season) return { params, pending: true };
   const s = params.s === ctx.portal.season ? '' : params.s;
@@ -248,9 +250,26 @@ function matchParams(params, ctx) {
   if (!group) return params.g ? missingGroup(params, ctx, () => redirect('jornada', { s }, lost)) : redirect('jornada', { s }, lost);
   if (!findMatch(group, params)) {
     const round = findRound(group, params.r);
+    const same = sameNamedMatches(group, round, params);
+    if (same.length === 1) {
+      const [{ match, key }] = same;
+      return redirect('partido', { s: raw.s, g: group.id, r: key, h: match.home, a: match.away });
+    }
     return redirect('jornada', { s, g: group.id, r: round ? round.key : '' }, lost);
   }
   return { params };
+}
+
+// Los partidos del grupo, con la clave de su ronda, cuyos local y visitante tienen los nombres
+// normalizados de `h` y `a`: los de la ronda, si los hay en ella; si no, los de todo el grupo.
+function sameNamedMatches(group, round, { h, a }) {
+  const home = normalizeTeamName(String(h ?? ''));
+  const away = normalizeTeamName(String(a ?? ''));
+  if (!home || !away) return [];
+  const inRound = (r) => r.matches.filter((m) => typeof m.home === 'string' && typeof m.away === 'string'
+    && normalizeTeamName(m.home) === home && normalizeTeamName(m.away) === away).map((match) => ({ match, key: r.key }));
+  const there = round ? inRound(round) : [];
+  return there.length ? there : (group.rounds || []).flatMap(inRound);
 }
 
 // Equipo: `g` y `t` son obligatorios; sin ellos, el equipo se busca en Explorar (como un enlace
