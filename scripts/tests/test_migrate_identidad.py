@@ -494,3 +494,130 @@ def test_las_uniones_de_club_y_temporada_no_cuentan_las_de_u1(mundo):
     eva_sin = pid_de(conn, "MORA DIAZ, EVA@3.2")
     assert fila(conn, eva_sin)[7] == "club"
     assert eva_sin not in M.uniones_de_club_y_temporada(conn)
+
+
+# ── La identidad sin id sigue a sus apariciones (realinear) ─────────────────────────────────────────
+
+def publicado(conn):
+    """(claves de las fichas publicadas, partidos publicados en total) de data-jugadores."""
+    import generate_js as G
+    claves, partidos = set(), 0
+    for texto in G.jugadores_files(conn).values():
+        datos = json.loads(texto.split(" = ", 1)[1].rstrip(";\n"))
+        claves |= set(datos["p"])
+        partidos += sum(fila[3] for e in datos["p"].values() for fila in e["c"])
+    return claves, partidos
+
+
+def nuevo(conn, mid, gid, local, visitante, fecha, a=None, jornada=None):
+    """Un partido y, si se da, su acta importada con el importador de la fase 2C."""
+    partido(conn, mid, gid, local, visitante, fecha, 8000 + mid if a else None)
+    if jornada:
+        conn.execute("UPDATE matches SET jornada=? WHERE id=?", (f"Jornada {jornada}", mid))
+    if a:
+        assert I._import_one(conn, 8000 + mid, a, mid)
+    conn.commit()
+
+
+def gemelos():
+    """PG1 de 2025-26 con el mismo equipo entrado dos veces: «Retirado» (10, el bueno: J1-J3) y 'RETIRADO,
+    C.D. "A"' (11, el gemelo: J2 y J3 repetidas), con las actas de J2 y J3 importadas bajo el gemelo. SOL
+    juega con los dos (J1 en el bueno, J2 en el gemelo); MAR, solo en el gemelo."""
+    conn = base()
+    conn.execute("""INSERT INTO teams(id, name) VALUES (10, 'Retirado'), (11, 'RETIRADO, C.D. "A"')""")
+    nuevo(conn, 21, 2, 10, 1, "2025-10-04", acta([(4, "SOL, ANA", None), (5, "LUZ, EVA", None)]), 1)
+    nuevo(conn, 22, 2, 2, 10, "2025-10-11", jornada=2)
+    nuevo(conn, 23, 2, 10, 2, "2025-10-18", jornada=3)
+    nuevo(conn, 24, 2, 2, 11, "2025-10-11", acta((), [(4, "SOL, ANA", None), (7, "MAR, NOE", None)],
+                                                  [("away", "MAR, NOE", "goal")]), 2)
+    nuevo(conn, 25, 2, 11, 2, "2025-10-18", acta([(7, "MAR, NOE", None)]), 3)
+    M.resolver_fichas(conn, log=quiet)
+    return conn
+
+
+def test_tras_juntar_los_gemelos_las_identidades_siguen_a_sus_apariciones():
+    """(a) merge_twin_teams pasa las apariciones y los sucesos al equipo bueno y borra el gemelo sin mirar
+    players: tras resolver_fichas, las mismas fichas y los mismos partidos publicados, y las identidades en
+    el equipo bueno. MAR (todo en el gemelo) conserva su fila y su clave."""
+    import update_fiflp as U
+    conn = gemelos()
+    antes = publicado(conn)
+    mar = conn.execute("SELECT id, clave FROM players WHERE norm_name='MAR, NOE@11.2'").fetchone()
+    assert len(antes[0]) == 3 and antes[1] == 5
+    assert U.merge_twin_teams(conn, 2, log=quiet) == 1
+    assert conn.execute("SELECT 1 FROM teams WHERE id=11").fetchone() is None
+    r = M.resolver_fichas(conn, log=quiet)
+    assert r["realinear"]["reubicadas"] == 1 and r["realinear"]["movidas"] == 1
+    assert publicado(conn) == antes
+    assert conn.execute("SELECT id, clave FROM players WHERE norm_name='MAR, NOE@10.2'").fetchone() == mar
+    assert {t for (t,) in conn.execute("SELECT DISTINCT p.team_id FROM appearances a JOIN players p ON "
+                                       "p.id=a.player_id")} == {10}
+    assert {t for (t,) in conn.execute("SELECT DISTINCT p.team_id FROM match_events e JOIN players p ON "
+                                       "p.id=e.player_id")} == {10}
+    # SOL del gemelo pasa a la SOL del bueno (ya existía): sus dos partidos, en una identidad.
+    sol = pid_de(conn, "SOL, ANA@10.2")
+    assert conn.execute("SELECT count(*) FROM appearances WHERE player_id=?", (sol,)).fetchone()[0] == 2
+
+    # (b) Dos actas nuevas en el equipo bueno: la misma identidad, la misma ficha, todo publicado.
+    nuevo(conn, 26, 2, 10, 1, "2025-10-25", acta([(7, "MAR, NOE", None)]))
+    nuevo(conn, 27, 2, 1, 10, "2025-11-01", acta((), [(7, "MAR, NOE", None)]))
+    M.resolver_fichas(conn, log=quiet)
+    claves, partidos = publicado(conn)
+    assert claves == antes[0] and partidos == antes[1] + 2
+    assert conn.execute("SELECT count(*) FROM appearances WHERE player_id=?", (mar[0],)).fetchone()[0] == 4
+
+
+def test_un_movimiento_parcial_deja_dos_identidades_sin_perder_nada():
+    """(c) Solo parte de las apariciones de una identidad cambian de equipo (un grupo de los dos que
+    jugó): una identidad nueva en el otro equipo con lo movido, con su gol; la vieja, con lo demás."""
+    conn = base()
+    nuevo(conn, 31, 2, 3, 1, "2025-10-04", acta([(9, "PAZ, LIA", None)], (), [("home", "PAZ, LIA", "goal")]))
+    nuevo(conn, 32, 2, 3, 2, "2025-10-11", acta([(9, "PAZ, LIA", None)]))
+    M.resolver_fichas(conn, log=quiet)
+    lia = pid_de(conn, "PAZ, LIA@3.2")
+    antes = M.recuentos(conn)
+    conn.execute("UPDATE matches SET home_team_id=4 WHERE id=31")
+    for t in ("appearances", "match_events"):
+        conn.execute(f"UPDATE {t} SET team_id=4 WHERE match_id=31 AND team_id=3")
+    conn.commit()
+    r = M.resolver_fichas(conn, log=quiet)["realinear"]
+    assert (r["movidas"], r["creadas"], r["reubicadas"], r["choques"]) == (1, 1, 0, 0)
+    otra = pid_de(conn, "PAZ, LIA@4.2")
+    assert conn.execute("SELECT match_id FROM appearances WHERE player_id=?", (lia,)).fetchall() == [(32,)]
+    assert conn.execute("SELECT match_id, goals FROM appearances WHERE player_id=?", (otra,)).fetchall() == [(31, 1)]
+    assert conn.execute("SELECT player_id FROM match_events WHERE match_id=31").fetchall() == [(otra,)]
+    assert conn.execute("SELECT team_id, season_id, clave FROM players WHERE id=?", (otra,)).fetchone() == (
+        4, 2, clave_publica(None, "PAZ, LIA", "Union Cuatro", 2025))
+    despues = M.recuentos(conn)
+    assert {t: despues[t] for t in M.TABLAS if t != "players"} == {t: antes[t] for t in M.TABLAS if t != "players"}
+
+
+def test_realinear_dos_veces_la_segunda_no_cambia_nada():
+    """(d) Idempotente: con todo en su sitio no escribe nada."""
+    import update_fiflp as U
+    conn = gemelos()
+    U.merge_twin_teams(conn, 2, log=quiet)
+    assert M.realinear(conn, log=quiet)["reubicadas"] == 1
+    foto = lambda: (conn.execute("SELECT * FROM players ORDER BY id").fetchall(),  # noqa: E731
+                    conn.execute("SELECT * FROM appearances ORDER BY 1, 2, 3").fetchall(),
+                    conn.execute("SELECT * FROM match_events ORDER BY id").fetchall())
+    primera = foto()
+    cambios = conn.total_changes
+    r = M.realinear(conn, log=quiet)
+    assert r == {"movidas": 0, "sucesos": 0, "reubicadas": 0, "creadas": 0, "choques": 0}
+    assert foto() == primera and conn.total_changes == cambios
+
+
+def test_la_aparicion_que_chocaria_se_queda_donde_esta():
+    """Si la identidad destino ya está en ese partido y equipo, la aparición que cambiaría se queda (como en
+    separar) y se cuenta; no se pierde ninguna."""
+    conn = base()
+    nuevo(conn, 41, 2, 3, 4, "2025-10-04", acta([(9, "PAZ, LIA", None)], [(5, "PAZ, LIA", None)]))
+    lia3, lia4 = pid_de(conn, "PAZ, LIA@3.2"), pid_de(conn, "PAZ, LIA@4.2")
+    # Las dos acaban en el equipo 4 del mismo partido (una lectura que juntó los dos lados).
+    conn.execute("UPDATE appearances SET team_id=4 WHERE match_id=41 AND player_id=?", (lia3,))
+    conn.commit()
+    r = M.realinear(conn, log=quiet)
+    assert r["choques"] == 1 and r["movidas"] == 0
+    assert dict(conn.execute("SELECT player_id, team_id FROM appearances WHERE match_id=41")) == {lia3: 4, lia4: 4}
+    assert M.realinear(conn, log=quiet)["choques"] == 1

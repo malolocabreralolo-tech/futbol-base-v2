@@ -906,25 +906,35 @@ JUGADORES_SHARDS = 16
 _MOTIVO = {"equipo": "e", "club": "c", "nombre": "n"}
 
 
+def _orden_clave(k):
+    """Las numéricas primero, por su valor; después las 'n…'."""
+    return (0, int(k), "") if k.isdigit() else (1, 0, k)
+
+
 def _fichas(conn):
     """Las identidades de acta con su clave pública y su ficha, para publicar:
     {"clave": {player_id: clave de la identidad}, "ficha": {player_id: id de la principal},
      "por": {player_id: union_por}, "publicadas": {id de la principal} (fichas con alguna aparición)}.
     Sin las columnas de la fase 2C (una base sin migrar), cada fila es su ficha y solo las de fiflp_id
-    tienen clave, como antes. El gol «sin nombre publicado» y las filas sin id ni equipo no tienen."""
+    tienen clave, como antes. El gol «sin nombre publicado» y las filas sin id ni equipo no tienen.
+    Una identidad sin id nunca deja su ficha sin publicar: sin clave guardada y con el equipo o la
+    temporada borrados, la de su equipo y temporada más frecuentes en sus apariciones; y si ni así, la
+    ficha sale con la clave de otra identidad suya."""
     from identidad import clave_publica          # aquí: identidad.py importa generate_js
-    from migrate_identidad import nombre_base
+    from migrate_identidad import equipo_de_sus_apariciones, nombre_base
     cols = {r[1] for r in conn.execute("PRAGMA table_info(players)")}
     if "fiflp_id" not in cols:
         return {"clave": {}, "ficha": {}, "por": {}, "publicadas": set(), "nombre": {}}
     c2 = {"ficha_id", "union_por", "team_id", "season_id", "ordinal"} <= cols
-    sel = ("p.ficha_id, p.union_por, t.name, s.start_year, p.ordinal" if c2 else "NULL, NULL, NULL, NULL, NULL")
+    sel = ("p.ficha_id, p.union_por, p.team_id, t.name, s.start_year, p.ordinal" if c2
+           else "NULL, NULL, NULL, NULL, NULL, NULL")
     sel += ", p.clave" if "clave" in cols else ", NULL"
     join = ("LEFT JOIN teams t ON t.id = p.team_id LEFT JOIN seasons s ON s.id = p.season_id" if c2 else "")
     filas = conn.execute(f"SELECT p.id, p.norm_name, p.fiflp_id, {sel} FROM players p {join}").fetchall()
     existe = {r[0] for r in filas}
     clave, ficha, por, nombre = {}, {}, {}, {}
-    for pid, norm_name, fid, ficha_id, union_por, equipo, anio, ordinal, guardada in filas:
+    sin_equipo = {}             # player_id -> nombre con su ordinal: el equipo o la temporada ya no existen
+    for pid, norm_name, fid, ficha_id, union_por, team_id, equipo, anio, ordinal, guardada in filas:
         base = nombre_base(norm_name)
         nombre[pid] = base
         ficha[pid] = ficha_id if ficha_id in existe else pid
@@ -936,8 +946,21 @@ def _fichas(conn):
             # La guardada al crear la identidad (migrate_identidad.poner_claves): no cambia si el equipo
             # cambia de nombre o de fila.
             clave[pid] = guardada
-        elif equipo is not None and anio is not None and base and not base.startswith("#"):
-            clave[pid] = clave_publica(None, base + (f"#{ordinal}" if ordinal and ordinal > 1 else ""), equipo, anio)
+        elif base and not base.startswith("#") and (team_id is not None or equipo is not None):
+            norm = base + (f"#{ordinal}" if ordinal and ordinal > 1 else "")
+            if equipo is not None and anio is not None:
+                clave[pid] = clave_publica(None, norm, equipo, anio)
+            else:
+                sin_equipo[pid] = norm
+    for pid, (equipo, anio) in equipo_de_sus_apariciones(conn, sin_equipo).items():
+        clave[pid] = clave_publica(None, sin_equipo[pid], equipo, anio)
+    # Una principal que sigue sin clave: la de otra identidad de su ficha (la numérica menor, si hay).
+    sin_clave = {ficha[pid] for pid in ficha if ficha[pid] not in clave}
+    if sin_clave:
+        for pid in sorted(ficha):
+            p = ficha[pid]
+            if p in sin_clave and pid in clave and (p not in clave or _orden_clave(clave[pid]) < _orden_clave(clave[p])):
+                clave[p] = clave[pid]
     con_apariciones = {pid for (pid,) in conn.execute("SELECT DISTINCT player_id FROM appearances")} \
         if _has_table(conn, "appearances") else set()
     publicadas = {ficha[pid] for pid in con_apariciones if pid in ficha and ficha[pid] in clave}
@@ -1050,8 +1073,9 @@ def jugadores_files(conn):
                               key=lambda p: orden(clave[p])), key=lambda p: ultimo[p][1], reverse=True)
         if otras:
             entry["h"] = [[clave[p], *ultimo[p]] for p in otras]
-        alias = sorted((clave[m] for m in miembros[principal] if m != principal and m in clave and m in con_algo),
-                       key=orden)
+        # Sin la clave de la ficha: si la principal no tenía, lleva la de otra de sus identidades (_fichas).
+        alias = sorted((clave[m] for m in miembros[principal]
+                        if m != principal and m in clave and m in con_algo and clave[m] != k), key=orden)
         if alias:
             entry["al"] = alias
             for a in alias:

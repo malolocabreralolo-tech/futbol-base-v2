@@ -9,8 +9,9 @@ Tres fases, cada una en su transacción y todas idempotentes (la segunda vez no 
 2. `separar`: cada aparición (con sus sucesos de ese partido y equipo) pasa a la identidad de acta que le
    toca según el original del acta: sin id, a la de (nombre, equipo, temporada), creándola si falta; con
    id, a la fila de ese id. No se borra nada: una fila que se queda sin apariciones se conserva.
-3. `resolver_fichas`: identidad.resolver sobre todas las identidades con aparición o suceso, y escribe
-   ficha_id (NULL en la principal) y union_por. Lo llama también el bot en cada pasada.
+3. `resolver_fichas`: `realinear` (cada identidad sin id con el equipo y la temporada de sus apariciones)
+   e identidad.resolver sobre todas las identidades con aparición o suceso, y escribe ficha_id (NULL en la
+   principal) y union_por. Lo llama también el bot en cada pasada.
 
 De dónde sale si una aparición llegó con id, por este orden: el original del bot
 (`actas_bot_<temporada>_<categoria>.jsonl`), los raws (`fiflp_actas_<temporada>*_raw.json`) y, sin
@@ -490,6 +491,99 @@ def separar(conn, originales: dict, log=print) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# Realinear
+# ---------------------------------------------------------------------------
+
+# Lo de una identidad sin id (x: una aparición o un suceso) que no está en su equipo o su temporada.
+_FUERA = ("p.fiflp_id IS NULL AND p.team_id IS NOT NULL AND x.team_id IS NOT NULL "
+          "AND (x.team_id IS NOT p.team_id OR g.season_id IS NOT p.season_id)")
+
+
+def realinear(conn, log=print) -> dict:
+    """La identidad sin id sigue a sus apariciones: la verdad es appearances. merge_twin_teams,
+    import_fiflp_grupos (_move_teams, fix_positions) y migrate_team_names cambian appearances.team_id y
+    match_events.team_id, y pueden borrar la fila vieja de teams, sin mirar players.
+
+    Cada aparición (con los sucesos de ese jugador en ese partido y equipo) y cada suceso sin aparición
+    cuyo equipo o temporada no son los de su identidad sin id pasan a la identidad sin id de (nombre, ese
+    equipo, esa temporada, mismo ordinal), creándola si falta. Si todo lo de la identidad está en un único
+    (equipo, temporada) que no es el suyo y esa identidad no existe, se cambia la misma fila: conserva su
+    id y su clave. La aparición que chocaría con otra de la identidad destino en el mismo partido y equipo
+    se queda donde está y se cuenta (como en separar). Idempotente; sin nada que mover no escribe nada.
+    Devuelve {"movidas", "sucesos", "reubicadas", "creadas", "choques"}."""
+    cuenta = {"movidas": 0, "sucesos": 0, "reubicadas": 0, "creadas": 0, "choques": 0}
+    if conn.in_transaction:
+        conn.commit()
+    desde = "JOIN players p ON p.id = x.player_id JOIN matches m ON m.id = x.match_id JOIN groups g ON g.id = m.group_id"
+    apps = conn.execute(f"SELECT x.player_id, x.match_id, x.team_id, g.season_id FROM appearances x {desde} "
+                        f"WHERE {_FUERA}").fetchall()
+    sucesos = conn.execute(f"SELECT x.id, x.player_id, x.match_id, x.team_id, g.season_id FROM match_events x "
+                           f"{desde} WHERE {_FUERA}").fetchall()
+    if not apps and not sucesos:
+        return cuenta
+    # Los sucesos de una aparición que se mueve van con ella; los demás (sin aparición), por su equipo.
+    con_aparicion = {(pid, mid, tid) for pid, mid, tid, _ in apps}
+    por_pid = defaultdict(lambda: defaultdict(lambda: ([], [])))   # pid -> (equipo, temporada) -> (partidos, sucesos)
+    for pid, mid, tid, sid in apps:
+        por_pid[pid][(tid, sid)][0].append(mid)
+    for eid, pid, mid, tid, sid in sucesos:
+        if (pid, mid, tid) not in con_aparicion:
+            por_pid[pid][(tid, sid)][1].append(eid)
+    conn.execute("BEGIN")
+    try:
+        for pid in sorted(por_pid):
+            norm_name, nombre, ordinal, tid0, sid0 = conn.execute(
+                "SELECT norm_name, full_name, ordinal, team_id, season_id FROM players WHERE id=?", (pid,)).fetchone()
+            base = nombre_base(norm_name)
+            destinos = por_pid[pid]
+            if len(destinos) == 1:
+                (tid, sid), = destinos
+                norm = norm_sin_id(base, tid, sid, ordinal)
+                queda = any(conn.execute(
+                    f"SELECT 1 FROM {t} x JOIN matches m ON m.id = x.match_id JOIN groups g ON g.id = m.group_id "
+                    "WHERE x.player_id=? AND (x.team_id IS NOT ? OR g.season_id IS NOT ?) LIMIT 1",
+                    (pid, tid, sid)).fetchone() for t in ("appearances", "match_events"))
+                if not queda and not conn.execute("SELECT 1 FROM players WHERE norm_name=?", (norm,)).fetchone():
+                    conn.execute("UPDATE players SET team_id=?, season_id=?, norm_name=? WHERE id=?",
+                                 (tid, sid, norm, pid))
+                    cuenta["reubicadas"] += 1
+                    continue
+            for (tid, sid), (partidos, sueltos) in sorted(destinos.items()):
+                norm = norm_sin_id(base, tid, sid, ordinal)
+                r = conn.execute("SELECT id FROM players WHERE norm_name=?", (norm,)).fetchone()
+                if r:
+                    destino = r[0]
+                else:
+                    destino = conn.execute(
+                        "INSERT INTO players(full_name, norm_name, team_id, season_id, ordinal) VALUES (?,?,?,?,?)",
+                        (nombre, norm, tid, sid, ordinal)).lastrowid
+                    poner_claves(conn, [destino])
+                    cuenta["creadas"] += 1
+                for mid in sorted(partidos):
+                    if conn.execute("SELECT 1 FROM appearances WHERE match_id=? AND team_id=? AND player_id=?",
+                                    (mid, tid, destino)).fetchone():
+                        cuenta["choques"] += 1
+                        continue
+                    conn.execute("UPDATE appearances SET player_id=? WHERE match_id=? AND team_id=? AND player_id=?",
+                                 (destino, mid, tid, pid))
+                    cuenta["sucesos"] += conn.execute(
+                        "UPDATE match_events SET player_id=? WHERE match_id=? AND team_id=? AND player_id=?",
+                        (destino, mid, tid, pid)).rowcount
+                    cuenta["movidas"] += 1
+                for eid in sueltos:
+                    cuenta["sucesos"] += conn.execute("UPDATE match_events SET player_id=? WHERE id=?",
+                                                      (destino, eid)).rowcount
+        conn.commit()
+    except BaseException:
+        conn.rollback()
+        raise
+    log(f"  realinear: {cuenta['movidas']} apariciones y {cuenta['sucesos']} sucesos a la identidad de su equipo y "
+        f"temporada, {cuenta['reubicadas']} identidades reubicadas enteras, {cuenta['creadas']} nuevas, "
+        f"{cuenta['choques']} apariciones que no se movieron por un choque")
+    return cuenta
+
+
+# ---------------------------------------------------------------------------
 # Resolver
 # ---------------------------------------------------------------------------
 
@@ -564,6 +658,9 @@ def resolver_fichas(conn, log=print) -> dict:
     filas sin aparición ni suceso quedan sueltas (ficha_id y union_por a NULL)."""
     t0 = time.monotonic()
     asegurar_esquema(conn)
+    # Antes que nada, cada identidad sin id con sus apariciones: los movimientos de equipo de la pasada
+    # (merge_twin_teams y compañía) no miran players.
+    realineadas = realinear(conn, log=log)
     ids = identidades(conn)
     t1 = time.monotonic()
     fichas = resolver(ids, UNIR_CORTOS_EN_CLUB)
@@ -583,7 +680,7 @@ def resolver_fichas(conn, log=print) -> dict:
         raise
     uniones = Counter(por for _, por in fichas.values() if por)
     out = {"identidades": len(ids), "fichas": sum(1 for k, (p, _) in fichas.items() if p == k),
-           "uniones": dict(uniones), "cambiadas": len(cambios),
+           "uniones": dict(uniones), "cambiadas": len(cambios), "realinear": realineadas,
            "segundos": round(time.monotonic() - t0, 2), "segundos_cargar": round(t1 - t0, 2),
            "segundos_resolver": round(t2 - t1, 2)}
     log(f"  resolver_fichas: {out['identidades']} identidades → {out['fichas']} fichas, uniones {out['uniones']}, "
@@ -658,6 +755,9 @@ def migrate(conn, raws_dir: str = SCRIPTS, log=print) -> dict:
     asegurar_esquema(conn)
     tiempos["esquema"] = round(time.monotonic() - t, 2)
     t = time.monotonic()
+    # Una identidad sin id que ya existe y cuyo equipo cambió: que siga a sus apariciones con su fila (y su
+    # clave) antes de que separar le busque otra.
+    realinear(conn, log=log)
     sep = separar(conn, originales, log=log)
     tiempos["separar"] = round(time.monotonic() - t, 2)
     fichas = resolver_fichas(conn, log=log)

@@ -153,6 +153,45 @@ def test_renombrar_un_equipo_no_cambia_ninguna_clave_publicada():
     assert publicado(conn) == antes
 
 
+def test_una_fila_de_teams_borrada_no_deja_ninguna_ficha_sin_publicar():
+    """Cinturón y tirantes de realinear: una identidad sin id que apunta a un equipo que ya no existe (sus
+    apariciones, en otro) se sigue publicando. Con la clave guardada, igual que antes de borrarlo; sin ella,
+    con el equipo y la temporada de sus apariciones (las mismas fichas y los mismos partidos)."""
+    for guardar in (True, False):
+        conn = base()
+        conn.execute("INSERT INTO teams(id, name) VALUES (9, 'Club Tres Viejo')")
+        conn.execute("UPDATE players SET team_id=9, norm_name='RUIZ, LEO@9.2' WHERE id=5")
+        conn.commit()
+        if guardar:
+            asegurar_esquema(conn)
+        antes = publicado(conn)
+        conn.execute("DELETE FROM teams WHERE id=9")
+        conn.commit()
+        despues = publicado(conn)
+        if guardar:
+            assert despues == antes
+        else:
+            assert len(despues[0]) == len(antes[0]) and despues[2] == antes[2]
+            assert LEO_TRES in despues[0]          # la de su equipo de verdad, «Club Tres»
+
+
+def test_una_principal_sin_clave_publica_su_ficha_con_la_de_otra_identidad_suya():
+    """Si ni con sus apariciones se le puede calcular la clave (la principal sin id, de un equipo que ya no
+    existe y sin apariciones), la ficha sale con la clave de otra identidad suya, que no se repite como alias."""
+    conn = base()
+    conn.execute("INSERT INTO players(id, full_name, norm_name, team_id, season_id) VALUES "
+                 "(20, 'MOYA, IRIS', 'MOYA, IRIS@99.1', 99, 1), (21, 'MOYA, IRIS', 'MOYA, IRIS@3.2', 3, 2)")
+    conn.execute("UPDATE players SET ficha_id=20, union_por='club' WHERE id=21")
+    conn.execute("INSERT INTO appearances(match_id, team_id, player_id, dorsal, role, ord) VALUES (3, 3, 21, 8, 'sub', 9)")
+    conn.commit()
+    shards = trozos(G.jugadores_files(conn))
+    iris = clave_publica(None, "MOYA, IRIS", "Club Tres", 2025)
+    entrada = ficha(shards, iris)
+    assert entrada["c"] == [["2025-2026", "BG1", "Club Tres", 1, 0, 0, 0, 0, 1, "c"]]
+    assert "al" not in entrada and iris not in shards[trozo(iris)]["a"]
+    assert G.claves_de_ficha(conn)[21] == iris
+
+
 def test_sin_aparicion_no_hay_ficha_ni_el_gol_sin_nombre_tiene_clave():
     shards = trozos(G.jugadores_files(base()))
     todas = {k for s in shards.values() for k in [*s["p"], *s["a"]]}
