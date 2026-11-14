@@ -48,6 +48,9 @@ from db import SCHEMA  # noqa: E402
 from migrate_actas_schema import migrate  # noqa: E402
 import update_fiflp as U  # noqa: E402
 
+# Una jornada servida sin nada nuevo: solo el descanso. Una vacía que la base tiene con partidos es un error
+# desde el 14/11/2026 (update_fiflp.JornadaVacia, fase 2B de v2): estas pasadas no van de eso.
+BYE_ROUND = [{"home": "DESCANSA", "away": "DESCANSA", "hs": None, "as": None, "date": "", "time": "", "venue": ""}]
 TODAY = date(2026, 10, 14)
 NOW = datetime(2026, 10, 14, 0, 20, tzinfo=timezone.utc)
 PAGE = 3.0                       # segundos por página (carga, espera y pausa)
@@ -174,7 +177,7 @@ class Fed:
         return []
 
     def parse_matches(self, page):
-        return []
+        return list(BYE_ROUND)
 
 
 def read_first(fed, codes):
@@ -492,7 +495,7 @@ class Reader:
 
     @staticmethod
     def parse_matches(page):
-        return []
+        return list(BYE_ROUND)
 
 
 def level(code):
