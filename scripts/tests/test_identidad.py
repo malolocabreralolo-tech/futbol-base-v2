@@ -12,7 +12,7 @@ from collections import Counter
 import pytest
 
 from identidad import (UNIR_CORTOS_EN_CLUB, Identidad, NIVEL, club, clave_publica, compatibles, intervalo,
-                       nombre_completo, normalizar, resolver, trozo)
+                       nombre_completo, normalizar, resolver, resumen_u0_cortos, trozo)
 from import_fiflp_actas import _norm_player
 
 PRE, BEN, ALE = NIVEL["PREBENJAMIN"], NIVEL["BENJAMIN"], NIVEL["ALEVIN"]
@@ -183,11 +183,99 @@ def test_u0_otro_equipo_u_otra_temporada_no_une():
     assert len(fichas(r)) == 3
 
 
-def test_u0_no_une_nombres_cortos():
-    a = ident(1, "LUCAS", 300001, v(2022, BEN, "Teror", n=10))
-    b = ident(2, "LUCAS#300002", 300002, v(2022, BEN, "Teror", n=1))
-    r = resolver([a, b], unir_cortos_en_club=True)
-    assert len(fichas(r)) == 2
+# U0 de nombres cortos (ronda de arreglo 1): con id, mismo nombre corto, equipo y temporada; las de una
+# sola aparición en total van a la única asentada del cubo.
+
+def corto_con_id(id_, fiflp, n, anio=2022, equipo="Teror", nombre="LUCAS", nivel=BEN, *mas):
+    return ident(id_, f"{nombre}#{fiflp}" if id_ % 2 else nombre, fiflp,
+                 v(anio, nivel, equipo, n=n, ini=f"{anio}-11-{1 + id_ % 28:02d}",
+                   fin=f"{anio}-11-{1 + id_ % 28:02d}" if n == 1 else None), *mas)
+
+
+def test_u0_cortos_una_asentada_y_quince_de_un_solo_uso_son_un_nino():
+    asentada = corto_con_id(1, 300001, 12)
+    sueltas = [corto_con_id(10 + k, 400000 + k, 1) for k in range(15)]
+    r = resolver([asentada] + sueltas, unir_cortos_en_club=False)
+    assert fichas(r) == {1: frozenset([1] + [s.id for s in sueltas])}
+    assert all(r[s.id] == (1, "equipo") for s in sueltas)
+
+
+def test_u0_cortos_dos_asentadas_no_une_ninguna():
+    # Dos niños con el mismo nombre de pila en el equipo: no se sabe de cuál es cada suelta.
+    todas = [corto_con_id(1, 300001, 12), corto_con_id(2, 300002, 7)] + \
+        [corto_con_id(10 + k, 400000 + k, 1) for k in range(3)]
+    assert len(fichas(resolver(todas, unir_cortos_en_club=True))) == 5
+
+
+def test_u0_cortos_todas_de_un_solo_uso_no_une():
+    todas = [corto_con_id(10 + k, 400000 + k, 1) for k in range(4)]
+    r = resolver(todas, unir_cortos_en_club=True)
+    assert all(r[i.id] == (i.id, None) for i in todas)
+
+
+def test_u0_cortos_un_solo_uso_cuenta_las_apariciones_de_todas_las_vistas():
+    # Una aparición aquí y otra en otro equipo son dos: es otra asentada, y con dos no se une nada.
+    asentada = corto_con_id(1, 300001, 12)
+    dos_vistas = corto_con_id(2, 300002, 1, 2022, "Teror", "LUCAS", BEN, v(2023, BEN, "Arucas", n=1))
+    suelta = corto_con_id(11, 400011, 1)
+    assert len(fichas(resolver([asentada, dos_vistas, suelta], unir_cortos_en_club=False))) == 3
+
+
+def test_u0_cortos_la_incompatible_por_edad_no_se_une():
+    # La asentada jugó benjamín en 2022 y prebenjamín en 2023 (nació en 2016); una suelta de alevín en
+    # 2022 (2011-2014) no cabe; otra de benjamín, sí.
+    asentada = corto_con_id(1, 300001, 12, 2022, "Teror", "LUCAS", BEN, v(2023, PRE, "Arucas", n=9))
+    mala = corto_con_id(11, 400011, 1, 2022, "Teror", "LUCAS", ALE)
+    buena = corto_con_id(13, 400013, 1)
+    r = resolver([mala, asentada, buena], unir_cortos_en_club=False)
+    assert r[13] == (1, "equipo") and r[11] == (11, None)
+
+
+def test_u0_cortos_otro_equipo_u_otra_temporada_no_une():
+    asentada = corto_con_id(1, 300001, 12)
+    otra_temporada = corto_con_id(11, 400011, 1, 2023)
+    otro_equipo = corto_con_id(13, 400013, 1, 2022, "Teror B")
+    assert len(fichas(resolver([asentada, otra_temporada, otro_equipo], unir_cortos_en_club=False))) == 3
+
+
+def test_u0_cortos_sin_id_no_entran():
+    asentada = corto_con_id(1, 300001, 12)
+    sin_id = ident(2, "LUCAS", None, v(2022, BEN, "Teror", n=1))
+    assert len(fichas(resolver([asentada, sin_id], unir_cortos_en_club=True))) == 2
+
+
+def test_u0_un_nombre_completo_sigue_la_u0_normal():
+    # Con dos asentadas, la variante de los cortos no uniría nada; un nombre completo une las cinco.
+    todas = [corto_con_id(1, 300001, 12, nombre="SOSA VEGA, ANA"), corto_con_id(2, 300002, 7, nombre="SOSA VEGA, ANA")] + \
+        [corto_con_id(10 + k, 400000 + k, 1, nombre="SOSA VEGA, ANA") for k in range(3)]
+    assert len(fichas(resolver(todas, unir_cortos_en_club=False))) == 1
+
+
+def test_u0_cortos_resumen_de_los_cubos():
+    una = [corto_con_id(1, 300001, 12)] + [corto_con_id(10 + k, 400000 + k, 1) for k in range(2)]
+    dos = [corto_con_id(3, 300003, 5, equipo="Galdar"), corto_con_id(5, 300005, 5, equipo="Galdar"),
+           corto_con_id(21, 400021, 1, equipo="Galdar")]
+    ninguna = [corto_con_id(31 + k, 400031 + k, 1, equipo="Arucas") for k in range(3)]
+    sola = [corto_con_id(41, 400041, 1, equipo="Moya")]           # una suelta sola: nada que unir
+    assert resumen_u0_cortos(una + dos + ninguna + sola) == {
+        "una asentada": 1, "dos o más asentadas": 1, "ninguna asentada": 1}
+
+
+@pytest.mark.parametrize("cortos", [False, True])
+def test_u0_cortos_barajado_y_punto_fijo(cortos):
+    casos = ([corto_con_id(1, 300001, 12)] + [corto_con_id(10 + k, 400000 + k, 1) for k in range(15)] +
+             [corto_con_id(101, 300101, 12, equipo="Galdar"), corto_con_id(102, 300102, 7, equipo="Galdar")] +
+             [corto_con_id(110 + k, 400110 + k, 1, equipo="Galdar") for k in range(3)] +
+             [corto_con_id(201 + k, 400201 + k, 1, equipo="Arucas") for k in range(4)] +
+             [corto_con_id(301, 300301, 12, 2022, "Moya", "LUCAS", BEN, v(2023, PRE, "Arucas", n=9)),
+              corto_con_id(311, 400311, 1, 2022, "Moya", "LUCAS", ALE), corto_con_id(313, 400313, 1, 2022, "Moya")])
+    esperado = resolver(casos, unir_cortos_en_club=cortos)
+    assert len(fichas(esperado)) == 1 + 5 + 4 + 2
+    for semilla in range(5):
+        barajados = list(casos)
+        random.Random(semilla).shuffle(barajados)
+        assert resolver(barajados, unir_cortos_en_club=cortos) == esperado
+    assert punto_fijo(casos, esperado, cortos)
 
 
 def test_u0_une_el_goleador_sin_id_con_su_fila_con_id():
@@ -502,16 +590,19 @@ def test_resolver_su_propio_resultado_no_cambia_nada(cortos):
     base = mezcla(11)
     r = resolver(base, unir_cortos_en_club=cortos)
     assert resolver(base, unir_cortos_en_club=cortos) == r
-    # Cada ficha como una sola identidad (la principal con todas las vistas de la ficha): ninguna regla
-    # une ya nada.
+    assert punto_fijo(base, r, cortos)
+
+
+def punto_fijo(base, r, cortos):
+    """Cada ficha como una sola identidad (la principal con todas las vistas de la ficha): ¿no une ya
+    nada ninguna regla?"""
     por_id = {i.id: i for i in base}
     juntas = {}
     for i, (p, _) in r.items():
         juntas.setdefault(p, []).extend(por_id[i].vistas)
     fichas_como_identidad = [Identidad(id=p, norm=por_id[p].norm, fiflp_id=por_id[p].fiflp_id,
                                        vistas=tuple(vs)) for p, vs in juntas.items()]
-    otra = resolver(fichas_como_identidad, unir_cortos_en_club=cortos)
-    assert otra == {p: (p, None) for p in juntas}
+    return resolver(fichas_como_identidad, unir_cortos_en_club=cortos) == {p: (p, None) for p in juntas}
 
 
 def test_cada_identidad_sale_una_vez_y_la_principal_se_apunta_a_si_misma():

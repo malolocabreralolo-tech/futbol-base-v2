@@ -6,6 +6,7 @@ una principal. `resolver` decide las fichas desde cero, siempre igual para las m
 depende del orden de entrada ni de lo que se resolvió antes), con las reglas de docs/identidad.md:
 
     U0  mismo nombre completo, mismo equipo y temporada (el id de un solo uso)    union_por 'equipo'
+        y, con nombre corto y id, la de 1 aparición con la única asentada del cubo
     U1  sin id, mismo nombre, mismo club, temporadas seguidas                    union_por 'club'
     U2  sin id y nombre completo, con la única otra ficha de ese nombre          union_por 'nombre'
 
@@ -200,6 +201,34 @@ def _orden_principal(i: Identidad):
     return (1, 0, 0, primera, -_apariciones(i), i.id)
 
 
+def _cubos_cortos(identidades):
+    """{(nombre, equipo, anio): (asentadas, de un solo uso)} de las identidades con id y nombre corto; de
+    un solo uso es la que tiene exactamente 1 aparición en total (sumando todas sus vistas)."""
+    cubos = {}
+    for i in sorted(identidades, key=lambda i: i.id):
+        nombre = _nombre(i)
+        if i.fiflp_id is None or nombre_completo(nombre) or _fuera(i):
+            continue
+        uso_unico = _apariciones(i) == 1
+        for clave in sorted({(nombre, equipo or "", anio) for anio, _, equipo, *_ in i.vistas}):
+            cubos.setdefault(clave, ([], []))[1 if uso_unico else 0].append(i)
+    return cubos
+
+
+def resumen_u0_cortos(identidades) -> dict[str, int]:
+    """Cuántos cubos de U0 de nombres cortos tienen algo que unir y qué pasa con ellos: 'una asentada'
+    (se unen), 'dos o más asentadas' o 'ninguna asentada' (dos o más de un solo uso; no se une nada)."""
+    out = {"una asentada": 0, "dos o más asentadas": 0, "ninguna asentada": 0}
+    for asentadas, sueltas in _cubos_cortos(identidades).values():
+        if len(asentadas) == 1 and sueltas:
+            out["una asentada"] += 1
+        elif len(asentadas) >= 2 and sueltas:
+            out["dos o más asentadas"] += 1
+        elif not asentadas and len(sueltas) >= 2:
+            out["ninguna asentada"] += 1
+    return out
+
+
 def resolver(identidades: list[Identidad], unir_cortos_en_club: bool) -> dict[int, tuple[int, str | None]]:
     """{id de identidad: (id de la principal de su ficha, union_por)}; la principal se apunta a sí misma
     con None. union_por es la regla de la unión que juntó a esa identidad con la principal: deshacerla
@@ -253,6 +282,13 @@ def resolver(identidades: list[Identidad], unir_cortos_en_club: bool) -> dict[in
         for m in sorted(miembros, key=_orden_principal):
             if not any(raiz(s) == raiz(m.id) or unir(s, m.id, "equipo") for s in semillas):
                 semillas.append(m.id)
+
+    # U0 de nombres cortos: las de una sola aparición van a la única asentada de su cubo (con dos o más
+    # asentadas, dos niños con ese nombre de pila en el equipo; con ninguna, nada a lo que ir).
+    for clave, (asentadas, sueltas) in sorted(_cubos_cortos(validas).items()):
+        if len(asentadas) == 1:
+            for m in sueltas:
+                unir(asentadas[0].id, m.id, "equipo")
 
     # U1: sin id, mismo nombre, mismo club, temporadas seguidas. Solo de uno a uno: con dos fichas de
     # ese nombre en el club en una de las dos temporadas (con id o sin él) no se sabe cuál es.
