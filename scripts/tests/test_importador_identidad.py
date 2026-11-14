@@ -103,6 +103,19 @@ def test_sin_id_es_la_fila_de_su_nombre_equipo_y_temporada():
     assert I._get_or_create_player(conn, "GARCIA LOPEZ, LUCIA", None, 1, 1) != vieja        # ni la fila vieja
 
 
+def test_sin_id_guarda_su_clave_al_crearla_y_un_renombre_no_la_cambia():
+    from identidad import clave_publica
+    conn = base()
+    importa(conn, 1, ACTAS[1])
+    noa = conn.execute("SELECT id, clave FROM players WHERE norm_name='ROMERO DIAZ, NOA@1.1'").fetchone()
+    assert noa[1] == clave_publica(None, "ROMERO DIAZ, NOA", "Atletico Inventado", 2025)
+    daniel2 = conn.execute("SELECT clave FROM players WHERE norm_name='SUAREZ, DANIEL@1.1#2'").fetchone()[0]
+    assert daniel2 == clave_publica(None, "SUAREZ, DANIEL#2", "Atletico Inventado", 2025)
+    conn.execute("UPDATE teams SET name='Atletico Renombrado' WHERE id=1")
+    importa(conn, 1, ACTAS[1])
+    assert conn.execute("SELECT id, clave FROM players WHERE norm_name='ROMERO DIAZ, NOA@1.1'").fetchone() == noa
+
+
 def test_sin_id_y_sin_equipo_o_temporada_es_un_error_claro():
     conn = base()
     for equipo, temporada in ((None, None), (1, None), (None, 1)):

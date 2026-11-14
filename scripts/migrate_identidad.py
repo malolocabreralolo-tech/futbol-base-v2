@@ -4,7 +4,8 @@
 Tres fases, cada una en su transacción y todas idempotentes (la segunda vez no cambia nada):
 
 1. `asegurar_esquema`: players.ficha_id y players.union_por (la ficha), y team_id, season_id y ordinal
-   (la identidad sin id de la federación: nombre, equipo y temporada). Lo llama también el bot al arrancar.
+   (la identidad sin id de la federación: nombre, equipo y temporada) con su clave pública, guardada una
+   vez (players.clave). Lo llama también el bot al arrancar.
 2. `separar`: cada aparición (con sus sucesos de ese partido y equipo) pasa a la identidad de acta que le
    toca según el original del acta: sin id, a la de (nombre, equipo, temporada), creándola si falta; con
    id, a la fila de ese id. No se borra nada: una fila que se queda sin apariciones se conserva.
@@ -34,8 +35,8 @@ from collections import Counter, defaultdict
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from fiflp_acta import clean_scorer  # noqa: E402  (la limpieza del goleador que hace el importador)
-from identidad import (NIVEL, UNIR_CORTOS_EN_CLUB, Identidad, club, compatibles, intervalo, normalizar,  # noqa: E402
-                       resolver)
+from identidad import (NIVEL, UNIR_CORTOS_EN_CLUB, Identidad, clave_publica, club, compatibles, intervalo,  # noqa: E402
+                       normalizar, resolver)
 
 SCRIPTS = os.path.dirname(os.path.abspath(__file__))
 ANON_NORM = "#SIN NOMBRE PUBLICADO"     # la fila del gol sin nombre publicado (import_fiflp_actas): no se toca
@@ -51,8 +52,10 @@ SEMILLA = 20261114
 # Esquema
 # ---------------------------------------------------------------------------
 
+# clave: la clave pública de la identidad sin id, calculada una vez al crearla (poner_claves): si se
+# calculara al publicar con el nombre del equipo, renombrar el equipo rompería sus enlaces.
 COLUMNAS = (("ficha_id", "INTEGER"), ("union_por", "TEXT"), ("team_id", "INTEGER"), ("season_id", "INTEGER"),
-            ("ordinal", "INTEGER"))
+            ("ordinal", "INTEGER"), ("clave", "TEXT"))
 INDICES = (
     "CREATE INDEX IF NOT EXISTS idx_players_fiflp ON players(fiflp_id)",
     # La identidad sin id se busca por equipo, temporada y nombre (el importador, tarea 4).
@@ -60,11 +63,14 @@ INDICES = (
     "WHERE team_id IS NOT NULL",
     # prune_players no debe borrar una fila a la que apunta otra.
     "CREATE INDEX IF NOT EXISTS idx_players_ficha ON players(ficha_id) WHERE ficha_id IS NOT NULL",
+    # Dos identidades nunca comparten clave (identidad_separadas.json y la web las buscan por ella).
+    "CREATE UNIQUE INDEX IF NOT EXISTS idx_players_clave ON players(clave) WHERE clave IS NOT NULL",
 )
 
 
 def asegurar_esquema(conn) -> bool:
-    """Las columnas e índices de la fase 2C, si faltan. Devuelve si añadió alguna columna. Hace commit."""
+    """Las columnas e índices de la fase 2C, si faltan, y la clave de las identidades sin id que aún no la
+    tienen. Devuelve si añadió alguna columna. Hace commit."""
     if conn.in_transaction:
         conn.commit()
     tiene = {r[1] for r in conn.execute("PRAGMA table_info(players)")}
@@ -73,8 +79,65 @@ def asegurar_esquema(conn) -> bool:
         conn.execute(f"ALTER TABLE players ADD COLUMN {col} {tipo}")
     for sql in INDICES:
         conn.execute(sql)
+    poner_claves(conn)
     conn.commit()
     return bool(nuevas)
+
+
+def equipo_de_sus_apariciones(conn, pids) -> dict:
+    """{player_id: (nombre del equipo, año de inicio)} del equipo y la temporada en los que más aparece cada
+    fila (a igualdad, el de teams.id menor y la temporada más antigua): para la que apunta a un equipo o a
+    una temporada que ya no existen."""
+    pids = sorted(set(pids))
+    out = {}
+    for k in range(0, len(pids), 500):
+        trozo_ = pids[k:k + 500]
+        filas = conn.execute(
+            f"""SELECT a.player_id, t.id, t.name, s.start_year, count(*) FROM appearances a
+                  JOIN teams t ON t.id = a.team_id JOIN matches m ON m.id = a.match_id
+                  JOIN groups g ON g.id = m.group_id JOIN seasons s ON s.id = g.season_id
+                 WHERE a.player_id IN ({",".join("?" * len(trozo_))})
+                 GROUP BY a.player_id, t.id, s.start_year""", trozo_).fetchall()
+        for pid, tid, nombre, anio, n in sorted(filas, key=lambda r: (r[0], -r[4], r[1], r[3])):
+            out.setdefault(pid, (nombre, anio))
+    return out
+
+
+def poner_claves(conn, pids=None) -> int:
+    """Guarda la clave pública (identidad.clave_publica) de las identidades sin id que no la tienen (todas,
+    o las de `pids`), con el nombre del equipo y el año de inicio de ahora; si el equipo o la temporada ya
+    no existen, los de sus apariciones. Si otra fila ya tiene esa clave (un equipo que se llama hoy como se
+    llamaba otro), la del nombre con '|<id>'. No hace commit. Devuelve cuántas puso."""
+    falta = "p.clave IS NULL AND p.fiflp_id IS NULL AND p.team_id IS NOT NULL"
+    if pids is not None:
+        pids = list(pids)
+        if not pids:
+            return 0
+        falta += f" AND p.id IN ({','.join('?' * len(pids))})"
+    # Primero sin tocar teams ni seasons: casi siempre no falta ninguna (y así vale sin esas tablas).
+    if not conn.execute(f"SELECT 1 FROM players p WHERE {falta} LIMIT 1", pids or ()).fetchone():
+        return 0
+    filas = conn.execute(
+        "SELECT p.id, p.norm_name, p.ordinal, t.name, s.start_year FROM players p "
+        "LEFT JOIN teams t ON t.id = p.team_id LEFT JOIN seasons s ON s.id = p.season_id "
+        f"WHERE {falta}", pids or ()).fetchall()
+    sin_equipo = equipo_de_sus_apariciones(conn, [r[0] for r in filas if r[3] is None or r[4] is None])
+    puestas = 0
+    for pid, norm_name, ordinal, equipo, anio in filas:
+        base = nombre_base(norm_name)
+        if not base or base.startswith("#"):
+            continue
+        if equipo is None or anio is None:
+            equipo, anio = sin_equipo.get(pid, (None, None))
+            if equipo is None:
+                continue        # sin apariciones tampoco: generate_js._fichas le busca otra clave
+        norm = base + (f"#{ordinal}" if ordinal and ordinal > 1 else "")
+        clave = clave_publica(None, norm, equipo, anio)
+        if conn.execute("SELECT 1 FROM players WHERE clave=? AND id<>?", (clave, pid)).fetchone():
+            clave = clave_publica(None, f"{norm}|{pid}", equipo, anio)
+        conn.execute("UPDATE players SET clave=? WHERE id=?", (clave, pid))
+        puestas += 1
+    return puestas
 
 
 def nombre_base(norm_name: str) -> str:
@@ -348,6 +411,7 @@ def separar(conn, originales: dict, log=print) -> dict:
                 pid = conn.execute(
                     "INSERT INTO players(full_name, norm_name, team_id, season_id, ordinal) VALUES (?,?,?,?,?)",
                     (nombre, clave, tid, season_id, ordinal)).lastrowid
+                poner_claves(conn, [pid])
                 filas[pid] = [clave, nombre, None, tid, season_id, ordinal]
                 por_norm[clave] = pid
                 cuenta["identidades sin id creadas"] += 1

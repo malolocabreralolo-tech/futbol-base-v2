@@ -17,6 +17,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 from db import SCHEMA  # noqa: E402
 import import_fiflp_actas as I  # noqa: E402
 import migrate_identidad as M  # noqa: E402
+from identidad import clave_publica  # noqa: E402
 from migrate_actas_schema import migrate as migrate_actas  # noqa: E402
 
 quiet = lambda *a, **k: None  # noqa: E731
@@ -176,9 +177,61 @@ def test_el_esquema_es_idempotente():
     assert M.asegurar_esquema(conn) is True
     assert M.asegurar_esquema(conn) is False
     cols = {r[1] for r in conn.execute("PRAGMA table_info(players)")}
-    assert {"ficha_id", "union_por", "team_id", "season_id", "ordinal"} <= cols
+    assert {"ficha_id", "union_por", "team_id", "season_id", "ordinal", "clave"} <= cols
     indices = {r[1] for r in conn.execute("PRAGMA index_list(players)")}
-    assert {"idx_players_fiflp", "idx_players_sin_id", "idx_players_ficha"} <= indices
+    assert {"idx_players_fiflp", "idx_players_sin_id", "idx_players_ficha", "idx_players_clave"} <= indices
+
+
+def test_el_esquema_guarda_la_clave_de_las_identidades_sin_id_que_no_la_tienen():
+    """La clave pública de una identidad sin id se calcula una vez, con el nombre del equipo de ese momento,
+    y se guarda (players.clave); las que tienen id no la llevan (su clave es el id)."""
+    conn = base()
+    conn.executemany("INSERT INTO players(id, full_name, norm_name, fiflp_id, team_id, season_id, ordinal) "
+                     "VALUES (?,?,?,?,?,?,?)", [(1, "SOL, ANA", "SOL, ANA@3.2", None, 3, 2, None),
+                                                (2, "SOL, ANA", "SOL, ANA@3.2#2", None, 3, 2, 2),
+                                                (3, "SOL, ANA", "SOL, ANA", 777, None, None, None)])
+    conn.commit()
+    M.asegurar_esquema(conn)
+    claves = dict(conn.execute("SELECT id, clave FROM players"))
+    assert claves == {1: clave_publica(None, "SOL, ANA", "Club Tres", 2025),
+                      2: clave_publica(None, "SOL, ANA#2", "Club Tres", 2025), 3: None}
+    # Ya guardada, no se recalcula: renombrar el equipo no la cambia.
+    conn.execute("UPDATE teams SET name='Club Tres Renombrado' WHERE id=3")
+    conn.commit()
+    M.asegurar_esquema(conn)
+    assert dict(conn.execute("SELECT id, clave FROM players")) == claves
+
+
+def test_dos_filas_no_comparten_clave():
+    """Un equipo que hoy se llama como se llamaba otro cuando se creó una identidad: la nueva lleva la clave
+    del nombre con '|<id>' (y el índice único lo garantiza)."""
+    conn = base()
+    conn.execute("INSERT INTO players(id, full_name, norm_name, team_id, season_id) VALUES "
+                 "(1, 'SOL, ANA', 'SOL, ANA@1.2', 1, 2)")
+    M.poner_claves(conn)
+    conn.execute("UPDATE teams SET name='Atletico Viejo' WHERE id=1")
+    conn.execute("UPDATE teams SET name='Atletico Uno' WHERE id=2")
+    conn.execute("INSERT INTO players(id, full_name, norm_name, team_id, season_id) VALUES "
+                 "(2, 'SOL, ANA', 'SOL, ANA@2.2', 2, 2)")
+    assert M.poner_claves(conn, [2]) == 1
+    claves = dict(conn.execute("SELECT id, clave FROM players"))
+    assert claves[1] == clave_publica(None, "SOL, ANA", "Atletico Uno", 2025)
+    assert claves[2] == clave_publica(None, "SOL, ANA|2", "Atletico Uno", 2025) != claves[1]
+    with pytest.raises(sqlite3.IntegrityError):
+        conn.execute("UPDATE players SET clave=? WHERE id=2", (claves[1],))
+
+
+def test_la_migracion_deja_todas_las_identidades_sin_id_con_su_clave(mundo):
+    conn, raws = mundo
+    M.migrate(conn, str(raws), log=quiet)
+    filas = conn.execute("SELECT p.norm_name, p.ordinal, p.clave, t.name, s.start_year FROM players p "
+                         "JOIN teams t ON t.id=p.team_id JOIN seasons s ON s.id=p.season_id "
+                         "WHERE p.fiflp_id IS NULL").fetchall()
+    assert len(filas) >= 5
+    for norm_name, ordinal, guardada, equipo, anio in filas:
+        nombre = M.nombre_base(norm_name) + (f"#{ordinal}" if ordinal and ordinal > 1 else "")
+        assert guardada == clave_publica(None, nombre, equipo, anio)
+    assert conn.execute("SELECT count(*) FROM players WHERE fiflp_id IS NOT NULL AND clave IS NOT NULL").fetchone()[0] == 0
 
 
 def test_nombre_base_y_norm_sin_id():

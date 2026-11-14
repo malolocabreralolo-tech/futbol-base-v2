@@ -919,11 +919,12 @@ def _fichas(conn):
         return {"clave": {}, "ficha": {}, "por": {}, "publicadas": set(), "nombre": {}}
     c2 = {"ficha_id", "union_por", "team_id", "season_id", "ordinal"} <= cols
     sel = ("p.ficha_id, p.union_por, t.name, s.start_year, p.ordinal" if c2 else "NULL, NULL, NULL, NULL, NULL")
+    sel += ", p.clave" if "clave" in cols else ", NULL"
     join = ("LEFT JOIN teams t ON t.id = p.team_id LEFT JOIN seasons s ON s.id = p.season_id" if c2 else "")
     filas = conn.execute(f"SELECT p.id, p.norm_name, p.fiflp_id, {sel} FROM players p {join}").fetchall()
     existe = {r[0] for r in filas}
     clave, ficha, por, nombre = {}, {}, {}, {}
-    for pid, norm_name, fid, ficha_id, union_por, equipo, anio, ordinal in filas:
+    for pid, norm_name, fid, ficha_id, union_por, equipo, anio, ordinal, guardada in filas:
         base = nombre_base(norm_name)
         nombre[pid] = base
         ficha[pid] = ficha_id if ficha_id in existe else pid
@@ -931,6 +932,10 @@ def _fichas(conn):
             por[pid] = union_por
         if fid is not None:
             clave[pid] = str(int(fid))
+        elif guardada:
+            # La guardada al crear la identidad (migrate_identidad.poner_claves): no cambia si el equipo
+            # cambia de nombre o de fila.
+            clave[pid] = guardada
         elif equipo is not None and anio is not None and base and not base.startswith("#"):
             clave[pid] = clave_publica(None, base + (f"#{ordinal}" if ordinal and ordinal > 1 else ""), equipo, anio)
     con_apariciones = {pid for (pid,) in conn.execute("SELECT DISTINCT player_id FROM appearances")} \

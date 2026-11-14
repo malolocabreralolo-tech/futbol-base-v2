@@ -132,6 +132,27 @@ def test_sin_ningun_id_s_1_y_las_otras_fichas_del_mismo_nombre_con_su_ultimo_equ
     assert pablo == {"n": "SANCHEZ, PABLO", "c": [["2024-2025", "PG1", "Deportivo Dos", 1, 0, 0, 0, 0]], "s": 1}
 
 
+def publicado(conn):
+    """(claves de las fichas, alias, partidos publicados en total) de data-jugadores."""
+    shards = trozos(G.jugadores_files(conn))
+    fichas = {k: e for s in shards.values() for k, e in s["p"].items()}
+    alias = {a: c for s in shards.values() for a, c in s["a"].items()}
+    return set(fichas), alias, sum(fila[3] for e in fichas.values() for fila in e["c"])
+
+
+def test_renombrar_un_equipo_no_cambia_ninguna_clave_publicada():
+    """La clave de una identidad sin id se guarda al crearla (players.clave): activate_season.club_id
+    renombra filas de teams y, si se calculara al publicar, los enlaces y los seguidos se romperían."""
+    conn = base()
+    asegurar_esquema(conn)          # las del SEED, sin clave guardada: se la pone con los nombres de hoy
+    antes = publicado(conn)
+    assert LEO_DOS in antes[0] and antes[1][ANA_SIN_ID] == ANA
+    conn.execute("UPDATE teams SET name='Deportivo Dos Renombrado' WHERE id=2")
+    conn.execute("UPDATE teams SET name='Atletico Uno Renombrado' WHERE id=1")
+    conn.commit()
+    assert publicado(conn) == antes
+
+
 def test_sin_aparicion_no_hay_ficha_ni_el_gol_sin_nombre_tiene_clave():
     shards = trozos(G.jugadores_files(base()))
     todas = {k for s in shards.values() for k in [*s["p"], *s["a"]]}

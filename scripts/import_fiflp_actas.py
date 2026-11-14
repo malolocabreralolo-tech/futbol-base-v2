@@ -28,7 +28,7 @@ try:
     from scripts.fiflp_acta import clean_scorer, scorer_minute
     from scripts.migrate_actas_schema import STAFF_KINDS
     from scripts import actas_lotes
-    from scripts.migrate_identidad import norm_sin_id
+    from scripts.migrate_identidad import norm_sin_id, poner_claves
 except ImportError:
     # Direct CLI run (`python3 scripts/import_fiflp_actas.py`): sys.path[0] is
     # scripts/, so the `scripts.` package is not importable. Add the repo root.
@@ -37,7 +37,7 @@ except ImportError:
     from scripts.fiflp_acta import clean_scorer, scorer_minute
     from scripts.migrate_actas_schema import STAFF_KINDS
     from scripts import actas_lotes
-    from scripts.migrate_identidad import norm_sin_id
+    from scripts.migrate_identidad import norm_sin_id, poner_claves
 
 UNMATCHED_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fiflp_actas_unmatched.json")
 
@@ -54,7 +54,7 @@ def _norm_player(name: str) -> str:
 
 
 def _tiene_identidades(conn) -> bool:
-    return {"team_id", "season_id", "ordinal"} <= {r[1] for r in conn.execute("PRAGMA table_info(players)")}
+    return {"team_id", "season_id", "ordinal", "clave"} <= {r[1] for r in conn.execute("PRAGMA table_info(players)")}
 
 
 def _fiflp_id(valor):
@@ -95,8 +95,11 @@ def _get_or_create_player(conn, name: str, fiflp_id: int = None, team_id: int = 
     r = conn.execute("SELECT id FROM players WHERE norm_name=?", (clave,)).fetchone()
     if r:
         return r[0]
-    return conn.execute("INSERT INTO players(full_name, norm_name, team_id, season_id, ordinal) VALUES (?,?,?,?,?)",
-                        (name, clave, team_id, season_id, ordinal)).lastrowid
+    pid = conn.execute("INSERT INTO players(full_name, norm_name, team_id, season_id, ordinal) VALUES (?,?,?,?,?)",
+                       (name, clave, team_id, season_id, ordinal)).lastrowid
+    # Su clave pública, una vez y con el nombre del equipo de hoy: un renombre no la cambia.
+    poner_claves(conn, [pid])
+    return pid
 
 
 def _clave_dorsal(dorsal, orden):
