@@ -20,9 +20,15 @@ Guards the CI contracts fixed on 2026-06-11:
    (test_reloj_pasadas.py prueba la decisión). El guion del paso que decide
    se ejecuta con un gh de mentira: un fallo de gh lo deja en rojo y sin due.
 
-Static YAML checks — no network, no workflow execution (except that one
-step script, run locally with bash and a fake gh).
+5. (14/11/2026, fase 2B) update.yml publica el diagnóstico (solo
+   data-health.json) también cuando fallan las pruebas, y pone el job en rojo
+   después del commit si la pasada no fue sana (runHealth). El guion del paso
+   de diagnóstico se ejecuta en un repositorio de mentira con su remoto.
+
+Static YAML checks — no network, no workflow execution (except those two
+step scripts, run locally with bash, a fake gh and a throwaway git remote).
 """
+import json
 import os
 import re
 import subprocess
@@ -284,10 +290,115 @@ def test_two_passes_in_a_row_do_not_step_on_each_other():
     steps = _steps(data, "update")
     checkout = next(s for s in steps if str(s.get("uses", "")).startswith("actions/checkout"))
     assert checkout["with"]["ref"] == "main"
-    for name in ("Commit y push si hay cambios", "Publicar diagnóstico si la fuente falla"):
+    for name in ("Commit y push si hay cambios", DIAGNOSTICO):
         run = next(s for s in steps if s.get("name") == name)["run"]
         assert "for intento in 1 2 3" in run and "git pull --rebase --autostash origin main" in run, name
         assert "git rebase --abort" in run, name
+
+
+DIAGNOSTICO = "Publicar diagnóstico si la fuente o las pruebas fallan"
+MOTIVO_PRUEBAS = "las pruebas fallaron: los datos de esta pasada no se publicaron"
+
+
+def _update_step(name):
+    steps = _steps(_load("update.yml"), "update")
+    return steps, next(s for s in steps if s.get("name") == name)
+
+
+def test_update_suites_have_ids_for_the_diagnosis():
+    """El paso de diagnóstico mira si fallaron las pruebas (steps.pytest y steps.node): sus ids, y las
+    mismas condiciones de siempre (solo tras un scrape bueno)."""
+    for name, step_id in (("Tests Python (bloquean el commit si fallan)", "pytest"),
+                          ("Tests Node (bloquean el commit si fallan)", "node")):
+        _, step = _update_step(name)
+        assert step.get("id") == step_id, name
+        assert step.get("if") == "steps.scrape.outcome == 'success'", name
+
+
+def test_update_publishes_the_diagnosis_when_the_source_or_the_tests_fail():
+    """Fase 2B (14/11/2026): hasta entonces, con pruebas en rojo no se publicaba nada, tampoco el diagnóstico.
+    Corre si falló el scrape o una de las suites (no si solo falló el push de los datos: un conflicto se
+    rehace en la pasada siguiente). Si fallaron las pruebas, parte del data-health.json publicado (el de
+    esta pasada da por leído lo que no se publica) y lo marca en rojo; solo sube ese fichero y acaba en
+    rojo."""
+    steps, step = _update_step(DIAGNOSTICO)
+    assert not any(s.get("name") == "Publicar diagnóstico si la fuente falla" for s in steps)
+    assert step["if"] == ("${{ !cancelled() && (steps.scrape.outcome == 'failure' || "
+                          "steps.pytest.outcome == 'failure' || steps.node.outcome == 'failure') }}")
+    commit = next(s for s in steps if s.get("name") == "Commit y push si hay cambios")
+    assert steps.index(commit) < steps.index(step)
+    assert "${{ steps.scrape.outcome }}" in (step.get("env") or {}).values(), "el resultado del scrape, por env"
+    run = step["run"]
+    assert "${{" not in run
+    restore = run.index("git checkout HEAD -- data-health.json")
+    assert restore < run.index(f'python3 scripts/source_health.py marcar "{MOTIVO_PRUEBAS}"')
+    assert re.findall(r"git add .*", run) == ["git add data-health.json"], "nunca otro fichero"
+    assert 'git commit -m "Estado de las fuentes' in run
+    assert [l.strip() for l in run.strip().splitlines()][-1] == "exit 1"
+
+
+def _run_diagnosis_step(tmp_path, scrape_outcome):
+    """El guion de verdad del paso de diagnóstico, con bash, en un clon de un repositorio de mentira (con su
+    remoto) que tiene un data-health.json publicado y un source_health.py de mentira que hace de `marcar`.
+    La pasada deja data-health.json y un data-x.js cambiados sin subir. Devuelve (código de salida, el
+    data-health.json del remoto, los ficheros del último commit del remoto, la salida)."""
+    _, step = _update_step(DIAGNOSTICO)
+    tmp_path.mkdir(parents=True)
+    git_env ={**os.environ, "GIT_CONFIG_GLOBAL": str(tmp_path / "gitconfig"), "GIT_CONFIG_NOSYSTEM": "1"}
+    (tmp_path / "gitconfig").write_text("[init]\n\tdefaultBranch = main\n[user]\n\tname = t\n\temail = t@t\n")
+
+    def git(*args, cwd):
+        return subprocess.run(["git", *args], cwd=cwd, env=git_env, check=True, capture_output=True,
+                              text=True).stdout
+
+    remote, work = tmp_path / "remoto.git", tmp_path / "clon"
+    git("init", "--bare", "-b", "main", str(remote), cwd=tmp_path)
+    git("clone", str(remote), str(work), cwd=tmp_path)
+    (work / "scripts").mkdir()
+    (work / "scripts" / "source_health.py").write_text(
+        "import json, sys\n"
+        "assert sys.argv[1] == 'marcar'\n"
+        "d = json.load(open('data-health.json'))\n"
+        "d['runHealth'] = {'ok': False, 'reasons': [sys.argv[2]]}\n"
+        "json.dump(d, open('data-health.json', 'w'))\n", encoding="utf-8")
+    (work / "data-health.json").write_text('{"publicado": true}', encoding="utf-8")
+    (work / "data-x.js").write_text("publicado", encoding="utf-8")
+    git("add", ".", cwd=work)
+    git("commit", "-m", "publicado", cwd=work)
+    git("push", "origin", "main", cwd=work)
+    (work / "data-health.json").write_text('{"de esta pasada": true}', encoding="utf-8")
+    (work / "data-x.js").write_text("de esta pasada", encoding="utf-8")
+    env = {**git_env, **{k: (scrape_outcome if v == "${{ steps.scrape.outcome }}" else v)
+                         for k, v in (step.get("env") or {}).items()}}
+    done = subprocess.run(["bash", "-e", "-c", step["run"]], cwd=work, env=env, capture_output=True, text=True,
+                          timeout=60)
+    published = json.loads(git("show", "main:data-health.json", cwd=remote))
+    files = git("show", "--name-only", "--format=", "main", cwd=remote).split()
+    return done.returncode, published, files, done.stdout + done.stderr
+
+
+def test_the_diagnosis_after_failed_tests_publishes_the_published_report_in_red(tmp_path):
+    """Con las pruebas en rojo: el data-health.json publicado (no el de esta pasada), con runHealth en rojo
+    por las pruebas, y nada más; el job, en rojo. Con el scrape en rojo, el de esta pasada, como antes."""
+    code, published, files, log = _run_diagnosis_step(tmp_path / "pruebas", "success")
+    assert code == 1, log
+    assert published == {"publicado": True, "runHealth": {"ok": False, "reasons": [MOTIVO_PRUEBAS]}}, log
+    assert files == ["data-health.json"], log
+    code, published, files, log = _run_diagnosis_step(tmp_path / "fuente", "failure")
+    assert code == 1, log
+    assert published == {"de esta pasada": True}, log
+    assert files == ["data-health.json"], log
+
+
+def test_a_pass_in_red_turns_the_job_red_after_publishing():
+    """Fase 2B: el veredicto de la pasada (runHealth) pone el job en rojo, pero después del commit: los
+    datos de los grupos leídos bien ya están publicados. Solo si todo fue bien hasta ahí (si no, el job ya
+    está en rojo)."""
+    steps, step = _update_step("Pasada en rojo")
+    assert step.get("if") == "success()"
+    assert step["run"].strip() == "python3 scripts/source_health.py veredicto"
+    for name in ("Commit y push si hay cambios", DIAGNOSTICO):
+        assert steps.index(next(s for s in steps if s.get("name") == name)) < steps.index(step), name
 
 
 def test_update_logs_the_federation_pass_as_it_goes():

@@ -91,10 +91,12 @@ jobs:
       # recién generados y ANTES del commit: si fallan, el job sale rojo y no
       # se publica nada.
       - name: Tests Python (bloquean el commit si fallan)
+        id: pytest
         if: steps.scrape.outcome == 'success'
         run: python3 -m pytest scripts/tests/ -q
 
       - name: Tests Node (bloquean el commit si fallan)
+        id: node
         if: steps.scrape.outcome == 'success'
         run: node --test scripts/tests/test_*.mjs
 
@@ -135,13 +137,24 @@ jobs:
             done
           fi
 
-      - name: Publicar diagnóstico si la fuente falla
-        if: steps.scrape.outcome == 'failure'
+      # Si falló el bot o una de las suites (no si solo falló el push de los datos: un conflicto se rehace en
+      # la pasada siguiente), se publica el diagnóstico, y nada más: solo data-health.json. Hasta la fase 2B
+      # (14/11/2026), con las pruebas en rojo se perdía también el diagnóstico.
+      - name: Publicar diagnóstico si la fuente o las pruebas fallan
+        if: ${{ !cancelled() && (steps.scrape.outcome == 'failure' || steps.pytest.outcome == 'failure' || steps.node.outcome == 'failure') }}
+        env:
+          SCRAPE_OUTCOME: ${{ steps.scrape.outcome }}
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
-          # No se publican datos deportivos parciales de una ejecución fallida, ni sus comprobaciones
-          # correctas (source_health.finish(failed=True)): solo sus errores.
+          if [ "$SCRAPE_OUTCOME" = success ]; then
+            # Fallaron las pruebas: los datos de esta pasada no se publican, y su informe daría por leído lo
+            # que no se publica (como finish(failed=True)): se parte del publicado y se marca en rojo.
+            git checkout HEAD -- data-health.json
+            python3 scripts/source_health.py marcar "las pruebas fallaron: los datos de esta pasada no se publicaron"
+          fi
+          # Falló el bot: no se publican datos deportivos parciales de una ejecución fallida, ni sus
+          # comprobaciones correctas (source_health.finish(failed=True)): solo sus errores.
           git add data-health.json
           if ! git diff --cached --quiet; then
             git commit -m "Estado de las fuentes $(date '+%d/%m/%Y %H:%M UTC')"
@@ -154,3 +167,10 @@ jobs:
             done
           fi
           exit 1
+
+      # El veredicto de la pasada (runHealth, update_fiflp y source_health.set_run_health) pone el job en rojo,
+      # después del commit: los datos de los grupos leídos bien ya están publicados. Si algo anterior falló,
+      # el job ya está en rojo.
+      - name: Pasada en rojo
+        if: success()
+        run: python3 scripts/source_health.py veredicto

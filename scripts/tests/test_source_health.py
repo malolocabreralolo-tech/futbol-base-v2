@@ -128,8 +128,8 @@ def test_meaningful_view_ignores_only_timestamps():
 
 
 def test_a_failed_run_publishes_its_errors_but_not_its_good_checks(portal):
-    """update.yml, si el paso del bot falla («Publicar diagnóstico si la fuente falla»), sube solo
-    data-health.json, sin la base ni los datos: las comprobaciones correctas de esa ejecución no se publican
+    """update.yml, si el paso del bot falla («Publicar diagnóstico si la fuente o las pruebas fallan»), sube
+    solo data-health.json, sin la base ni los datos: las comprobaciones correctas de esa ejecución no se publican
     (vuelven a la anterior; sin ella, nada), y los errores sí (el diagnóstico). La hora de un prioritario
     (publish_time) tampoco: con ella la pasada siguiente lo daba por leído (update_fiflp.plan_groups) y no
     lo releía hasta ~6 h, con sus datos perdidos."""
