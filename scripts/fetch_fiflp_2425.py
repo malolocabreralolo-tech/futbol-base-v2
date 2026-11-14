@@ -51,6 +51,31 @@ def save(data):
     with open(OUTPUT_PATH, "w", encoding="utf-8") as f:
         json.dump(data, f, ensure_ascii=False, indent=2)
 
+
+# Dónde dejar qué grupos lista la federación en cada competición ({CodCompeticion: {CodGrupo: nombre}}):
+# activar_auto.py lo compara con los grupos del raw para saber si la descarga está completa. Solo lo
+# pone la tanda de las islas (fetch_fiflp_islas.py: fiflp_islas_<tanda>_grupos.json); None, nada.
+GROUPS_PATH = None
+
+
+def save_group_list(comp_id, groups, path=None):
+    """Apunta los grupos del desplegable de una competición ([{value, text}]) en GROUPS_PATH, con
+    escritura atómica (una descarga cortada no deja el fichero a medias). Un desplegable vacío (la
+    página no lo sirvió a tiempo) no borra lo que ya había."""
+    path = path or GROUPS_PATH
+    if not path or not groups:
+        return
+    try:
+        with open(path, encoding="utf-8") as f:
+            listed = json.load(f)
+    except (OSError, ValueError):
+        listed = {}
+    listed[str(comp_id)] = {str(g["value"]): g["text"] for g in groups}
+    tmp = f"{path}.tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(listed, f, ensure_ascii=False, indent=2, sort_keys=True)
+    os.replace(tmp, path)
+
 def goto(page, url, retries=3):
     """Carga `url` (hasta `retries` intentos) y espera 2,5 s. La usan las tandas (goleadores, detalle,
     islas, copas). Por fiflp_render.goto: un reintento, o una URL que el navegador ya pidió, pide su
@@ -312,6 +337,7 @@ def scrape_competition(page, comp, done):
         }
     """)
     print(f"  {len(groups)} grupos")
+    save_group_list(comp["id"], groups)
 
     for grp in groups:
         key = f"{comp['id']}_{grp['value']}"

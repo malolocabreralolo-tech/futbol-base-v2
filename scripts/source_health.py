@@ -45,6 +45,7 @@ def begin(season):
                "nextSeason": _previous.get("nextSeason", {"name": load_config()["nextSeason"], "status": "pending"})}
     _carry_new()
     _carry_run_health()
+    _carry_activation()
 
 
 def _same_season():
@@ -71,6 +72,15 @@ def _carry_run_health():
     health = _previous.get("runHealth") if _same_season() else None
     if isinstance(health, dict):
         _report["runHealth"] = dict(health)
+
+
+def _carry_activation():
+    """La última activación automática (activar_auto.py, que la escribe en el fichero del disco) sigue tal
+    cual entre pasadas: lo que no se pudo cargar se ve en «Datos y fuentes» y su `tried` frena los
+    reintentos. Con otra temporada, fuera."""
+    activation = _previous.get("activation") if _same_season() else None
+    if isinstance(activation, dict):
+        _report["activation"] = activation
 
 
 def _red(previous, reasons, now=None):

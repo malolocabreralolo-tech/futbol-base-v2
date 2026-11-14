@@ -79,6 +79,18 @@ def _iso(day):
     return f"{m.group(3)}-{m.group(2)}-{m.group(1)}" if m else (day or "").strip()
 
 
+# Copa o eliminatoria (de partido único o a doble partido): sin clasificación propia en la federación.
+ELIMINATORIA = re.compile(r"\bCOPA\b|ELIMINATORIA")
+
+
+def eliminatoria(text):
+    """¿El nombre de la competición ('COPA BENJAMÍN GRAN CANARIA', '… ELIMINATORIAS') o la fase del grupo
+    ('Copa Gran Canaria', 'Eliminatorias') es de una copa o una eliminatoria?"""
+    import unicodedata
+    folded = "".join(c for c in unicodedata.normalize("NFD", text or "") if unicodedata.category(c) != "Mn")
+    return bool(ELIMINATORIA.search(folded.upper()))
+
+
 def fiflp_evidence(group, raw, names=None):
     """(rounds, standings) de un grupo de la federación, sacados del raw de
     fetch_fiflp_islas.py con la misma forma que dan los parsers de futbolaspalmas:
@@ -88,7 +100,8 @@ def fiflp_evidence(group, raw, names=None):
     (insert_groups lo guarda: así el bot lee su acta). `names` traduce el
     nombre de FIFLP al que ya usa la base (escudo, histórico, ficha). Antes de la
     primera jornada FIFLP no publica clasificación: sale de los equipos del
-    calendario, todo a cero y por orden alfabético."""
+    calendario, todo a cero y por orden alfabético; en una copa o una eliminatoria
+    (eliminatoria), ninguna: no la tiene."""
     from import_fiflp_cups_2324 import clean_team_name
     from fiflp_names import is_bye
     comp, code = fiflp_ids(group["url"])
@@ -119,7 +132,9 @@ def fiflp_evidence(group, raw, names=None):
     standings = [[r.get("pos"), name(r.get("team")), r.get("pts"), r.get("j"), r.get("g"), r.get("e"),
                   r.get("p"), r.get("gf"), r.get("gc"), r.get("df")]
                  for r in entry.get("standings") or [] if clean_team_name(r.get("team"))]
-    if not standings:
+    # Una copa o una eliminatoria sin tabla no la tiene: a CGC1 (17 partidos a partido único) se le
+    # inventaron 34 filas a cero que hubo que borrar a mano.
+    if not standings and not eliminatoria(entry.get("competition_name") or group.get("phase")):
         teams = sorted({t for ms in rounds.values() for m in ms for t in (m[1], m[2])})
         standings = [[i, t, 0, 0, 0, 0, 0, 0, 0, 0] for i, t in enumerate(teams, 1)]
     return rounds, standings
@@ -139,16 +154,20 @@ def verify_sources(manifest, fetcher=fetch, fiflp_raw=None, names=None):
     first, last = date(start, 7, 1), date(end, 6, 30)
     evidence = []
     for group in manifest["groups"]:
+        # Solo una copa o una eliminatoria de la federación se verifica sin tabla (fiflp_evidence no se la
+        # inventa); una liga sin ella sigue sin pasar.
+        knockout = False
         if urlparse(group["url"]).hostname == "www.fiflp.com":
             if fiflp_raw is None:
                 raise ValueError(f'{group["id"]}: los grupos de la federación se verifican con --fiflp-raw')
             rounds, standings = fiflp_evidence(group, fiflp_raw, names)
+            knockout = eliminatoria(group.get("phase"))
         else:
             url = group["url"].rstrip("/") + "/"
             rounds = parse_all_matches(fetcher(url), include_details=True)
             standings = parse_standings(fetcher(url + "mostrar_clasi.php"))
         matches = [m for entries in rounds.values() for m in entries]
-        if not standings or not matches:
+        if not matches or (not standings and not knockout):
             raise ValueError(f'{group["id"]}: faltan clasificación o partidos con año verificable')
         if any(not first <= date.fromisoformat(m[0]) <= last for m in matches):
             raise ValueError(f'{group["id"]}: el calendario contiene fechas de otra temporada')
@@ -158,7 +177,7 @@ def verify_sources(manifest, fetcher=fetch, fiflp_raw=None, names=None):
         # reconoce (model.retiredTeams). Lo que esta comprobación busca es un calendario de otro grupo:
         # entonces casi ningún equipo está en la tabla. Una minoría fuera de ella son retirados.
         outside = {t for m in matches for t in (m[1], m[2]) if t not in table}
-        if len(outside) > max(1, len(table) // 3):
+        if table and len(outside) > max(1, len(table) // 3):
             raise ValueError(f'{group["id"]}: calendario y clasificación tienen equipos diferentes')
         default = manifest.get("defaultTeam") or {}
         if group["id"] == default.get("groupId") and default["name"] not in table:

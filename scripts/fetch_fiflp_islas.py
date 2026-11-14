@@ -172,6 +172,8 @@ if SEASON not in COMPS_BY_SEASON:
 F.SEASON = re.sub(r"\D", "", SEASON)
 F.OUTPUT_PATH = os.path.join(F.PROJECT_ROOT, "scripts",
                              f"fiflp_islas_{SEASON}_raw.json")
+# Qué grupos lista la federación en cada competición: activar_auto.py sabe así si la descarga está completa.
+F.GROUPS_PATH = os.path.join(F.PROJECT_ROOT, "scripts", f"fiflp_islas_{SEASON}_grupos.json")
 
 _ids = os.environ.get("SCRAPE_IDS", "")
 _comps = COMPS_BY_SEASON[SEASON]

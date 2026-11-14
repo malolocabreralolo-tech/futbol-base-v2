@@ -123,9 +123,23 @@ def group_number(group_name):
     return int(m.group(1)) if m else 1
 
 
-def build(raw, season, season_code, names=None):
-    """Grupos del manifiesto (sin defaultTeam)."""
-    groups, seen = [], set()
+def group_label(group_name):
+    """El nombre del grupo en la web: «Grupo N» o, si la federación no lo numera, el suyo («Eliminatoria
+    previa» de la Copa Benjamín, como se activó a mano el 13/11/2026; «Grupo 1» no dice nada de una copa)."""
+    if re.search(r"\d", group_name or ""):
+        return f"Grupo {group_number(group_name)}"
+    return " ".join((group_name or "").split()) or "Grupo 1"
+
+
+def build(raw, season, season_code, names=None, only=None, taken=()):
+    """Grupos del manifiesto (sin defaultTeam). `only`: solo esos (CodCompeticion, CodGrupo) del raw (la
+    activación automática, activar_auto.py: los grupos que la temporada aún no tiene), filtrados antes de
+    ordenar para que otra competición del raw sin convenio no aborte; `taken`: los códigos que ya tiene la
+    temporada, con los que un código nuevo no puede chocar («código repetido: …»)."""
+    if only is not None:
+        only = {(str(c), str(g)) for c, g in only}
+        raw = [g for g in raw if (str(g.get("competition_id")), str(g.get("group_id"))) in only]
+    groups, seen = [], set(taken)
     for g in sorted(raw, key=lambda g: (comp_meta(g["competition_name"]), group_number(g["group_name"]))):
         if not g.get("jornadas") and not g.get("standings"):
             continue                       # grupo dado de alta sin calendario todavía
@@ -139,7 +153,7 @@ def build(raw, season, season_code, names=None):
         island = ("lanzarote" if prefix in ("LZ", "LZS", "PLZ") else
                   "fuerteventura" if prefix in ("FV1", "FV2", "PFV") else "grancanaria")
         groups.append({
-            "id": code, "cat": cat, "name": f"Grupo {n}", "phase": phase, "island": island,
+            "id": code, "cat": cat, "name": group_label(g["group_name"]), "phase": phase, "island": island,
             "fullName": f"{cat.upper()} {fold(phase)} - GRUPO {n}",
             "url": FIFLP_URL.format(season=season_code, comp=g["competition_id"], group=g["group_id"]),
         })
