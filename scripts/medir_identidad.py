@@ -8,7 +8,9 @@ id. De los pares que uniría U1 (mismo nombre, mismo club, temporadas consecutiv
 cuenta cuántos son el mismo niño (el mismo id, o el mismo niño tras U0, también la de los cortos) y
 cuántos no, con nombres completos (dos apellidos), de un apellido y sin coma aparte. Con una precisión
 de los sin coma del 95 % o más en los pares de uno a uno (como une U1), `unir_cortos_en_club` es True
-(docs/identidad.md); los de coma, completos o de un apellido, se unen siempre.
+(docs/identidad.md); los de coma, completos o de un apellido, se unen siempre. Mide también la U0 de
+club (mismo nombre con coma, club y temporada, equipos distintos): con una precisión de los completos
+del 95 % o más, U0_CLUB_COMPLETOS es True, y U0_CLUB_UN_APELLIDO si además la de un apellido lo es.
 
 Los equipos son los de la base (el acta por su CodActa, `matches.cod_acta`): con los nombres de la
 federación ('ATLETICO HURACAN "A", A.D. A') la letra de filial no sale y cada filial parecería otro club.
@@ -137,6 +139,58 @@ def pares(filas, nino):
     return out
 
 
+def pares_club(filas, nino):
+    """La medida de la U0 de club: {'completos'|'un apellido': Counter}. Pares de (nombre con coma, equipo,
+    temporada) con el mismo nombre, el mismo club y la misma temporada y equipos distintos, que caben: cada
+    niño de uno con cada niño del otro, mismo o distinto; 'cubos un niño' / 'cubos varios': los cubos con
+    dos o más equipos, con un solo niño o con varios."""
+    fechas, en = defaultdict(list), defaultdict(set)
+    for fid, norm, anio, nivel, equipo, fecha in filas:
+        if nombre_con_coma(norm):
+            fechas[(norm, equipo, anio, nivel)].append(fecha)
+            en[(norm, equipo, anio, nivel)].add(nino[fid])
+    cubos = defaultdict(list)
+    for norm, equipo, anio, nivel in fechas:
+        cubos[(norm, club(equipo), anio)].append((equipo, nivel))
+    out = defaultdict(Counter)
+    for (norm, c, anio), unidades in sorted(cubos.items()):
+        if not c or len({e for e, _ in unidades}) < 2:
+            continue
+        tipo = "completos" if nombre_completo(norm) else "un apellido"
+        unidades.sort()
+        for k, (ea, na) in enumerate(unidades):
+            for eb, nb in unidades[k + 1:]:
+                if ea == eb:
+                    continue
+                if not compatibles([_vista(anio, na, ea, fechas[(norm, ea, anio, na)])],
+                                   [_vista(anio, nb, eb, fechas[(norm, eb, anio, nb)])]):
+                    out[tipo]["no caben"] += 1
+                    continue
+                for x in en[(norm, ea, anio, na)]:
+                    for y in en[(norm, eb, anio, nb)]:
+                        out[tipo]["mismo" if x == y else "distinto"] += 1
+        ninos_cubo = set().union(*(en[(norm, e, anio, n)] for e, n in unidades))
+        out[tipo]["cubos un niño" if len(ninos_cubo) == 1 else "cubos varios"] += 1
+    return out
+
+
+def informe_club(medida_club):
+    """Las líneas de la U0 de club y si cada tipo pasa del umbral."""
+    lineas, pasa = ["U0 de club (mismo nombre, club y temporada, equipos distintos):"], {}
+    lineas.append(f"  {'nombres':<11} {'pares':>7} {'mismo':>7} {'distinto':>8} {'no caben':>8} {'cubos 1 niño':>12} "
+                  f"{'cubos varios':>12} {'precisión':>9}")
+    for tipo in ("completos", "un apellido"):
+        c = medida_club[tipo]
+        total = c["mismo"] + c["distinto"]
+        p = c["mismo"] / total if total else 0.0
+        pasa[tipo] = p >= UMBRAL
+        lineas.append(f"  {tipo:<11} {total:>7} {c['mismo']:>7} {c['distinto']:>8} {c['no caben']:>8} "
+                      f"{c['cubos un niño']:>12} {c['cubos varios']:>12} {100 * p:>8.1f}%")
+    lineas.append(f"  → U0_CLUB_COMPLETOS = {pasa['completos']}, "
+                  f"U0_CLUB_UN_APELLIDO = {pasa['completos'] and pasa['un apellido']}")
+    return "\n".join(lineas), pasa
+
+
 def informe(cuenta, nino, medida, cubos=None):
     lineas = [f"Originales: {', '.join(TEMPORADAS)} (equipos de la base, por CodActa)."]
     for clave in ("actas", "actas de una categoría que no se publica", "actas sin partido en la base",
@@ -173,6 +227,7 @@ def main(argv=None):
     nino = ninos(filas)
     texto, _ = informe(cuenta, nino, pares(filas, nino), resumen_u0_cortos(identidades_con_id(filas)))
     print(texto)
+    print(informe_club(pares_club(filas, nino))[0])
 
 
 if __name__ == "__main__":

@@ -951,3 +951,32 @@ def test_la_medida_decide_por_los_pares_de_uno_a_uno():
 def test_los_cortos_se_unen_en_el_club():
     # La medida del 14/11/2026 (docs/identidad.md): sin coma, uno a uno, 100 % ≥ 95 %.
     assert UNIR_CORTOS_EN_CLUB is True
+
+
+def test_la_medida_de_la_u0_de_club():
+    import medir_identidad as M
+    f = lambda fid, norm, anio, equipo, nivel=PRE: (fid, norm, anio, nivel, equipo, f"{anio}-11-01")  # noqa: E731
+    filas = [
+        # El mismo niño en «Moya» y «Moya B» la misma temporada: mismo.
+        f(1, "SOSA VEGA, ANA", 2025, "Moya"), f(1, "SOSA VEGA, ANA", 2025, "Moya B", BEN),
+        # Dos niños con el mismo nombre en dos equipos del club: distinto.
+        f(2, "MESA LUIS, ABEL", 2025, "Teror"), f(3, "MESA LUIS, ABEL", 2025, "Teror B"),
+        # Un apellido, mismo niño; y uno que no cabe por edad.
+        f(4, "ROSALES, TEO", 2025, "Moya"), f(4, "ROSALES, TEO", 2025, "Moya C"),
+        f(5, "ROSALES, IVO", 2025, "Moya"), f(6, "ROSALES, IVO", 2025, "Moya B", ALE),
+        # Sin coma, otro club u otra temporada: no cuentan.
+        f(7, "LUCAS", 2025, "Moya"), f(7, "LUCAS", 2025, "Moya B"),
+        f(8, "DIAZ DIAZ, HUGO", 2025, "Moya"), f(8, "DIAZ DIAZ, HUGO", 2025, "Teror"),
+        f(9, "PEREZ PEREZ, ALMA", 2024, "Moya"), f(9, "PEREZ PEREZ, ALMA", 2025, "Moya B"),
+    ]
+    medida = M.pares_club(filas, M.ninos(filas))
+    assert medida["completos"] == {"mismo": 1, "distinto": 1, "cubos un niño": 1, "cubos varios": 1}
+    assert medida["un apellido"] == {"mismo": 1, "no caben": 1, "cubos un niño": 1, "cubos varios": 1}
+    texto, pasa = M.informe_club(medida)
+    assert pasa == {"completos": False, "un apellido": True}
+    assert "U0_CLUB_COMPLETOS = False, U0_CLUB_UN_APELLIDO = False" in texto
+
+
+def test_la_u0_de_club_esta_activa_por_la_medida():
+    # La medida del 14/11/2026 (docs/identidad.md): completos 99,4 %, un apellido 100 %.
+    assert identidad.U0_CLUB_COMPLETOS is True and identidad.U0_CLUB_UN_APELLIDO is True

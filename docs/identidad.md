@@ -32,10 +32,13 @@ Nombre normalizado: sin tildes, en mayúsculas y con espacios simples (`identida
 | | Regla | `union_por` |
 |---|---|---|
 | U0 | Identidad de un solo uso: el mismo nombre **con coma** (uno o más apellidos) en el mismo equipo y la misma temporada → la misma ficha. Después, la de los nombres **sin coma** (abajo). | `equipo` |
+| U0 de club | Mismo club y misma temporada: las fichas con el mismo nombre **con coma**, del mismo club, en la misma temporada (equipos «X» y «X B», o prebenjamín y benjamín del club) → una, si en ese cubo hay **como mucho una** con identificador (abajo). | `club` |
 | U1 | Mismo club, temporadas seguidas: dos fichas con el mismo nombre, del mismo club, en temporadas consecutivas y compatibles, de uno a uno, cuando **no tienen identificador las dos** (las dos sin él, o una con él y otra sin él, en cualquier orden de temporadas; dos con identificador no: manda el id). Los nombres sin coma solo si `unir_cortos_en_club` (la medida de abajo); los de coma, siempre. | `club` |
 | U2 | Candidata única: una ficha sin ningún identificador y de nombre completo se une a la otra ficha con ese nombre cuando es la **única** y son compatibles. Con dos o más, a ninguna. Los de un apellido y los sin coma, nunca. | `nombre` |
 
 **U0 de los nombres sin coma** (añadida el 14/11/2026, tras la medida de abajo; hasta la ronda 2 valía también para los de un apellido, que ahora van por la U0 normal): cubo de identidades **con identificador** y nombre sin coma, mismo nombre, mismo equipo y misma temporada. «De un solo uso» es la que tiene exactamente 1 aparición en total (sumando todas sus vistas); «asentada», todas las demás. Con **exactamente una** asentada, cada una de un solo uso se une a ella si caben; con dos o más asentadas (dos niños con el mismo nombre de pila en el equipo) o con ninguna (todas de un solo uso), no se une ninguna. Las sin identificador de nombre sin coma no entran (ya son una sola por nombre, equipo y temporada).
+
+**U0 de club** (ronda de arreglo 3; va después de las dos U0 de equipo y antes de U1): cubo de fichas, tal como las dejaron las U0 de equipo, con el mismo nombre con coma, el mismo club (`club(equipo)`, no vacío) y la misma temporada. Si en el cubo hay como mucho una ficha con identificador, se unen todas (las sin identificador entre sí y con la que lo tiene), cada una a la primera del cubo con la que cabe (la que sería principal primero), como en U0; la que no cabe con ninguna se queda fuera. Con dos o más con identificador, nada (manda el id, y no se sabe de cuál es la que no lo tiene). Los nombres sin coma no entran (dos «DANIEL» en dos categorías de un club son probablemente dos niños), y una ficha con ordinal bloquea su cubo. El caso que la trajo: un niño sin identificador en prebenjamín de un club dos temporadas, con un partido con identificador en el benjamín B del club la segunda y el mismo identificador en otro club la tercera, salía en tres fichas (U0 no unía «X» y «X B»; U1 veía dos fichas en el club esa temporada); ahora la U0 de club une las dos de la segunda temporada y U1 la primera con ellas: una ficha, con la principal del identificador. Detrás de `identidad.U0_CLUB_COMPLETOS` y `U0_CLUB_UN_APELLIDO` (la medida de abajo).
 
 Nada más une. Lo imposible por edad no se une nunca (tampoco en U0).
 
@@ -50,7 +53,7 @@ Nada más une. Lo imposible por edad no se une nunca (tampoco en U0).
 3. **El ordinal.** Las identidades `X` y `X#2` del mismo equipo y temporada no se unen nunca entre sí (U0 se salta a las que no tienen identificador en ese equipo y temporada si hay un ordinal), una ficha con ordinal no se une por U1 ni por U2, y cuenta como otra ficha del nombre `X` (así bloquea U2: no se sabe cuál de los dos es el otro).
 4. **Sin fechas, se cruzan.** Si una vista no tiene fechas, no se puede descartar el solape imposible: se trata como si se cruzara.
 5. **La fila «sin nombre publicado»** (`#SIN NOMBRE PUBLICADO`) y un nombre vacío no se unen nunca a nada.
-6. **U0 reparte por compatibilidad.** En cada (nombre, equipo, temporada), cada identidad va a la primera ficha del grupo con la que cabe (la que sería principal primero); si no cabe con ninguna, empieza otra. Así el resultado es un punto fijo.
+6. **U0 reparte por compatibilidad.** En cada (nombre, equipo, temporada), cada identidad va a la primera ficha del grupo con la que cabe (la que sería principal primero); si no cabe con ninguna, empieza otra. Así el resultado es un punto fijo. La U0 de club hace lo mismo con las fichas de su cubo.
 
 ## La medida de los nombres cortos
 
@@ -82,6 +85,18 @@ Precisión sin coma (uno a uno) 100.0 % ≥ 95 % → unir_cortos_en_club = True
 **Resultado: `unir_cortos_en_club = True`** (`identidad.UNIR_CORTOS_EN_CLUB`). Los de un apellido, 96,4 % uno a uno. Los cubos cuentan solo los que tienen algo que unir: con una asentada y alguna de un solo uso, con dos o más asentadas y alguna de un solo uso, o sin asentada y con dos o más de un solo uso; entre 2019-20 y 2023-24 no hay ninguno sin coma (los identificadores de un solo uso de nombre corto eran de nombres de un apellido).
 
 Historia de la cifra: sin ninguna U0 para los cortos (un apellido y sin coma juntos), la misma medida daba 33,2 % (todos) y 94,9 % (uno a uno), y los 318 pares distintos tenían todos en un lado un identificador con una sola aparición; con la U0 de una asentada (ronda 1), 35,7 % y 97,8 %, y los 285 pares distintos que quedaban eran de identificadores de un solo uso en cubos sin asentada (de 2 a 30 cada uno). Con la U0 normal para los de un apellido (ronda 2), esos cubos se unen: quedan 3 pares distintos de un apellido en «todos» y ninguno sin coma.
+
+**La U0 de club**, medida igual (entre jugadores con identificador, tras U0): de los pares de (nombre con coma, equipo, temporada) con el mismo nombre, club y temporada y equipos distintos, que caben, cuántos son el mismo niño (`pares_club`); «cubos» cuenta los (nombre, club, temporada) con dos o más equipos, con un solo niño o con varios. Si la precisión de los completos bajara del 95 %, la regla no se activaría; si solo la de un apellido, quedaría solo para completos.
+
+```
+U0 de club (mismo nombre, club y temporada, equipos distintos):
+  nombres       pares   mismo distinto no caben cubos 1 niño cubos varios precisión
+  completos       324     322        2        0          319            2     99.4%
+  un apellido      17      17        0        0           17            0    100.0%
+  → U0_CLUB_COMPLETOS = True, U0_CLUB_UN_APELLIDO = True
+```
+
+**Resultado: la U0 de club, activa para completos (99,4 %) y de un apellido (100 %).**
 
 ## Deshacer una unión
 
