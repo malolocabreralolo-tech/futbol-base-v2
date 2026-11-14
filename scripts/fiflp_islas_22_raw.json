@@ -19180,5 +19180,569 @@
         ]
       }
     ]
+  },
+  {
+    "competition_id": "54976988",
+    "competition_name": "LIGA BENJAMIN GRAN CANARIA FASE PREVIA",
+    "cat": "benjamin",
+    "island": "grancanaria",
+    "phase": "LIGA BENJAMIN GRAN CANARIA FASE PREVIA",
+    "group_id": "55331279",
+    "group_name": "Eliminatoria de Primeros y Segundos",
+    "standings": [],
+    "jornadas": [
+      {
+        "num": "14-11-2026 ( Única )",
+        "date": "",
+        "matches": [
+          {
+            "home": "(Clasificado) ARUCAS C.F. \"C\"",
+            "away": "CLARAVISION-ROQUE AMAGRO, C.D.",
+            "hs": 5,
+            "as": 0,
+            "fiflp_acta": 294412,
+            "date": "14-11-2026",
+            "time": "09:00",
+            "venue": "CMF LA ATALAYA",
+            "referee": ""
+          },
+          {
+            "home": "(Clasificado) GALDAR JACOBEO27 \"A\"",
+            "away": "BARRIAL, U.D.",
+            "hs": 7,
+            "as": 0,
+            "fiflp_acta": 294413,
+            "date": "14-11-2026",
+            "time": "09:00",
+            "venue": "CMF LA ATALAYA",
+            "referee": ""
+          },
+          {
+            "home": "(Clasificado) ARUCAS C.F. \"A\"",
+            "away": "VETERANOS DEL PILA, C.D. \"B\"",
+            "hs": 13,
+            "as": 1,
+            "fiflp_acta": 294416,
+            "date": "14-11-2026",
+            "time": "09:00",
+            "venue": "C.M. CIPRIANO MEDINA",
+            "referee": ""
+          },
+          {
+            "home": "(Clasificado) ACODETTI C.F. \"A\"",
+            "away": "ACODETTI C.F. \"B\"",
+            "hs": 7,
+            "as": 7,
+            "fiflp_acta": 294417,
+            "date": "14-11-2026",
+            "time": "09:00",
+            "venue": "C.M. CIPRIANO MEDINA",
+            "referee": ""
+          },
+          {
+            "home": "(Clasificado) ATALAYA, U.D. \"A\"",
+            "away": "PANADERIA PULIDO SAN MATEO, C.F.",
+            "hs": 4,
+            "as": 2,
+            "fiflp_acta": 294414,
+            "date": "14-11-2026",
+            "time": "10:30",
+            "venue": "CMF LA ATALAYA",
+            "referee": ""
+          },
+          {
+            "home": "GUINIGUADA APOLINARIO, C.D. \"A\"",
+            "away": "FIRGAS, C.D. (Ganador)",
+            "hs": 4,
+            "as": 6,
+            "fiflp_acta": 294415,
+            "date": "14-11-2026",
+            "time": "10:30",
+            "venue": "CMF LA ATALAYA",
+            "referee": ""
+          },
+          {
+            "home": "(Clasificado) CORAZON DE MARIA, C.D. \"A\"",
+            "away": "UNION VIERA, C.F. \"B\"",
+            "hs": 7,
+            "as": 1,
+            "fiflp_acta": 294418,
+            "date": "14-11-2026",
+            "time": "10:30",
+            "venue": "C.M. CIPRIANO MEDINA",
+            "referee": ""
+          },
+          {
+            "home": "(Clasificado) PALMAS, U.D. LAS",
+            "away": "DANIEL CARNEVALI, C.D. \"A\"",
+            "hs": 18,
+            "as": 1,
+            "fiflp_acta": 294419,
+            "date": "14-11-2026",
+            "time": "10:30",
+            "venue": "C.M. CIPRIANO MEDINA",
+            "referee": ""
+          },
+          {
+            "home": "(Clasificado) DORAMAS, C.D. \"A\"",
+            "away": "ARINAGA, C.D.",
+            "hs": 14,
+            "as": 3,
+            "fiflp_acta": 294432,
+            "date": "14-11-2026",
+            "time": "12:00",
+            "venue": "CASTILLO DEL ROMERAL",
+            "referee": ""
+          },
+          {
+            "home": "(Clasificado) LA UNION DE VECINDARIO \"A\"",
+            "away": "LA UNION DE VECINDARIO \"C\"",
+            "hs": 8,
+            "as": 2,
+            "fiflp_acta": 294433,
+            "date": "14-11-2026",
+            "time": "12:00",
+            "venue": "CASTILLO DEL ROMERAL",
+            "referee": ""
+          },
+          {
+            "home": "(Clasificado) SAN PEDRO MARTIR, C.D. \"A\"",
+            "away": "CHATUR SAN FERNANDO \"A\"",
+            "hs": 7,
+            "as": 4,
+            "fiflp_acta": 294434,
+            "date": "14-11-2026",
+            "time": "13:30",
+            "venue": "CASTILLO DEL ROMERAL",
+            "referee": ""
+          },
+          {
+            "home": "(Clasificado) MASPA TRAINING, C.D. \"B\"",
+            "away": "BALOS, U.D.",
+            "hs": 9,
+            "as": 2,
+            "fiflp_acta": 294435,
+            "date": "14-11-2026",
+            "time": "13:30",
+            "venue": "CASTILLO DEL ROMERAL",
+            "referee": ""
+          },
+          {
+            "home": "HURACAN, A.D. \"A\"",
+            "away": "TORRES, U.D. LAS",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": 294420,
+            "date": "15-11-2026",
+            "time": "09:00",
+            "venue": "MUNDIAL 82",
+            "referee": ""
+          },
+          {
+            "home": "TAMARACEITE, U.D. \"A\"",
+            "away": "VILLA DE SANTA BRIGIDA, U.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": 294421,
+            "date": "15-11-2026",
+            "time": "09:00",
+            "venue": "MUNDIAL 82",
+            "referee": ""
+          },
+          {
+            "home": "SAN JUAN TRES PALMAS, C.D.",
+            "away": "HURACAN, A.D. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": 294424,
+            "date": "15-11-2026",
+            "time": "09:00",
+            "venue": "C.M. CIPRIANO MEDINA",
+            "referee": ""
+          },
+          {
+            "home": "VETERANOS DEL PILA., C.D. \"A\"",
+            "away": "SAN JOSE, REAL SPORTING \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": 294425,
+            "date": "15-11-2026",
+            "time": "09:00",
+            "venue": "C.M. CIPRIANO MEDINA",
+            "referee": ""
+          },
+          {
+            "home": "GARITA, C.F.S. LA",
+            "away": "INGENIO, C.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": 294428,
+            "date": "15-11-2026",
+            "time": "09:00",
+            "venue": "MUNDIAL 82 ANEXO",
+            "referee": ""
+          },
+          {
+            "home": "PUERTOS DE L.P., C.E.F. \"A\"",
+            "away": "ATLETICO FOMENTO, CLUB \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": 294422,
+            "date": "15-11-2026",
+            "time": "10:30",
+            "venue": "MUNDIAL 82",
+            "referee": ""
+          },
+          {
+            "home": "HURACAN, A.D. \"B\"",
+            "away": "SIMUSETTI C. F.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": 294423,
+            "date": "15-11-2026",
+            "time": "10:30",
+            "venue": "MUNDIAL 82",
+            "referee": ""
+          },
+          {
+            "home": "TELDE, U.D. \"A\"",
+            "away": "LONGUERAS, C.D. LAS",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": 294426,
+            "date": "15-11-2026",
+            "time": "10:30",
+            "venue": "C.M. CIPRIANO MEDINA",
+            "referee": ""
+          },
+          {
+            "home": "ATLETICO G.C., C.F. \"A\"",
+            "away": "GARITA, C.F.S. LA \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": 294427,
+            "date": "15-11-2026",
+            "time": "10:30",
+            "venue": "C.M. CIPRIANO MEDINA",
+            "referee": ""
+          },
+          {
+            "home": "CARRIZAL, C.F. UNION",
+            "away": "CALERO, C.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": 294429,
+            "date": "15-11-2026",
+            "time": "10:30",
+            "venue": "MUNDIAL 82 ANEXO",
+            "referee": ""
+          },
+          {
+            "home": "INGENIO, C.D. \"B\"",
+            "away": "MASPALOMAS, C.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": 294430,
+            "date": "15-11-2026",
+            "time": "12:00",
+            "venue": "MUNDIAL 82 ANEXO",
+            "referee": ""
+          },
+          {
+            "home": "MASPA TRAINING, C.D. \"A\"",
+            "away": "CARRIZAL, C.F. UNION \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": 294431,
+            "date": "15-11-2026",
+            "time": "12:00",
+            "venue": "MUNDIAL 82",
+            "referee": ""
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "competition_id": "54976988",
+    "competition_name": "LIGA BENJAMIN GRAN CANARIA FASE PREVIA",
+    "cat": "benjamin",
+    "island": "grancanaria",
+    "phase": "LIGA BENJAMIN GRAN CANARIA FASE PREVIA",
+    "group_id": "55331350",
+    "group_name": "Eliminatoria de Terceros y Cuartos",
+    "standings": [],
+    "jornadas": [
+      {
+        "num": "14-11-2026 ( Única )",
+        "date": "",
+        "matches": [
+          {
+            "home": "(Clasificado) ARGUINEGUIN, C.D. \"A\"",
+            "away": "DORAMAS, CD \"B\"",
+            "hs": 18,
+            "as": 2,
+            "fiflp_acta": 294455,
+            "date": "14-11-2026",
+            "time": "09:00",
+            "venue": "CRUCE ARINAGA F8 (4)",
+            "referee": ""
+          },
+          {
+            "home": "(Clasificado) GUAYARMINA, C.D.",
+            "away": "TEROR BALOMPIE, U.D.",
+            "hs": 8,
+            "as": 4,
+            "fiflp_acta": 294436,
+            "date": "14-11-2026",
+            "time": "12:00",
+            "venue": "CMF LA ATALAYA",
+            "referee": ""
+          },
+          {
+            "home": "(Clasificado) MOYA, U.D. \"A\"",
+            "away": "SAN ISIDRO, C.D.",
+            "hs": 10,
+            "as": 1,
+            "fiflp_acta": 294437,
+            "date": "14-11-2026",
+            "time": "12:00",
+            "venue": "CMF LA ATALAYA",
+            "referee": ""
+          },
+          {
+            "home": "(Clasificado) ATLETICO ANGOSTURA \"A\"",
+            "away": "ARUCAS C.F. \"B\"",
+            "hs": 14,
+            "as": 1,
+            "fiflp_acta": 294440,
+            "date": "14-11-2026",
+            "time": "12:00",
+            "venue": "C.M. CIPRIANO MEDINA",
+            "referee": ""
+          },
+          {
+            "home": "HEIDELBERG, C.F.",
+            "away": "MESAS HURACAN, U.D. LAS (Ganador)",
+            "hs": 2,
+            "as": 3,
+            "fiflp_acta": 294441,
+            "date": "14-11-2026",
+            "time": "12:00",
+            "venue": "C.M. CIPRIANO MEDINA",
+            "referee": ""
+          },
+          {
+            "home": "(Clasificado) VALSEQUILLO, U.D. \"A\"",
+            "away": "MOGAN, C.F.",
+            "hs": 5,
+            "as": 1,
+            "fiflp_acta": 294454,
+            "date": "14-11-2026",
+            "time": "13:29",
+            "venue": "MUNDIAL 82 ANEXO",
+            "referee": ""
+          },
+          {
+            "home": "(Clasificado) GALDAR JACOBEO27 \"B\"",
+            "away": "ATLETICO ANGOSTURA, \"B\"",
+            "hs": 2,
+            "as": 1,
+            "fiflp_acta": 294438,
+            "date": "14-11-2026",
+            "time": "13:30",
+            "venue": "CMF LA ATALAYA",
+            "referee": ""
+          },
+          {
+            "home": "(Clasificado) COSTA AYALA, UNION JUVENIL \"B\"",
+            "away": "VILLA DE SANTA BRIGIDA, U.D \"B\"",
+            "hs": 9,
+            "as": 1,
+            "fiflp_acta": 294439,
+            "date": "14-11-2026",
+            "time": "13:30",
+            "venue": "CMF LA ATALAYA",
+            "referee": ""
+          },
+          {
+            "home": "(Clasificado) UNION VIERA, C.F. \"C\"",
+            "away": "VICTORIA, REAL CLUB \"B\"",
+            "hs": 7,
+            "as": 3,
+            "fiflp_acta": 294442,
+            "date": "14-11-2026",
+            "time": "13:30",
+            "venue": "C.M. CIPRIANO MEDINA",
+            "referee": ""
+          },
+          {
+            "home": "INTERCANARIAS/PILAR C.F. \"A\"",
+            "away": "TAMARACEITE , U.D. \"B\" (Ganador)",
+            "hs": 3,
+            "as": 9,
+            "fiflp_acta": 294443,
+            "date": "14-11-2026",
+            "time": "13:30",
+            "venue": "C.M. CIPRIANO MEDINA",
+            "referee": ""
+          },
+          {
+            "home": "(Clasificado) LOMO BLANCO S.J.A., C.D.",
+            "away": "CORAZON DE MARIA, C.D. \"D\"",
+            "hs": 6,
+            "as": 4,
+            "fiflp_acta": 294446,
+            "date": "14-11-2026",
+            "time": "13:30",
+            "venue": "MUNDIAL 82",
+            "referee": ""
+          },
+          {
+            "home": "(Clasificado) GUINIGUADA APOLINARIO, C.D. \"B\"",
+            "away": "CORAZON DE MARIA, C.D. \"B\"",
+            "hs": 7,
+            "as": 2,
+            "fiflp_acta": 294447,
+            "date": "14-11-2026",
+            "time": "13:45",
+            "venue": "MUNDIAL 82",
+            "referee": ""
+          },
+          {
+            "home": "(Clasificado) CERRUDA SANTA LUCIA DE TIRAJANA, C.D. \"A\"",
+            "away": "CASA PASTORES, C.F.",
+            "hs": 13,
+            "as": 1,
+            "fiflp_acta": 294456,
+            "date": "14-11-2026",
+            "time": "15:00",
+            "venue": "CASTILLO DEL ROMERAL",
+            "referee": ""
+          },
+          {
+            "home": "CERRUDA SANTA LUCIA DE TIRAJANA, C.D. \"B\"",
+            "away": "AGUIMES C.F. (Ganador)",
+            "hs": 5,
+            "as": 12,
+            "fiflp_acta": 294457,
+            "date": "14-11-2026",
+            "time": "15:00",
+            "venue": "CASTILLO DEL ROMERAL",
+            "referee": ""
+          },
+          {
+            "home": "CERRUDA SANTA LUCIA DE TIRAJANA, C.D. \"C\"",
+            "away": "MASPALOMAS, CD \"B\" (Ganador)",
+            "hs": 1,
+            "as": 3,
+            "fiflp_acta": 294458,
+            "date": "14-11-2026",
+            "time": "16:30",
+            "venue": "CASTILLO DEL ROMERAL",
+            "referee": ""
+          },
+          {
+            "home": "(Clasificado) ARGUINEGUIN, C.D. \"B\"",
+            "away": "ARGUINEGUIN, C.D. \"C\"",
+            "hs": 3,
+            "as": 0,
+            "fiflp_acta": 294459,
+            "date": "14-11-2026",
+            "time": "16:30",
+            "venue": "CASTILLO DEL ROMERAL",
+            "referee": ""
+          },
+          {
+            "home": "VICTORIA, REAL CLUB \"A\"",
+            "away": "ATLETICO ISLETA \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": 294444,
+            "date": "15-11-2026",
+            "time": "12:00",
+            "venue": "MUNDIAL 82",
+            "referee": ""
+          },
+          {
+            "home": "JULIO SUAREZ, C.D.",
+            "away": "GLAUCUS, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": 294448,
+            "date": "15-11-2026",
+            "time": "12:00",
+            "venue": "C.M. CIPRIANO MEDINA",
+            "referee": ""
+          },
+          {
+            "home": "CF ATLETICO BACHICAN LAS MESAS \"A\"",
+            "away": "CD MIGUEL LEON",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": 294449,
+            "date": "15-11-2026",
+            "time": "12:00",
+            "venue": "C.M. CIPRIANO MEDINA",
+            "referee": ""
+          },
+          {
+            "home": "UNION VIERA, C.F. \"A\"",
+            "away": "VETERANOS DEL PILA, C.D. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": 294445,
+            "date": "15-11-2026",
+            "time": "13:30",
+            "venue": "MUNDIAL 82",
+            "referee": ""
+          },
+          {
+            "home": "ATLETICO G.C., C.F. \"B\"",
+            "away": "VALLINAMAR, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": 294450,
+            "date": "15-11-2026",
+            "time": "13:30",
+            "venue": "C.M. CIPRIANO MEDINA",
+            "referee": ""
+          },
+          {
+            "home": "TELDE, U.D. \"B\"",
+            "away": "CALERO, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": 294451,
+            "date": "15-11-2026",
+            "time": "13:30",
+            "venue": "C.M. CIPRIANO MEDINA",
+            "referee": ""
+          },
+          {
+            "home": "OJOS DE GARZA, C.D.",
+            "away": "FUTBOLTEC, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": 294452,
+            "date": "15-11-2026",
+            "time": "13:30",
+            "venue": "MUNDIAL 82",
+            "referee": ""
+          },
+          {
+            "home": "MASPALOMAS, C.D. \"C\"",
+            "away": "HUESAS, U.D. LAS \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": 294453,
+            "date": "15-11-2026",
+            "time": "13:30",
+            "venue": "MUNDIAL 82 ANEXO",
+            "referee": ""
+          }
+        ]
+      }
+    ]
   }
 ]
