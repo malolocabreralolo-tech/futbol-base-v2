@@ -119,6 +119,10 @@ jobs:
           fi
           # La comprobación de fuentes se publica aunque el marcador no cambie.
           git add data-health.json
+          # Los originales de las actas que lee el bot (actas_bot.py, desde la fase 2C), también: una
+          # relectura de las ya importadas no cambia nada publicado, pero su original hay que subirlo. Sin
+          # ninguno todavía, el patrón no casa con nada: no es un error.
+          git add 'scripts/actas_bot_*.jsonl' 2>/dev/null || true
           if ! git diff --cached --quiet; then
             git commit -m "Actualización automática $(date '+%d/%m/%Y %H:%M UTC')"
             # El run dura hasta ~25 min: si alguien ha empujado a main

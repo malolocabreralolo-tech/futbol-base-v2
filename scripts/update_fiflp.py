@@ -21,6 +21,7 @@ Reglas (las mismas que protegen al resto de importadores):
 - Nunca se borra un partido: si la federación lo mueve de jornada, se avisa.
 """
 from collections import namedtuple
+import copy
 from datetime import date, datetime, timedelta, timezone
 import json
 import os
@@ -169,6 +170,10 @@ EXTRAS_PAGES = 8
 # (los que se leen en ella, con su calendario: ~2-3 por pasada con el cupo), que las leen tras él.
 CATCHUP_ACTAS = 6
 CATCHUP_SKIP = 3
+# Actas ya importadas sin original (actas_bot) que se releen al final de una pasada a la que aún le sirve
+# la federación, dentro del cupo de MAX_ACTAS_PER_RUN (releer_originales): como mucho estas, para que la
+# relectura no se lleve la pasada.
+RELECTURA_POR_PASADA = 20
 # Cuota de alevín (FIFLP_ALEVIN_MIN): su parte del turno, tras los prioritarios y los cerrados que tocan,
 # es de al menos estos grupos (y nunca menos que ceil(N/4)), intercalada con el turno de prebenjamín y el
 # de benjamín (interleave): el último nivel no se queda sin leer aunque benjamín y prebenjamín llenen el
@@ -1430,11 +1435,26 @@ def import_actas(page, F, conn, group_id, budget, deadline=None, log=print, trie
     `unloaded` (un set): se apuntan los partidos cuya acta no cargó (run_passes:
     quedan para otra pasada). `retry`, como en pending_actas: True, todas;
     False, solo las nunca intentadas; un número (retry_actas), las que han
-    fallado menos veces."""
+    fallado menos veces. Desde la fase 2C (14/11/2026), el original de cada
+    acta importada se guarda (actas_bot)."""
+    import actas_bot
+    where = actas_bot.de_grupo(conn, group_id)
+    season, category = where if where else (None, None)
+    pending = [(mid, code, category) for mid, code in pending_actas(conn, group_id, retry)
+               if tried is None or mid not in tried]
+    return _read_actas(page, F, conn, pending[:budget], season, deadline, log, tried, unloaded)
+
+
+def _read_actas(page, F, conn, rows, season, deadline=None, log=print, tried=None, unloaded=None):
+    """Lee e importa las actas de `rows` ([(partido, CodActa, categoría)], de la temporada `season`), en
+    ese orden: las pendientes de un grupo (import_actas) o las ya importadas sin original
+    (releer_originales). Como import_actas cuenta (importadas, leídas), con sus intentos y sus cortes.
+    El original de cada una que se importa se guarda (actas_bot.guardar) antes de su commit; si no se
+    puede guardar, el acta ya aplicada se queda: se registra y se sigue."""
+    import actas_bot
     from fiflp_acta import parse_flat_acta
     done = read = failed_loads = 0
-    pending = [(mid, code) for mid, code in pending_actas(conn, group_id, retry) if tried is None or mid not in tried]
-    for mid, code in pending[:budget]:
+    for mid, code, category in rows:
         if deadline and clock() > deadline:
             break
         if tried is not None:
@@ -1458,17 +1478,73 @@ def import_actas(page, F, conn, group_id, budget, deadline=None, log=print, trie
                 continue
             failed_loads = 0
             flatten(page)
-            ok = apply_acta(conn, mid, code, parse_flat_acta(page.content()), log)
+            acta = parse_flat_acta(page.content())
+            original = copy.deepcopy(acta)      # tal cual lo da el lector, por si la importación lo tocara
+            ok = apply_acta(conn, mid, code, acta, log)
         except Exception as e:
             conn.rollback()
             log(f"    ! acta {code}: {e}")
         if ok:
             done += 1
+            if season and category:
+                try:
+                    actas_bot.guardar(season, category, code, original,
+                                      datetime.now(timezone.utc).isoformat(timespec="seconds"))
+                except Exception as e:
+                    log(f"    ! acta {code}: el original no se guardó ({e})")
         else:
             conn.execute("UPDATE matches SET acta_tries=acta_tries+1 WHERE id=?", (mid,))
         conn.commit()
         F.delay()
     return done, read
+
+
+# El orden de la relectura de los originales: el de los niveles de la web.
+BACKFILL_ORDER = ("PREBENJAMIN", "BENJAMIN", "ALEVIN")
+
+
+def sin_original(conn, season_id, group_ids):
+    """[(partido, CodActa, categoría)] de las actas ya importadas de los grupos `group_ids` (de la
+    temporada `season_id`) cuyo original no está guardado (actas_bot.guardadas), en el orden de la
+    relectura: prebenjamín, benjamín y alevín y, dentro, la fecha más reciente primero. Sin las que
+    relee el camino normal (pending_actas: marcadas para releer o con otro código) ni las que fallaron
+    MAX_ACTA_TRIES veces."""
+    import actas_bot
+    ids = list(group_ids)
+    season = conn.execute("SELECT name FROM seasons WHERE id=?", (season_id,)).fetchone()
+    if not ids or not season:
+        return []
+    saved = actas_bot.guardadas(season[0])
+    marks = ",".join("?" * len(ids))
+    order = " ".join(f"WHEN '{name}' THEN {i}" for i, name in enumerate(BACKFILL_ORDER))
+    rows = conn.execute(
+        f"""SELECT m.id, m.cod_acta, c.name FROM matches m JOIN groups g ON g.id=m.group_id
+            JOIN categories c ON c.id=g.category_id
+            WHERE g.season_id=? AND m.group_id IN ({marks}) AND m.cod_acta IS NOT NULL AND m.acta_recheck=0
+              AND (m.fiflp_acta IS NULL OR m.fiflp_acta=m.cod_acta) AND m.acta_tries < ?
+            ORDER BY CASE c.name {order} ELSE {len(BACKFILL_ORDER)} END, m.date DESC, m.id""",
+        (season_id, *ids, MAX_ACTA_TRIES)).fetchall()
+    return [(mid, code, category) for mid, code, category in rows if code not in saved]
+
+
+def releer_originales(page, F, conn, season_id, group_ids, budget, deadline=None, tried=None, log=print):
+    """La relectura de los originales (fase 2C, 14/11/2026): el bot guarda el de cada acta que importa
+    desde entonces, y las de la temporada ya importadas antes no lo tienen. Al final de la pasada
+    (run_passes), si la federación no está bloqueada y queda plazo y cupo, relee como mucho
+    RELECTURA_POR_PASADA de ellas (sin_original, en su orden), con `budget` (lo que queda de
+    MAX_ACTAS_PER_RUN), cada una una vez por pasada (`tried`); cada una se aplica (apply_acta) y se
+    guarda. No marca nada para releer (acta_recheck: pediría goleadores, alimentaría catch_up y
+    calentaría prioritarios, trampa 15 del mapa). Devuelve (leídas, quedan sin original), o None si no
+    queda ninguna (y no pide nada)."""
+    rows = [r for r in sin_original(conn, season_id, group_ids) if tried is None or r[0] not in tried]
+    if not rows:
+        return None
+    season = conn.execute("SELECT name FROM seasons WHERE id=?", (season_id,)).fetchone()[0]
+    read = 0
+    take = min(RELECTURA_POR_PASADA, budget)
+    if take > 0 and not bool(getattr(F, "blocked", False)) and not (deadline and clock() > deadline):
+        _, read = _read_actas(page, F, conn, rows[:take], season, deadline, log, tried)
+    return read, len(sin_original(conn, season_id, group_ids))
 
 
 def parse_goleadores(html):
@@ -1772,7 +1848,9 @@ def run_passes(page, F, conn, season_id, groups, today, pending, deadline_second
     los equipos que no la tienen (update_directorio, como mucho EXTRAS_PAGES páginas); y en cada pasada,
     las actas nuevas que el final de otra dejó a medias (catch_up: como mucho CATCHUP_ACTAS páginas, con
     los goleadores del grupo). Al final de cualquier pasada que acabe sin frenar ni llegar al plazo, lo que
-    no se hizo de lo de una vez al día.
+    no se hizo de lo de una vez al día; y lo último, desde la fase 2C (14/11/2026), los originales de las
+    actas ya importadas que no lo tienen (releer_originales: como mucho RELECTURA_POR_PASADA, dentro del
+    cupo de actas; run.rawBackfill), que no cuentan como grupo.
 
     Si la federación deja de servir páginas (F.blocked: su segundo freno, uno que no pasa o una caída), no
     se le pide nada más, esté donde esté. Los que descansan (cerrados, prioritarios al día) y los que no
@@ -2007,6 +2085,19 @@ def run_passes(page, F, conn, season_id, groups, today, pending, deadline_second
     # Si sobra pasada (ni el segundo freno ni el plazo), lo que no se hizo de eso.
     refreshed = [g for g in plan.order if g[1] in results]
     extras(refreshed, "Competiciones y directorio")
+    # Lo último, con lo que sobre de plazo y de cupo de actas: los originales de las ya importadas
+    # (releer_originales; sin plazo o con la federación bloqueada no pide nada, pero dice cuántas quedan).
+    # No es un grupo: ni cuenta en results ni en el veredicto de la pasada.
+    backfill = None
+    try:
+        backfill = releer_originales(page, F, conn, season_id, [g[0] for g in groups], budget, deadline,
+                                     tried=tried)
+    except Exception as e:
+        conn.rollback()
+        print(f"  ! originales de las actas: {e}")
+    if backfill:
+        budget -= backfill[0]
+        print(f"  Originales de las actas: {backfill[0]} releídas, quedan {backfill[1]}", flush=True)
     elapsed, idle = clock() - start, paused()
     pages = getattr(F, "pages", None)
     pages = pages - pages_before if pages is not None and pages_before is not None else None
@@ -2058,6 +2149,7 @@ def run_passes(page, F, conn, season_id, groups, today, pending, deadline_second
         "seconds": round(clock() - start), **({"pages": pages} if pages else {}),
         **({"extras": sorted(extras_done)} if extras_done else {}), **({"blocked": True} if blocked() else {}),
         **({"calendarShows": dict(sorted(shows.items()))} if shows else {}),
+        **({"rawBackfill": {"read": backfill[0], "left": backfill[1]}} if backfill else {}),
         **({"pauses": pauses, "resumed": getattr(F, "resumed", 0),
             "brakeAfter": list(getattr(F, "brake_after", []))} if pauses else {})})
     print(f"  Federación: {round((clock() - start) / 60, 1)} min de {round((deadline - start) / 60, 1)}", flush=True)

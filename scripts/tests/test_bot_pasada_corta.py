@@ -302,6 +302,9 @@ def simulate(tmp_path, monkeypatch, every=timedelta(hours=2), days=DAYS, blocks=
     monkeypatch.setattr(source_health, "REPORT_PATH", tmp_path / "data-health.json")
     monkeypatch.setattr(source_health, "_report", None)
     monkeypatch.setattr(U, "flatten", lambda page, selector=None: 0)
+    # Los originales de las actas (actas_bot), los de esta simulación: las semanas de los fixtures de módulo
+    # no se pisan (ni escriben en scripts/).
+    monkeypatch.setenv("ACTAS_BOT_DIR", str(tmp_path / "actas_bot"))
     for name in ("FIFLP_PRIORITY_TEAMS", "FIFLP_ALEVIN_MIN", "FIFLP_BUDGET_MIN", "FIFLP_RESERVE_MIN",
                  "FIFLP_BRAKE_PAUSE_MIN", "FIFLP_BRAKE_PAUSES", "FIFLP_BRAKE_PROBE_S", "FIFLP_BRAKE_MAX_MIN",
                  "FIFLP_MIN_INTERVAL", "FIFLP_PRIORITY_MAX_H", "FIFLP_CATS"):

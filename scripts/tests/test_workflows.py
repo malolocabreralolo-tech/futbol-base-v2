@@ -486,6 +486,67 @@ def test_update_gates_db_commit_on_published_changes():
     )
 
 
+def _run_commit_step(tmp_path, actas_bot=True, data_changed=False):
+    """El guion de verdad de «Commit y push si hay cambios», con bash, en un clon de un repositorio de mentira
+    (con su remoto) con data-x.js, futbolbase.db y data-health.json publicados. La pasada cambia la base (sus
+    bytes cambian siempre) y, si `actas_bot`, guarda un original nuevo (scripts/actas_bot_*.jsonl); si
+    `data_changed`, también un dato publicado. Devuelve (código de salida, ficheros del último commit del
+    remoto, la salida)."""
+    _, step = _update_step("Commit y push si hay cambios")
+    tmp_path.mkdir(parents=True)
+    git_env = {**os.environ, "GIT_CONFIG_GLOBAL": str(tmp_path / "gitconfig"), "GIT_CONFIG_NOSYSTEM": "1",
+               "RUNNER_TEMP": str(tmp_path / "runner")}
+    (tmp_path / "runner").mkdir()
+    (tmp_path / "gitconfig").write_text("[init]\n\tdefaultBranch = main\n[user]\n\tname = t\n\temail = t@t\n")
+
+    def git(*args, cwd):
+        return subprocess.run(["git", *args], cwd=cwd, env=git_env, check=True, capture_output=True,
+                              text=True).stdout
+
+    remote, work = tmp_path / "remoto.git", tmp_path / "clon"
+    git("init", "--bare", "-b", "main", str(remote), cwd=tmp_path)
+    git("clone", str(remote), str(work), cwd=tmp_path)
+    (work / "scripts").mkdir()
+    for name, text in (("data-x.js", "publicado"), ("index.html", "i"), ("sw.js", "s"), ("futbolbase.db", "base"),
+                       ("data-health.json", "{}")):
+        (work / name).write_text(text, encoding="utf-8")
+    git("add", ".", cwd=work)
+    git("commit", "-m", "publicado", cwd=work)
+    git("push", "origin", "main", cwd=work)
+    (work / "futbolbase.db").write_text("base con otros bytes", encoding="utf-8")
+    if actas_bot:
+        (work / "scripts" / "actas_bot_2026-2027_benjamin.jsonl").write_text('{"cod_acta":1}\n', encoding="utf-8")
+        (work / "scripts" / ".actas_bot_2026-2027_benjamin.jsonl.x.tmp").write_text("a medias", encoding="utf-8")
+    if data_changed:
+        (work / "data-x.js").write_text("de esta pasada", encoding="utf-8")
+    done = subprocess.run(["bash", "-e", "-c", step["run"]], cwd=work, env=git_env, capture_output=True, text=True,
+                          timeout=60)
+    files = git("show", "--name-only", "--format=", "main", cwd=remote).split()
+    return done.returncode, files, done.stdout + done.stderr
+
+
+def test_update_commits_the_bots_acta_originals_always_and_only_in_the_data_commit(tmp_path):
+    """Fase 2C (14/11/2026): el bot guarda el original de cada acta que lee (scripts/actas_bot_*.jsonl,
+    actas_bot.py). Se suben siempre, como data-health.json: una relectura de las ya importadas no cambia nada
+    publicado (y la base no se sube), pero su original sí. Después de la puerta de la base (no la abren), solo
+    en el paso «Commit y push si hay cambios» (el de diagnóstico sube solo data-health.json: arriba), y sin
+    fallar si no hay ninguno."""
+    _, step = _update_step("Commit y push si hay cambios")
+    lines = step["run"].splitlines()
+    gate = next(i for i, l in enumerate(lines) if "git diff --cached --quiet" in l)
+    add = [i for i, l in enumerate(lines) if "actas_bot_" in l and "git add" in l]
+    assert len(add) == 1 and add[0] > gate and "'scripts/actas_bot_*.jsonl'" in lines[add[0]]
+    assert "|| true" in lines[add[0]], "sin ningún original, el git add no casa con nada y no debe fallar"
+    code, files, log = _run_commit_step(tmp_path / "solo-originales")
+    assert code == 0, log
+    assert files == ["scripts/actas_bot_2026-2027_benjamin.jsonl"], log          # ni la base ni el temporal
+    code, files, log = _run_commit_step(tmp_path / "con-datos", data_changed=True)
+    assert code == 0, log
+    assert sorted(files) == ["data-x.js", "futbolbase.db", "scripts/actas_bot_2026-2027_benjamin.jsonl"], log
+    code, files, log = _run_commit_step(tmp_path / "sin-originales", actas_bot=False)
+    assert code == 0 and files == ["data-health.json", "data-x.js", "futbolbase.db", "index.html", "sw.js"], log
+
+
 def test_update_also_commits_the_db_when_the_bot_marks_it():
     """La base guarda estado del bot que no se publica (update_fiflp: la primera pasada completa de
     un grupo recién activado, fiflp_full_pending). Con la puerta de arriba se perdía en una pasada sin
