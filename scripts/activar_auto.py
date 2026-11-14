@@ -192,7 +192,12 @@ def activar(raw_path, db_path, comps, root=ROOT, log=print, dry_run=False, names
                     manifest = {"season": season, "groups": M.build(
                         raw, season, season_code(season), only={(comp, g) for g in new}, taken=taken)}
                 except ValueError as error:
-                    raise Fallo(str(error) if str(error).startswith("código repetido") else VERIFICACION.format(error))
+                    if str(error).startswith("código repetido"):
+                        raise Fallo(str(error))
+                    # Un grupo sin convenio dentro de una competición que sí lo tiene (eliminatoria_de_liga).
+                    if str(error).startswith("competición sin convenio de código: "):
+                        raise Fallo(SIN_CONVENIO.format(str(error).split(": ", 1)[1]))
+                    raise Fallo(VERIFICACION.format(error))
                 try:
                     validate_manifest(manifest, season, adding=True)
                     subset = [g for g in raw if str(g.get("competition_id")) == comp

@@ -134,7 +134,9 @@ def fiflp_evidence(group, raw, names=None):
                  for r in entry.get("standings") or [] if clean_team_name(r.get("team"))]
     # Una copa o una eliminatoria sin tabla no la tiene: a CGC1 (17 partidos a partido único) se le
     # inventaron 34 filas a cero que hubo que borrar a mano.
-    if not standings and not eliminatoria(entry.get("competition_name") or group.get("phase")):
+    # La competición o la fase del grupo: los grupos de eliminatoria de una liga (EL…, «Eliminatorias»;
+    # fiflp_manifest.eliminatoria_de_liga) son de una competición que no lo es.
+    if not standings and not (eliminatoria(entry.get("competition_name")) or eliminatoria(group.get("phase"))):
         teams = sorted({t for ms in rounds.values() for m in ms for t in (m[1], m[2])})
         standings = [[i, t, 0, 0, 0, 0, 0, 0, 0, 0] for i, t in enumerate(teams, 1)]
     return rounds, standings

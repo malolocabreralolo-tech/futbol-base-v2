@@ -537,3 +537,95 @@ def test_el_grupo_sin_numero_de_la_federacion_conserva_su_nombre():
     import fiflp_manifest as M
     assert [M.group_label(n) for n in ("GRUPO 7", " Eliminatoria  previa ", "", None)] == [
         "Grupo 7", "Eliminatoria previa", "Grupo 1", "Grupo 1"]
+
+
+# ── Ronda 1: grupos de eliminatoria dentro de una liga (14/11/2026) ──────────
+# La federación publicó «Eliminatoria de Primeros y Segundos» y «… de Terceros y Cuartos» como grupos de la
+# Fase Previa de benjamín (54976988) y de alevín (54976940): sin número, salían FF1/AL1 («código repetido»).
+# Convenio: el prefijo y la fase de las eliminatorias de su categoría (EL, PEL, ALEL; «Eliminatorias»),
+# numerados tras los que ya tiene la temporada, por orden de CodGrupo.
+
+def elim(comp, group, name, table=False):
+    return dict(entry(comp, 1, table=table, played=False, name=name), group_id=group)
+
+
+ELIM_FF = [elim(FF, "55331350", "Eliminatoria de Terceros y Cuartos"),
+           elim(FF, "55331279", "Eliminatoria  de Primeros y Segundos")]
+FF_TAKEN = {f"FF{n}" for n in range(1, 25)}
+
+
+def test_los_grupos_de_eliminatoria_de_una_liga_son_el_correlativos():
+    import fiflp_manifest as M
+    groups = M.build(ELIM_FF + [entry(FF, 25)], "2026-2027", "22", taken=FF_TAKEN)
+    assert [(g["id"], g["phase"], g["name"], g["fullName"], g["island"]) for g in groups] == [
+        ("EL1", "Eliminatorias", "Eliminatoria de Primeros y Segundos",
+         "BENJAMIN ELIMINATORIAS - ELIMINATORIA DE PRIMEROS Y SEGUNDOS", "grancanaria"),
+        ("EL2", "Eliminatorias", "Eliminatoria de Terceros y Cuartos",
+         "BENJAMIN ELIMINATORIAS - ELIMINATORIA DE TERCEROS Y CUARTOS", "grancanaria"),
+        ("FF25", "Primera Fase GC", "Grupo 25", "BENJAMIN PRIMERA FASE GC - GRUPO 25", "grancanaria")]
+    assert groups[0]["url"] == URL.format(comp=FF[0], grupo="55331279")
+    # Con EL1 ya en la temporada, siguen detrás (sin chocar con PEL1 ni ALEL1).
+    assert [g["id"] for g in M.build(ELIM_FF, "2026-2027", "22", taken=FF_TAKEN | {"EL1", "PEL4", "ALEL7"})] == ["EL2", "EL3"]
+
+
+def test_eliminatorias_de_alevin_y_prebenjamin_y_las_de_otra_isla_sin_convenio():
+    import fiflp_manifest as M
+    alevin = [elim(ALEVIN, "55317330", "Eliminatorias Terceros y Cuartos"),
+              elim(ALEVIN, "55317325", "Eliminatoria de Primeros y Segundos")]
+    assert [(g["id"], g["cat"], g["phase"]) for g in M.build(alevin, "2026-2027", "22", taken={"AL1"})] == [
+        ("ALEL1", "alevin", "Eliminatorias"), ("ALEL2", "alevin", "Eliminatorias")]
+    pg = elim(("54977022", "LIGA PREBENJAMIN DE GRAN CANARIA"), "1", "ELIMINATORIA FINAL")
+    assert [(g["id"], g["cat"], g["phase"]) for g in M.build([pg], "2026-2027", "22")] == [
+        ("PEL1", "prebenjamin", "Eliminatorias")]
+    lz = elim(("54976982", "LIGA BENJAMIN DE LANZAROTE FASE 1"), "2", "Eliminatoria de Primeros")
+    with pytest.raises(ValueError, match="sin convenio de código: LIGA BENJAMIN DE LANZAROTE FASE 1 / Eliminatoria de Primeros"):
+        M.build([lz], "2026-2027", "22")
+    # Una copa (la Copa Benjamín, cuyo grupo es «Eliminatoria previa») sigue con su código: ya es una copa.
+    assert [g["id"] for g in M.build([elim(COPA, "55331983", "Eliminatoria previa")], "2026-2027", "22")] == ["CGC1"]
+
+
+def test_una_eliminatoria_sin_tabla_no_recibe_tabla_y_se_verifica_con_sus_partidos():
+    import fiflp_manifest as M
+    manifest = {"season": "2026-2027", "groups": M.build(ELIM_FF[:1], "2026-2027", "22", taken=FF_TAKEN)}
+    evidence = verify_sources(manifest, fiflp_raw=ELIM_FF)
+    assert evidence[0]["group"]["id"] == "EL1" and evidence[0]["standings"] == []
+    assert sum(len(ms) for ms in evidence[0]["rounds"].values()) == 4
+
+
+@pytest.mark.skipif(shutil.which("node") is None, reason="la sonda de fases necesita node")
+def test_las_eliminatorias_de_la_fase_previa_se_activan_solas(tmp_path):
+    raw = [entry(FF, n) for n in range(1, 25)] + ELIM_FF
+    pending = {"newGroups": [
+        {"competition": FF[0], "competitionName": "BENJAMIN PRIMERA FASE GC", "id": g["group_id"],
+         "name": g["group_name"], "firstSeen": "2026-11-14"} for g in ELIM_FF]}
+    root = tree(tmp_path, raw, listed={}, health=pending, ff_groups=24)
+    conn = sqlite3.connect(root / "futbolbase.db")
+    before = [conn.execute(f"SELECT * FROM {t} ORDER BY id").fetchall() for t in ("groups", "standings", "matches")]
+    conn.close()
+    logs = []
+    assert A.main([], root=root, log=logs.append) == 0               # con la sonda de verdad (node)
+    assert codes(root) == [f"FF{n}" for n in range(1, 25)] + ["EL1", "EL2"]
+    conn = sqlite3.connect(root / "futbolbase.db")
+    after = [conn.execute(f"SELECT * FROM {t} ORDER BY id").fetchall() for t in ("groups", "standings", "matches")]
+    assert [rows[:len(old)] for rows, old in zip(after, before)] == before          # los 24 FF, intactos
+    assert conn.execute("SELECT g.code, g.name, g.phase, count(s.id) FROM groups g LEFT JOIN standings s "
+                        "ON s.group_id=g.id WHERE g.code LIKE 'EL%' GROUP BY g.id ORDER BY g.code").fetchall() == [
+        ("EL1", "Eliminatoria de Primeros y Segundos", "Eliminatorias", 0),
+        ("EL2", "Eliminatoria de Terceros y Cuartos", "Eliminatorias", 0)]
+    conn.close()
+    report = health(root)
+    assert "newGroups" not in report and report["activation"]["failed"] == []
+    assert report["activation"]["activated"] == [{"competition": FF[0], "name": FF[1], "codes": ["EL1", "EL2"]}]
+    assert '"EL1"' in (root / "data-benjamin.js").read_text()
+    assert A.run_sonda(root) == []                                    # «0 en otra-…»
+
+
+def test_activar_dice_sin_convenio_para_una_eliminatoria_de_otra_isla(tmp_path):
+    lz = ("54976982", "LIGA BENJAMIN DE LANZAROTE FASE 1")
+    raw = [entry(lz, 1), elim(lz, "9001", "Eliminatoria de Primeros")]
+    root = tree(tmp_path, raw, health={"newGroups": [{"competition": lz[0], "id": "9001", "name": "Eliminatoria de Primeros"}]})
+    dump, _ = fingerprint(root)
+    assert run(root)[0] == 1
+    assert fingerprint(root)[0] == dump
+    assert health(root)["activation"]["failed"] == [{"competition": lz[0], "name": lz[1],
+        "reason": "sin convenio de código: LIGA BENJAMIN DE LANZAROTE FASE 1 / Eliminatoria de Primeros"}]

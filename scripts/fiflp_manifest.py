@@ -140,24 +140,57 @@ def build(raw, season, season_code, names=None, only=None, taken=()):
         only = {(str(c), str(g)) for c, g in only}
         raw = [g for g in raw if (str(g.get("competition_id")), str(g.get("group_id"))) in only]
     groups, seen = [], set(taken)
-    for g in sorted(raw, key=lambda g: (comp_meta(g["competition_name"]), group_number(g["group_name"]))):
-        if not g.get("jornadas") and not g.get("standings"):
-            continue                       # grupo dado de alta sin calendario todavía
-        prefix, phase = comp_meta(g["competition_name"])
-        n = group_number(g["group_name"])
-        code = f"{prefix}{n}"
+    raw = [g for g in raw if g.get("jornadas") or g.get("standings")]     # sin calendario todavía: fuera
+    # Los grupos de eliminatoria de una liga, numerados tras los de su prefijo que la temporada ya tiene, por
+    # orden de CodGrupo: la federación no los numera.
+    elim = {}
+    for g in sorted((g for g in raw if eliminatoria_de_liga(g)), key=lambda g: int(str(g["group_id"]))):
+        prefix = ELIMINATORIAS[category(g["competition_name"])]
+        used = [int(m.group(1)) for c in seen | set(elim.values()) for m in [re.fullmatch(rf"{prefix}(\d+)", c)] if m]
+        elim[id(g)] = f"{prefix}{max(used, default=0) + 1}"
+    rows = []
+    for g in raw:
+        if id(g) in elim:
+            code = elim[id(g)]
+            prefix, phase, n = code.rstrip("0123456789"), "Eliminatorias", int(code[len(code.rstrip("0123456789")):])
+        else:
+            (prefix, phase), n = comp_meta(g["competition_name"]), group_number(g["group_name"])
+            code = f"{prefix}{n}"
+        rows.append((prefix, phase, n, code, g))
+    for prefix, phase, n, code, g in sorted(rows, key=lambda r: r[:3]):
         if code in seen:
             raise ValueError(f"código repetido: {code}")
         seen.add(code)
         cat = category(g["competition_name"])
         island = ("lanzarote" if prefix in ("LZ", "LZS", "PLZ") else
                   "fuerteventura" if prefix in ("FV1", "FV2", "PFV") else "grancanaria")
+        label = " ".join(g["group_name"].split()) if id(g) in elim else group_label(g["group_name"])
         groups.append({
-            "id": code, "cat": cat, "name": group_label(g["group_name"]), "phase": phase, "island": island,
-            "fullName": f"{cat.upper()} {fold(phase)} - GRUPO {n}",
+            "id": code, "cat": cat, "name": label, "phase": phase, "island": island,
+            "fullName": (f"{cat.upper()} ELIMINATORIAS - {fold(label)}" if id(g) in elim
+                         else f"{cat.upper()} {fold(phase)} - GRUPO {n}"),
             "url": FIFLP_URL.format(season=season_code, comp=g["competition_id"], group=g["group_id"]),
         })
     return groups
+
+
+# Una competición que ya es una copa o una eliminatoria: sus grupos llevan el código de la competición
+# («Eliminatoria previa» de la Copa Benjamín es CGC1), aunque se llamen «Eliminatoria…».
+COPA_O_ELIMINATORIA = re.compile(r"\bCOPA\b|ELIMINATORIA")
+
+
+def eliminatoria_de_liga(g):
+    """¿Es `g` (un grupo del raw) un grupo de eliminatoria publicado dentro de una liga? (14/11/2026: la Fase
+    Previa de benjamín y la de alevín trajeron «Eliminatoria de Primeros y Segundos» y «… de Terceros y
+    Cuartos».) Llevan el código y la fase de las eliminatorias de su categoría (EL, PEL, ALEL; «Eliminatorias»),
+    solo en Gran Canaria: en Lanzarote o Fuerteventura, ValueError, como sus competiciones de eliminatorias."""
+    comp = fold(g["competition_name"])
+    if "ELIMINATORIA" not in fold(g.get("group_name")) or COPA_O_ELIMINATORIA.search(comp):
+        return False
+    comp_meta(g["competition_name"])                 # la competición, con convenio
+    if "LANZAROTE" in comp or "FUERTEVENTURA" in comp:
+        raise ValueError(f"competición sin convenio de código: {g['competition_name']} / {' '.join(g['group_name'].split())}")
+    return True
 
 
 def find_team(raw, groups, needle, cat, names):

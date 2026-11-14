@@ -60,3 +60,16 @@ test('sin los datos de una categoría no da por buena la temporada: sale con err
   const out = spawnSync(process.execPath, [SCRIPT, root], { encoding: 'utf8' });
   assert.equal(out.status, 2);
 });
+
+test('los grupos de eliminatoria de una liga (EL, PEL, ALEL; fase «Eliminatorias») son una copa que la web reconoce', async () => {
+  const { competitionKey } = await import('../../src/model.js');
+  const { isCupGroup } = await import('../../src/state.js');
+  for (const [cat, id] of [['benjamin', 'EL1'], ['prebenjamin', 'PEL1'], ['alevin', 'ALEL2']]) {
+    const key = competitionKey({ cat, id, phase: 'Eliminatorias', island: 'grancanaria', name: 'Eliminatoria de Primeros y Segundos' }, '2026-2027');
+    assert.equal(key.key, 'eliminatorias');
+    assert.equal(key.cup, 'eliminatorias');
+    assert.equal(isCupGroup({ id, phase: 'Eliminatorias' }), true);
+  }
+  const root = tree({ benjamin: [grupo('FF1', 'Primera Fase GC'), grupo('EL1', 'Eliminatorias')], alevin: [grupo('ALEL1', 'Eliminatorias')] });
+  assert.deepEqual((await sonda(root)).otras, []);
+});
