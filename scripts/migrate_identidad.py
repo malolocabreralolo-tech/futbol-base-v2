@@ -706,9 +706,13 @@ def resolver_fichas(conn, log=print, separadas=SEPARADAS) -> dict:
     asegurar_esquema(conn)
     # Antes que nada, cada identidad sin id con sus apariciones: los movimientos de equipo de la pasada
     # (merge_twin_teams y compañía) no miran players.
+    t_esquema = time.monotonic()
     realineadas = realinear(conn, log=log)
+    t_realinear = time.monotonic()
     ids = identidades(conn)
+    t_identidades = time.monotonic()
     juntas = pares_juntas(conn)
+    t_juntas = time.monotonic()
     apartadas = leer_separadas(conn, separadas, log=log)
     t1 = time.monotonic()
     fichas = resolver(ids, UNIR_CORTOS_EN_CLUB, juntas=juntas, separadas=apartadas)
@@ -731,7 +735,10 @@ def resolver_fichas(conn, log=print, separadas=SEPARADAS) -> dict:
            "uniones": dict(uniones), "cambiadas": len(cambios), "realinear": realineadas,
            "juntas": len(juntas), "separadas": len(apartadas),
            "segundos": round(time.monotonic() - t0, 2), "segundos_cargar": round(t1 - t0, 2),
-           "segundos_resolver": round(t2 - t1, 2)}
+           "segundos_resolver": round(t2 - t1, 2), "segundos_esquema": round(t_esquema - t0, 2),
+           "segundos_realinear": round(t_realinear - t_esquema, 2),
+           "segundos_identidades": round(t_identidades - t_realinear, 2),
+           "segundos_juntas": round(t_juntas - t_identidades, 2)}
     log(f"  resolver_fichas: {out['identidades']} identidades → {out['fichas']} fichas, uniones {out['uniones']}, "
         f"{out['cambiadas']} filas cambiadas, {out['segundos']} s")
     return out
@@ -908,8 +915,12 @@ def informe(r: dict, medida_antes: dict, medida_despues: dict, d12: list[str], s
          "original (los del bot, si hay; si no, los raws): sin id, a la de (nombre, equipo, temporada); con id, a "
          "la fila de ese id. Sin original: la liga prebenjamín de Gran Canaria desde 2024-25 (`PGC*`, `PG*`), "
          "sin id; lo demás, lo que diga la fila. No se borra ninguna fila.",
-         "3. Resolver: `identidad.resolver` sobre todas las identidades con aparición o suceso, y `ficha_id` "
-         "(NULL en la principal) y `union_por` en cada fila.",
+         "3. Resolver: `realinear` (cada identidad sin id con el equipo y la temporada de sus apariciones), los "
+         "pares de identidades del mismo nombre que salen en una misma alineación (`pares_juntas`: no se unen) y "
+         "las apartadas a mano (`scripts/identidad_separadas.json`); después, `identidad.resolver` sobre todas "
+         "las identidades con aparición o suceso, y `ficha_id` (NULL en la principal) y `union_por` en cada fila.",
+         "",
+         "La clave pública de cada identidad sin id se calcula una vez, al crearla, y se guarda en `players.clave`.",
          "",
          "Decisiones (lecturas que unen menos y no pierden nada):",
          "",
@@ -1012,15 +1023,23 @@ def informe(r: dict, medida_antes: dict, medida_despues: dict, d12: list[str], s
     L += ["", "## Comprobaciones", "",
           f"- `PRAGMA integrity_check`: {integridad.get('integrity_check')}",
           f"- `PRAGMA foreign_key_check`: {integridad.get('foreign_key_check')}",
-          f"- `ficha_id` que apuntan a una fila que no existe o que no es principal: {integridad.get('punteros malos')}"]
+          f"- `ficha_id` que apuntan a una fila que no existe o que no es principal: {integridad.get('punteros malos')}",
+          f"- Identidades sin id sin `clave` guardada: {integridad.get('sin clave')}; claves repetidas: "
+          f"{integridad.get('claves repetidas')}",
+          f"- Pares de identidades del mismo nombre en una misma alineación (no se unen): {fi.get('juntas', 0)}; "
+          f"apartadas a mano (`identidad_separadas.json`): {fi.get('separadas', 0)}",
+          f"- `realinear` en la última pasada: {fi.get('realinear', {})}"]
     if segunda is not None:
         L.append(f"- Segunda pasada seguida: recuentos iguales: {segunda['recuentos iguales']}; "
-                 f"`ficha_id`/`union_por` iguales: {segunda['fichas iguales']}; apariciones movidas: "
+                 f"filas de `players` iguales (también `ficha_id`, `union_por` y `clave`): {segunda['fichas iguales']}; "
+                 f"lo que movió `realinear`: {segunda.get('realinear')}; apariciones movidas por separar: "
                  f"{segunda['movidas']}; filas cambiadas por el resolvedor: {segunda['cambiadas']}.")
     L += ["", "## Tiempos (segundos)", ""]
     for clave, s in r["tiempos"].items():
         L.append(f"- {clave}: {s}")
-    L.append(f"- de `resolver_fichas`: cargar {fi['segundos_cargar']}, resolver {fi['segundos_resolver']}")
+    L.append(f"- de `resolver_fichas`: cargar {fi['segundos_cargar']} (esquema {fi.get('segundos_esquema')}, "
+             f"realinear {fi.get('segundos_realinear')}, identidades {fi.get('segundos_identidades')}, pares de "
+             f"una misma alineación {fi.get('segundos_juntas')}), resolver {fi['segundos_resolver']}")
     return "\n".join(L) + "\n"
 
 
@@ -1073,9 +1092,13 @@ def comprobar(conn) -> dict:
     malos = conn.execute(
         """SELECT count(*) FROM players p LEFT JOIN players q ON q.id = p.ficha_id
             WHERE p.ficha_id IS NOT NULL AND (q.id IS NULL OR q.ficha_id IS NOT NULL)""").fetchone()[0]
+    sin_clave = conn.execute("SELECT count(*) FROM players WHERE fiflp_id IS NULL AND team_id IS NOT NULL "
+                             "AND clave IS NULL").fetchone()[0]
+    repetidas = conn.execute("SELECT count(*) FROM (SELECT clave FROM players WHERE clave IS NOT NULL "
+                             "GROUP BY clave HAVING count(*) > 1)").fetchone()[0]
     return {"integrity_check": conn.execute("PRAGMA integrity_check").fetchone()[0],
             "foreign_key_check": len(conn.execute("PRAGMA foreign_key_check").fetchall()) or "sin fallos",
-            "punteros malos": malos}
+            "punteros malos": malos, "sin clave": sin_clave, "claves repetidas": repetidas}
 
 
 def main(argv=None):
@@ -1092,12 +1115,13 @@ def main(argv=None):
     r = migrate(conn, args.raws)
     segunda = None
     if args.dos_veces:
-        fichas1 = conn.execute("SELECT id, ficha_id, union_por FROM players ORDER BY id").fetchall()
+        fichas1 = conn.execute("SELECT * FROM players ORDER BY id").fetchall()
         r2 = migrate(conn, args.raws)
-        fichas2 = conn.execute("SELECT id, ficha_id, union_por FROM players ORDER BY id").fetchall()
+        fichas2 = conn.execute("SELECT * FROM players ORDER BY id").fetchall()
         segunda = {"recuentos iguales": r2["antes"] == r2["despues"] == r["despues"],
                    "fichas iguales": fichas1 == fichas2, "movidas": len(r2["movidas"]),
-                   "cambiadas": r2["fichas"]["cambiadas"], "segundos resolver_fichas": r2["fichas"]["segundos"]}
+                   "cambiadas": r2["fichas"]["cambiadas"], "realinear": r2["fichas"]["realinear"],
+                   "segundos resolver_fichas": r2["fichas"]["segundos"]}
         print(f"segunda pasada: {segunda}")
     medida_despues = medida_fichas(conn)
     r["fichas"]["club y temporada"] = len(uniones_de_club_y_temporada(conn))

@@ -6,7 +6,9 @@ Generado por `python3 scripts/migrate_identidad.py --db <copia> --informe docs/i
 
 1. Esquema: `players.ficha_id`, `union_por` y, para la identidad sin id, `team_id`, `season_id` y `ordinal`; `norm_name` sigue siendo único: `NOMBRE@<equipo>.<temporada>` (y `#<ordinal>` desde el segundo del mismo nombre en una alineación).
 2. Separar: cada aparición, con sus sucesos de ese partido y equipo, a su identidad de acta según el original (los del bot, si hay; si no, los raws): sin id, a la de (nombre, equipo, temporada); con id, a la fila de ese id. Sin original: la liga prebenjamín de Gran Canaria desde 2024-25 (`PGC*`, `PG*`), sin id; lo demás, lo que diga la fila. No se borra ninguna fila.
-3. Resolver: `identidad.resolver` sobre todas las identidades con aparición o suceso, y `ficha_id` (NULL en la principal) y `union_por` en cada fila.
+3. Resolver: `realinear` (cada identidad sin id con el equipo y la temporada de sus apariciones), los pares de identidades del mismo nombre que salen en una misma alineación (`pares_juntas`: no se unen) y las apartadas a mano (`scripts/identidad_separadas.json`); después, `identidad.resolver` sobre todas las identidades con aparición o suceso, y `ficha_id` (NULL en la principal) y `union_por` en cada fila.
+
+La clave pública de cada identidad sin id se calcula una vez, al crearla, y se guarda en `players.clave`.
 
 Decisiones (lecturas que unen menos y no pierden nada):
 
@@ -33,19 +35,19 @@ Iguales salvo `players`, que solo crece (no se borra ninguna fila).
 
 | | Antes | Después |
 |---|---:|---:|
-| Fichas (con alguna aparición) | 17669 | 14989 |
-| Con algún id de la federación (v1 publicaba las filas con `fiflp_id`) | 17019 | 14239 |
+| Fichas (con alguna aparición) | 17669 | 14990 |
+| Con algún id de la federación (v1 publicaba las filas con `fiflp_id`) | 17019 | 14240 |
 | Sin ningún id | 650 | 750 |
 | Imposibles por edad | 15 | 0 |
 | Imposibles por solape (dos clubes a la vez) | 101 | 89 |
 | Filas de `players` sin ninguna aparición | 1 | 651 |
 | Filas sin aparición ni suceso | 0 | 650 |
 
-Identidades con aparición o suceso: 19000; fichas que da el resolvedor: 14990.
+Identidades con aparición o suceso: 19000; fichas que da el resolvedor: 14991.
 
 Uniones (identidades que no son la principal de su ficha, por la regla que las unió):
 
-- U0, mismo equipo y temporada (`equipo`): 3039
+- U0, mismo equipo y temporada (`equipo`): 3038
 - mismo club (U0 de club y U1) (`club`): 791
   - de ellas, U0 de club, mismo club y temporada: 131
   - U1, mismo club, temporadas seguidas: 660
@@ -214,12 +216,15 @@ Una sola identidad con id es lo que dice la federación: el mismo id en dos equi
 - `PRAGMA integrity_check`: ok
 - `PRAGMA foreign_key_check`: sin fallos
 - `ficha_id` que apuntan a una fila que no existe o que no es principal: 0
-- Segunda pasada seguida: recuentos iguales: True; `ficha_id`/`union_por` iguales: True; apariciones movidas: 0; filas cambiadas por el resolvedor: 0.
+- Identidades sin id sin `clave` guardada: 0; claves repetidas: 0
+- Pares de identidades del mismo nombre en una misma alineación (no se unen): 2; apartadas a mano (`identidad_separadas.json`): 0
+- `realinear` en la última pasada: {'movidas': 0, 'sucesos': 0, 'reubicadas': 0, 'creadas': 0, 'choques': 0}
+- Segunda pasada seguida: recuentos iguales: True; filas de `players` iguales (también `ficha_id`, `union_por` y `clave`): True; lo que movió `realinear`: {'movidas': 0, 'sucesos': 0, 'reubicadas': 0, 'creadas': 0, 'choques': 0}; apariciones movidas por separar: 0; filas cambiadas por el resolvedor: 0.
 
 ## Tiempos (segundos)
 
-- leer originales: 4.5
-- esquema: 0.03
-- separar: 19.01
-- resolver_fichas: 16.77
-- de `resolver_fichas`: cargar 11.66, resolver 5.0
+- leer originales: 2.12
+- esquema: 0.02
+- separar: 8.47
+- resolver_fichas: 7.48
+- de `resolver_fichas`: cargar 4.77 (esquema 0.0, realinear 0.03, identidades 3.95, pares de una misma alineación 0.79), resolver 2.62
