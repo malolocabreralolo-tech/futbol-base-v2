@@ -40,6 +40,7 @@ from fiflp_render import flatten, fiflp_launch_args
 from fiflp_carga import BRAKE_ROOM, CATALOG_URL, ready_selector, ready_timeout_ms, wait_ready
 from fetch_futbolaspalmas import standings_regression, stored_standings
 from generate_js import _repair_incoherent_points
+from pasada_sana import veredicto
 from fiflp_names import MIN_TEAM_SCORE, team_key, team_score
 import source_health
 
@@ -1052,6 +1053,12 @@ class NotServed(RuntimeError):
     no (una URL muerta mientras el resto carga), es un error, como siempre."""
 
 
+class JornadaVacia(RuntimeError):
+    """Una jornada leída vacía que la base tiene con partidos (empty_rounds): la federación (o el lector) no
+    la sirvió bien, no se ha borrado. update_group no escribe nada del grupo; run_passes lo da por error y
+    el veredicto de la pasada lo nombra (pasada_sana)."""
+
+
 JORNADAS_TRIES = 3       # dos esperas al desplegable de jornadas y una recarga (scrape_group)
 JORNADAS_JS = """() => {
     const sel = document.querySelector('select[name="jornada"]');
@@ -1236,15 +1243,44 @@ def add_detail(standings, html):
     return standings
 
 
+def empty_rounds(conn, group_id, raw_rounds, names):
+    """Las jornadas de `raw_rounds` que llegan vacías (la lista cruda de parse_matches, con sus descansos) y
+    que la base tiene con partidos de este grupo, como mensajes. No lo es la que la federación vació porque
+    movió sus partidos sin jugar a otra jornada leída en esta misma llamada (write_round los mueve): todos
+    sin resultado y cada cruce en otra de las leídas. Sin jornadas en la base, ninguna."""
+    stored = {}
+    for jornada, home, away, hs in conn.execute(
+            """SELECT m.jornada, h.name, a.name, m.home_score FROM matches m
+               JOIN teams h ON h.id=m.home_team_id JOIN teams a ON a.id=m.away_team_id
+               WHERE m.group_id=?""", (group_id,)):
+        stored.setdefault(jornada, []).append((home, away, hs is None))
+    side = lambda name: names.get(clean_team_name(name), clean_team_name(name))     # noqa: E731
+    read = {label: {(side(m.get("home")), side(m.get("away"))) for m in ms} for label, ms in raw_rounds.items()}
+    out = []
+    for label, ms in raw_rounds.items():
+        if ms or not stored.get(label):
+            continue
+        elsewhere = set().union(*(pairs for other, pairs in read.items() if other != label))
+        if all(unplayed and (home, away) in elsewhere for home, away, unplayed in stored[label]):
+            continue
+        n = len(stored[label])
+        out.append(f"la {label[:1].lower()}{label[1:]} se leyó vacía y la base tiene {n} partido{'' if n == 1 else 's'}")
+    return out
+
+
 def update_group(conn, group_id, code, raw_standings, raw_rounds, log=print):
     """Escribe en la base lo scrapeado de un grupo. Devuelve (estado, mensaje). Los nombres de la
     federación se traducen a los del grupo (group_team_names), con los retirados que solo salen en el
-    calendario, después de juntar los equipos entrados dos veces (merge_twin_teams)."""
+    calendario, después de juntar los equipos entrados dos veces (merge_twin_teams). Con una jornada
+    leída vacía que la base tiene con partidos (empty_rounds), JornadaVacia antes de escribir nada más."""
     merge_twin_teams(conn, group_id, log)
     group_teams = group_team_names(conn, group_id)
     names = name_map([r["team"] for r in raw_standings] +
                      [m[s] for ms in raw_rounds.values() for m in ms for s in ("home", "away")],
                      group_teams)
+    empty = empty_rounds(conn, group_id, raw_rounds, names)
+    if empty:
+        raise JornadaVacia("; ".join(empty))
     rows = [[r["pos"], names.get(clean_team_name(r["team"]), clean_team_name(r["team"])),
              r["pts"], r["j"], r["g"], r["e"], r["p"], r["gf"], r["gc"], r["df"]]
             for r in raw_standings if clean_team_name(r["team"])]
@@ -1574,6 +1610,7 @@ def update_groups(conn, season_id, today=None):
         if group not in groups:
             source_health.carry(group[1], group[2])
     if not groups:
+        source_health.set_run_health([])       # nada que leer: sana
         return
     deadline = clock() + budget_seconds()
     from migrate_actas_schema import migrate
@@ -1587,12 +1624,19 @@ def update_groups(conn, season_id, today=None):
     print(f"\nFederación (FIFLP): {len(groups)} grupos, plazo de {budget_seconds() / 60:g} min", flush=True)
     pending = {code: url for _, code, url in groups}
     try:
-        _with_browser(lambda page, F: run_passes(page, F, conn, season_id, groups, today, pending, deadline=deadline),
-                      deadline=deadline)
+        run = _with_browser(lambda page, F: run_passes(page, F, conn, season_id, groups, today, pending,
+                                                       deadline=deadline), deadline=deadline)
     except Exception as e:      # sin navegador o FIFLP caída: se informa, no se tumba el run
         print(f"  ! la federación no se pudo consultar: {e}")
         for code, url in pending.items():
             source_health.record(code, url, "error", e)
+        # Solo ese motivo: sus grupos no se llegaron a pedir (no es que la federación no los sirviera).
+        reasons = veredicto({}, 0, interrumpida=str(e) or type(e).__name__)
+    else:
+        reasons = veredicto(run["estados"], run["previstos"], run["vacias"])
+    if reasons:
+        print("  ! pasada en rojo: " + "; ".join(reasons), flush=True)
+    source_health.set_run_health(reasons)
 
 
 def _with_browser(work, deadline=None):
@@ -1618,7 +1662,7 @@ def _with_browser(work, deadline=None):
             "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"))
         page.set_default_timeout(30000)
         try:
-            work(page, F)
+            return work(page, F)
         finally:
             browser.close()
 
@@ -1754,6 +1798,7 @@ def run_passes(page, F, conn, season_id, groups, today, pending, deadline_second
     pages_before = getattr(F, "pages", None)
     full = full_read_pending(conn)
     results, stamps, deferred = {}, {}, []
+    vacias = []                         # los de una jornada leída vacía que la base tiene (JornadaVacia)
     # Sin federación por su freno: conservan su última comprobación (run.unserved). suspects: los que
     # fallaron sin señal de freno, con las páginas servidas hasta su fallo (si no sirve ninguna más antes
     # de la señal del freno, también eran el freno).
@@ -1842,6 +1887,11 @@ def run_passes(page, F, conn, season_id, groups, today, pending, deadline_second
             status, msg = "error", e
             print(f"    ! error: {e}")
             suspects[code] = (group, served())
+        except JornadaVacia as e:       # sin escribir nada del grupo; el veredicto de la pasada lo nombra
+            conn.rollback()
+            status, msg = "error", e
+            print(f"    ! error: {e}")
+            vacias.append(code)
         except Exception as e:          # un grupo que falla no tumba a los demás
             conn.rollback()
             status, msg = "error", e
@@ -1990,6 +2040,10 @@ def run_passes(page, F, conn, season_id, groups, today, pending, deadline_second
         **({"pauses": pauses, "resumed": getattr(F, "resumed", 0),
             "brakeAfter": list(getattr(F, "brake_after", []))} if pauses else {})})
     print(f"  Federación: {round((clock() - start) / 60, 1)} min de {round((deadline - start) / 60, 1)}", flush=True)
+    # Para el veredicto (pasada_sana), tras pasar los sospechosos a unserved: previstos, los que la pasada
+    # intentó (leídos, sin servir por el freno y aplazados por plazo; los que descansan, no).
+    return {"estados": {code: result[0] for code, result in results.items()},
+            "previstos": len(results) + len(unserved) + len(deferred), "vacias": vacias}
 
 
 def update_directorio(page, F, conn, season_id, groups, deadline=None, pages=None):
