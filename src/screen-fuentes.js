@@ -82,6 +82,32 @@ function newCompetitionsNote(items) {
   return notice(null, `La federación ha publicado ${countLabel(names.length, 'competición', 'competiciones')} que esta web aún no tiene: ${names.join('; ')}.`);
 }
 
+// Los grupos nuevos de competiciones que esta web ya sigue (newGroups de data-health, que apunta el bot:
+// update_fiflp.new_groups), en una línea: «competición, grupo»; nada si no hay ninguno o no se entiende.
+const trimmed = (value) => (typeof value === 'string' ? value.trim() : '');
+function newGroupsNote(items) {
+  const names = (Array.isArray(items) ? items : []).map((item) => {
+    if (!item || typeof item !== 'object' || !trimmed(item.name)) return '';
+    const comp = trimmed(item.competitionName) || (typeof item.competition === 'number' ? String(item.competition) : trimmed(item.competition));
+    return comp ? `${comp}, ${trimmed(item.name)}` : trimmed(item.name);
+  }).filter(Boolean);
+  if (!names.length) return '';
+  return notice(null, `La federación ha publicado ${countLabel(names.length, 'grupo nuevo', 'grupos nuevos')} en competiciones que esta web ya sigue: ${names.join('; ')}.`);
+}
+
+// Lo que la activación automática no pudo cargar (activation.failed de data-health: [{competition, name,
+// reason}]), con su motivo, en una línea; nada sin activación, sin fallos o si no se entiende.
+function activationNote(activation) {
+  const failed = activation && typeof activation === 'object' && Array.isArray(activation.failed) ? activation.failed : [];
+  const reasons = failed.map((item) => {
+    const reason = item && typeof item === 'object' ? trimmed(item.reason) : '';
+    const name = reason ? trimmed(item.name) : '';
+    return name && !reason.includes(name) ? `${name} (${reason})` : reason;
+  }).filter(Boolean);
+  if (!reasons.length) return '';
+  return notice(null, `No se han podido cargar solos: ${reasons.join('; ')}.`);
+}
+
 // La última pasada del bot en rojo (runHealth de data-health: update_fiflp y source_health.set_run_health),
 // con sus motivos y desde cuándo (hora de Canarias; «hoy» si es `today`), en una línea; nada si fue sana,
 // si no hay veredicto o si no se entiende: el aviso solo sale con algún motivo en texto.
@@ -145,7 +171,7 @@ function render(ctx) {
   const mine = ctx.resolution && ctx.resolution.status === 'ok' ? ctx.resolution.name : (ctx.myTeam && ctx.myTeam.name) || '';
   const upcoming = next && next.status === 'pending' && SEASON_RE.test(String(next.name)) && mine ? nextSeasonBox(ctx, mine, next.name) : '';
   const database = databaseBlock(ctx.datasets && ctx.datasets.cobertura);
-  return html`<section data-screen="fuentes">${screenHead(title, { sub: checkedSeason ? `Temporada ${seasonLabel(checkedSeason)}` : null, back: ctx.backHref })}${state}${runHealthNote(health, ctx.today)}${block('Comprobación por grupo', list, { context: summary(rows) || null })}${sourcesNote(rows)}${missing}${newCompetitionsNote(health.newCompetitions)}${upcoming}${database}</section>`;
+  return html`<section data-screen="fuentes">${screenHead(title, { sub: checkedSeason ? `Temporada ${seasonLabel(checkedSeason)}` : null, back: ctx.backHref })}${state}${runHealthNote(health, ctx.today)}${block('Comprobación por grupo', list, { context: summary(rows) || null })}${sourcesNote(rows)}${missing}${newCompetitionsNote(health.newCompetitions)}${newGroupsNote(health.newGroups)}${activationNote(health.activation)}${upcoming}${database}</section>`;
 }
 
 export const screen = {

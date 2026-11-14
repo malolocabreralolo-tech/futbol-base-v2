@@ -105,6 +105,44 @@ test('las competiciones que la federación publica y la web no tiene (newCompeti
   }
 });
 
+test('los grupos nuevos de competiciones que la web ya sigue (newGroups del bot), en una línea tras la de competiciones', () => {
+  const g25 = { competition: '54976988', competitionName: 'BENJAMIN PRIMERA FASE GC', id: '55300001', name: 'GRUPO 25', firstSeen: '2026-11-14' };
+  const pg5 = { competition: '54977022', competitionName: 'PREBENJAMIN GRAN CANARIA', id: '55300002', name: 'GRUPO 5', firstSeen: '2026-11-14' };
+  const fv = { id: '54977017', name: 'LIGA BENJAMIN F-7 DE FUERTEVENTURA 1ª FASE', firstSeen: '2026-10-07' };
+  assert.match(render(edited((h) => { h.newGroups = [g25]; })),
+    /<p class="notice">La federación ha publicado 1 grupo nuevo en competiciones que esta web ya sigue: BENJAMIN PRIMERA FASE GC, GRUPO 25\.<\/p>/);
+  const both = render(edited((h) => { h.newCompetitions = [fv]; h.newGroups = [g25, pg5]; }));
+  assert.match(both, /aún no tiene: LIGA BENJAMIN F-7 DE FUERTEVENTURA 1ª FASE\.<\/p><p class="notice">La federación ha publicado 2 grupos nuevos en competiciones que esta web ya sigue: BENJAMIN PRIMERA FASE GC, GRUPO 25; PREBENJAMIN GRAN CANARIA, GRUPO 5\.<\/p>/);
+  // Sin el nombre de la competición, su id; sin ninguno, solo el grupo.
+  assert.match(render(edited((h) => { h.newGroups = [{ ...g25, competitionName: '' }, { id: '1', name: 'GRUPO 7' }]; })),
+    /ya sigue: 54976988, GRUPO 25; GRUPO 7\.<\/p>/);
+  // Sin ninguno, o con algo que no es una lista de grupos, nada (y la pantalla se pinta igual).
+  for (const value of [undefined, [], 'x', 42, { a: 1 }, [{ id: '1' }], [null], [{ name: 7 }]]) {
+    const out = render(edited((h) => { h.newGroups = value; }));
+    assert.doesNotMatch(out, /ya sigue/);
+    assert.match(out, /Comprobación por grupo/);
+  }
+});
+
+test('lo que no se pudo cargar solo (activation.failed), en una línea más; nada si no se entiende', () => {
+  const g25 = { competition: '54976988', competitionName: 'BENJAMIN PRIMERA FASE GC', id: '55300001', name: 'GRUPO 25', firstSeen: '2026-11-14' };
+  const failed = [
+    { competition: '54976988', name: 'BENJAMIN PRIMERA FASE GC', reason: 'la descarga no está completa: faltan 2 grupos' },
+    { competition: '1', name: 'LIGA BENJAMIN X', reason: 'sin convenio de código: LIGA BENJAMIN X' },
+  ];
+  const out = render(edited((h) => { h.newGroups = [g25]; h.activation = { at: '2026-11-14T10:00:00+00:00', activated: [], failed, tried: ['54976988', '1'] }; }));
+  assert.match(out, /ya sigue: BENJAMIN PRIMERA FASE GC, GRUPO 25\.<\/p><p class="notice">No se han podido cargar solos: BENJAMIN PRIMERA FASE GC \(la descarga no está completa: faltan 2 grupos\); sin convenio de código: LIGA BENJAMIN X\.<\/p>/);
+  // Sin nombre, solo el motivo.
+  assert.match(render(edited((h) => { h.activation = { failed: [{ reason: 'verificación: x' }] }; })),
+    /<p class="notice">No se han podido cargar solos: verificación: x\.<\/p>/);
+  // Sin activación, sin fallos o mal formada: nada, y la pantalla se pinta igual.
+  for (const value of [undefined, null, 'x', 42, {}, { failed: [] }, { failed: 'x' }, { failed: [null, 3, {}, { reason: '' }, { reason: 7 }] }]) {
+    const out = render(edited((h) => { h.activation = value; }));
+    assert.doesNotMatch(out, /cargar solos/);
+    assert.match(out, /Comprobación por grupo/);
+  }
+});
+
 test('la última pasada del bot en rojo (runHealth de data-health), en un aviso justo debajo del estado de los datos', () => {
   const red = { ok: false, reasons: ['fallaron 9 de 20 grupos leídos: FF1, FF2', 'jornada leída vacía que la base tiene con partidos: PG2'], since: '2026-11-14T10:05:00+00:00' };
   const said = 'La última pasada del bot no fue bien (desde el 14 de noviembre, 10:05): fallaron 9 de 20 grupos leídos: FF1, FF2; jornada leída vacía que la base tiene con partidos: PG2.';
