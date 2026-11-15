@@ -14,7 +14,7 @@
   <link rel="apple-touch-icon" href="./icons/icon-180.png">
   <link rel="icon" type="image/png" href="./icons/icon-192.png">
   <link rel="manifest" href="./manifest.json">
-  <link rel="stylesheet" href="./acta.css?v=20261114w">
+  <link rel="stylesheet" href="./dist/acta-b9e5dc63.css">
 </head>
 <body>
   <a class="skip-link" href="#contenido">Saltar al contenido</a>
@@ -58,7 +58,7 @@
     // estilos en línea y «Reintentar»: nunca «Cargando…» para siempre. Es texto fijo, sin datos.
     (async () => {
       try {
-        const CODIGO = '125ccd2f';
+        const CODIGO = 'f52caf19';
         let seen = null;
         try { seen = localStorage.getItem('fb2:codigo'); } catch { /* sin almacenamiento */ }
         if (navigator.serviceWorker?.controller && seen !== CODIGO) {
@@ -78,13 +78,13 @@
             const sheet = document.querySelector('link[rel="stylesheet"]');
             if (stale && sheet) {
               const fresh = sheet.cloneNode();
-              fresh.href = `${sheet.href}&c=${CODIGO}`;
+              fresh.href = `${sheet.href}?c=${CODIGO}`;
               await new Promise((resolve) => { fresh.onload = fresh.onerror = resolve; sheet.after(fresh); });
               if (fresh.sheet) sheet.remove(); else fresh.remove();
             }
           } catch { /* sin Cache Storage: no hay nada que quitar */ }
         }
-        const { start } = await import('./src/app.js?v=20261114w');
+        const { start } = await import('./dist/app-64eba0b3.js');
         start(document, window);
         if (navigator.serviceWorker?.controller) {
           try { localStorage.setItem('fb2:codigo', CODIGO); } catch { /* sin almacenamiento */ }

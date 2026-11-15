@@ -3,10 +3,11 @@
 
 Cada fase se publica al terminarla (docs/rediseno-rebase.md). La publicación sube a la vez todas las
 ?v= de index.html y CACHE_NAME de sw.js, con la misma cadena, para que los móviles con la app
-instalada cambien a la versión nueva, y recalcula CODIGO (scripts/codigo.py), la versión del código
-que lee el arranque. No toca «Última actualización»: es la fecha de los datos, la escribe el bot y
-source_health la publica como lastDataChange. Las marcas las reescribe bump_cache_version, la misma
-función del bot, con touch_footer=False.
+instalada cambien a la versión nueva, y empaqueta el código en dist/ con CODIGO, la versión del código
+que lee el arranque (scripts/codigo.py, que necesita esbuild: npm ci --prefix scripts/empaquetar; sin
+él, se para sin escribir nada). No toca «Última actualización»: es la fecha de los datos, la escribe el
+bot y source_health la publica como lastDataChange. Las marcas las reescribe bump_cache_version, la
+misma función del bot, con touch_footer=False.
 
 La versión es la fecha UTC, como la del bot (date.today() en el runner de GitHub: con la de Canarias,
 entre las 00:00 y la 01:00 se podía repetir o hacer retroceder una CACHE_NAME), y estrictamente mayor
@@ -15,7 +16,7 @@ es de un día posterior), la letra siguiente de la vigente: 20260925 → 2026092
 sin escribir nada si la vigente ya lleva la z.
 
 Uso, desde la raíz del repositorio:
-  python3 scripts/publicar.py    # las ?v=, CACHE_NAME y CODIGO de index.html y sw.js
+  python3 scripts/publicar.py    # las ?v= y CACHE_NAME de index.html y sw.js, y dist/ con CODIGO
 """
 import argparse
 import contextlib
@@ -56,7 +57,7 @@ def _today_utc():
 
 def main(argv=None):
     parser = argparse.ArgumentParser(
-        description="Sube las ?v=, CACHE_NAME y CODIGO de una publicación, sin tocar «Última actualización».")
+        description="Sube las ?v= y CACHE_NAME de una publicación y empaqueta dist/, sin tocar «Última actualización».")
     parser.add_argument("--root", default=str(ROOT), help="la raíz del árbol (por defecto, la del repositorio)")
     args = parser.parse_args(argv)
     root = Path(args.root)
@@ -78,6 +79,11 @@ def main(argv=None):
         version = next_publish_version(current, _today_utc())
     except ValueError as error:
         print(f"{error}: nada escrito")
+        return 1
+    # Sin poder empaquetar, la versión subiría con el código de antes: se para antes de escribir.
+    why = codigo.puede_empaquetar(root)
+    if why:
+        print(f"{why}: nada escrito")
         return 1
     # Las mismas expresiones que el bot; sus avisos por línea sobran aquí, que lo resume en una.
     with contextlib.redirect_stdout(io.StringIO()):

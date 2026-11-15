@@ -635,6 +635,25 @@ def test_tests_yml_aislamiento_smoke_job():
     assert "node scripts/tests/aislamiento-smoke.mjs" in runs
 
 
+def test_tests_yml_instala_esbuild_antes_de_las_suites():
+    """Las pruebas que empaquetan de verdad (test_empaquetar.py, test_publicar.py) se saltan sin esbuild:
+    en tests.yml lo instala el lockfile de scripts/empaquetar antes de cada suite, para que corran; el bot
+    (update.yml) y la activación (activar.yml) nunca empaquetan, y no lo instalan."""
+    data = _load("tests.yml")
+    for job, suite in (("pytest", "python -m pytest scripts/tests/"), ("node-tests", "node --test scripts/tests/test_*.mjs")):
+        runs = _runs(data, job)
+        install = next((i for i, run in enumerate(runs) if run.strip() == "npm ci --prefix scripts/empaquetar"), None)
+        tests = next((i for i, run in enumerate(runs) if suite in run), None)
+        assert install is not None and tests is not None and install < tests, (job, runs)
+        assert any(step.get("uses") == "actions/setup-node@v5" for step in _steps(data, job)), job
+    for name in ("update.yml", "activar.yml"):
+        assert "empaquetar" not in (WF_DIR / name).read_text(encoding="utf-8"), name
+    trig = _triggers(data)
+    for event in ("push", "pull_request"):
+        for wanted in ("scripts/empaquetar/**", "dist/**"):
+            assert wanted in trig[event]["paths"], f"{event} paths must include {wanted}"
+
+
 def test_tests_yml_pytest_installs_pyyaml():
     runs = " ".join(_runs(_load("tests.yml"), "pytest"))
     assert re.search(r"pip install[^\n]*\bpyyaml\b", runs), (

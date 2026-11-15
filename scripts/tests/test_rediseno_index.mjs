@@ -3,6 +3,8 @@
 // que lee el bot (generate_js.py y source_health.py) se ejecuta de verdad en
 // test_index_bot_contract.py; aquí, la forma. Desde B3 (decisiones 155 y 156), el arranque limpia el
 // código de otras versiones una vez por versión de código (CODIGO, la huella de src/*.js y acta.css).
+// Desde la fase 3, la hoja y el módulo de arranque son los de dist/ (scripts/codigo.py), con la huella
+// de su contenido en el nombre y sin ?v=.
 // Desde B4, los datos inmediatos van con defer, el arranque, en una función asíncrona (decisiones 4 y
 // 5 de B4), y el registro del SW, tras load; los iconos y el manifiesto, en test_rediseno_pwa.mjs.
 import { test } from 'node:test';
@@ -17,6 +19,7 @@ import { WORLDS, worldFiles } from './fixture-site.mjs';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const INDEX = readFileSync(join(ROOT, 'index.html'), 'utf8');
+const ORIGEN = JSON.parse(readFileSync(join(ROOT, 'dist', 'origen.json'), 'utf8'));
 
 test('esqueleto: saltar al contenido, cabecera, la barra de ui.tabbar y main#contenido.page con su primera caja', () => {
   assert.match(INDEX, /<html lang="es">/);
@@ -38,10 +41,11 @@ test('datos inmediatos: los siete que lee la portada, con defer y en el orden de
   // detrás: los globales ya están cuando arranca app.js (spec §5.4; decisión 4 de B4).
   const deferred = [...INDEX.matchAll(/<script defer src="\.\/([^"?]+)\?v=\d{8}[a-z]?"><\/script>/g)].map((m) => m[1]);
   assert.deepEqual(deferred, scripts, 'los siete, con defer');
-  // app.js no se arranca al importarse: index.html lo importa (versionado, como los datos) y llama a start.
+  // app.js no se arranca al importarse: index.html importa su paquete de dist/ y llama a start.
   const boot = INDEX.match(/<script type="module">[\s\S]*?<\/script>/);
   assert.ok(boot, 'falta el arranque');
-  assert.match(boot[0], /const \{ start \} = await import\('\.\/src\/app\.js\?v=\d{8}[a-z]?'\);\s*start\(document, window\);/);
+  assert.match(boot[0], /const \{ start \} = await import\('\.\/dist\/app-[0-9a-f]{8}\.js'\);\s*start\(document, window\);/);
+  assert.ok(boot[0].includes(`await import('./${ORIGEN.app}');`), `el paquete de dist/origen.json, ${ORIGEN.app}`);
   assert.ok(INDEX.indexOf(boot[0]) > INDEX.indexOf('data-maspalomas-cup-2026.js'), 'arranca después de los datos');
   // Antes, una vez por versión de código y con un SW al mando, quita de las cachés de otras versiones
   // el código y las hojas de esta app, y vuelve a pedir la hoja: su SW los serviría viejos aunque
@@ -55,12 +59,12 @@ test('datos inmediatos: los siete que lee la portada, con defer y en el orden de
   assert.ok(boot[0].includes("if (!name.startsWith('futbolbase2-v') || name === `futbolbase2-v${version}`) continue;"));
   assert.ok(boot[0].includes('if (pathname.startsWith(home) && /\\/src\\/[^/]+\\.js$|\\.css$/.test(pathname) && await cache.delete(request)) stale = true;'));
   // Si se quitó algo, la hoja ya aplicada se vuelve a pedir (el SW anterior nunca la revalida).
-  assert.ok(boot[0].includes('fresh.href = `${sheet.href}&c=${CODIGO}`;'));
+  assert.ok(boot[0].includes('fresh.href = `${sheet.href}?c=${CODIGO}`;'), 'la hoja va sin query: ?c=, nunca &c=');
   assert.ok(boot[0].includes('if (fresh.sheet) sheet.remove(); else fresh.remove();'));
   // El orden: se lee el marcador, se limpia, se importa app.js, start y, solo entonces, se apunta.
   const at = (text) => boot[0].indexOf(text);
   assert.ok(at("localStorage.getItem('fb2:codigo')") < at('caches.keys()'), 'lee el marcador antes de limpiar');
-  assert.ok(at('caches.keys()') < at("import('./src/app.js"), 'limpia antes de importar');
+  assert.ok(at('caches.keys()') < at("import('./dist/app-"), 'limpia antes de importar');
   assert.ok(at('start(document, window);') < at("localStorage.setItem('fb2:codigo', CODIGO)"), 'apunta CODIGO tras start');
   // El marcador se apunta solo si un SW manda en la página: una apertura que se lo salta (Mayús+Recargar,
   // «Bypass for network») con el SW anterior todavía activo no purgó nada, y apuntarlo igual dejaría la
@@ -89,8 +93,10 @@ test('marcas del bot: una sola versión en todas las ?v=, data-seasons.js versio
   const versions = new Set([...INDEX.matchAll(/\?v=([0-9a-z]+)/g)].map((m) => m[1]));
   assert.equal(versions.size, 1, [...versions].join(', '));
   assert.match([...versions][0], /^\d{8}[a-z]?$/);
-  // La hoja va en una URL nueva, acta.css: el SW de la app anterior sirve style.css desde su caché.
-  assert.match(INDEX, /<link rel="stylesheet" href="\.\/acta\.css\?v=\d{8}[a-z]?">/);
+  // La hoja, la de dist/, sin ?v=: su nombre lleva la huella de su contenido.
+  assert.match(INDEX, /<link rel="stylesheet" href="\.\/dist\/acta-[0-9a-f]{8}\.css">/);
+  assert.ok(INDEX.includes(`<link rel="stylesheet" href="./${ORIGEN.css}">`), `la hoja de dist/origen.json, ${ORIGEN.css}`);
+  assert.equal((INDEX.match(/<link rel="stylesheet"/g) || []).length, 1);
   assert.match(INDEX, /<script defer src="\.\/data-seasons\.js\?v=\d{8}[a-z]?"><\/script>/);
   assert.match(INDEX, /<span id="legacyUpdated" hidden>Última actualización: \d{2}\/\d{2}\/\d{4}<\/span>/);
   assert.equal((INDEX.match(/Última actualización: /g) || []).length, 1);
@@ -102,15 +108,18 @@ test('tema del sistema: theme-color claro y oscuro, sin selector de tema ni fuen
   assert.doesNotMatch(INDEX, /fonts\.googleapis|fonts\.gstatic|style-acta\.css|style\.css|themeToggle|data-theme/);
 });
 
-test('CODIGO es la huella del código del árbol: src/*.js y acta.css (scripts/codigo.py; decisión 156 de B3)', () => {
-  // La misma que calcula scripts/codigo.py: sha1 de acta.css y de src/*.js por nombre, de cada uno su
-  // ruta, un cero, su contenido y otro cero; sus 8 primeras cifras. Si falla, se cambió código sin
-  // subir CODIGO: `python3 scripts/codigo.py`. El bot nunca toca src/ ni acta.css.
-  const files = ['acta.css', ...readdirSync(join(ROOT, 'src')).filter((f) => f.endsWith('.js')).sort().map((f) => `src/${f}`)];
+test('CODIGO es la huella del código del árbol: src/*.js sin config.js y acta.css, la de dist/origen.json (scripts/codigo.py)', () => {
+  // La misma que calcula scripts/codigo.py: sha1 de acta.css y de src/*.js por nombre, sin src/config.js
+  // (se queda fuera del paquete), de cada uno su ruta, un cero, su contenido y otro cero; sus 8 primeras
+  // cifras. Si falla, se cambió código sin empaquetar: `python3 scripts/codigo.py`. El bot nunca toca
+  // src/ ni acta.css.
+  const files = ['acta.css', ...readdirSync(join(ROOT, 'src')).filter((f) => f.endsWith('.js')).sort().map((f) => `src/${f}`)]
+    .filter((file) => !ORIGEN.externos.includes(file));
   const hash = createHash('sha1');
   for (const file of files) hash.update(Buffer.concat([Buffer.from(`${file}\0`), readFileSync(join(ROOT, file)), Buffer.from('\0')]));
-  assert.equal((INDEX.match(/const CODIGO = '([0-9a-f]{8})';/) || [])[1], hash.digest('hex').slice(0, 8),
-    'CODIGO desfasado: ejecuta python3 scripts/codigo.py');
+  const want = hash.digest('hex').slice(0, 8);
+  assert.equal((INDEX.match(/const CODIGO = '([0-9a-f]{8})';/) || [])[1], want, 'CODIGO desfasado: ejecuta python3 scripts/codigo.py');
+  assert.equal(ORIGEN.codigo, want, 'dist/ desfasado: ejecuta python3 scripts/codigo.py');
 });
 
 // B4 (decisiones 1 y 3): data-matchdetail-keys.js, data-stats.js y data-players-<S>.js ya no los lee

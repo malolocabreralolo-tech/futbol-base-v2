@@ -12,8 +12,10 @@ import { clearStore } from '../../src/store.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const leer = (f) => readFileSync(join(ROOT, f), 'utf8');
-// Lo que v2 publica y ejecuta el navegador: la página, el SW, el manifiesto y los módulos de src/.
-const SITIO = ['index.html', 'sw.js', 'manifest.json', ...readdirSync(join(ROOT, 'src')).filter(f => f.endsWith('.js')).map(f => `src/${f}`)];
+// Lo que v2 publica y ejecuta el navegador: la página, el SW, el manifiesto, el paquete de dist/ y los
+// módulos de src/, de los que sale.
+const SITIO = ['index.html', 'sw.js', 'manifest.json', ...readdirSync(join(ROOT, 'dist')).filter(f => f.endsWith('.js')).map(f => `dist/${f}`),
+  ...readdirSync(join(ROOT, 'src')).filter(f => f.endsWith('.js')).map(f => `src/${f}`)];
 
 // sw.js es un guion clásico: se carga en un contexto de vm con un `self` falso (como test_sw_fixes.mjs).
 function cargarSw(globales = {}) {
@@ -48,7 +50,8 @@ test('lo que v2 publica no nombra ninguna caché de v1', () => {
 test('las claves de v1 solo aparecen como constantes de solo lectura de store.js', () => {
   for (const f of SITIO) {
     const hits = leer(f).match(/futbol-base:[a-z0-9:]+/g) || [];
-    if (f === 'src/store.js') assert.deepEqual([...new Set(hits)].sort(), ['futbol-base:favorites:v1', 'futbol-base:jugadores', 'futbol-base:v2']);
+    // El paquete de dist/ lleva store.js dentro: las mismas, y ninguna más.
+    if (f === 'src/store.js' || f.startsWith('dist/')) assert.deepEqual([...new Set(hits)].sort(), ['futbol-base:favorites:v1', 'futbol-base:jugadores', 'futbol-base:v2']);
     else assert.deepEqual(hits, [], f);
   }
 });

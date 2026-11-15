@@ -1,0 +1,8 @@
+{
+  "name": "futbol-base-v2-empaquetar",
+  "private": true,
+  "description": "esbuild para scripts/empaquetar/empaquetar.mjs: empaqueta src/ y acta.css en dist/ al publicar (scripts/codigo.py).",
+  "devDependencies": {
+    "esbuild": "0.28.2"
+  }
+}

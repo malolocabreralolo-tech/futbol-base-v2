@@ -39,8 +39,8 @@ def test_bump_cache_version_sube_todas_las_marcas_y_nada_mas(site):
     assert len(versions) == 1, versions
     (version,) = versions
     assert version.startswith(date.today().strftime("%Y%m%d"))
-    # Las 9 de B4 (decisión 1): la hoja, los 7 datos inmediatos y el import de app.js.
-    assert len(VERSION_RE.findall(after)) == len(VERSION_RE.findall(before)) == 9
+    # Los 7 datos inmediatos: la hoja y el módulo de arranque, de dist/, llevan la huella en el nombre.
+    assert len(VERSION_RE.findall(after)) == len(VERSION_RE.findall(before)) == 7
     assert f"Última actualización: {date.today().strftime('%d/%m/%Y')}" in after
 
     def neutral(text):
@@ -67,30 +67,40 @@ def test_source_health_lee_la_fecha_y_la_version_del_esqueleto(site, monkeypatch
     assert report["dataVersion"] == version
 
 
-def test_el_sello_de_los_escudos_no_lo_toca_ni_el_bot_ni_sync_versions_ni_publicar(site, monkeypatch):
+def test_el_sello_de_los_escudos_no_lo_toca_ni_el_bot_ni_sync_versions(site):
     """Plan B5, decisión 1: la línea 2 de sw.js es CRESTS_CACHE, la caché de los escudos, con el sello de
     escudos/, y solo la escribe build_crests.py. La subida del bot (bump_cache_version: la primera
-    futbolbase2-v[0-9a-z]+), sync_versions.py (la misma expresión, sin anclar) y publicar.py (la línea 1
-    entera) no la alcanzan; y, para sync_versions.py, otro sello no es una marca del bot."""
-    import publicar
+    futbolbase2-v[0-9a-z]+) y sync_versions.py (la misma expresión, sin anclar) no la alcanzan; y, para
+    sync_versions.py, otro sello no es una marca del bot."""
     import sync_versions
 
-    shutil.copy(ROOT / "acta.css", site / "acta.css")
-    shutil.copytree(ROOT / "src", site / "src")
-
-    def line2():
-        return (site / "sw.js").read_text(encoding="utf-8").splitlines()[1]
-
-    seal = line2()
+    seal = _line2(site)
     assert re.fullmatch(r"const CRESTS_CACHE = 'futbolbase2-escudos-[0-9a-f]{8}';", seal), seal
     generate_js.bump_cache_version(str(site))
-    assert line2() == seal
-    monkeypatch.setattr(publicar, "_today_utc", lambda: "20991231")
-    assert publicar.main(["--root", str(site)]) == 0
-    assert line2() == seal
+    assert _line2(site) == seal
     index, sw = ((site / name).read_text(encoding="utf-8") for name in ("index.html", "sw.js"))
     wanted = {"v": "20991231z", "footer": "31/12/2099", "cache": "20991231z"}
     new_index, new_sw = sync_versions.apply_marks(index, sw, wanted)
     assert new_sw.splitlines()[1] == seal and sync_versions.marks(new_index, new_sw) == wanted
     resealed = sw.replace(seal, "const CRESTS_CACHE = 'futbolbase2-escudos-00000000';")
     assert resealed != sw and not sync_versions.only_marks_changed(index, sw, index, resealed)
+
+
+@pytest.mark.skipif(not (ROOT / "scripts/empaquetar/node_modules/esbuild").exists(),
+                    reason="sin esbuild: npm ci --prefix scripts/empaquetar")
+def test_el_sello_de_los_escudos_no_lo_toca_publicar(site, monkeypatch):
+    """publicar.py reescribe la línea 1 entera y, al empaquetar (codigo.py), las rutas de dist/ de
+    STATIC_ASSETS: la línea 2, nunca."""
+    import publicar
+
+    shutil.copy(ROOT / "acta.css", site / "acta.css")
+    for name in ("src", "dist"):
+        shutil.copytree(ROOT / name, site / name)
+    seal = _line2(site)
+    monkeypatch.setattr(publicar, "_today_utc", lambda: "20991231")
+    assert publicar.main(["--root", str(site)]) == 0
+    assert _line2(site) == seal
+
+
+def _line2(site):
+    return (site / "sw.js").read_text(encoding="utf-8").splitlines()[1]

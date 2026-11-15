@@ -3,7 +3,6 @@
 // sirven, decisión 31) y la temporada del portal inyectada.
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
-import { readFileSync } from 'node:fs';
 import { ctxFor, datasetsFor, cssRules, PORTAL_SEASON } from './fixtures/rediseno/screens.mjs';
 import { archive, nextSeasonRaw } from './fixtures/rediseno/simulate.mjs';
 import { SCREEN_MAP } from '../../src/screens.js';
@@ -41,7 +40,6 @@ test('«actual» sigue a la temporada del portal, no a la marca de SEASONS; la d
 
 test('registro y CSS: la ruta pinta Temporadas; solo clases que existen, enlaces de 44 px y 640 px en escritorio', () => {
   assert.equal(SCREEN_MAP.temporadas, screen);
-  assert.match(readFileSync(new URL('../../sw.js', import.meta.url), 'utf8'), /\n {2}'\.\/src\/screen-temporadas\.js',\n/);
   const rules = cssRules();
   const used = new Set(render(archived()).match(/class="[^"]+"/g).flatMap((m) => m.slice(7, -1).split(/\s+/)));
   assert.deepEqual([...used].filter((c) => !rules.classes.has(c)), []);

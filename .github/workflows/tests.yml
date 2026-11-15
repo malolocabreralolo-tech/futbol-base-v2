@@ -8,6 +8,8 @@ on:
       - 'scripts/**.json'
       - 'scripts/**.sh'
       - 'scripts/tests/**'
+      - 'scripts/empaquetar/**'
+      - 'dist/**'
       - 'futbolbase.db'
       - 'data-*.js'
       - 'src/**'
@@ -32,6 +34,8 @@ on:
       - 'scripts/**.json'
       - 'scripts/**.sh'
       - 'scripts/tests/**'
+      - 'scripts/empaquetar/**'
+      - 'dist/**'
       - 'futbolbase.db'
       - 'data-*.js'
       - 'src/**'
@@ -60,6 +64,8 @@ on:
 # Las acciones, en la versión mayor más baja que corre en Node 24 (plan B4, decisiones 12 y 55; lo fija
 # test_workflows.py): checkout@v5, setup-python@v6 y setup-node@v5, como update.yml; y la imagen,
 # fijada en ubuntu-24.04, como en todos los workflows.
+# Las suites, con esbuild (scripts/empaquetar, npm ci): las pruebas que empaquetan de verdad
+# (test_empaquetar.py, test_publicar.py) se saltan sin él, como en el bot, que no lo instala.
 jobs:
   pytest:
     runs-on: ubuntu-24.04
@@ -68,6 +74,11 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+      - name: Install esbuild (empaquetado de dist/)
+        run: npm ci --prefix scripts/empaquetar
       - name: Install pytest
         run: pip install pytest pyyaml
       - name: Run Python tests
@@ -80,6 +91,8 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: '22'
+      - name: Install esbuild (empaquetado de dist/)
+        run: npm ci --prefix scripts/empaquetar
       - name: Run Node tests
         # Glob (contrato C5): coge todas las suites test_*.mjs presentes y
         # futuras (render-smoke.mjs no matchea, corre en su propio job).

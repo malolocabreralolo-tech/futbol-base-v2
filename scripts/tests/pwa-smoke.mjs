@@ -6,7 +6,7 @@
 // fixtures de B1 (23/09/2026), nunca los data-*.js vivos, que cambian con el bot y al activar 2026/27.
 // El SW anterior sirve los .js de src/ con stale-while-revalidate y los .css con cache-first, los dos
 // ignorando la ?v= (A1 de la revisión):
-//  - la hoja nueva va en otra URL, acta.css, que su caché no tiene;
+//  - la hoja nueva va en otra URL, la de dist/ (con su huella en el nombre), que su caché no tiene;
 //  - la primera vez que se abre un código nuevo, index.html quita de las cachés de otras versiones su
 //    código y sus hojas antes de importar app.js (desde B3, para cualquier versión: decisión 155).
 // Mientras el SW nuevo se instala (su precache queda retenido), cada apertura tiene que ser entera de
@@ -19,6 +19,7 @@
 // En los dos, ni la app nueva ni su SW piden los datos que B4 retiró (decisión 3 de B4). Y un tercero:
 // sin conexión tras una subida de datos del bot, los escudos ya vistos siguen ahí (dataDeploy).
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { createServer } from 'node:http';
 import { existsSync, readFileSync, statSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -41,6 +42,8 @@ const read = (dir, file) => {
   return existsSync(path) && statSync(path).isFile() ? readFileSync(path, 'utf8') : null;
 };
 const versionOf = (sw) => sw.match(/CACHE_NAME = 'futbolbase2-v([^']+)'/)[1];
+// El código que carga la página: el paquete de dist/ (scripts/codigo.py) y src/config.js, aparte.
+const ORIGEN = JSON.parse(read(ROOT, 'dist/origen.json'));
 const OLD_VERSION = versionOf(read(PREVIOUS, 'sw.js'));
 const TREE_VERSION = versionOf(read(ROOT, 'sw.js'));
 const PUBLISHED = '20991231a';
@@ -181,37 +184,33 @@ const base = `http://127.0.0.1:${proxy.address().port}/index.html`;
 
 // ── 2. Despliegue de código sobre el SW de la rama (A1 de la revisión del plan B3; decisión 157) ──
 // La versión «a» es el árbol publicado como 20991231a, instalada y con su SW al mando. Se publica «b»
-// (20991231b) con un cambio de código de verdad: state.js exporta SIGUIENTE y app.js lo importa (las
-// exportaciones cambian, como de B2 a B3), acta.css lleva una marca (--version-codigo: "b") y CODIGO
-// cambia. El SW de «a» revalida src/*.js fichero a fichero y nunca la hoja (cache-first):
+// (20991231b) con otro paquete en dist/, como lo dejaría scripts/codigo.py: el módulo marca la página
+// (data-codigo="b"), la hoja lleva una marca (--version-codigo: "b"), los dos con su huella nueva en el
+// nombre, y CODIGO cambia. El SW de «a» revalida el documento y sirve dist/ con cache-first:
 //  - la instalación del SW de «b» (sus peticiones con ?v= de «b») queda retenida hasta el final;
-//  - 1.ª apertura: «a» entera. En segundo plano, su SW revalida el documento y los módulos, ya de «b»,
-//    salvo state.js, que da 503 (mala cobertura): su caché se queda con index.html y app.js de «b» y
-//    con state.js y acta.css de «a»;
-//  - 2.ª apertura, en otra página: «b» entera (la marca de la hoja, Explorar, sin el aviso del arranque
-//    ni errores). Sin la limpieza del arranque (decisión 155), el SyntaxError de state.js y la hoja vieja;
+//  - 1.ª apertura: «a» entera. En segundo plano, su SW revalida el documento, ya de «b»;
+//  - 2.ª apertura, en otra página: «b» entera (las marcas del módulo y de la hoja, Explorar, sin el aviso
+//    del arranque ni errores): el index.html de «b» pide el paquete de «b», que la caché de «a» no tiene;
 //  - 3.ª, sin conexión (el servidor corta las conexiones): «b» entera, desde la caché;
 //  - se suelta la instalación: el SW de «b» toma el mando y borra la caché de «a», y la app es «b» entera.
 // Los datos, los congelados de arriba (FROZEN), y el código sin caché HTTP (no-store): determinista.
 const CODE_A = '20991231a';
 const CODE_B = '20991231b';
 const MARK = '--version-codigo';
-// Una condición del servidor, que se comprueba cada 50 ms hasta `timeout` (nunca un tiempo fijo).
-async function settle(condition, label, timeout = 15000) {
-  const deadline = Date.now() + timeout;
-  while (!condition()) {
-    if (Date.now() >= deadline) throw new Error(`${label}: condition not met after ${timeout}ms`);
-    await new Promise((resolve) => setTimeout(resolve, 50));
-  }
-}
+// El paquete de «b»: el del árbol con sus marcas, con la huella de su contenido en el nombre.
+const sha8 = (text) => createHash('sha1').update(text).digest('hex').slice(0, 8);
+const BUNDLE_B = (() => {
+  const app = `${read(ROOT, ORIGEN.app)}\ndocument.documentElement.dataset.codigo = 'b';\n`;
+  const css = `${read(ROOT, ORIGEN.css)}\n:root{${MARK}:"b"}\n`;
+  return { [`dist/app-${sha8(app)}.js`]: app, [`dist/acta-${sha8(css)}.css`]: css };
+})();
+const [APP_B, CSS_B] = Object.keys(BUNDLE_B);
 // La espera del SW nuevo sin ninguna página de la app abierta, takeOver, está en browser-wait.mjs: la
 // comparte aislamiento-smoke.mjs.
 
 async function codeDeploy(browser) {
   let phase = 'a';
   let down = false;          // sin conexión: el servidor corta cada conexión
-  let failState = false;     // la revalidación de state.js del SW de «a» da 503
-  let failedState = false;   // y ya la dio
   let release;
   const held = new Promise((resolve) => { release = resolve; });
   // Para el diagnóstico si el SW de «b» no llega a mandar: cada petición al llegar y al acabar, y las
@@ -221,17 +220,16 @@ async function codeDeploy(browser) {
   const pending = new Map();
   let lastRequest = 0;
   const retired = [];        // las peticiones de datos retirados: ninguna, las dos versiones son la app nueva
-  // El código de cada versión: el del árbol con sus marcas y, en «b», el cambio de exportaciones y la marca.
+  // El código de cada versión: el del árbol con sus marcas y, en «b», su paquete en index.html y sw.js.
   const code = (file) => {
-    if (!(file === 'index.html' || file === 'sw.js' || file === 'acta.css' || /^src\/[^/]+\.js$/.test(file))) return null;
+    if (phase === 'b' && Object.hasOwn(BUNDLE_B, file)) return BUNDLE_B[file];
+    if (!(file === 'index.html' || file === 'sw.js' || /^dist\/[^/]+\.(?:js|css)$/.test(file) || /^src\/[^/]+\.js$/.test(file))) return null;
     let text = read(ROOT, file);
     if (text === null) return null;
     if (file === 'index.html' || file === 'sw.js') text = text.replaceAll(TREE_VERSION, phase === 'a' ? CODE_A : CODE_B);
-    if (phase === 'b') {
+    if (phase === 'b' && (file === 'index.html' || file === 'sw.js')) {
+      text = text.replaceAll(ORIGEN.app, APP_B).replaceAll(ORIGEN.css, CSS_B);
       if (file === 'index.html') text = text.replace(/const CODIGO = '[0-9a-f]{8}';/, "const CODIGO = 'siguient';");
-      if (file === 'src/state.js') text += "\nexport const SIGUIENTE = 'b';\n";
-      if (file === 'src/app.js') text = `import { SIGUIENTE } from './state.js';\nif (SIGUIENTE !== 'b') throw new Error('mezcla');\n${text}`;
-      if (file === 'acta.css') text += `\n:root { ${MARK}: "b"; }\n`;
     }
     return text;
   };
@@ -252,12 +250,6 @@ async function codeDeploy(browser) {
     const v = url.searchParams.get('v');
     try {
       if (fromWorker && v === CODE_B) await held;
-      if (failState && fromWorker && v === CODE_A && file === 'src/state.js') {
-        failedState = true;
-        res.writeHead(503, { 'Content-Type': 'text/plain', 'Cache-Control': 'no-store' });
-        res.end('no disponible');
-        return;
-      }
       const data = frozen(file);
       if (data || file.startsWith('data-')) {
         if (!data && !NO_LINEUPS.test(file)) console.error('PWA fixture HTTP 404 (sin dato congelado)', req.url);
@@ -296,10 +288,11 @@ async function codeDeploy(browser) {
       screen: document.querySelector('#contenido section[data-screen]')?.getAttribute('data-screen') ?? null,
       alert: !!document.querySelector('#contenido [role="alert"]'),
       marca: getComputedStyle(document.documentElement).getPropertyValue(mark).trim(),
+      codigo: document.documentElement.dataset.codigo ?? '',
     }), MARK);
     return { page, seen: { ...look, errores: errors } };
   };
-  const whole = (label, seen, marca) => assert.deepEqual(seen, { screen: 'explorar', alert: false, marca, errores: [] },
+  const whole = (label, seen, marca) => assert.deepEqual(seen, { screen: 'explorar', alert: false, marca, codigo: marca ? 'b' : '', errores: [] },
     `despliegue de código, ${label}: ${JSON.stringify(seen)}`);
   try {
     // «a» instalada: su SW al mando (clients.claim) y su precache, sin volver a cargar la página: así
@@ -308,19 +301,16 @@ async function codeDeploy(browser) {
     await waitForAsync(o.page, (name) => caches.keys().then((keys) => keys.includes(name) && !!navigator.serviceWorker.controller),
       `futbolbase2-v${CODE_A}`, { label: 'despliegue de código, «a» instalada' });
     await o.page.close();
-    // Se publica «b». 1.ª apertura: «a» entera; su SW revalida en segundo plano, y state.js da 503.
+    // Se publica «b». 1.ª apertura: «a» entera; su SW revalida el documento en segundo plano.
     phase = 'b';
-    failState = true;
     o = await open('despliegue de código, 1.ª apertura');
     whole('1.ª apertura, «a» entera', o.seen, '');
-    await settle(() => failedState, 'despliegue de código, la revalidación de state.js');
-    await waitForAsync(o.page, async ([name, a, b]) => {
-      const cache = await caches.open(name);
-      const text = async (key) => { const response = await cache.match(key); return response ? response.text() : ''; };
-      return (await text('./index.html')).includes(b) && (await text(`./src/app.js?v=${a}`)).includes('SIGUIENTE');
-    }, [`futbolbase2-v${CODE_A}`, CODE_A, CODE_B], { label: 'despliegue de código, index.html y app.js de «b» en la caché de «a»' });
+    await waitForAsync(o.page, async ([name, b, app]) => {
+      const response = await (await caches.open(name)).match('./index.html');
+      const text = response ? await response.text() : '';
+      return text.includes(b) && text.includes(app);
+    }, [`futbolbase2-v${CODE_A}`, CODE_B, APP_B], { label: 'despliegue de código, el index.html de «b» en la caché de «a»' });
     await o.page.close();
-    failState = false;
     // 2.ª apertura, con el SW de «a» al mando: «b» entera.
     o = await open('despliegue de código, 2.ª apertura');
     whole('2.ª apertura, «b» entera', o.seen, '"b"');
@@ -373,7 +363,7 @@ async function codeDeploy(browser) {
     whole('con el SW de «b»', o.seen, '"b"');
     await o.page.close();
     assert.deepEqual(retired, [], 'despliegue de código: la app nueva pide datos retirados (decisión 3 de B4)');
-    console.log('PASS: despliegue de código sobre el SW de la rama: la 1.ª apertura es la versión anterior; la 2.ª, con su revalidación de state.js fallida, y la 3.ª, sin conexión, la nueva entera (su hoja y sus módulos, sin el aviso del arranque); con el SW nuevo, también, y sin pedir datos retirados');
+    console.log('PASS: despliegue de código sobre el SW de la rama: la 1.ª apertura es la versión anterior; la 2.ª y la 3.ª, sin conexión, la nueva entera (su paquete y su hoja, sin el aviso del arranque); con el SW nuevo, también, y sin pedir datos retirados');
   } finally {
     release();
     await context.close();
@@ -537,11 +527,11 @@ try {
   page.setDefaultTimeout(20000);
   const errors = [];
   page.on('pageerror', (error) => errors.push(error.message));
-  // Lo que sirve cada apertura (documento, hojas y módulos de src/), con su versión.
+  // Lo que sirve cada apertura (documento, hojas y módulos de src/ y de dist/), con su versión.
   let served = [];
   page.on('response', (response) => {
     const url = new URL(response.url());
-    if (url.origin !== new URL(base).origin || !/^\/(index\.html)?$|\.css$|^\/src\/.+\.js$/.test(url.pathname)) return;
+    if (url.origin !== new URL(base).origin || !/^\/(index\.html)?$|\.css$|^\/(?:src|dist)\/.+\.js$/.test(url.pathname)) return;
     const file = url.pathname === '/' ? 'index.html' : decodeURIComponent(url.pathname.slice(1));
     served.push(response.text().then((body) => ({ file, generation: generation(file, body) }), () => ({ file, generation: 'sin cuerpo' })));
   });
@@ -581,7 +571,7 @@ try {
   failing.clear();
 
   // 3. Sin conexión, con el SW anterior al mando y el index.html nuevo en su caché, que no tiene ni
-  // acta.css ni los módulos nuevos: el aviso con «Reintentar», nunca «Cargando…» sin más (R2-3).
+  // la hoja ni el paquete nuevos: el aviso con «Reintentar», nunca «Cargando…» sin más (R2-3).
   await context.setOffline(true);
   await page.reload();
   const notice = page.locator('#contenido [role="alert"]');
@@ -594,7 +584,7 @@ try {
   served = [];
 
   // 4. Con conexión, «Reintentar» abre la app nueva (2.ª apertura), y recargar, la 3.ª; con el SW
-  // anterior todavía al mando: la app nueva entera, con acta.css.
+  // anterior todavía al mando: la app nueva entera, con su hoja de dist/.
   await context.setOffline(false);
   for (const [label, open] of [['2.ª apertura, con «Reintentar»', () => retry.click()], ['3.ª apertura', () => page.reload()]]) {
     await open();
@@ -606,7 +596,7 @@ try {
       font: getComputedStyle(document.body).fontFamily.split(',')[0].replace(/["']/g, ''),
       bar: getComputedStyle(document.querySelector('.tabbar')).position,
     }));
-    assert.deepEqual(look, { sheets: ['/acta.css'], font: 'Public Sans', bar: 'fixed' }, label);
+    assert.deepEqual(look, { sheets: [`/${ORIGEN.css}`], font: 'Public Sans', bar: 'fixed' }, label);
   }
 
   // 5. El SW nuevo termina de instalarse, borra la caché anterior y toma el mando.
@@ -650,7 +640,7 @@ try {
   }
   assert.deepEqual(errors, [], 'la portada sin conexión: sin errores de JavaScript');
   const precached = await page.evaluate(async (name) => (await (await caches.open(name)).keys()).map((r) => new URL(r.url).pathname), expected);
-  for (const path of ['/fonts/PublicSans-latin.woff2', '/icons/icon-192.png', '/src/screen-home.js', '/src/screen-jornada.js', '/src/screen-explorar.js', '/acta.css', '/data-alevin.js']) {
+  for (const path of ['/fonts/PublicSans-latin.woff2', '/icons/icon-192.png', `/${ORIGEN.app}`, `/${ORIGEN.css}`, '/src/config.js', '/data-alevin.js']) {
     assert.ok(precached.includes(path), `${path} is not precached`);
   }
   // La cabecera avisa de que no hay conexión (spec §4.10).
@@ -676,7 +666,7 @@ try {
   // nuevo ni la app nueva con él al mando piden ninguno (llevarían la versión publicada).
   assert.ok(retiredAsked.some((asked) => asked.endsWith(`?v=${OLD_VERSION}`)), `la app anterior pide sus datos: ${JSON.stringify(retiredAsked)}`);
   assert.deepEqual(retiredAsked.filter((asked) => asked.endsWith(`?v=${PUBLISHED}`)), [], 'la app nueva pide datos retirados');
-  console.log(`PASS: de la app anterior (su SW real) al rediseño, con datos congelados: la 1.ª apertura es la anterior; sin conexión a medias, el aviso con «Reintentar»; la 2.ª y la 3.ª, la nueva con acta.css y sin mezclar módulos; con ${expected}, la portada, Jornada y el buscador de Explorar funcionan sin conexión, y ni la app nueva ni su SW piden los datos retirados`);
+  console.log(`PASS: de la app anterior (su SW real) al rediseño, con datos congelados: la 1.ª apertura es la anterior; sin conexión a medias, el aviso con «Reintentar»; la 2.ª y la 3.ª, la nueva con su paquete y su hoja de dist/; con ${expected}, la portada, Jornada y el buscador de Explorar funcionan sin conexión, y ni la app nueva ni su SW piden los datos retirados`);
   await context.close();
   await codeDeploy(browser);
   await dataDeploy(browser);

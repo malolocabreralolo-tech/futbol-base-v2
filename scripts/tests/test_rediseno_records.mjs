@@ -4,7 +4,6 @@
 // congelados y `today` inyectado; y la temporada pasada la carga el router (decisión 2 de B3).
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
-import { readFileSync } from 'node:fs';
 import { ctxFor, datasetsFor, cssRules, PORTAL_SEASON, DEFAULT_TEAM } from './fixtures/rediseno/screens.mjs';
 import { goleadores, archive, nextSeasonRaw } from './fixtures/rediseno/simulate.mjs';
 import { fakeBrowser, memoryStorage } from './fixtures/rediseno/fake-browser.mjs';
@@ -264,11 +263,9 @@ test('una temporada pasada sin cargar: el router la carga y Récords la pinta, s
   assert.deepEqual(screen.needs({ s: '2024-2025' }, datasets, { portalSeason: PORTAL_SEASON }), [], 'la pantalla no pide su temporada');
 });
 
-test('registro: la ruta #/records pinta Récords y sw.js la precachea', () => {
+test('registro: la ruta #/records pinta Récords', () => {
   assert.equal(SCREEN_MAP.records, screen);
   assert.equal(screen.id, 'records');
-  const sw = readFileSync(new URL('../../sw.js', import.meta.url), 'utf8');
-  assert.match(sw, /\n {2}'\.\/src\/screen-records\.js',\n/);
 });
 
 test('CSS: solo clases que existen, filas de 44 px, y en escritorio los goleadores en su columna', () => {

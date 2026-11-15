@@ -26,14 +26,13 @@ function fetchFresh(request, cache = 'no-cache', version) {
   return fetch(versionedAssetURL(request, version), { cache, credentials: 'same-origin' });
 }
 
-// Static assets — cached on install (spec §5.5): the page, the stylesheet, the
-// manifest, the self-hosted font, the PWA icons, the FULL static import graph
-// of src/app.js (test_sw_fixes.mjs compares it with the real graph) and the
-// eager data-*.js that index.html loads.
+// Lo que se guarda al instalar (spec §5.5): la página, el manifiesto, la fuente
+// alojada, los iconos de la PWA, el código empaquetado (dist/app-<h>.js y
+// dist/acta-<h>.css, que escribe scripts/codigo.py), src/config.js, que se
+// queda fuera del paquete, y los data-*.js inmediatos de index.html.
 const STATIC_ASSETS = [
   './',
   './index.html',
-  './acta.css',
   './manifest.json',
   './data-health.json',
   './fonts/PublicSans-latin.woff2',
@@ -41,38 +40,9 @@ const STATIC_ASSETS = [
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/icon-maskable-512.png',
-  './src/app.js',
-  './src/router.js',
-  './src/shell.js',
-  './src/screens.js',
-  './src/screen-ligas.js',
-  './src/screen-explorar.js',
-  './src/screen-jornada.js',
-  './src/screen-tabla.js',
-  './src/screen-partido.js',
-  './src/screen-temporadas.js',
-  './src/screen-fuentes.js',
-  './src/screen-ajustes.js',
-  './src/screen-records.js',
-  './src/screen-copa.js',
-  './src/screen-goleadores.js',
-  './src/screen-equipo.js',
-  './src/screen-jugador.js',
-  './src/followed.js',
+  './dist/app-64eba0b3.js',
+  './dist/acta-b9e5dc63.css',
   './src/config.js',
-  './src/html.js',
-  './src/links.js',
-  './src/model.js',
-  './src/myteam.js',
-  './src/pronostico.js',
-  './src/proyeccion.js',
-  './src/screen-home.js',
-  './src/estado.js',
-  './src/team-view.js',
-  './src/team-extras.js',
-  './src/state.js',
-  './src/store.js',
-  './src/ui.js',
   './data-benjamin.js',
   './data-prebenjamin.js',
   './data-history.js',

@@ -127,7 +127,7 @@ node scripts/tests/render-smoke.mjs
 node scripts/tests/interaction-smoke.mjs
 ```
 
-`--apply` cambia `src/config.js`, que es código, y recalcula él solo `CODIGO` (con la función de `scripts/codigo.py`), la versión del código que lee el arranque de `index.html` (Plan B3, decisión 156): ya no hace falta ejecutar `scripts/codigo.py` a mano después de activar. `pytest` y `node --test` se ejecutan, y tienen que salir en verde, antes de empujar la activación: el bot (`update.yml`) los ejecuta antes de comitear los datos y, si alguno falla, se para en rojo sin avisar y deja de publicar. Una activación por partes (solo una categoría, como en el ejemplo, que solo trae prebenjamín) es válida, y la suite tiene que seguir en verde con ella.
+`--apply` cambia `src/config.js`, que se queda fuera del paquete de `dist/` y de `CODIGO` (`scripts/codigo.py`): activar no empaqueta ni hace falta ejecutar `scripts/codigo.py` después. `pytest` y `node --test` se ejecutan, y tienen que salir en verde, antes de empujar la activación: el bot (`update.yml`) los ejecuta antes de comitear los datos y, si alguno falla, se para en rojo sin avisar y deja de publicar. Una activación por partes (solo una categoría, como en el ejemplo, que solo trae prebenjamín) es válida, y la suite tiene que seguir en verde con ella.
 
 Después de activar, fija la línea base de desvío de marcadores para que la temporada que acaba de cerrarse quede protegida por el vigilante `test_score_deviation_does_not_regress`:
 

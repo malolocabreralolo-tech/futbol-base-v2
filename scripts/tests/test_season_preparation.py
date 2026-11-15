@@ -247,12 +247,12 @@ def test_activation_on_a_synthetic_tree_archives_the_closing_season(tmp_path):
     assert not list(tmp_path.glob("data-lineups-2029-2030*.js"))
 
 
-def test_apply_recalculates_codigo_for_the_new_config(tmp_path):
-    # --apply rewrites src/config.js, part of CODIGO's fingerprint (src/*.js + acta.css; scripts/codigo.py,
-    # Plan B3 decisión 156). Unlike the narrower tmp_path above (only enough to exercise the data
-    # migration), this one mirrors the whole tree codigo.py needs, so codigo.py --check can confirm the
-    # fingerprint was recalculated in place after activation (ronda de arreglos 1, R2-1).
+def test_activar_no_cambia_ni_codigo_ni_el_paquete(tmp_path):
+    # --apply reescribe src/config.js, que se queda fuera del paquete y de CODIGO (scripts/codigo.py):
+    # activar no empaqueta, y dist/, CODIGO y las rutas de index.html y sw.js siguen al día. Una copia del
+    # árbol entero que lee codigo.py --check, para comprobarlo antes y después.
     shutil.copytree(ROOT / 'src', tmp_path / 'src')
+    shutil.copytree(ROOT / 'dist', tmp_path / 'dist')
     shutil.copy2(ROOT / 'acta.css', tmp_path / 'acta.css')
     for file in [*ROOT.glob('data-*.js'), ROOT / 'index.html', ROOT / 'sw.js']:
         shutil.copy2(file, tmp_path / file.relative_to(ROOT))
@@ -260,7 +260,9 @@ def test_apply_recalculates_codigo_for_the_new_config(tmp_path):
     source.backup(target)
     source.close()
     target.close()
-    assert codigo.main(['--check', '--root', str(tmp_path)]) == 0, 'la copia empieza con CODIGO al día'
+    assert codigo.main(['--check', '--root', str(tmp_path)]) == 0, 'la copia empieza con dist/ al día'
+    dist = {path.name: path.read_bytes() for path in (tmp_path / 'dist').iterdir()}
+    codigo_antes = codigo.CODIGO_RE.findall((tmp_path / 'index.html').read_text(encoding='utf-8'))
     # Same reasoning as the test above: activate the season after the copy's own
     # portal season, not a season fixed at 2026-2027.
     season = next_season(load_config(tmp_path / 'src/config.js')['season'])
@@ -268,3 +270,5 @@ def test_apply_recalculates_codigo_for_the_new_config(tmp_path):
     apply_manifest(manifest, evidence_for(manifest), tmp_path)
     assert load_config(tmp_path / 'src/config.js')['season'] == season
     assert codigo.main(['--check', '--root', str(tmp_path)]) == 0
+    assert {path.name: path.read_bytes() for path in (tmp_path / 'dist').iterdir()} == dist
+    assert codigo.CODIGO_RE.findall((tmp_path / 'index.html').read_text(encoding='utf-8')) == codigo_antes

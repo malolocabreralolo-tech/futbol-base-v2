@@ -4,7 +4,6 @@
 // del router lo vuelve a pedir: se prueba con startRouter, el navegador falso y un fetch simulado.
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
-import { readFileSync } from 'node:fs';
 import { ctxFor, datasetsFor, cssRules, PORTAL_SEASON, DEFAULT_TEAM } from './fixtures/rediseno/screens.mjs';
 import { fixture } from './fixtures/rediseno/load.mjs';
 import { fakeBrowser, memoryStorage } from './fixtures/rediseno/fake-browser.mjs';
@@ -220,7 +219,6 @@ test('needs pide data-health si no está, también si ya falló; el «Reintentar
 
 test('registro y CSS: la ruta pinta Fuentes; solo clases que existen y filas de 44 px', () => {
   assert.equal(SCREEN_MAP.fuentes, screen);
-  assert.match(readFileSync(new URL('../../sw.js', import.meta.url), 'utf8'), /\n {2}'\.\/src\/screen-fuentes\.js',\n/);
   const rules = cssRules();
   const outs = [render(), render(withHealth(null)), render(edited((h) => { h.groups.PG3.url = ''; h.groups.PG3.status = 'error'; })),
     render(edited((h) => { h.runHealth = { ok: false, reasons: ['interrumpida'], since: '2026-11-14T10:05:00+00:00' }; }))];

@@ -4,7 +4,6 @@
 // nav.clearData. El borrado de verdad, con start(), está en test_rediseno_integracion.mjs.
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
-import { readFileSync } from 'node:fs';
 import { ctxFor, datasetsFor, cssRules } from './fixtures/rediseno/screens.mjs';
 import { nextSeasonRaw } from './fixtures/rediseno/simulate.mjs';
 import { SCREEN_MAP } from '../../src/screens.js';
@@ -83,7 +82,6 @@ test('mount: dos pasos sin diálogo; «Cancelar» recoge el aviso y devuelve el 
 
 test('registro y CSS: la ruta pinta Ajustes; solo clases que existen, botones de 44 px y 640 px en escritorio', () => {
   assert.equal(SCREEN_MAP.ajustes, screen);
-  assert.match(readFileSync(new URL('../../sw.js', import.meta.url), 'utf8'), /\n {2}'\.\/src\/screen-ajustes\.js',\n/);
   const rules = cssRules();
   const outs = [render(), render(in2627({ benjamin: ['A1'], prebenjamin: ['PG3'] })), String(confirmPanel())];
   const used = new Set(outs.join('').match(/class="[^"]+"/g).flatMap((m) => m.slice(7, -1).split(/\s+/)));

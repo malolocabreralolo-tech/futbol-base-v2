@@ -3,7 +3,7 @@
  * Run: node --test scripts/tests/test_sw_fixes.mjs
  *
  * Covers (review 2026-06-11, agente SW-HTML):
- *   1. STATIC_ASSETS contains the FULL static import graph of src/app.js
+ *   1. STATIC_ASSETS lleva el código empaquetado de dist/origen.json y, de src/, solo config.js
  *   2. data-*.js reach the stale-while-revalidate branch (was unreachable:
  *      the generic cache-first .js branch captured them first); escudos clause
  *      fixed (pathname never starts with './')
@@ -61,36 +61,22 @@ test('network URLs use the active version, retaining other query parameters', ()
   assert.equal(new URL(sw.versionedAssetURL('./src/config.js')).pathname, '/src/config.js');
 });
 
-// ─── 1. static import graph ⊆ STATIC_ASSETS ───────────────────────────────
-function staticImportGraph(entry) {
-  const seen = new Set();
-  const queue = [entry];
-  while (queue.length) {
-    const f = queue.pop();
-    if (seen.has(f)) continue;
-    seen.add(f);
-    const src = readFileSync(join(ROOT, 'src', f), 'utf8');
-    // static imports only: `import ... from './x.js'` and bare `import './x.js'`
-    // (dynamic import('./x.js') has a paren, never matches `import '`/`from '`)
-    for (const m of src.matchAll(/(?:from|import)\s+['"]\.\/([\w-]+\.js)['"]/g)) {
-      queue.push(m[1]);
-    }
-  }
-  return seen;
-}
+// ─── 1. el código empaquetado en STATIC_ASSETS ────────────────────────────
+// La página carga el paquete de dist/ (scripts/codigo.py) y src/config.js, que se queda fuera: ni un
+// módulo más de src/ (su código va en el paquete), ni la hoja sin empaquetar.
+const ORIGEN = JSON.parse(readFileSync(join(ROOT, 'dist', 'origen.json'), 'utf8'));
 
-test('STATIC_ASSETS lleva exactamente el grafo de imports estáticos de src/app.js', () => {
+test('STATIC_ASSETS lleva el paquete de dist/origen.json y, de src/, solo lo que se queda fuera', () => {
   assert.ok(Array.isArray(sw.STATIC_ASSETS), 'STATIC_ASSETS must be an array');
-  const graph = [...staticImportGraph('app.js')].sort();
-  assert.ok(graph.includes('screen-home.js') && graph.includes('state.js'), graph.join(', '));
-  // Sin umbral: ni falta un módulo del grafo ni sobra uno que ya no existe (404 al instalar).
-  const precached = [...sw.STATIC_ASSETS].filter(url => url.startsWith('./src/')).map(url => url.slice('./src/'.length)).sort();
-  assert.deepEqual(precached, graph);
+  for (const file of [ORIGEN.app, ORIGEN.css]) assert.ok(sw.STATIC_ASSETS.includes(`./${file}`), `./${file} missing in STATIC_ASSETS`);
+  assert.deepEqual([...sw.STATIC_ASSETS].filter((url) => url.startsWith('./src/')), ORIGEN.externos.map((file) => `./${file}`));
+  assert.deepEqual([...sw.STATIC_ASSETS].filter((url) => url.startsWith('./dist/')), [`./${ORIGEN.app}`, `./${ORIGEN.css}`]);
+  assert.ok(!sw.STATIC_ASSETS.includes('./acta.css'), 'la hoja va empaquetada');
 });
 
 test('STATIC_ASSETS lleva la página, la fuente alojada y los iconos de la PWA (spec §5.5)', () => {
   const files = (dir, ext) => readdirSync(join(ROOT, dir)).filter(f => f.endsWith(ext)).map(f => `./${dir}/${f}`);
-  const wanted = ['./', './index.html', './acta.css', './manifest.json', './data-health.json',
+  const wanted = ['./', './index.html', `./${ORIGEN.css}`, './manifest.json', './data-health.json',
     ...files('fonts', '.woff2'), ...files('icons', '.png')];
   assert.ok(wanted.length >= 10, wanted.join(', '));
   for (const url of wanted) assert.ok(sw.STATIC_ASSETS.includes(url), `${url} missing in STATIC_ASSETS`);

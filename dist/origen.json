@@ -1,0 +1,8 @@
+{
+  "codigo": "f52caf19",
+  "app": "dist/app-64eba0b3.js",
+  "css": "dist/acta-b9e5dc63.css",
+  "externos": [
+    "src/config.js"
+  ]
+}
