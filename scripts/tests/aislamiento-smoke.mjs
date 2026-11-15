@@ -5,17 +5,19 @@
 // servidos bajo /futbol-base/; v2, el árbol de trabajo, bajo /futbol-base-v2/ (pages-server.mjs).
 //   1. v1 instalada, con su equipo (el primero de prebenjamín de sus datos que no es el de por defecto), un
 //      jugador seguido y sus claves antiguas (season, cat, theme).
-//   2. v2 instalada: lo de v1 sigue igual; las cachés de v2 son futbolbase2-*; trae el equipo y los
-//      seguidos de v1 a fb2:almacen y fb2:jugadores.
+//   2. v2 instalada: lo de v1 sigue igual; las cachés de v2 son futbolbase2-* (su precache incluido);
+//      trae el equipo y los seguidos de v1 a fb2:almacen y fb2:jugadores.
 //   3. «Borrar datos de esta app» en v1: lo de v2 sigue igual; de v1 solo queda futbol-base:codigo; al
 //      recargar, su equipo por defecto.
-//   4. «Borrar datos de esta app» en v2: lo de v1 sigue igual; de fb2: solo quedan fb2:importado y
-//      fb2:codigo; al recargar, el equipo por defecto.
+//   4. «Borrar datos de esta app» en v2: lo de v1 sigue igual; de fb2: solo queda fb2:importado; al
+//      recargar, el equipo por defecto.
 //   5. Subida de v1 (otra versión y otro sello de escudos en sw.js e index.html): su SW nuevo borra sus
 //      cachés viejas, y lo de v2 sigue igual.
-//   6. Subida de v2, igual: borra sus viejas, y lo de v1 sigue igual.
-//   7. Cambio de CODIGO con el SW al mando, en cada una: la limpieza del arranque de su index.html quita
-//      src/*.js y las hojas de su caché vieja, y nada más, ni de la otra.
+//   6. Subida de v2, igual: borra sus viejas, en su precache deja solo lo del manifiesto nuevo, y lo de v1
+//      sigue igual.
+//   7. Cambio de CODIGO de v1 con su SW al mando: la limpieza del arranque de su index.html quita src/*.js
+//      y las hojas de su caché vieja, y nada de v2 (v2 ya no tiene esa limpieza: su SW instala por
+//      contenido).
 //   8. Ni un error de consola ni una excepción en las dos apps.
 // Cada caché del origen tiene que ser de una de las dos por su nombre y guardar solo lo de su ruta.
 // Sin Chrome o sin el commit de v1, falla: esta prueba no se salta.
@@ -24,6 +26,7 @@
 // node scripts/tests/aislamiento-smoke.mjs
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
@@ -166,8 +169,9 @@ try {
   // versión y la de su subida.
   const v1 = { id: 'v1', path: '/futbol-base/', prefix: 'futbolbase-', ownsKey: (key) => !key.startsWith('fb2:'), codigoKey: 'futbol-base:codigo',
     ...v1Real, next: '20991231a', nextSeal: 'c1c1c1c1', published: false };
-  const v2 = { id: 'v2', path: '/futbol-base-v2/', prefix: 'futbolbase2-', ownsKey: (key) => key.startsWith('fb2:'), codigoKey: 'fb2:codigo',
-    ...v2Real, defaultTeam: PORTAL.defaultTeam.name, next: '20991231b', nextSeal: 'c2c2c2c2', published: false };
+  const v2 = { id: 'v2', path: '/futbol-base-v2/', prefix: 'futbolbase2-', ownsKey: (key) => key.startsWith('fb2:'),
+    ...v2Real, defaultTeam: PORTAL.defaultTeam.name, next: '20991231b', nextSeal: 'c2c2c2c2', published: false, fixed: ['futbolbase2-precache'] };
+  v1.fixed = [];
   const apps = [v1, v2];
   for (const app of apps) {
     app.data = (version = app.version) => `${app.prefix}v${version}`;
@@ -176,12 +180,24 @@ try {
   assert.notEqual(V1_TEAM.name, v1.defaultTeam, 'el equipo de v1 tiene que ser otro que el de por defecto');
 
   // Una subida: el servidor da otra versión de los datos y otro sello de escudos en sw.js e index.html,
-  // como el bot (y build_crests.py) al publicar; así se activan las dos ramas de la limpieza del SW.
+  // como el bot (y build_crests.py) al publicar; así se activan las dos ramas de la limpieza del SW. En el
+  // sw.js de v2, también la huella del index.html subido, como precache.py: si no, no se instalaría.
   const bySite = { '/futbol-base': v1, '/futbol-base-v2': v2 };
+  const bump = (app, text) => text.replaceAll(app.version, app.next).replace(`-escudos-${app.seal}'`, `-escudos-${app.nextSeal}'`);
+  const huella = (text) => createHash('sha1').update(text).digest('hex').slice(0, 8);
   const transform = ({ site, path, body }) => {
     const app = bySite[site];
     if (!app.published || (path !== 'sw.js' && path !== 'index.html')) return undefined;
-    return body.toString().replaceAll(app.version, app.next).replace(`-escudos-${app.seal}'`, `-escudos-${app.nextSeal}'`);
+    const text = bump(app, body.toString());
+    if (app !== v2 || path !== 'sw.js') return text;
+    return text.replace(/^  "index\.html": "[0-9a-f]{8}",$/m, `  "index.html": "${huella(bump(v2, readFileSync(join(ROOT, 'index.html'), 'utf8')))}",`);
+  };
+  // Las claves del precache que tiene que dejar el SW de v2: las de su manifiesto, tal como lo sirve el servidor.
+  const precacheKeys = () => {
+    const sw = readFileSync(join(ROOT, 'sw.js'), 'utf8');
+    const served = transform({ site: '/futbol-base-v2', path: 'sw.js', body: Buffer.from(sw) }) ?? sw;
+    const block = served.slice(served.indexOf('const PRECACHE = {'), served.indexOf('const OPCIONALES'));
+    return [...block.matchAll(/^  "([^"]+)": "([0-9a-f]{8})",$/gm)].map(([, ruta, h]) => `${v2.path}${ruta}?h=${h}`).sort();
   };
   server = await startPagesServer(ROOT, { sites: { '/futbol-base': v1Dir }, transform });
   const origin = server.url.replace(/\/$/, '');
@@ -274,7 +290,8 @@ try {
     checkUntouched(v1, s1, s2, 'tras abrir v2');
     const mine = Object.keys(s2.caches).filter((name) => !Object.hasOwn(s1.caches, name));
     assert.deepEqual(mine.filter((name) => !name.startsWith(v2.prefix)), [], 'cachés de v2 que no empiezan por futbolbase2-');
-    assert.deepEqual(mine.sort(), [v2.crests(), v2.data()].sort(), 'las cachés de v2');
+    assert.deepEqual(mine.sort(), [v2.crests(), v2.data(), ...v2.fixed].sort(), 'las cachés de v2');
+    assert.deepEqual(s2.caches['futbolbase2-precache'], precacheKeys(), 'el precache de v2: su manifiesto entero');
     checkOwners(s2, apps, 'v2 instalada');
     assert.equal(s2.keys['fb2:almacen'], s1.keys['futbol-base:v2'], 'fb2:almacen no es el almacén de v1');
     assert.equal(s2.keys['fb2:jugadores'], s1.keys['futbol-base:jugadores'], 'fb2:jugadores no son los seguidos de v1');
@@ -316,11 +333,11 @@ try {
 
   // ── 4. «Borrar datos de esta app» en v2 ─────────────────────────────────────────────────────────
   let s4;
-  await run(4, '«Borrar datos» de v2: lo de v1, intacto; quedan fb2:importado y fb2:codigo; al recargar, el equipo por defecto', async () => {
+  await run(4, '«Borrar datos» de v2: lo de v1, intacto; queda fb2:importado; al recargar, el equipo por defecto', async () => {
     const page = await clearData(v2, ['fb2:almacen', 'fb2:jugadores']);
     const cleared = await quiet(probe, 'v2 tras borrar');
     checkUntouched(v1, s3, cleared, 'tras «Borrar datos» de v2');
-    assert.deepEqual(Object.keys(pick(cleared.keys, v2.ownsKey)).sort(), ['fb2:codigo', 'fb2:importado'], 'lo que queda de fb2:');
+    assert.deepEqual(Object.keys(pick(cleared.keys, v2.ownsKey)).sort(), ['fb2:importado'], 'lo que queda de fb2:');
     await reloadedDefault(page, v2);
     await page.close();
     s4 = await quiet(probe, 'v2 recargada tras borrar');
@@ -333,7 +350,7 @@ try {
   // con él y devuelve la foto de después, con la de antes.
   const publish = async (app, label) => {
     const before = await quiet(probe, `${label}, antes`);
-    assert.deepEqual(Object.keys(pick(before.caches, (name) => name.startsWith(app.prefix))).sort(), [app.crests(), app.data()].sort(),
+    assert.deepEqual(Object.keys(pick(before.caches, (name) => name.startsWith(app.prefix))).sort(), [app.crests(), app.data(), ...app.fixed].sort(),
       `${label}: las cachés de ${app.id} antes de la subida`);
     app.published = true;
     let page = await open(app, `${label}, la recarga`);
@@ -358,44 +375,45 @@ try {
   await run(6, 'subida de v2: su SW nuevo borra sus cachés viejas y las de v1 siguen', async () => {
     const { before, after } = await publish(v2, 'subida de v2');
     const left = Object.keys(pick(after.caches, (name) => name.startsWith(v2.prefix))).sort();
-    assert.deepEqual(left, [v2.crests(v2.nextSeal), v2.data(v2.next)].sort(), 'las cachés de v2 tras su subida (las viejas, fuera)');
+    assert.deepEqual(left, [v2.crests(v2.nextSeal), v2.data(v2.next), ...v2.fixed].sort(), 'las cachés de v2 tras su subida (las viejas, fuera)');
+    assert.deepEqual(after.caches['futbolbase2-precache'], precacheKeys(), 'el precache de v2: solo su manifiesto nuevo');
+    assert.notDeepEqual(before.caches['futbolbase2-precache'], after.caches['futbolbase2-precache'], 'el index.html subido, con su huella nueva');
     checkUntouched(v1, before, after, 'tras la subida de v2');
     checkOwners(after, apps, 'tras la subida de v2');
   });
 
-  // ── 7. Cambio de CODIGO con el SW al mando ──────────────────────────────────────────────────────
-  // Tras publicar código, la primera apertura con un SW al mando (y otro CODIGO apuntado en este navegador)
-  // quita src/*.js y las hojas de las cachés de datos de su app que no son las de su versión: la limpieza del
-  // arranque de index.html. Cada app, con una caché vieja con código, datos, su página y un icono, y la otra
-  // también: la que se abre deja en la suya lo que no es código, y la otra no cambia.
+  // ── 7. Cambio de CODIGO de v1 con su SW al mando ────────────────────────────────────────────────
+  // Tras publicar código, la primera apertura de v1 con su SW al mando (y otro CODIGO apuntado en este
+  // navegador) quita src/*.js y las hojas de sus cachés de datos que no son las de su versión: la limpieza
+  // del arranque de su index.html. v1 y v2, cada una con una caché vieja con código, datos, su página y un
+  // icono: v1 deja en la suya lo que no es código, y lo de v2 (su precache incluido) no cambia.
   const OLD = '20000101a';
   const oldFiles = ['src/app.js', 'src/store.js', `acta.css?v=${OLD}`, `data-seasons.js?v=${OLD}`, 'index.html', 'icons/icon-192.png'];
   const isCode = (path) => /\/src\/[^/]+\.js$|\.css$/.test(path.split('?')[0]);
-  await run(7, 'cambio de CODIGO: cada app quita src/*.js y las hojas de su caché vieja, y nada de la otra', async () => {
-    for (const [app, other] of [[v2, v1], [v1, v2]]) {
-      const label = `cambio de CODIGO en ${app.id}`;
-      await probe.evaluate(async ({ old, key }) => {
-        for (const { name, urls } of old) {
-          const cache = await caches.open(name);
-          for (const url of urls) await cache.put(url, new Response('de la versión vieja'));
-        }
-        localStorage.setItem(key, 'otro');
-      }, { old: apps.map((a) => ({ name: a.data(OLD), urls: oldFiles.map((file) => `${a.path}${file}`) })), key: app.codigoKey });
-      const before = await quiet(probe, `${label}, antes`);
-      const page = await open(app, label);
-      // El arranque apunta su CODIGO tras la limpieza y tras start(): entonces ya ha quitado lo que quitaba.
-      await waitForAsync(page, (key) => localStorage.getItem(key) !== 'otro', app.codigoKey, { label: `${label}: su CODIGO, apuntado` });
-      await page.close();
-      const after = await quiet(probe, `${label}, después`);
-      const old = app.data(OLD);
-      assert.deepEqual(after.caches[old], before.caches[old].filter((path) => !isCode(path)), `${label}: lo que queda en su caché vieja`);
-      for (const [name, entries] of Object.entries(pick(before.caches, (n) => n.startsWith(app.prefix) && n !== old))) {
-        const gone = entries.filter((path) => !(after.caches[name] || []).includes(path));
-        assert.deepEqual(gone, [], `${label}: la caché ${name}, que no es vieja, ha perdido entradas`);
+  await run(7, 'cambio de CODIGO de v1: quita src/*.js y las hojas de su caché vieja, y nada de v2', async () => {
+    const [app, other] = [v1, v2];
+    const label = 'cambio de CODIGO en v1';
+    await probe.evaluate(async ({ old, key }) => {
+      for (const { name, urls } of old) {
+        const cache = await caches.open(name);
+        for (const url of urls) await cache.put(url, new Response('de la versión vieja'));
       }
-      checkUntouched(other, before, after, label);
-      checkOwners(after, apps, label);
+      localStorage.setItem(key, 'otro');
+    }, { old: apps.map((a) => ({ name: a.data(OLD), urls: oldFiles.map((file) => `${a.path}${file}`) })), key: app.codigoKey });
+    const before = await quiet(probe, `${label}, antes`);
+    const page = await open(app, label);
+    // El arranque apunta su CODIGO tras la limpieza y tras start(): entonces ya ha quitado lo que quitaba.
+    await waitForAsync(page, (key) => localStorage.getItem(key) !== 'otro', app.codigoKey, { label: `${label}: su CODIGO, apuntado` });
+    await page.close();
+    const after = await quiet(probe, `${label}, después`);
+    const old = app.data(OLD);
+    assert.deepEqual(after.caches[old], before.caches[old].filter((path) => !isCode(path)), `${label}: lo que queda en su caché vieja`);
+    for (const [name, entries] of Object.entries(pick(before.caches, (n) => n.startsWith(app.prefix) && n !== old))) {
+      const gone = entries.filter((path) => !(after.caches[name] || []).includes(path));
+      assert.deepEqual(gone, [], `${label}: la caché ${name}, que no es vieja, ha perdido entradas`);
     }
+    checkUntouched(other, before, after, label);
+    checkOwners(after, apps, label);
   });
 
   // ── 8. Sin errores ──────────────────────────────────────────────────────────────────────────────
