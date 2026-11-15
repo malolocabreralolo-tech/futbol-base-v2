@@ -13,8 +13,9 @@ touch_footer=False.
 La versión es la fecha UTC, como la del bot (date.today() en el runner de GitHub: con la de Canarias,
 entre las 00:00 y la 01:00 se podía repetir o hacer retroceder una CACHE_NAME), y estrictamente mayor
 que la vigente, la primera ?v= de index.html. Si no lo es (la del día ya está publicada, o la vigente
-es de un día posterior), la letra siguiente de la vigente: 20260925 → 20260925b → 20260925c. Se para
-sin escribir nada si la vigente ya lleva la z.
+es de un día posterior), la letra siguiente de la vigente: 20260925 → 20260925b → 20260925c; tras la z,
+el día siguiente al de la vigente, sin letra (20260925z → 20260926). La misma regla que el bot
+(generate_js.version_after).
 
 Uso, desde la raíz del repositorio:
   python3 scripts/publicar.py    # dist/, las ?v= y CACHE_NAME de index.html y sw.js, y el precache
@@ -40,17 +41,12 @@ CACHE_LINE_RE = re.compile(r"^const CACHE_NAME = 'futbolbase2-v([0-9a-z]+)';$")
 
 def next_publish_version(current, today_utc):
     """La versión de una publicación: `today_utc` (AAAAMMDD) si es mayor que `current`, la vigente; si
-    no, la letra siguiente de `current`. En estas cadenas, el orden alfabético es el de las versiones.
-    ValueError si `current` ya lleva la z o si alguna no tiene la forma del bot."""
-    found = re.fullmatch(r"(\d{8})([a-z]?)", current)
-    if not found or not re.fullmatch(r"\d{8}", today_utc):
+    no, la letra siguiente de `current` y, tras la z, el día siguiente al suyo (generate_js.version_after,
+    la regla del bot). En estas cadenas, el orden alfabético es el de las versiones. ValueError si alguna
+    no tiene la forma del bot."""
+    if not re.fullmatch(r"\d{8}[a-z]?", current) or not re.fullmatch(r"\d{8}", today_utc):
         raise ValueError(f"versiones sin la forma del bot: {current!r} y {today_utc!r}")
-    if today_utc > current:
-        return today_utc
-    day, letter = found.groups()
-    if letter == "z":
-        raise ValueError(f"la versión {current} ya no admite otra letra")
-    return day + (chr(ord(letter) + 1) if letter else "b")
+    return generate_js.version_after(current, today_utc)
 
 
 def _today_utc():

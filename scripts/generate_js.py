@@ -28,7 +28,7 @@ import os
 import re
 import sys
 import unicodedata
-from datetime import date
+from datetime import date, datetime, timedelta
 
 # _CLUB_SUFFIX (the canonical club-token list) lives in scripts/acta_reconciler.py.
 # Make the import work whether generate_js.py is run as `python3
@@ -1560,21 +1560,33 @@ def snapshot_data_files(root=None):
     return snap
 
 
+def version_after(current, today):
+    """The version that follows `current` (YYYYMMDD[a-z], or None when there
+    is none) on `today` (YYYYMMDD). Always strictly greater than `current` as
+    text, which is the order of these strings, and with the same form:
+    `today` if `current` is from an earlier day; if it is from today or a
+    later day, its next letter (20261115 → 20261115b → 20261115c); after the
+    z, the calendar day after its own, without a letter (20261115z →
+    20261116). So the number is a day only as a starting point: on a busy
+    day it can run ahead of the date. The bot (_next_version) and
+    scripts/publicar.py share it."""
+    if not current or current[:8] < today:
+        return today
+    day, letter = current[:8], current[8:]
+    if not letter:
+        return day + "b"
+    if letter < "z":
+        return day + chr(ord(letter) + 1)
+    return (datetime.strptime(day, "%Y%m%d").date() + timedelta(days=1)).strftime("%Y%m%d")
+
+
 def _next_version(index_content, today=None):
-    """New cache-bust version string: YYYYMMDD, or YYYYMMDD + next letter
-    suffix (b, c, ...) if index.html already carries that day's version.
-    `today` (datetime.date) defaults to date.today(): the bot's clock, UTC on
-    the GitHub runner."""
+    """New cache-bust version string after the first ?v= of index.html
+    (version_after). `today` (datetime.date) defaults to date.today(): the
+    bot's clock, UTC on the GitHub runner."""
     today = (today or date.today()).strftime("%Y%m%d")
-    existing = re.search(r"\?v=(\d{8})([a-z]?)", index_content)
-    if existing and existing.group(1) == today:
-        suffix = existing.group(2)
-        if not suffix:
-            return today + "b"
-        if suffix < "z":
-            return today + chr(ord(suffix) + 1)
-        return today + "z"  # cap — 26 same-day data changes won't happen
-    return today
+    existing = re.search(r"\?v=(\d{8}[a-z]?)", index_content)
+    return version_after(existing.group(1) if existing else None, today)
 
 
 def bump_cache_version(root=None, touch_footer=True, version=None):

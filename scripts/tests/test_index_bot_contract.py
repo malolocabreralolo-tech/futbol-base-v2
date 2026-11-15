@@ -38,7 +38,11 @@ def test_bump_cache_version_sube_todas_las_marcas_y_nada_mas(site):
     versions = set(VERSION_RE.findall(after))
     assert len(versions) == 1, versions
     (version,) = versions
-    assert version.startswith(date.today().strftime("%Y%m%d"))
+    # La siguiente de la vigente (generate_js.version_after): la del día o, si la vigente ya es de hoy o de
+    # un día posterior, su letra siguiente o el día siguiente al suyo. No siempre empieza por la fecha de hoy.
+    vigente = VERSION_RE.search(before).group(1)
+    assert version == generate_js.version_after(vigente, date.today().strftime("%Y%m%d"))
+    assert version > vigente
     # Los 7 datos inmediatos: la hoja y el módulo de arranque, de dist/, llevan la huella en el nombre.
     assert len(VERSION_RE.findall(after)) == len(VERSION_RE.findall(before)) == 7
     assert f"Última actualización: {date.today().strftime('%d/%m/%Y')}" in after

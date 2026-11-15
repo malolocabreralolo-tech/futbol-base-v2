@@ -287,13 +287,15 @@ async function instalacionFallida(caso, page, ruta, label) {
   }, null, { timeout: 20000, label: `${caso.nombre}, ${label}: la instalación sigue en marcha` });
 }
 
-// Chrome no activa el SW nuevo (aunque llame a skipWaiting) si el anterior está atendiendo peticiones de
+// Con la herramienta de pruebas conectada a los service workers (Playwright se conecta a cada uno), Chrome
+// puede no activar el SW nuevo (aunque llame a skipWaiting) si el anterior está atendiendo peticiones de
 // una página abierta justo cuando el nuevo acaba de instalarse: se queda esperando hasta que esa página se
-// cierra (lo apunta también pwa-smoke.mjs, codeDeploy). Y si lo activa en mitad de la carga de una página,
-// alguna petición de esa carga puede salir con la copia anterior. Las dos cosas son de Chrome y se arreglan
-// solas en la apertura siguiente; para que los casos que miran la página abierta no dependan de esa
-// carrera, la instalación (sus peticiones ?h=) se retiene hasta que la página ha terminado de cargar
-// (asentada) y luego se suelta.
+// cierra (lo apunta también pwa-smoke.mjs, codeDeploy). Medido en la revisión final de la parte II: 6 de 20
+// pasadas con Playwright, 0 de 30 en Chrome sin DevTools en los SW; no es algo que vean los usuarios. Y si
+// lo activa en mitad de la carga de una página, alguna petición de esa carga puede salir con la copia
+// anterior, que se arregla sola en la apertura siguiente. Para que los casos que miran la página abierta no
+// dependan de esa carrera de la herramienta, la instalación (sus peticiones ?h=) se retiene hasta que la
+// página ha terminado de cargar (asentada) y luego se suelta.
 async function conInstalacionRetenida(caso, accion) {
   let soltar;
   caso.red.retener = new Promise((resolve) => { soltar = resolve; });

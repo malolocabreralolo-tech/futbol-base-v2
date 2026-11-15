@@ -356,11 +356,12 @@ async function codeDeploy(browser) {
     await o.page.close();
     down = false;
     // Se suelta la instalación del SW de «b»: toma el mando y borra la caché de «a».
-    //  - Si una página abierta le pide algo al SW de «a» justo cuando «b» queda instalado, Chrome vuelve
-    //    a arrancar el de «a» y no activa «b» (skipWaiting) mientras esa página siga abierta. En CI le
-    //    pasaba a la página de espera con su favicon.ico, en 1 de cada 3 pasadas; en local, con la
-    //    petición lanzada a propósito, 3 de 3, con Chrome 150 y con 153. En la app, «b» manda desde que
-    //    se cierra y se vuelve a abrir, y cada apertura es entera de una versión (CODIGO).
+    //  - Si una página abierta le pide algo al SW de «a» justo cuando «b» queda instalado, Chrome, con la
+    //    herramienta de pruebas conectada a los SW (Playwright), vuelve a arrancar el de «a» y no activa
+    //    «b» (skipWaiting) mientras esa página siga abierta. En CI le pasaba a la página de espera con su
+    //    favicon.ico, en 1 de cada 3 pasadas; en local, con la petición lanzada a propósito, 3 de 3, con
+    //    Chrome 150 y con 153. Sin DevTools en los SW no pasa (0 de 30 en la revisión final de la parte
+    //    II): no lo ven los usuarios. Y en cualquier caso cada apertura es entera de una versión (CODIGO).
     //  - Así que la carrera se provoca a propósito, con una página que se cierra después, y se espera
     //    como quien abre la app y la cierra: una página nueva en cada vuelta, que se cierra en seguida.
     //  - La página es manifest.json, que el SW sirve de la red sin guardar nada: ninguna revalidación

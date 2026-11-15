@@ -77,10 +77,14 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: '22'
-      - name: Install esbuild (empaquetado de dist/)
-        run: npm ci --prefix scripts/empaquetar
       - name: Install pytest
         run: pip install pytest pyyaml
+      # Antes de instalar esbuild, como las corre el bot (update.yml y activar.yml no lo instalan): las pruebas
+      # que dependen de si hay esbuild (las que importan codigo o publicar, y las del precache).
+      - name: Pruebas de publicación sin esbuild (como el bot)
+        run: python3 -m pytest scripts/tests/test_publicar.py scripts/tests/test_empaquetar.py scripts/tests/test_precache.py scripts/tests/test_season_preparation.py scripts/tests/test_index_bot_contract.py -q
+      - name: Install esbuild (empaquetado de dist/)
+        run: npm ci --prefix scripts/empaquetar
       - name: Run Python tests
         run: python -m pytest scripts/tests/ -v
 

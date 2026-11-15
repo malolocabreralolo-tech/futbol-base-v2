@@ -32,8 +32,9 @@ export async function waitForAsync(page, predicate, arg, { timeout = 15000, inte
 // (futbolbase2-v… en v2, futbolbase-v… en v1), y devuelve lo que vio la última vuelta, con todas las
 // cachés. En cada vuelta, una página nueva de sonda (`probeUrl`: manifest.json de la app, que el SW sirve
 // de la red sin tocar su caché) pide la actualización, mira el estado y se cierra en seguida, como quien
-// abre la app y la cierra: con una página de la app abierta, Chrome puede no activar el SW nuevo
-// (codeDeploy de pwa-smoke.mjs). Solo cuentan las cachés de datos de la app de `cache`, las que empiezan
+// abre la app y la cierra: con una página de la app abierta y la herramienta de pruebas conectada a los SW
+// (Playwright), Chrome puede no activar el SW nuevo (codeDeploy de pwa-smoke.mjs; sin ella no pasa, y los
+// usuarios no lo ven). Solo cuentan las cachés de datos de la app de `cache`, las que empiezan
 // como ella hasta la «-v» de la versión: la de los escudos va aparte, y las de la otra app, que comparte
 // el origen (aislamiento-smoke.mjs), no son suyas. Si no llega en 30 s, el error dice cómo quedaron los
 // SW en cada vuelta y lo que añada `diagnose`.

@@ -72,6 +72,10 @@ const OPCIONALES = [
 const LIMITE_PAGINA_MS = 2500;
 const LIMITE_SALUD_MS = 2500;
 const LIMITE_DATOS_MS = 8000;
+// El tope de cada petición de los manejadores de fetch: si la respuesta no ha llegado en este rato, se aborta,
+// también cuando ya se sirvió la copia. Una colgada mantendría al SW con trabajo y el navegador no activaría el
+// siguiente. Las descargas de la instalación no lo llevan: un fichero grande en una red lenta no la hace fallar.
+const LIMITE_RED_MS = 15000;
 // Tras un fallo de la red, la página y la salud van derechas a la copia durante este rato: una sola espera.
 const VENTANA_RED_MALA_MS = 30000;
 // Descargas simultáneas al instalar: las justas para no ahogar una red de móvil.
@@ -167,6 +171,17 @@ function aTiempo(peticion, ms) {
   });
 }
 
+// fetch con LIMITE_RED_MS: se aborta solo si las cabeceras no han llegado; con ellas se retira el temporizador
+// y un cuerpo que ya está llegando no se corta. Un aborto es un fallo de red más.
+function fetchConTope(url, init = RED) {
+  const control = new AbortController();
+  const timer = setTimeout(() => control.abort(), LIMITE_RED_MS);
+  const peticion = fetch(url, { ...init, signal: control.signal });
+  const retirar = () => clearTimeout(timer);
+  peticion.then(retirar, retirar);
+  return peticion;
+}
+
 let redMalaHasta = 0;
 
 function ahora() {
@@ -181,9 +196,10 @@ function apuntarRedMala() {
   redMalaHasta = ahora() + VENTANA_RED_MALA_MS;
 }
 
-// Pide `./ruta?h=huella` y lee el cuerpo: la respuesta, rehecha con él, y si es un 2xx que da su huella.
-async function bajar(ruta, huella) {
-  const response = await fetch(precacheKey(ruta, huella), RED);
+// Pide `./ruta?h=huella` y lee el cuerpo: la respuesta, rehecha con él, y si es un 2xx que da su huella. Sin
+// tope, como en la instalación, salvo que se le pase `pedir` (fetchConTope).
+async function bajar(ruta, huella, pedir = fetch) {
+  const response = await pedir(precacheKey(ruta, huella), RED);
   const cuerpo = await response.arrayBuffer();
   const buena = response.ok && (await huellaDe(cuerpo)) === huella;
   const rehecha = new Response(cuerpo, { status: response.status, statusText: response.statusText, headers: response.headers });
@@ -206,10 +222,10 @@ async function faltanEnPrecache(cache) {
   return Object.keys(PRECACHE).filter(ruta => !hay.has(precacheKey(ruta, PRECACHE[ruta])));
 }
 
-async function llenarPrecache(cache, rutas, fallos) {
+async function llenarPrecache(cache, rutas, fallos, pedir = fetch) {
   await aLaVez(rutas, DESCARGAS_A_LA_VEZ, async ruta => {
     try {
-      const { response, buena } = await bajar(ruta, PRECACHE[ruta]);
+      const { response, buena } = await bajar(ruta, PRECACHE[ruta], pedir);
       if (!buena) throw new Error(`HTTP ${response.status} o un cuerpo que no da la huella ${PRECACHE[ruta]}`);
       await cache.put(precacheKey(ruta, PRECACHE[ruta]), response);
       fallos.delete(ruta);
@@ -266,6 +282,21 @@ function viejaDeEstaApp(name) {
     || (name.startsWith('futbolbase2-escudos-') && name !== CRESTS_CACHE);
 }
 
+// Las obligatorias del manifiesto propio que falten: la limpieza de otra versión activada mientras esta se
+// instalaba pudo quitar alguna tras su última comprobación. Con su huella y con LIMITE_RED_MS; si falla, se
+// bajan al pedirse (servirPrecache), como las opcionales, que no se reponen aquí. Nunca rechaza.
+function reponer(cache) {
+  return faltanEnPrecache(cache)
+    .then(faltan => {
+      const obligatorias = faltan.filter(ruta => !OPCIONALES.includes(ruta));
+      if (obligatorias.length) return llenarPrecache(cache, obligatorias, new Map(), fetchConTope);
+    })
+    .catch(() => {});
+}
+
+// La última reposición lanzada al activar (la miran las pruebas).
+let reposicion = null;
+
 // Solo se borra lo de esta app; del precache, solo las claves que el manifiesto ya no tiene (las que comparte
 // con el anterior son la misma URL y se quedan).
 async function activar() {
@@ -279,6 +310,10 @@ async function activar() {
   for (const client of await self.clients.matchAll({ type: 'window' })) {
     client.postMessage({ type: 'version', version: VERSION });
   }
+  // Ya al mando y avisadas las ventanas, se reponen las obligatorias que falten, sin esperarlas: mientras
+  // activate no acaba, el SW sigue en «activating» y el navegador retiene los fetch de las páginas que ya
+  // controla. Con todo en su sitio, ninguna petición.
+  reposicion = reponer(cache);
 }
 
 self.addEventListener('activate', event => {
@@ -299,7 +334,7 @@ async function servirPagina(event, url) {
     const copia = await copiaDePagina();
     if (copia) return copia;
   }
-  const red = fetch(url.href, RED);
+  const red = fetchConTope(url.href);
   const resultado = await aTiempo(red, LIMITE_PAGINA_MS);
   if (resultado.response?.ok) return resultado.response;
   if (!resultado.response) apuntarRedMala();
@@ -310,7 +345,7 @@ async function servirPagina(event, url) {
 // sepa que no es la de ahora. Si la red llega tarde, se guarda igual para la próxima vez.
 function servirSalud(event, url) {
   const clave = sinQuery(url);
-  const red = fetch(url.href, RED);
+  const red = fetchConTope(url.href);
   const guardada = red.then(async response => {
     if (!response.ok) return;
     const copia = response.clone();
@@ -337,7 +372,7 @@ function servirEscudo(event) {
   return caches.open(CRESTS_CACHE).then(async cache => {
     const cached = await cache.match(event.request);
     if (cached) return cached;
-    const response = await fetch(conVersion(event.request.url, CRESTS_CACHE.replace('futbolbase2-escudos-', '')), RED);
+    const response = await fetchConTope(conVersion(event.request.url, CRESTS_CACHE.replace('futbolbase2-escudos-', '')));
     if (response.ok) await cache.put(event.request, response.clone()).catch(() => {});
     return response;
   });
@@ -358,7 +393,7 @@ async function cualquierCopia(url) {
 // Lo pide una página de otra versión (más nueva, recién llegada de la red, o más vieja, abierta antes de
 // esta): la red, con su ?v=, y sin guardarlo; si no llega a tiempo, la copia que haya.
 async function servirOtraVersion(event, url) {
-  const red = fetch(url.href, RED);
+  const red = fetchConTope(url.href);
   const resultado = await aTiempo(red, LIMITE_DATOS_MS);
   if (resultado.response?.ok) return resultado.response;
   return (await cualquierCopia(url)) || resultado.response || red;
@@ -372,7 +407,7 @@ async function servirPrecache(event, url) {
   const copia = await cache.match(clave);
   if (copia) return copia;
   try {
-    const { response, buena } = await bajar(ruta, PRECACHE[ruta]);
+    const { response, buena } = await bajar(ruta, PRECACHE[ruta], fetchConTope);
     if (buena) await cache.put(clave, response.clone()).catch(() => {});
     return response;
   } catch (error) {
@@ -388,7 +423,7 @@ async function servirDato(event, url) {
   const cache = await caches.open(CACHE_NAME);
   const copia = await cache.match(clave);
   if (copia) return copia;
-  const response = await fetch(url.href, RED);
+  const response = await fetchConTope(url.href);
   if (response.ok) await cache.put(clave, response.clone()).catch(() => {});
   return response;
 }

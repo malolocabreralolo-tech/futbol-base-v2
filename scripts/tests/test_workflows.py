@@ -663,6 +663,27 @@ def test_tests_yml_instala_esbuild_antes_de_las_suites():
             assert wanted in trig[event]["paths"], f"{event} paths must include {wanted}"
 
 
+def test_tests_yml_pasa_las_pruebas_de_publicacion_sin_esbuild_como_el_bot():
+    """El bot (update.yml, activar.yml) pasa pytest sin esbuild y tests.yml, con él: una prueba que solo falla
+    sin esbuild pasaba en verde en CI y paraba al bot (revisión final de la parte II, C1 y M7). Un paso, antes
+    del npm ci de empaquetar, pasa sin esbuild las que dependen de si lo hay: las que importan codigo o
+    publicar, y las del precache."""
+    steps = _steps(_load("tests.yml"), "pytest")
+    names = [step.get("name") for step in steps]
+    assert "Pruebas de publicación sin esbuild (como el bot)" in names, names
+    sin = names.index("Pruebas de publicación sin esbuild (como el bot)")
+    install = next(i for i, step in enumerate(steps) if (step.get("run") or "").strip() == "npm ci --prefix scripts/empaquetar")
+    assert sin < install, names
+    pip = next(i for i, step in enumerate(steps) if "pip install pytest" in (step.get("run") or ""))
+    assert pip < sin, names
+    run = steps[sin]["run"]
+    assert run.startswith("python3 -m pytest ") and "npm" not in run, run
+    importan = sorted(path.name for path in (ROOT / "scripts" / "tests").glob("test_*.py")
+                      if re.search(r"^\s*(?:import|from)\s+(?:codigo|publicar)\b", path.read_text(encoding="utf-8"), re.M))
+    for name in sorted({*importan, "test_publicar.py", "test_empaquetar.py", "test_precache.py"}):
+        assert f"scripts/tests/{name}" in run, name
+
+
 def test_tests_yml_pytest_installs_pyyaml():
     runs = " ".join(_runs(_load("tests.yml"), "pytest"))
     assert re.search(r"pip install[^\n]*\bpyyaml\b", runs), (

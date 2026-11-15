@@ -36,9 +36,11 @@ function loadSw(globals = {}) {
     clients: { claim: async () => {}, matchAll: async () => [] },
     location: { origin: 'https://example.test', href: 'https://example.test/sw.js' },
   };
-  const ctx = { self: selfStub, console, URL, ...globals };
+  // AbortController y los temporizadores: los usa el tope de las peticiones (LIMITE_RED_MS).
+  const ctx = { self: selfStub, console, URL, AbortController, setTimeout, clearTimeout, ...globals };
   vm.createContext(ctx);
-  const probes = ['CACHE_NAME', 'CRESTS_CACHE', 'PRECACHE', 'OPCIONALES', 'LINEUPS_KEEP', 'lineupsToCarry', 'classifyRequest', 'LIMITE_SALUD_MS'];
+  const probes = ['CACHE_NAME', 'CRESTS_CACHE', 'PRECACHE', 'OPCIONALES', 'LINEUPS_KEEP', 'lineupsToCarry', 'classifyRequest', 'LIMITE_SALUD_MS',
+    'LIMITE_RED_MS'];
   const probe = probes
     .map(n => `${n}:typeof ${n}!=='undefined'?${n}:undefined`)
     .join(',');
@@ -256,8 +258,10 @@ test('salud: con la red colgada, la copia marcada en cuanto pasa LIMITE_SALUD_MS
   const served = w.serve(URL_SALUD).then((r) => { response = r; });
   await new Promise((resolve) => setImmediate(resolve));
   assert.equal(response, null, 'antes del límite, todavía esperando a la red');
-  assert.deepEqual(timers.map((t) => t.ms), [sw.LIMITE_SALUD_MS]);
-  timers[0].fn();
+  // Sin contar el tope de la petición (LIMITE_RED_MS), que la aborta más tarde.
+  const limites = timers.filter((t) => t.ms !== sw.LIMITE_RED_MS);
+  assert.deepEqual(limites.map((t) => t.ms), [sw.LIMITE_SALUD_MS]);
+  limites[0].fn();
   await served;
   assert.equal(response.headers.get('x-fb2-origen'), 'cache');
   assert.equal(await response.text(), '{"checkedAt":"vieja"}');

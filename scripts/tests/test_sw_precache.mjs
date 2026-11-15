@@ -68,19 +68,32 @@ function fuenteCon({ precache, opcionales = [], version }) {
 }
 
 // La red: `respuestas` da, por ruta (relativa al ámbito), el cuerpo, una función (url, init) → Response o
-// promesa, o nada (404). Cada petición queda en `pedidas`, con su caché HTTP.
+// promesa, o nada (404). Cada petición queda en `pedidas`, con su caché HTTP, y su señal de aborto (o null) en
+// `senales`: si se aborta antes de la respuesta, la petición falla con el motivo del aborto, como fetch.
 function redFalsa(respuestas) {
   const pedidas = [];
-  const fetch = async (request, init = {}) => {
+  const senales = [];
+  const responder = async (request, init) => {
     const url = new URL(urlDe(request));
-    pedidas.push({ url: url.href, cache: init.cache });
     const ruta = url.pathname.startsWith('/futbol-base-v2/') ? url.pathname.slice('/futbol-base-v2/'.length) || 'index.html' : url.pathname;
     const dato = respuestas[ruta];
     if (typeof dato === 'function') return dato(url, init);
     if (dato === undefined) return new Response('no está', { status: 404 });
     return new Response(dato, { status: 200 });
   };
-  return { fetch, pedidas };
+  const fetch = (request, init = {}) => {
+    pedidas.push({ url: new URL(urlDe(request)).href, cache: init.cache });
+    const senal = init.signal || null;
+    senales.push(senal);
+    const respuesta = responder(request, init);
+    if (!senal) return respuesta;
+    return new Promise((resolve, reject) => {
+      if (senal.aborted) { reject(senal.reason); return; }
+      senal.addEventListener('abort', () => reject(senal.reason), { once: true });
+      respuesta.then(resolve, reject);
+    });
+  };
+  return { fetch, pedidas, senales };
 }
 
 function cargar({ fuente = SW_REAL, caches = new CachesFalsas(), red = redFalsa({}), reloj = { t: 1_000_000 }, enLinea = true } = {}) {
@@ -100,7 +113,7 @@ function cargar({ fuente = SW_REAL, caches = new CachesFalsas(), red = redFalsa(
     navigator: { onLine: enLinea },
   };
   const ctx = {
-    self, caches, fetch: red.fetch, crypto: globalThis.crypto, Response, Headers, URL,
+    self, caches, fetch: red.fetch, crypto: globalThis.crypto, Response, Headers, URL, AbortController,
     console: { warn: (...a) => avisos.push(a.join(' ')), log() {}, error() {} },
     Date: { now: () => reloj.t },
     setTimeout: (fn, ms) => { temporizadores.push({ fn, ms, vivo: true }); return temporizadores.length; },
@@ -108,8 +121,9 @@ function cargar({ fuente = SW_REAL, caches = new CachesFalsas(), red = redFalsa(
   };
   vm.createContext(ctx);
   const nombres = ['CACHE_NAME', 'CRESTS_CACHE', 'VERSION', 'PRECACHE', 'OPCIONALES', 'PRECACHE_CACHE', 'LIMITE_PAGINA_MS',
-    'LIMITE_SALUD_MS', 'LIMITE_DATOS_MS', 'VENTANA_RED_MALA_MS', 'DESCARGAS_A_LA_VEZ', 'classifyRequest', 'precacheKey', 'rutaDe', 'huellaDe', 'lineupsToCarry'];
-  vm.runInContext(`${fuente}\nthis.__sw = {${nombres.map((n) => `${n}: typeof ${n} !== 'undefined' ? ${n} : undefined`).join(', ')}};`, ctx);
+    'LIMITE_SALUD_MS', 'LIMITE_DATOS_MS', 'LIMITE_RED_MS', 'VENTANA_RED_MALA_MS', 'DESCARGAS_A_LA_VEZ', 'classifyRequest', 'precacheKey', 'rutaDe', 'huellaDe', 'lineupsToCarry'];
+  vm.runInContext(`${fuente}\nthis.__sw = {${nombres.map((n) => `${n}: typeof ${n} !== 'undefined' ? ${n} : undefined`).join(', ')}};
+Object.defineProperty(this.__sw, 'reposicion', { get: () => (typeof reposicion !== 'undefined' ? reposicion : undefined) });`, ctx);
   const pendientes = [];
   const servir = (url) => new Promise((resolve, reject) => {
     let respondido = false;
@@ -132,6 +146,20 @@ function cargar({ fuente = SW_REAL, caches = new CachesFalsas(), red = redFalsa(
   };
 }
 const tic = () => new Promise((resolve) => setImmediate(resolve));
+const tics = async (n = 20) => { for (let i = 0; i < n; i += 1) await tic(); };
+// Pasa el tiempo hasta los temporizadores vivos de `ms`: se disparan (y dejan de estar vivos).
+const disparar = (w, ms) => {
+  for (const t of w.vivos().filter((t) => t.ms === ms)) { t.vivo = false; t.fn(); }
+};
+// Si `promesa` sigue sin resolverse tras unas vueltas del bucle de eventos.
+const sigue = async (promesa) => {
+  let hecha = false;
+  promesa.then(() => { hecha = true; }, () => { hecha = true; });
+  await tics();
+  return !hecha;
+};
+// Las esperas de los límites de cada camino, sin los topes de LIMITE_RED_MS de las peticiones.
+const esperas = (w) => w.vivos().filter((t) => t.ms !== w.sw.LIMITE_RED_MS);
 
 // Un juego de ficheros con su manifiesto: dos obligatorios, un dato inmediato y un opcional.
 const FICHEROS = {
@@ -349,14 +377,77 @@ test('una instalación fallida de la versión siguiente no rompe la que sigue al
   assert.deepEqual(caches.claves('futbolbase2-precache').sort(), Object.entries(siguiente).map(([r, h]) => clave(r, h)).sort());
 });
 
+test('activar con una obligatoria ausente y la red colgada: termina sin esperar a la red; a los 15 s la reposición se aborta', async () => {
+  const caches = new CachesFalsas();
+  const fuente = fuenteCon({ precache: MANIFIESTO, opcionales: OPC });
+  await cargar({ caches, fuente, red: red() }).evento('install');
+  // La limpieza de otra versión que se activaba mientras esta se instalaba le quitó una obligatoria.
+  await (await caches.open('futbolbase2-precache')).delete(clave('index.html'));
+  const w = cargar({ caches, fuente, red: red({ 'index.html': colgada }) });
+  const activada = w.evento('activate');
+  assert.ok(!(await sigue(activada)), 'activate no espera a la reposición');
+  assert.ok(w.reclamado());
+  assert.deepEqual(JSON.parse(JSON.stringify(w.mensajes)), [{ type: 'version', version: w.sw.VERSION }]);
+  assert.deepEqual(w.red.pedidas.map((p) => p.url), [clave('index.html')], 'la pide');
+  assert.ok(await sigue(w.sw.reposicion), 'la reposición sigue, aparte');
+  assert.deepEqual(w.vivos().map((t) => t.ms), [w.sw.LIMITE_RED_MS], 'con tope');
+  disparar(w, w.sw.LIMITE_RED_MS);
+  assert.ok(!(await sigue(w.sw.reposicion)), 'nada pendiente');
+  assert.equal(w.red.senales[0].aborted, true);
+  assert.deepEqual(w.vivos(), []);
+  assert.ok(!caches.claves('futbolbase2-precache').includes(clave('index.html')));
+});
+
+test('activar con una obligatoria y una opcional ausentes: repone la obligatoria con su huella; la opcional no la pide', async () => {
+  const caches = new CachesFalsas();
+  const fuente = fuenteCon({ precache: MANIFIESTO, opcionales: OPC });
+  await cargar({ caches, fuente, red: red() }).evento('install');
+  const precache = await caches.open('futbolbase2-precache');
+  await precache.delete(clave('index.html'));
+  await precache.delete(clave('data-season-2024-2025.js'));
+  const w = cargar({ caches, fuente, red: red() });
+  await w.evento('activate');
+  await w.sw.reposicion;
+  assert.equal(await (await precache.match(clave('index.html'))).text(), FICHEROS['index.html']);
+  assert.ok(!caches.claves('futbolbase2-precache').includes(clave('data-season-2024-2025.js')), 'la opcional, al pedirse');
+  assert.deepEqual(w.red.pedidas, [{ url: clave('index.html'), cache: 'no-cache' }]);
+  assert.ok(w.reclamado());
+  assert.equal(w.mensajes.length, 1);
+});
+
+test('activar con un cuerpo que no da la huella: no lo guarda, y activate termina bien', async () => {
+  const caches = new CachesFalsas();
+  const fuente = fuenteCon({ precache: MANIFIESTO, opcionales: OPC });
+  await cargar({ caches, fuente, red: red() }).evento('install');
+  await (await caches.open('futbolbase2-precache')).delete(clave('index.html'));
+  const w = cargar({ caches, fuente, red: red({ 'index.html': '<!DOCTYPE html><title>otra</title>' }) });
+  await w.evento('activate');
+  await w.sw.reposicion;
+  assert.deepEqual(w.red.pedidas.map((p) => p.url), [clave('index.html')]);
+  assert.ok(!caches.claves('futbolbase2-precache').includes(clave('index.html')));
+  assert.ok(w.reclamado());
+  assert.equal(w.mensajes.length, 1);
+});
+
+test('activar con todo en su sitio: ninguna petición a la red', async () => {
+  const caches = new CachesFalsas();
+  const fuente = fuenteCon({ precache: MANIFIESTO, opcionales: OPC });
+  await cargar({ caches, fuente, red: red() }).evento('install');
+  const w = cargar({ caches, fuente, red: red() });
+  await w.evento('activate');
+  await w.sw.reposicion;
+  assert.deepEqual(w.red.pedidas, []);
+});
+
 // ─── servir ────────────────────────────────────────────────────────────────
+const caida = async () => { throw new TypeError('Failed to fetch'); };
+const colgada = () => new Promise(() => {});
+
 async function instalado(opciones = {}) {
   const caches = new CachesFalsas();
   await cargar({ caches, fuente: fuenteCon({ precache: MANIFIESTO, opcionales: OPC }), red: red() }).evento('install');
   return cargar({ caches, fuente: fuenteCon({ precache: MANIFIESTO, opcionales: OPC }), ...opciones });
 }
-const caida = async () => { throw new TypeError('Failed to fetch'); };
-const colgada = () => new Promise(() => {});
 
 test('pagina: con red, la de la red (sin la caché HTTP y sin guardarla)', async () => {
   const w = await instalado({ red: red({ 'index.html': '<p>de la red</p>' }) });
@@ -378,7 +469,7 @@ test('pagina: con la red colgada, la del precache en cuanto pasa LIMITE_PAGINA_M
   const servida = w.servir(`${BASE}`).then((r) => { response = r; });
   await tic();
   assert.equal(response, null, 'antes del límite, esperando a la red');
-  const [limite] = w.vivos();
+  const [limite] = esperas(w);
   assert.equal(limite.ms, w.sw.LIMITE_PAGINA_MS);
   limite.fn();
   await servida;
@@ -401,7 +492,7 @@ test('otra-version: con la red colgada, la copia pasado LIMITE_DATOS_MS', async 
   const w = await instalado({ red: red({ 'data-benjamin.js': colgada }) });
   const servida = w.servir(`${BASE}data-benjamin.js?v=20000101a`);
   await tic();
-  const [limite] = w.vivos();
+  const [limite] = esperas(w);
   assert.equal(limite.ms, w.sw.LIMITE_DATOS_MS);
   limite.fn();
   assert.equal(await (await servida).text(), FICHEROS['data-benjamin.js']);
@@ -437,13 +528,13 @@ test('una sola espera: tras una página que agota su límite, la salud responde 
   const w = await conSalud({ red: red({ 'index.html': colgada, 'data-health.json': colgada }) });
   const pagina = w.servir(`${BASE}`);
   await tic();
-  w.vivos()[0].fn();
+  esperas(w)[0].fn();
   assert.equal(await (await pagina).text(), FICHEROS['index.html']);
   w.reloj.t += 1000;
-  const antes = w.temporizadores.length;
+  const antes = w.temporizadores.filter((t) => t.ms !== w.sw.LIMITE_RED_MS).length;
   const salud = await w.servir(URL_SALUD());
   assert.equal(salud.headers.get('x-fb2-origen'), 'cache', 'de la copia');
-  assert.equal(w.temporizadores.length, antes, 'sin esperar a la red');
+  assert.equal(w.temporizadores.filter((t) => t.ms !== w.sw.LIMITE_RED_MS).length, antes, 'sin esperar a la red');
   assert.ok(w.red.pedidas.some((p) => p.url === URL_SALUD()), 'pero la refresca en segundo plano');
   // Y la página, también derecha a la copia, sin pedirla.
   const pedidas = w.red.pedidas.length;
@@ -454,14 +545,14 @@ test('una sola espera: tras una página que agota su límite, la salud responde 
   w.servir(URL_SALUD()).then((r) => { otra = r; });
   await tic();
   assert.equal(otra, null, 'pasada la ventana, espera a la red otra vez');
-  assert.deepEqual(w.vivos().map((t) => t.ms), [w.sw.LIMITE_SALUD_MS]);
+  assert.deepEqual(esperas(w).map((t) => t.ms), [w.sw.LIMITE_SALUD_MS]);
 });
 
 test('sin conexión (navigator.onLine === false), la página y la salud van derechas a la copia', async () => {
   const w = await conSalud({ red: red({ 'index.html': colgada, 'data-health.json': colgada }), enLinea: false });
   assert.equal(await (await w.servir(`${BASE}`)).text(), FICHEROS['index.html']);
   assert.equal((await w.servir(URL_SALUD())).headers.get('x-fb2-origen'), 'cache');
-  assert.deepEqual(w.vivos(), []);
+  assert.deepEqual(esperas(w), []);
 });
 
 test('precache: de su clave, sin red', async () => {
@@ -495,4 +586,88 @@ test('red: lo demás no pasa por el SW, ni lo que no es GET ni lo de otro origen
   const w = await instalado({ red: red() });
   assert.equal(await w.servir(`${BASE}futbolbase.db`), null);
   assert.equal(await w.servir('https://otro.test/futbol-base-v2/data-benjamin.js'), null);
+});
+
+// ─── el tope de la red (LIMITE_RED_MS) ─────────────────────────────────────
+test('LIMITE_RED_MS: 15 s; las descargas de la instalación no lo llevan', async () => {
+  assert.equal(real.sw.LIMITE_RED_MS, 15000);
+  const w = cargar({ fuente: fuenteCon({ precache: MANIFIESTO, opcionales: OPC }), red: red() });
+  await w.evento('install');
+  assert.ok(w.red.pedidas.length > 0);
+  assert.ok(w.red.senales.every((senal) => senal === null), 'sin señal de aborto');
+  assert.deepEqual(w.temporizadores, [], 'ni temporizador');
+});
+
+test('salud con la red colgada: a los 2,5 s, la copia; a los 15 s se aborta la petición y el waitUntil queda resuelto', async () => {
+  const w = await conSalud({ red: red({ 'data-health.json': colgada }) });
+  const servida = w.servir(URL_SALUD());
+  await tic();
+  assert.deepEqual(w.vivos().map((t) => t.ms).sort((a, b) => a - b), [w.sw.LIMITE_SALUD_MS, w.sw.LIMITE_RED_MS]);
+  disparar(w, w.sw.LIMITE_SALUD_MS);
+  const response = await servida;
+  assert.equal(response.headers.get('x-fb2-origen'), 'cache');
+  assert.equal(await response.text(), '{"checkedAt":"vieja"}');
+  assert.ok(await sigue(w.asentar()), 'hasta el tope, la petición sigue viva');
+  disparar(w, w.sw.LIMITE_RED_MS);
+  assert.ok(!(await sigue(w.asentar())), 'ninguna promesa pendiente');
+  assert.equal(w.red.senales.at(-1).aborted, true);
+  assert.deepEqual(w.vivos(), []);
+});
+
+for (const [camino, ruta, opciones] of [
+  ['escudo', 'escudos/x.png', {}],
+  ['dato', `data-lineups-2026-2027-FF1.js?v=${real.sw.VERSION}`, {}],
+  ['precache (un opcional que falló al instalar)', 'data-season-2024-2025.js', { sinInstalar: true }],
+]) {
+  test(`${camino} con la red colgada y sin copia: a los 15 s falla, como un fallo de red`, async () => {
+    const respuestas = { [ruta.split('?')[0]]: colgada };
+    const w = opciones.sinInstalar
+      ? cargar({ fuente: fuenteCon({ precache: MANIFIESTO, opcionales: OPC }), red: red(respuestas) })
+      : await instalado({ red: red(respuestas) });
+    let fin = null;
+    w.servir(`${BASE}${ruta}`).then(() => { fin = 'servida'; }, (error) => { fin = error.name; });
+    await tics();
+    assert.equal(fin, null, 'esperando a la red');
+    assert.deepEqual(w.vivos().map((t) => t.ms), [w.sw.LIMITE_RED_MS]);
+    disparar(w, w.sw.LIMITE_RED_MS);
+    await tics();
+    assert.equal(fin, 'AbortError');
+    assert.deepEqual(w.vivos(), []);
+  });
+}
+
+test('pagina y otra-version con la red colgada: la copia a su límite de siempre, y la petición muere a los 15 s', async () => {
+  for (const [url, limite] of [[`${BASE}`, 'LIMITE_PAGINA_MS'], [`${BASE}data-benjamin.js?v=20000101a`, 'LIMITE_DATOS_MS']]) {
+    const w = await instalado({ red: red({ 'index.html': colgada, 'data-benjamin.js': colgada }) });
+    const servida = w.servir(url);
+    await tic();
+    assert.deepEqual(esperas(w).map((t) => t.ms), [w.sw[limite]], url);
+    disparar(w, w.sw[limite]);
+    assert.equal((await servida).status, 200, url);
+    assert.equal(w.red.senales.length, 1, url);
+    assert.equal(w.red.senales[0].aborted, false, `${url}: viva hasta el tope`);
+    disparar(w, w.sw.LIMITE_RED_MS);
+    assert.equal(w.red.senales[0].aborted, true, `${url}: abortada a los 15 s`);
+  }
+});
+
+test('una respuesta cuyas cabeceras llegan antes de los 15 s se sirve entera, aunque el cuerpo acabe después', async () => {
+  let llegar;
+  const ruta = 'data-lineups-2026-2027-FF1.js';
+  const w = await instalado({ red: red({ [ruta]: () => new Promise((resolve) => { llegar = resolve; }) }) });
+  const servida = w.servir(`${BASE}${ruta}?v=${real.sw.VERSION}`);
+  await tics();
+  const [tope] = w.vivos();
+  assert.equal(tope.ms, w.sw.LIMITE_RED_MS);
+  // A los 14 s, las cabeceras y la primera mitad del cuerpo; la otra mitad, después de los 15 s.
+  const enc = (texto) => new TextEncoder().encode(texto);
+  let acabar;
+  const cuerpo = new ReadableStream({ start(c) { c.enqueue(enc('const L = ')); acabar = () => { c.enqueue(enc('1;')); c.close(); }; } });
+  llegar(new Response(cuerpo, { status: 200 }));
+  const response = await servida;
+  assert.equal(tope.vivo, false, 'el tope, retirado al llegar las cabeceras');
+  assert.equal(w.red.senales[0].aborted, false);
+  acabar();
+  assert.equal(await response.text(), 'const L = 1;');
+  assert.equal(w.red.senales[0].aborted, false);
 });

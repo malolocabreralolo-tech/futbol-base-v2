@@ -80,15 +80,20 @@ con_esbuild = pytest.mark.skipif(not codigo.ESBUILD.exists(), reason="sin esbuil
     ("20260927", "20260926", "20260927b"),     # vigente de un día posterior: nunca retrocede
     ("20260927c", "20260926", "20260927d"),
     ("20260925z", "20260926", "20260926"),     # con la z, pero de un día anterior: la fecha del día
-], ids=["de-ayer", "de-hoy", "de-hoy-b", "posterior", "posterior-c", "z-de-ayer"])
+    ("20260926z", "20260926", "20260927"),     # con la z de hoy: el día siguiente al de la vigente, sin letra
+    ("20260927z", "20260926", "20260928"),     # con la z de un día posterior: el siguiente a ese
+    ("20261130z", "20261130", "20261201"),     # fin de mes
+    ("20261231z", "20261231", "20270101"),     # fin de año
+], ids=["de-ayer", "de-hoy", "de-hoy-b", "posterior", "posterior-c", "z-de-ayer", "z-de-hoy", "z-posterior",
+        "z-fin-de-mes", "z-31-dic"])
 def test_la_version_de_una_publicacion_es_estrictamente_mayor(current, today, want):
     assert publicar.next_publish_version(current, today) == want
     assert want > current
 
 
 @pytest.mark.parametrize("current, today", [
-    ("20260926z", "20260926"), ("20260927z", "20260926"), ("2026092", "20260926"), ("20260926", "hoy"),
-], ids=["z-de-hoy", "z-posterior", "vigente-sin-forma", "hoy-sin-forma"])
+    ("2026092", "20260926"), ("20260926", "hoy"),
+], ids=["vigente-sin-forma", "hoy-sin-forma"])
 def test_sin_version_posible_se_para(current, today):
     with pytest.raises(ValueError):
         publicar.next_publish_version(current, today)
@@ -128,7 +133,36 @@ def test_next_version_con_el_dia_del_bot():
     assert generate_js._next_version('<script src="./a.js?v=20260925b">', day) == "20260926"
     assert generate_js._next_version('<script src="./a.js?v=20260926">', day) == "20260926b"
     assert generate_js._next_version('<script src="./a.js?v=20260926b">', day) == "20260926c"
-    assert generate_js._next_version('<script src="./a.js?v=20260926z">', day) == "20260926z"
+    assert generate_js._next_version('<script src="./a.js?v=20260926z">', day) == "20260927"
+    assert generate_js._next_version("<p>sin versión</p>", day) == "20260926"
+
+
+@pytest.mark.parametrize("current, today, want", [
+    ("20260927", date(2026, 9, 26), "20260927b"),    # vigente posterior a hoy, sin letra: la b
+    ("20260927c", date(2026, 9, 26), "20260927d"),
+    ("20260927z", date(2026, 9, 26), "20260928"),    # vigente posterior con la z: el día siguiente al suyo
+    ("20261130z", date(2026, 11, 30), "20261201"),   # fin de mes
+    ("20261231z", date(2026, 12, 31), "20270101"),   # fin de año
+    ("20261231z", date(2026, 12, 30), "20270101"),
+], ids=["posterior", "posterior-c", "z-posterior", "z-fin-de-mes", "z-31-dic", "z-31-dic-posterior"])
+def test_next_version_siempre_sube(current, today, want):
+    assert generate_js._next_version(f'<script src="./a.js?v={current}">', today) == want
+    assert want > current
+
+
+@pytest.mark.parametrize("subir", ["bot", "publicar"])
+def test_sesenta_subidas_el_mismo_dia_siempre_suben(subir):
+    # Un día con 60 versiones (más allá de la z): cada una, mayor como texto que la anterior y con la forma del bot.
+    day = date(2026, 11, 15)
+    current = "20261115"
+    for _ in range(60):
+        if subir == "bot":
+            new = generate_js._next_version(f'<script src="./a.js?v={current}">', day)
+        else:
+            new = publicar.next_publish_version(current, day.strftime("%Y%m%d"))
+        assert re.fullmatch(r"\d{8}[a-z]?", new), new
+        assert new > current, (current, new)
+        current = new
 
 
 def test_el_bot_sigue_moviendo_el_pie_cuando_cambian_los_datos(tmp_path):
@@ -182,11 +216,13 @@ def test_publicar_sin_esbuild_se_para_sin_escribir(tmp_path, monkeypatch, capsys
 
 
 def test_publicar_sin_un_obligatorio_del_precache_se_para_sin_escribir(tmp_path, monkeypatch, capsys):
-    # Sin manifest.json el SW no se instalaría: nada escrito, ni dist/ ni las ?v=.
+    # Sin manifest.json el SW no se instalaría: nada escrito, ni dist/ ni las ?v=. Con esbuild o sin él (el
+    # bot no lo tiene): la comprobación de esbuild, que va antes, se da por buena.
     site = _tree(tmp_path)
     (site / "manifest.json").unlink()
     before = _textos(site)
     monkeypatch.setattr(publicar, "_today_utc", lambda: "20260925")
+    monkeypatch.setattr(codigo, "puede_empaquetar", lambda root: None)
     assert publicar.main(["--root", str(site)]) == 1
     assert _textos(site) == before
     out = capsys.readouterr().out.strip()
@@ -230,13 +266,13 @@ def test_publicar_se_para_si_cache_name_no_coincide_con_las_v(tmp_path, monkeypa
     assert capsys.readouterr().out.strip().endswith(": nada escrito")
 
 
-def test_publicar_se_para_en_la_z_sin_escribir(tmp_path, monkeypatch, capsys):
+@con_esbuild
+def test_publicar_en_la_z_pasa_al_dia_siguiente(tmp_path, monkeypatch):
     site = _tree(tmp_path, version="20260925z")
-    before = [(site / name).read_text(encoding="utf-8") for name in ("index.html", "sw.js")]
     monkeypatch.setattr(publicar, "_today_utc", lambda: "20260925")
-    assert publicar.main(["--root", str(site)]) == 1
-    assert [(site / name).read_text(encoding="utf-8") for name in ("index.html", "sw.js")] == before
-    assert capsys.readouterr().out.strip() == "la versión 20260925z ya no admite otra letra: nada escrito"
+    assert publicar.main(["--root", str(site)]) == 0
+    assert VERSION_RE.findall((site / "index.html").read_text(encoding="utf-8")) == ["20260926"] * 2
+    assert (site / "sw.js").read_text(encoding="utf-8").splitlines()[0] == "const CACHE_NAME = 'futbolbase2-v20260926';"
 
 
 @con_esbuild
