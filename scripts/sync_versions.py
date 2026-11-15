@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Rebase de la rama del rediseño (Plan B2, decisión 8).
 
-El bot de main (update.yml, fetch-fiflp.yml y fetch-fiflp-actas.yml) solo toca
+El bot de main (update.yml, y la activación, activar.yml) solo toca
 tres marcas de index.html y sw.js, y siempre a la vez (bump_cache_version de
 generate_js.py): todas las ?v=, el literal «Última actualización» de
 index.html y el CACHE_NAME de la línea 1 de sw.js. Al rebasar la rama sobre

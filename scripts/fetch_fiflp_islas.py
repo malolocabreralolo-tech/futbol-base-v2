@@ -10,7 +10,7 @@ acabó importándose sin problema desde FIFLP, así que toca comprobarlo.
 
 Reusa el scraper de 2024-25 sin tocarlo (auto-descubrimiento de grupos,
 clasificaciones y jornadas + parser de knockouts + lectura robusta del marcador)
-monkeypatcheando sus globales, igual que fetch_fiflp_cups_2324.py.
+monkeypatcheando sus globales.
 
 Escribe scripts/fiflp_islas_<temporada>_raw.json y NO toca la DB: el import es
 un paso LOCAL aparte contra el raw, para aislar en Actions la única parte con

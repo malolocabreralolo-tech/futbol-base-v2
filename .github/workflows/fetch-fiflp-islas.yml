@@ -15,6 +15,11 @@ on:
 permissions:
   contents: write
 
+# Sube raw de las islas, que también sube activar.yml: espera su turno detrás de una pasada del bot (y al revés).
+concurrency:
+  group: update-data
+  cancel-in-progress: false
+
 jobs:
   scrape:
     runs-on: ubuntu-24.04
@@ -45,10 +50,12 @@ jobs:
       # por grupo). Antes, un timeout tiraba a la basura todo lo scrapeado.
       - name: Commit raw JSON
         if: always()
+        env:
+          ISLAS_SEASON: ${{ inputs.temporada }}
         run: |
           git config user.name  "GitHub Actions"
           git config user.email "actions@github.com"
-          RAW="scripts/fiflp_islas_${{ inputs.temporada }}_raw.json"
+          RAW="scripts/fiflp_islas_${ISLAS_SEASON}_raw.json"
           if [ ! -f "$RAW" ]; then
             echo "Sin datos: FIFLP no devolvio nada para esa tanda."
             exit 0
@@ -58,13 +65,11 @@ jobs:
             echo "El raw no ha cambiado; nada que subir."
             exit 0
           fi
-          git commit -m "scrape: FIFLP islas tanda ${{ inputs.temporada }} raw (sonda)"
-          # Varias sondas pueden correr a la vez (cada una escribe su propio
-          # raw): reintentar el push rebasando, en vez de perder el scrape
-          # entero por una carrera de indices.
-          for i in 1 2 3 4 5; do
-            git pull --rebase origin main && git push && exit 0
-            echo "push fallido (intento $i), reintento..."
-            sleep $((i * 10))
+          git commit -m "scrape: FIFLP islas tanda ${ISLAS_SEASON} raw (sonda)"
+          # Como el bot (update.yml): si alguien ha subido a main entretanto, se rebasa y se reintenta, en vez
+          # de perder la descarga entera; un conflicto aborta en rojo.
+          for intento in 1 2 3; do
+            if git push; then break; fi
+            if [ "$intento" = 3 ]; then exit 1; fi
+            git pull --rebase --autostash origin main || { git rebase --abort; echo "conflicto con main"; exit 1; }
           done
-          exit 1

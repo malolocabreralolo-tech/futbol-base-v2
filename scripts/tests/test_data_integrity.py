@@ -271,7 +271,7 @@ class TestGeneratedFiles:
 
 # Suelo de filas históricas con hora y campo. En futbolbase.db, el 23/09/2026,
 # hay 5.618 (2021-22: 90, 2022-23: 641, 2023-24: 2.147, 2024-25: 2.740); el
-# suelo deja margen para que una reimportación manual (fetch-fiflp.yml) que
+# suelo deja margen para que una reimportación a mano que
 # pierda algún horario no bloquee la publicación. Al archivar 2025-26 solo sube.
 MIN_HISTORICAL_ROWS_WITH_DETAILS = 5400
 

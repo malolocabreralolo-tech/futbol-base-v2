@@ -4,7 +4,7 @@ DB (season 2025-2026), additive: only creates the knockout groups BCA1/BCB1/
 BCC1 (benjamín) and PCC1 (prebenjamín). Does NOT touch the league data that
 came from futbolaspalmas.com.
 
-Consumes scripts/fiflp_cups_2526_raw.json (produced by fetch_fiflp_cups_2526.py
+Consumes scripts/fiflp_cups_2526_raw.json (produced by scripts/_archive/fetch_fiflp_cups_2526.py
 on GitHub Actions). Standings are left to synth_copa_campeones.py. Team names
 carry FIFLP knockout tags ('(Clasificado)'/'(Ganador)'/'(P)') that are stripped
 to match the 2024-25 cup convention (clean FIFLP-format names).

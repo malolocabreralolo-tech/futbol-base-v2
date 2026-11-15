@@ -22,7 +22,7 @@ consuma.
 | `scripts/import_fiflp_actas.py` | Importador idempotente raw JSON → DB. Reconcilia, hace DELETE+INSERT por partido, mantiene invariante `appearances.goals == count(match_events.kind='goal')`. Actas no casadas a `scripts/fiflp_actas_unmatched.json`. |
 | `scripts/fetch_fiflp_actas.py` | Scraper Playwright headless. Enumera vía 4 estrategias en cascada (comp→grupo→jornada / `NFG_LstPartidos` / página de equipo / barrido por rango). Save progressive cada 25 actas. |
 | `scripts/generate_js.py` (extendido) | Emite `data-lineups-<season>.js` y `data-players-<season>.js` por temporada con `cod_acta != NULL`. |
-| `.github/workflows/fetch-fiflp-actas.yml` | Workflow_dispatch con inputs `temporada`, `comps`, `do_import`, `max_actas`, `dump_fixture`. Scrape→import→generate→commit con reintentos `pull --rebase + push`. |
+| `.github/workflows/actas-federacion.yml` | Workflow_dispatch con inputs `temporada`, `cola`, `tandas`, `comps`, `categorias`, `reindex`, `refrescar`. Descarga en tandas encadenadas y solo sube el raw, su índice y su estado; el bot (`update.yml`) los importa y publica (`docs/federacion.md`, «Rellenar temporadas pasadas»). |
 
 ## Las tablas de las actas en la base (esquema compacto, octubre de 2026)
 
@@ -58,21 +58,21 @@ En la base del 14/10/2026, las 65.262 filas de `match_staff` y las 412.520 de `a
 Solo desde GitHub Actions (FIFLP bloquea la IP local):
 
 ```
-gh workflow run fetch-fiflp-actas.yml -R malolocabreralolo-tech/futbol-base-v2 --ref main \
+gh workflow run actas-federacion.yml -R malolocabreralolo-tech/futbol-base-v2 --ref main \
    -f temporada=21 \
-   -f comps=54422888 \
-   -f do_import=true \
-   -f max_actas=0
+   -f comps=54422888
 ```
 
-- `temporada`: 17 (2021-22), 18 (2022-23), 19 (2023-24), 20 (2024-25), 21 (2025-26).
-- `comps`: opcional, lista de comp ids (anula auto-discover). Auto-descubre filtrando por keyword "BENJAMIN"/"PREBENJAMIN" si se omite.
-- `max_actas`: cap para spike runs (0 = sin límite).
-- `dump_fixture`: opcional, CodActa cuya HTML guardar a `scripts/tests/fixtures/` (diagnóstico).
+- `temporada`: CodTemporada, de 12 (2016-17) a 22 (2026-27).
+- `cola`: opcional, temporadas que siguen al acabar esta (p. ej. `19,18,17`).
+- `tandas`: tandas que quedan como máximo (freno del encadenado; 40 por defecto).
+- `comps`: opcional, lista de comp ids; sin ella, las de las categorías del catálogo (sin sala).
+- `categorias`: `benjamin,prebenjamin` (por defecto) o `alevin` (a su raw aparte).
+- `reindex` y `refrescar`: volver a enumerar aunque haya índice, y volver a leer las actas sin todo el cuerpo técnico ni el código del campo.
 
-Reanudable: cada dispatch carga el raw JSON existente y solo scrapea las actas
-nuevas. Para una temporada completa, lanzar varios dispatches sucesivos hasta
-que el contador "pending" llegue a 0.
+Reanudable: cada tanda carga el raw existente y solo descarga las actas
+nuevas; la cadena se relanza sola mientras quede alguna pendiente. El bot
+importa el raw en su pasada siguiente.
 
 ## Cobertura validada
 

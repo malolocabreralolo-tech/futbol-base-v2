@@ -182,7 +182,7 @@ def test_every_federation_reader_navigates_through_fiflp_render_goto():
     assert not bare, f"page.goto a la federación sin fiflp_render.goto: {bare}"
     # La guarda mira de verdad: la carga del bot, las tandas y las sondas pasan por fiflp_render.goto.
     for name in ("fiflp_carga.py", "fetch_fiflp_2425.py", "fetch_fiflp_actas.py", "probe_fiflp.py",
-                 "discover_fiflp_comps.py", "debug_fiflp_copa.py"):
+                 "discover_fiflp_comps.py"):
         assert through.get(name), name
 
 

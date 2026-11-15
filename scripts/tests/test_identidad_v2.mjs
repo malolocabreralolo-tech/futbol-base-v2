@@ -137,12 +137,6 @@ test('el título de cada pantalla acaba en «v2»', async () => {
   }
 });
 
-test('update.sh anuncia el enlace de v2, nunca el de v1', () => {
-  const sh = read('scripts/update.sh');
-  assert.ok(sh.includes(`Publicado en ${V2}`), 'update.sh no anuncia el enlace de v2');
-  assert.ok(!sh.includes(V1), 'update.sh nombra el enlace de v1');
-});
-
 // Solo lo esencial: el bot pasa estas pruebas antes de publicar, y retocar la redacción del README no
 // puede pararlo.
 test('README: dice al principio que esto es v2 y enlaza v2 y v1', () => {

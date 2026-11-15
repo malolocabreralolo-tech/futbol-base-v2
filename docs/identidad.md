@@ -102,7 +102,6 @@ U0 de club (mismo nombre, club y temporada, equipos distintos):
 
 ## Limitaciones
 
-- Los workflows manuales heredados `fetch-fiflp-actas.yml` y `fetch-fiflp.yml` generan sin podar ni resolver: las identidades nuevas que importan salen como fichas sueltas hasta la pasada siguiente del bot. Se retiran en la fase 4.
 - Cuando `realinear` pasa las apariciones de una identidad sin id a otra que ya existía (el niño jugó con los dos equipos que luego se juntaron), la vieja se queda vacía, la poda la borra y su clave deja de abrir la ficha (no queda como alias). Si todo lo suyo cambió a un único equipo y temporada donde no había identidad de su nombre, la fila se mueve entera y conserva la clave.
 
 ## Deshacer una unión

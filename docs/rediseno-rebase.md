@@ -4,7 +4,7 @@ El rediseño «Acta» se construye en la rama `rediseno-acta`, y cada fase se pu
 
 ## Qué choca y qué se queda
 
-El bot (`update.yml`, `fetch-fiflp.yml` y `fetch-fiflp-actas.yml`) comitea tres cosas:
+El bot (`update.yml`, y la activación, `activar.yml`) comitea tres cosas:
 
 - **`data-*.js`, `data-health.json` y `futbolbase.db`.** La rama no los toca, así que no chocan. Si alguno chocara, se queda el de `main`: `git checkout --ours -- <fichero>` (en un rebase, «ours» es `main`). La excepción son los `data-*.js` que la rama retira a propósito (B4: `data-matchdetail-keys.js`, `data-stats.js` y `data-players-*.js`): si el bot los regeneró en `main`, chocan como «borrados en la rama y modificados en `main`», y se resuelven con `git rm`, nunca con el de `main`.
 - **`sw.js`.** El bot solo cambia `CACHE_NAME`, en la línea 1, y el manifiesto del precache, el bloque entre `// >>> precache` y `// <<< precache`, con las huellas de lo que publica (`generate_js.main()` → `scripts/precache.py`). La línea 2, `CRESTS_CACHE` (el sello de `escudos/`, Plan B5), solo la cambia `scripts/build_crests.py`, al añadir o cambiar un escudo; y la rama cambia el resto. Git no mezcla solo dos cambios en líneas contiguas: si el bot subió la versión y la rama trae otra línea 2 (la primera vez, al traer B5), `sw.js` choca, y se resuelve como `index.html`, con la estructura de la rama y las marcas de `main` (abajo).

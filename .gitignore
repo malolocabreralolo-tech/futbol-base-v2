@@ -38,8 +38,6 @@ backups/
 # Visual brainstorming companion
 .superpowers/
 
-# Volcados de diagnóstico del workflow debug-fiflp-copa (se regeneran al vuelo).
-# Estuvieron trackeados y una vez llegaron a main con marcas de conflicto dentro,
-# porque el workflow hace stash/pull/stash pop sin resolver.
+# Volcados de diagnóstico de scripts/_archive/debug_fiflp_copa.py: se regeneran al vuelo y no se suben.
 scripts/debug_fiflp_copa.json
 .claude/

@@ -33,6 +33,7 @@ import os
 import re
 import subprocess
 from datetime import timedelta
+from fnmatch import fnmatch
 from pathlib import Path
 
 import pytest
@@ -41,7 +42,14 @@ import yaml
 ROOT = Path(__file__).resolve().parents[2]
 WF_DIR = ROOT / ".github" / "workflows"
 
-OWNED = ["update.yml", "tests.yml", "fetch-fiflp.yml", "fetch-fiflp-actas.yml", "reloj.yml", "activar.yml"]
+OWNED = ["update.yml", "tests.yml", "reloj.yml", "activar.yml"]
+
+# Los workflows que hay: uno nuevo o uno que vuelve se piensa antes (¿escribe la base?, ¿va en cola?) y se apunta aquí.
+WORKFLOWS = {"actas-federacion.yml", "activar.yml", "detalle-federacion.yml", "discover-fiflp.yml",
+             "fetch-fiflp-islas.yml", "freno-fiflp.yml", "goleadores-federacion.yml", "probe-fiflp.yml",
+             "reloj.yml", "tests.yml", "update.yml"}
+# Lo que publica una pasada: quien lo sube tiene que hacer cola con el bot, o dos subidas se pisan la base.
+PUBLICADO = ("futbolbase.db", "data-*.js", "index.html", "sw.js")
 
 
 def _load(name):
@@ -67,6 +75,83 @@ def _runs(data, job):
 def test_workflow_yaml_is_valid(name):
     data = _load(name)
     assert isinstance(data, dict) and "jobs" in data
+
+
+def _all_runs(name):
+    data = _load(name)
+    return [step.get("run") or "" for job in data["jobs"].values() for step in job.get("steps", [])]
+
+
+def _git_add_paths(run):
+    """Las rutas de cada «git add» del guion, también las que pasan por una función suya que lo llama
+    (add_if_exists f); una ruta en una variable no se resuelve."""
+    wrappers = set(re.findall(r"(\w+)\s*\(\)\s*\{[^}]*\bgit add\b", run))
+    paths = []
+    for line in run.splitlines():
+        if line.lstrip().startswith("#"):
+            continue
+        calls = [m.group(1) for m in re.finditer(r"\bgit add\s+([^;&|\n]*)", line)]
+        calls += [m.group(1) for w in wrappers for m in re.finditer(rf"(?:^|[;&|]|\bdo\b|\bthen\b|\belse\b)\s*{w}\s+([^;&|\n]*)", line)]
+        for args in calls:
+            paths += [a.strip("'\"") for a in args.split() if not a.startswith(("2>", ">"))]
+    return paths
+
+
+def _publica(path):
+    return path in (".", "-A", "--all", "-u") or any(fnmatch(path, pat) or fnmatch(pat, path) for pat in PUBLICADO)
+
+
+def test_workflows_que_hay():
+    assert {path.name for path in WF_DIR.glob("*.yml")} == WORKFLOWS
+    assert not list(WF_DIR.glob("*.yaml"))
+
+
+def test_solo_el_bot_escribe_la_base():
+    """Solo el bot (update.yml) y la activación (activar.yml) suben la base o lo publicado, y los dos en el grupo
+    update-data: así ninguna subida pisa la base de otra."""
+    escriben = set()
+    for path in sorted(WF_DIR.glob("*.yml")):
+        if any(_publica(p) for run in _all_runs(path.name) for p in _git_add_paths(run)):
+            escriben.add(path.name)
+            assert (_load(path.name).get("concurrency") or {}).get("group") == "update-data", path.name
+    assert escriben == {"update.yml", "activar.yml"}, escriben
+
+
+def test_git_add_paths_sees_through_a_wrapper():
+    run = 'add_if_exists() {\n  for f in "$@"; do [ -e "$f" ] && git add "$f"; done\n}\nadd_if_exists data-*.js sw.js\n'
+    assert _publica("data-seasons.js") and not _publica("data-health.json")
+    assert {"data-*.js", "sw.js"} <= set(_git_add_paths(run))
+    assert _git_add_paths("git add 'scripts/x_*_raw.json' 2>/dev/null || true") == ["scripts/x_*_raw.json"]
+
+
+def test_quien_sube_va_en_cola():
+    """Todo el que empuja a main va en un grupo de concurrencia (no se adelanta a otra subida suya) y rebasa
+    con --autostash, nunca con git stash: un stash pop que choca deja el árbol a medias y sube igual."""
+    for path in sorted(WF_DIR.glob("*.yml")):
+        runs = _all_runs(path.name)
+        if not any(re.search(r"\bgit push\b", run) for run in runs):
+            continue
+        assert (_load(path.name).get("concurrency") or {}).get("group"), path.name
+        assert not any(re.search(r"\bgit stash\b", run) for run in runs), path.name
+
+
+@pytest.mark.parametrize("name", ["discover-fiflp.yml", "fetch-fiflp-islas.yml"])
+def test_las_descargas_manuales_hacen_cola_con_el_bot(name):
+    """discover-fiflp.yml y fetch-fiflp-islas.yml suben ficheros que también sube activar.yml (el catálogo, los
+    raw de las islas): esperan su turno en update-data, sin cancelar a nadie, y rebasan como el bot (tres
+    intentos, --autostash, y un conflicto aborta en rojo)."""
+    data = _load(name)
+    assert data.get("concurrency") == {"group": "update-data", "cancel-in-progress": False}, name
+    push = next(run for run in _all_runs(name) if "git push" in run)
+    assert "for intento in 1 2 3; do" in push, name
+    assert "git pull --rebase --autostash origin main || { git rebase --abort;" in push, name
+
+
+def test_islas_entradas_por_env():
+    """Las entradas del dispatch van al guion por env:, nunca interpoladas en el run (una entrada con comillas
+    o $() se ejecutaría como guion)."""
+    for run in _all_runs("fetch-fiflp-islas.yml"):
+        assert "${{ inputs." not in run, run
 
 
 # --------------------------------------------------------------- update.yml
@@ -255,13 +340,11 @@ def test_every_workflow_that_launches_the_bot_is_named_where_the_bot_is():
 def test_how_to_wake_the_clock_after_60_days_is_written_down():
     """En un repositorio público GitHub desactiva los workflows con schedule tras 60 días sin actividad, sin
     nada en rojo: reloj.yml, docs/federacion.md y el arranque de temporada dicen cómo verlo y reactivarlo (en
-    verano de 2026 hubo 43 días sin commits). Y update.sh ya no habla del cron de update.yml, que no tiene."""
+    verano de 2026 hubo 43 días sin commits)."""
     for path in (WF_DIR / "reloj.yml", ROOT / "docs" / "federacion.md", ROOT / "docs" / "temporada-nueva.md"):
         text = path.read_text(encoding="utf-8")
         assert "gh workflow enable reloj.yml" in text and "disabled_inactivity" in text, path.name
         assert "60 días" in text, path.name
-    sh = (ROOT / "scripts" / "update.sh").read_text(encoding="utf-8")
-    assert "reloj.yml" in sh and "cron" not in sh and "6 horas" not in sh
 
 
 def test_the_clock_cadence_is_the_bots_and_a_pass_fits_in_the_shortest_one():
@@ -721,7 +804,8 @@ def test_tests_yml_paths_cover_fonts_icons_and_crests():
 NODE24 = {"actions/checkout": "v5", "actions/setup-python": "v6", "actions/setup-node": "v5"}
 
 
-@pytest.mark.parametrize("name", ["tests.yml", "update.yml", "reloj.yml", "activar.yml"])
+@pytest.mark.parametrize("name", ["tests.yml", "update.yml", "reloj.yml", "activar.yml", "discover-fiflp.yml",
+                                  "fetch-fiflp-islas.yml"])
 def test_actions_run_on_node24(name):
     data = _load(name)
     uses = [step["uses"] for job in data["jobs"].values() for step in job["steps"] if "uses" in step]
@@ -738,127 +822,10 @@ def test_every_workflow_pins_its_runner_image():
     workflows = sorted(WF_DIR.glob("*.yml"))
     wrong = {f"{path.name} {job}": spec.get("runs-on")
              for path in workflows for job, spec in _load(path.name)["jobs"].items() if spec.get("runs-on") != "ubuntu-24.04"}
-    assert len(workflows) >= 10 and wrong == {}, wrong
+    assert workflows and wrong == {}, wrong
 
 
-# ----------------------------------------------------------- fetch-fiflp.yml
-
-def test_fetch_fiflp_stages_globs_in_both_add_sites():
-    """The commit step has two `git add` sites (before and after the
-    stash/pull --rebase/stash pop retry). Both must use the stable
-    data-*.js glob (the old second list dropped data-season-*.js, and
-    data-matchdetail-keys.js was in neither) and stage sw.js (C3/C4)."""
-    runs = _runs(_load("fetch-fiflp.yml"), "scrape")
-    commit_run = next(r for r in runs if "git add" in r)
-    assert commit_run.count("data-*.js") >= 2, "both git add sites need the data-*.js glob"
-    assert commit_run.count("sw.js") >= 2, "both git add sites must stage sw.js"
-    assert "futbolbase.db" in commit_run
-    assert "index.html" in commit_run
-    # rebase-retry flow preserved
-    assert "git pull --rebase origin main" in commit_run
-    assert "git stash" in commit_run
-
-
-def test_fetch_fiflp_pipeline_steps_intact():
-    runs = " ".join(_runs(_load("fetch-fiflp.yml"), "scrape"))
-    for script in (
-        "fetch_fiflp_2425.py",
-        "import_fiflp_2425.py",
-        "import_wayback_2425.py",
-        "synth_copa_campeones.py",
-        "generate_js.py",
-    ):
-        assert script in runs, f"fetch-fiflp.yml lost pipeline step {script}"
-
-
-def test_fetch_fiflp_runs_tests_before_commit():
-    """A dispatch republishes ALL data-*.js to main; it must gate on the suites
-    like update.yml. Its bot push (GITHUB_TOKEN) does not trigger tests.yml
-    (anti-recursion), so a regression would only surface next day (review #7)."""
-    runs = _runs(_load("fetch-fiflp.yml"), "scrape")
-    pytest_idx = next(
-        (i for i, r in enumerate(runs) if re.search(r"python3? -m pytest scripts/tests/", r)), None)
-    node_idx = next(
-        (i for i, r in enumerate(runs) if "node --test scripts/tests/test_*.mjs" in r), None)
-    gen_idx = next((i for i, r in enumerate(runs) if "generate_js.py" in r), None)
-    commit_idx = next((i for i, r in enumerate(runs) if "git commit" in r), None)
-    assert pytest_idx is not None, "fetch-fiflp.yml must run pytest before committing"
-    assert node_idx is not None, "fetch-fiflp.yml must run node --test (glob) before committing"
-    assert gen_idx is not None and commit_idx is not None
-    assert gen_idx < pytest_idx < commit_idx, "pytest must run between generate and commit"
-    assert gen_idx < node_idx < commit_idx, "node suite must run between generate and commit"
-
-
-def test_fetch_fiflp_installs_test_deps():
-    runs = " ".join(_runs(_load("fetch-fiflp.yml"), "scrape"))
-    assert re.search(r"pip install[^\n]*\bpytest\b", runs)
-    assert re.search(r"pip install[^\n]*\bpyyaml\b", runs)
-
-
-# ----------------------------------------------------- fetch-fiflp-actas.yml
-
-def test_actas_stage_all_covers_all_generate_js_outputs():
-    """stage_all() is used by both the first commit and the snapshot+reset
-    re-apply path (f1f2c75), so fixing it fixes both. The old list only had
-    data-lineups-*.js/data-players-*.js and missed everything else
-    generate_js.py rewrites, plus sw.js."""
-    runs = _runs(_load("fetch-fiflp-actas.yml"), "scrape")
-    commit_run = next(r for r in runs if "stage_all" in r)
-    assert "add_if_exists data-*.js" in commit_run
-    assert "add_if_exists sw.js" in commit_run
-    assert "add_if_exists futbolbase.db" in commit_run
-    assert "add_if_exists index.html" in commit_run
-    assert "add_if_exists scripts/tests/fixtures/acta_*.html" in commit_run
-
-
-def test_actas_snapshot_reset_flow_intact():
-    runs = _runs(_load("fetch-fiflp-actas.yml"), "scrape")
-    commit_run = next(r for r in runs if "stage_all" in r)
-    assert "git reset --hard origin/main" in commit_run
-    assert "SNAPSHOT" in commit_run
-    assert "git push origin HEAD:main" in commit_run
-    data = _load("fetch-fiflp-actas.yml")
-    assert data.get("concurrency", {}).get("cancel-in-progress") is False
-
-
-def test_actas_runs_tests_before_commit():
-    """Same gate as fetch-fiflp.yml: actas publishes to main, so the suites
-    must run before the first commit (review 2026-06-15, #7)."""
-    runs = _runs(_load("fetch-fiflp-actas.yml"), "scrape")
-    pytest_idx = next(
-        (i for i, r in enumerate(runs) if re.search(r"python3? -m pytest scripts/tests/", r)), None)
-    node_idx = next(
-        (i for i, r in enumerate(runs) if "node --test scripts/tests/test_*.mjs" in r), None)
-    commit_idx = next((i for i, r in enumerate(runs) if "git commit" in r), None)
-    assert pytest_idx is not None, "fetch-fiflp-actas.yml must run pytest before committing"
-    assert node_idx is not None, "fetch-fiflp-actas.yml must run node --test (glob) before committing"
-    assert commit_idx is not None
-    assert pytest_idx < commit_idx, "pytest must run before the first commit"
-    assert node_idx < commit_idx, "node suite must run before the first commit"
-
-
-def test_update_sh_only_calls_scripts_that_exist():
-    """La vía manual del README no puede estar muerta.
-
-    `scripts/update.sh` llamaba a `build_matchdetail.py`, borrado hace tiempo:
-    con `set -e`, cualquiera que siguiera el README se comía un 'No such file
-    or directory' en el paso 2 y no llegaba a actualizar nada.
-    """
-    contenido = (ROOT / "scripts" / "update.sh").read_text(encoding="utf-8")
-    llamados = set(re.findall(r"python3?\s+scripts/([a-z_0-9]+\.py)", contenido))
-    assert llamados, "update.sh debería llamar a algún script"
-    faltan = sorted(s for s in llamados if not (ROOT / "scripts" / s).exists())
-    assert not faltan, f"update.sh llama a scripts que no existen: {faltan}"
-
-
-def test_update_sh_gates_publishing_on_the_test_suites():
-    """Igual que update.yml: las suites van ANTES del commit."""
-    contenido = (ROOT / "scripts" / "update.sh").read_text(encoding="utf-8")
-    for marca in ("pytest", "node --test"):
-        assert marca in contenido, f"update.sh debe correr {marca}"
-    assert contenido.index("pytest") < contenido.index("git commit")
-    assert contenido.index("node --test") < contenido.index("git commit")
-
+# ------------------------------------------------- update.yml (la subida)
 
 def test_update_push_rebases_and_retries():
     """El bot tarda hasta ~30 min con las actas de la federación: un push ajeno a
@@ -867,15 +834,6 @@ def test_update_push_rebases_and_retries():
     commit_run = next(r for r in runs if "Actualización automática" in r and "git commit" in r)
     assert "git pull --rebase --autostash origin main" in commit_run, "con cambios sin subir, git no rebasa"
     assert "git rebase --abort" in commit_run
-
-
-def test_actas_retry_reruns_the_suites_after_reimporting():
-    """El reintento de push reimporta sobre el main nuevo: tiene que volver a
-    pasar las pruebas antes de empujar (3/10/2026: publicó en rojo)."""
-    text = (WF_DIR / "fetch-fiflp-actas.yml").read_text()
-    retry = text[text.index("for attempt in 1 2 3 4 5; do"):]
-    assert retry.index("import_fiflp_actas.py") < retry.index("python3 -m pytest scripts/tests/") < retry.index("git commit")
-    assert "node --test scripts/tests/test_*.mjs" in retry
 
 
 # ----------------------------------------------- goleadores-federacion.yml
@@ -903,6 +861,11 @@ def test_actas_federacion_chains_per_season_survives_a_timeout_and_stops_when_st
     nxt = next(s for s in steps if s.get("name") == "Siguiente tanda")
     assert nxt["if"] == "${{ !cancelled() }}"
     assert "fetched" in nxt["run"] and "unenumerated_comps" in nxt["run"]
+
+
+def test_actas_federacion_no_cancela_una_tanda_en_marcha():
+    """Una tanda lanzada mientras corre otra de su cadena espera: cancelarla tiraría horas de descarga."""
+    assert _load("actas-federacion.yml")["concurrency"].get("cancel-in-progress") is False
 
 
 def test_scrapes_launch_the_bot_to_import_what_they_uploaded():

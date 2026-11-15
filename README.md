@@ -56,9 +56,10 @@ sw.js                        Caché y actualización de la PWA
 
 GitHub Actions comprueba los datos cada dos horas, y cada hora el viernes por la tarde y el sábado y el domingo de día, cuando hay partidos (pasadas cortas por el freno de la federación, que lanza el reloj `reloj.yml`: [docs/federacion.md](docs/federacion.md)). Ejecuta las pruebas antes de publicar cambios deportivos. Si falla la fuente, conserva los datos publicados y publica únicamente el diagnóstico. GitHub Pages sirve la raíz de `main`.
 
+En Actions, la base solo la escriben el bot (`update.yml`) y la activación (`activar.yml`), los dos en el grupo `update-data`, para que dos subidas no se pisen; desde el PC, solo con el bot parado ([guía de nueva temporada](docs/temporada-nueva.md)). Una pasada a mano:
+
 ```bash
-bash scripts/update.sh          # importar, probar y publicar
-bash scripts/update.sh --local  # importar, probar y crear commit local
+gh workflow run update.yml -R malolocabreralolo-tech/futbol-base-v2 --ref main
 ```
 
 La [guía de nueva temporada](docs/temporada-nueva.md) explica la verificación y activación, con copia de seguridad y conservación del archivo. La temporada 2026/27 se activó el 3 de octubre de 2026 desde la federación (FIFLP): futbolaspalmas.com migró a una app nueva sin benjamín ni prebenjamín; la guía explica también cómo añadir una fase nueva a mitad de temporada (`activate_season.py --add`).

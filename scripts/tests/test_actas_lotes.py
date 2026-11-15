@@ -793,8 +793,6 @@ def test_the_other_workflows_need_no_new_files():
     assert "scripts/fiflp_detalle_*_raw.json" in det["run"]
     bot = " ".join(s.get("run") or "" for s in steps("update.yml", "update"))
     assert "fiflp_actas" not in bot.replace("fiflp_actas_unmatched.json", "")
-    legacy = (WF / "fetch-fiflp-actas.yml").read_text(encoding="utf-8")
-    assert legacy.count("_alevin_raw.json") >= 2 and "add_if_exists scripts/fiflp_actas_*_raw.json" in legacy
 
 
 def test_misplaced_finds_the_actas_in_the_raw_of_another_lote(tmp_path):

@@ -4,7 +4,7 @@
 BC1/BC2/BC3 (benjamín, comp 1229) and PCC1 (prebenjamín, comp 1230). Does NOT
 touch the league data already imported for 2023-24.
 
-Consumes scripts/fiflp_cups_2324_raw.json (produced by fetch_fiflp_cups_2324.py
+Consumes scripts/fiflp_cups_2324_raw.json (produced by scripts/_archive/fetch_fiflp_cups_2324.py
 on GitHub Actions). Standings are left to synth_copa_campeones.py.
 
 Formato 2023-24: la copa es un GRUPO round-robin ("Ronda 1") por cada grupo, sin

@@ -1,7 +1,6 @@
 """TDD — guard de NO-REGRESIÓN en import_wayback_2425.import_group.
 
-import_wayback_2425 corre DESPUÉS de import_fiflp en el pipeline de
-fetch-fiflp.yml. Sin guard, re-importaría grupos P7/P13/P14/PGC* a sus counts
+import_wayback_2425 corre DESPUÉS de import_fiflp_2425. Sin guard, re-importaría grupos P7/P13/P14/PGC* a sus counts
 escasos de Wayback, DESHACIENDO los rellenos que FIFLP (lectura robusta H2)
 acaba de aportar. Debe aplicar la misma política conservadora que FIFLP: solo
 sobrescribir cuando el scrape trae ESTRICTAMENTE más jugados; igual o menos →

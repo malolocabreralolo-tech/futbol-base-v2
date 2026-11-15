@@ -1,7 +1,7 @@
 """El marcador de FIFLP se lee como lo PINTA el navegador (2026-10-03).
 
 Casos copiados del volcado real de la Liga Benjamín de Lanzarote 2026-27
-(debug-fiflp-copa.yml con scores=1): texto visible + dígito pintado por CSS
+(scripts/_archive/debug_fiflp_copa.py con scores=1): texto visible + dígito pintado por CSS
 ('2<i class="fa-1">' se ve «21»), señuelos display:none y el 4.º argumento de
 ntype, que tampoco cuenta. El lector anterior daba 1 en el primer caso.
 """
