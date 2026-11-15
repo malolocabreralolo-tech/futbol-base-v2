@@ -21,7 +21,6 @@ gh workflow run discover-fiflp.yml -R malolocabreralolo-tech/futbol-base-v2   # 
 # 2. Grupos, clasificaciones y calendarios (tanda = CodTemporada; las competiciones
 #    salen del catálogo: CATALOG_SEASONS en scripts/fetch_fiflp_islas.py)
 gh workflow run fetch-fiflp-islas.yml -R malolocabreralolo-tech/futbol-base-v2 -f temporada=22   # escribe scripts/fiflp_islas_22_raw.json
-#    (los pasos 1 y 2 hacen cola con el bot y la activación, en update-data: si hay una pasada en marcha, esperan)
 git pull
 # 3. Manifiesto (códigos y fases con el convenio de 2025/26; aborta si una competición no encaja)
 python3 scripts/fiflp_manifest.py scripts/fiflp_islas_22_raw.json 2026-2027 --team "Las Mesas" --cat prebenjamin > docs/temporadas/2026-2027.json

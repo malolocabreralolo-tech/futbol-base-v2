@@ -6,9 +6,9 @@ on:
 permissions:
   contents: write
 
-# Sube el catálogo, que también sube activar.yml: espera su turno detrás de una pasada del bot (y al revés).
+# Las descargas manuales no se pisan entre sí; no hacen cola con el bot porque no escriben la base y rebasan antes de subir.
 concurrency:
-  group: update-data
+  group: descargas-manuales
   cancel-in-progress: false
 
 jobs:

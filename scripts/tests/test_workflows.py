@@ -136,12 +136,14 @@ def test_quien_sube_va_en_cola():
 
 
 @pytest.mark.parametrize("name", ["discover-fiflp.yml", "fetch-fiflp-islas.yml"])
-def test_las_descargas_manuales_hacen_cola_con_el_bot(name):
-    """discover-fiflp.yml y fetch-fiflp-islas.yml suben ficheros que también sube activar.yml (el catálogo, los
-    raw de las islas): esperan su turno en update-data, sin cancelar a nadie, y rebasan como el bot (tres
-    intentos, --autostash, y un conflicto aborta en rojo)."""
+def test_las_descargas_manuales_no_paran_al_bot(name):
+    """discover-fiflp.yml y fetch-fiflp-islas.yml no escriben la base: van en su propio grupo, sin cancelar a
+    nadie, y no en update-data (una descarga de hasta 180 min dejaría al bot sin pasadas, y con un solo hueco de
+    espera por grupo se cancelarían entre sí); no pisan un push porque rebasan como el bot (tres intentos,
+    --autostash, y un conflicto aborta en rojo)."""
     data = _load(name)
-    assert data.get("concurrency") == {"group": "update-data", "cancel-in-progress": False}, name
+    assert data.get("concurrency") == {"group": "descargas-manuales", "cancel-in-progress": False}, name
+    assert data["concurrency"]["group"] != "update-data", name
     push = next(run for run in _all_runs(name) if "git push" in run)
     assert "for intento in 1 2 3; do" in push, name
     assert "git pull --rebase --autostash origin main || { git rebase --abort;" in push, name
