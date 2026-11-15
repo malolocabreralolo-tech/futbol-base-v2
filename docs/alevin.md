@@ -25,7 +25,7 @@ El canal federación → base → JS está preparado para alevín de Gran Canari
 
    Benjamín y prebenjamín: las eliminatorias de Gran Canaria son `EL1`… y `PEL1`…, con la fase `Eliminatorias` (las de Lanzarote y Fuerteventura no tienen convenio: tendrían el mismo código, así que `fiflp_manifest` aborta y `meta_by_name` no les da ninguno); la Segunda Fase de benjamín admite cualquier letra (`A1`…, `F1`…). Las finales y semifinales de alevín no tienen convenio (`ALF` es la Segunda Fase F): no se crean.
 3. **Eliminatorias** (de cualquier categoría): fase que empieza por `Eliminatorias`. La web las trata como copa (pantalla Copa, `isCupGroup`), y `generate_js` nunca recalcula su clasificación como una liga.
-4. **`data-alevin.js`** (temporada en curso): se genera **siempre**, aunque esté vacío; **no** va en `index.html` ni en `STATIC_ASSETS` de `sw.js` (se carga de forma perezosa). Lleva exactamente estas constantes, en este orden:
+4. **`data-alevin.js`** (temporada en curso): se genera **siempre**, aunque esté vacío; **no** va en `index.html` (se carga de forma perezosa); en el precache de `sw.js` va como opcional (`scripts/precache.py`). Lleva exactamente estas constantes, en este orden:
 
    ```js
    const ALEVIN=[…];        // misma forma que BENJAMIN
@@ -37,7 +37,7 @@ El canal federación → base → JS está preparado para alevín de Gran Canari
    ```
 
    `data-history.js` (carga inicial) lleva **solo benjamín y prebenjamín** en `HISTORY`, `HIST_MATCHES`, `ESTADOS` y `EQUIPOS` (sin los equipos que solo juegan en alevín). `CAMPOS` sigue siendo de toda la temporada.
-5. **Temporadas pasadas:** el alevín nunca va dentro de `data-season-<S>.js`, sino en `data-season-<S>-alevin.js` (perezoso, fuera de `SEASON_FILES` del SW):
+5. **Temporadas pasadas:** el alevín nunca va dentro de `data-season-<S>.js`, sino en `data-season-<S>-alevin.js` (perezoso, fuera del precache del SW):
 
    ```js
    const SEASON_<S con _>_ALEVIN={name, alevin:[…], gol:{alevin:[…]}, equipos?, campos?};
