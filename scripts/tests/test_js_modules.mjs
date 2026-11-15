@@ -186,8 +186,8 @@ test('index.html + sw.js wired for lazy matchdetail', () => {
   const sw = readFileSync(join(ROOT, 'sw.js'), 'utf8');
   assert.ok(!/<script\b[^>]*\bsrc="\.\/data-matchdetail\.js\?v=/.test(idx),
     'index.html must NOT eager-load the heavy data-matchdetail.js');
-  assert.ok(!/['"]\.\/data-matchdetail\.js['"]/.test(sw),
-    'sw.js STATIC_ASSETS must not precache data-matchdetail.js');
+  assert.ok(!/['"](?:\.\/)?data-matchdetail\.js['"]/.test(sw),
+    'sw.js no precachea data-matchdetail.js: se guarda al usarse');
 });
 
 // ensurePlayers se fue en la revisión final de B2 (M5): la plantilla sale de LINEUPS (spec §4.6).

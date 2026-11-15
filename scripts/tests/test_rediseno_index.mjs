@@ -1,10 +1,9 @@
 // Plan B2, tarea 4: index.html es el esqueleto del rediseño (spec §5.4 y §10). La cabecera, la
 // barra y la primera caja se pintan antes de que lleguen los datos; app.js sustituye la caja. Lo
 // que lee el bot (generate_js.py y source_health.py) se ejecuta de verdad en
-// test_index_bot_contract.py; aquí, la forma. Desde B3 (decisiones 155 y 156), el arranque limpia el
-// código de otras versiones una vez por versión de código (CODIGO, la huella de src/*.js y acta.css).
-// Desde la fase 3, la hoja y el módulo de arranque son los de dist/ (scripts/codigo.py), con la huella
-// de su contenido en el nombre y sin ?v=.
+// test_index_bot_contract.py; aquí, la forma. Desde la fase 3, la hoja y el módulo de arranque son los de
+// dist/ (scripts/codigo.py), con la huella de su contenido en el nombre y sin ?v=, y el arranque ya no
+// limpia cachés: el SW instala por contenido (test_sw_precache.mjs).
 // Desde B4, los datos inmediatos van con defer, el arranque, en una función asíncrona (decisiones 4 y
 // 5 de B4), y el registro del SW, tras load; los iconos y el manifiesto, en test_rediseno_pwa.mjs.
 import { test } from 'node:test';
@@ -47,42 +46,19 @@ test('datos inmediatos: los siete que lee la portada, con defer y en el orden de
   assert.match(boot[0], /const \{ start \} = await import\('\.\/dist\/app-[0-9a-f]{8}\.js'\);\s*start\(document, window\);/);
   assert.ok(boot[0].includes(`await import('./${ORIGEN.app}');`), `el paquete de dist/origen.json, ${ORIGEN.app}`);
   assert.ok(INDEX.indexOf(boot[0]) > INDEX.indexOf('data-maspalomas-cup-2026.js'), 'arranca después de los datos');
-  // Antes, una vez por versión de código y con un SW al mando, quita de las cachés de otras versiones
-  // el código y las hojas de esta app, y vuelve a pedir la hoja: su SW los serviría viejos aunque
-  // cambie la ?v= (A1 de la revisión adversarial de B2 y de la del plan B3; decisión 155 de B3).
-  assert.match(boot[0], /const CODIGO = '[0-9a-f]{8}';/);
-  assert.ok(boot[0].includes("seen = localStorage.getItem('fb2:codigo');"), 'lee el CODIGO que abrió este navegador');
-  assert.ok(boot[0].includes('if (navigator.serviceWorker?.controller && seen !== CODIGO) {'), 'solo con un SW al mando y un código nuevo');
-  // Su ámbito: las cachés futbolbase2-v* que no son la de esta versión (la ?v= de data-seasons.js) y, en
-  // ellas, src/*.js y las hojas bajo la ruta de la app; los datos, nunca.
-  assert.ok(boot[0].includes('document.querySelector(\'script[src*="data-seasons.js"]\')'));
-  assert.ok(boot[0].includes("if (!name.startsWith('futbolbase2-v') || name === `futbolbase2-v${version}`) continue;"));
-  assert.ok(boot[0].includes('if (pathname.startsWith(home) && /\\/src\\/[^/]+\\.js$|\\.css$/.test(pathname) && await cache.delete(request)) stale = true;'));
-  // Si se quitó algo, la hoja ya aplicada se vuelve a pedir (el SW anterior nunca la revalida).
-  assert.ok(boot[0].includes('fresh.href = `${sheet.href}?c=${CODIGO}`;'), 'la hoja va sin query: ?c=, nunca &c=');
-  assert.ok(boot[0].includes('if (fresh.sheet) sheet.remove(); else fresh.remove();'));
-  // El orden: se lee el marcador, se limpia, se importa app.js, start y, solo entonces, se apunta.
-  const at = (text) => boot[0].indexOf(text);
-  assert.ok(at("localStorage.getItem('fb2:codigo')") < at('caches.keys()'), 'lee el marcador antes de limpiar');
-  assert.ok(at('caches.keys()') < at("import('./dist/app-"), 'limpia antes de importar');
-  assert.ok(at('start(document, window);') < at("localStorage.setItem('fb2:codigo', CODIGO)"), 'apunta CODIGO tras start');
-  // El marcador se apunta solo si un SW manda en la página: una apertura que se lo salta (Mayús+Recargar,
-  // «Bypass for network») con el SW anterior todavía activo no purgó nada, y apuntarlo igual dejaría la
-  // limpieza sin hacer para siempre (ronda de arreglos 1, reproducido con bypass.mjs).
-  assert.match(boot[0], /start\(document, window\);\s*if \(navigator\.serviceWorker\?\.controller\) \{\s*try \{ localStorage\.setItem\('fb2:codigo', CODIGO\); \} catch/,
-    'el marcador se apunta solo si hay un SW al mando (ronda de arreglos 1)');
-  assert.doesNotMatch(boot[0], /src\/render\.js/, 'la limpieza de la app anterior queda dentro de la general');
+  // Sin limpieza de cachés ni marcador: el arranque solo importa el paquete y llama a start.
+  assert.doesNotMatch(boot[0], /CODIGO|fb2:codigo|caches\.|localStorage/);
 });
 
 test('si el arranque falla, un aviso con estilos en línea y «Reintentar», que busca el SW nuevo y recarga (R2-3)', () => {
   const boot = INDEX.match(/<script type="module">[\s\S]*?<\/script>/)[0];
-  // Todo el arranque (el marcador, la limpieza, el import, start y el marcador otra vez) va dentro del
-  // try: sin conexión en plena transición no hay acta.css ni los módulos nuevos, y la página nunca se
-  // queda en «Cargando…». Y el try, en una función asíncrona que se llama al cerrarla, sin await de
-  // nivel superior en el módulo (decisión 5 de B4): antes, solo comentarios; después, nada.
-  assert.match(boot, /^<script type="module">\s*(?:\/\/[^\n]*\s*)*\(async \(\) => \{\s*try \{\s*const CODIGO = '[0-9a-f]{8}';/);
+  // Todo el arranque (el import y start) va dentro del try: sin conexión, con una página nueva cuyo paquete
+  // todavía no está guardado, la página nunca se queda en «Cargando…». Y el try, en una función asíncrona
+  // que se llama al cerrarla, sin await de nivel superior en el módulo (decisión 5 de B4): antes, solo
+  // comentarios; después, nada.
+  assert.match(boot, /^<script type="module">\s*(?:\/\/[^\n]*\s*)*\(async \(\) => \{\s*try \{\s*const \{ start \} = await import\(/);
   assert.match(boot, /\}\)\(\);\s*<\/script>$/, 'la función asíncrona cierra el módulo');
-  assert.ok(boot.indexOf('} catch (error) {') > boot.indexOf("localStorage.setItem('fb2:codigo', CODIGO)"), 'el catch recoge el import, start y el marcador');
+  assert.ok(boot.indexOf('} catch (error) {') > boot.indexOf('start(document, window);'), 'el catch recoge el import y start');
   assert.match(boot, /innerHTML = `<div role="alert" style="[^"]+">\s*<p style="[^"]+">No se pudo abrir la versión nueva de la app\. Comprueba la conexión y pulsa Reintentar\.<\/p>\s*<button type="button" id="reintentar-arranque" style="[^"]*min-height:44px[^"]*">Reintentar<\/button>\s*<\/div>`;/);
   const retry = boot.slice(boot.indexOf("getElementById('reintentar-arranque')"));
   assert.match(retry, /registration\.update\(\)/, 'Reintentar busca el SW nuevo');
@@ -108,18 +84,16 @@ test('tema del sistema: theme-color claro y oscuro, sin selector de tema ni fuen
   assert.doesNotMatch(INDEX, /fonts\.googleapis|fonts\.gstatic|style-acta\.css|style\.css|themeToggle|data-theme/);
 });
 
-test('CODIGO es la huella del código del árbol: src/*.js sin config.js y acta.css, la de dist/origen.json (scripts/codigo.py)', () => {
-  // La misma que calcula scripts/codigo.py: sha1 de acta.css y de src/*.js por nombre, sin src/config.js
-  // (se queda fuera del paquete), de cada uno su ruta, un cero, su contenido y otro cero; sus 8 primeras
-  // cifras. Si falla, se cambió código sin empaquetar: `python3 scripts/codigo.py`. El bot nunca toca
-  // src/ ni acta.css.
+test('dist/ es el de las fuentes del árbol: src/*.js sin config.js y acta.css (scripts/codigo.py)', () => {
+  // La misma huella que calcula scripts/codigo.py: sha1 de acta.css y de src/*.js por nombre, sin
+  // src/config.js (se queda fuera del paquete), de cada uno su ruta, un cero, su contenido y otro cero; sus
+  // 8 primeras cifras. Si falla, se cambió código sin empaquetar: `python3 scripts/codigo.py` y después
+  // `python3 scripts/precache.py`. El bot nunca toca src/ ni acta.css.
   const files = ['acta.css', ...readdirSync(join(ROOT, 'src')).filter((f) => f.endsWith('.js')).sort().map((f) => `src/${f}`)]
     .filter((file) => !ORIGEN.externos.includes(file));
   const hash = createHash('sha1');
   for (const file of files) hash.update(Buffer.concat([Buffer.from(`${file}\0`), readFileSync(join(ROOT, file)), Buffer.from('\0')]));
-  const want = hash.digest('hex').slice(0, 8);
-  assert.equal((INDEX.match(/const CODIGO = '([0-9a-f]{8})';/) || [])[1], want, 'CODIGO desfasado: ejecuta python3 scripts/codigo.py');
-  assert.equal(ORIGEN.codigo, want, 'dist/ desfasado: ejecuta python3 scripts/codigo.py');
+  assert.equal(ORIGEN.codigo, hash.digest('hex').slice(0, 8), 'dist/ desfasado: ejecuta python3 scripts/codigo.py');
 });
 
 // B4 (decisiones 1 y 3): data-matchdetail-keys.js, data-stats.js y data-players-<S>.js ya no los lee

@@ -36,59 +36,14 @@
   <script defer src="./data-seasons.js?v=20261114w"></script>
   <script defer src="./data-maspalomas-cup-2026.js?v=20261114w"></script>
   <script type="module">
-    // Un SW de otra versión (el de la versión anterior o el de la app de antes del rediseño) sirve
-    // los módulos de src/ desde su caché, aunque cambie la ?v=, y los revalida de uno en uno en
-    // segundo plano; la hoja, nunca. Tras publicar código puede dar este index.html con la hoja vieja
-    // o con módulos de dos versiones: pantallas sin estilos, o una app que no arranca. CODIGO es la
-    // versión del código (la huella de src/*.js y acta.css, que escribe scripts/codigo.py; el bot nunca
-    // la cambia). La primera vez que este navegador abre este código con un SW al mando, antes de
-    // importar app.js se quitan src/*.js y las hojas de esta app de las cachés futbolbase2-v* que no son
-    // la de esta versión (la ?v= de data-seasons.js) y, si se quitó algo, la hoja ya aplicada se vuelve
-    // a pedir: todo llega de la red, de una sola versión, y el SW lo guarda para abrir sin conexión.
-    // Los datos se quedan. CODIGO se apunta en fb2:codigo solo tras start() y solo si un SW
-    // manda en la página: una apertura que se lo salta (Mayús+Recargar, «Bypass for network») con el
-    // SW anterior todavía activo no purgó nada, y apuntarlo igual dejaría la limpieza sin hacer para
-    // siempre (ronda de arreglos 1). Si el arranque falla, o si no hay SW al mando, la apertura
-    // siguiente vuelve a intentarlo (decisión 155 de B3). Sin SW al mando no hay caché
-    // de SW que limpiar, pero la caché HTTP de GitHub Pages (max-age=600) puede dar durante 10 minutos
-    // un módulo viejo a este app.js: B5 lo cerró sin arreglar (decisión 9 de B5; spec, «Lo que cambió
-    // al construirlo», punto 12, y plan B5, «Después de B5»); lo cerraría versionar el grafo de módulos.
-    // Si el arranque falla (sin conexión en plena transición, cuando esa caché ya guarda este
-    // index.html pero no la hoja ni los módulos nuevos, o un módulo que no llega), un aviso con
-    // estilos en línea y «Reintentar»: nunca «Cargando…» para siempre. Es texto fijo, sin datos.
+    // El código, de dist/ (con la huella de su contenido en el nombre: nunca una versión mezclada con otra).
+    // Si el arranque falla (sin conexión, con una página nueva de la red cuyo paquete todavía no está
+    // guardado, o un módulo que no llega), un aviso con estilos en línea y «Reintentar»: nunca «Cargando…»
+    // para siempre. Es texto fijo, sin datos.
     (async () => {
       try {
-        const CODIGO = 'f52caf19';
-        let seen = null;
-        try { seen = localStorage.getItem('fb2:codigo'); } catch { /* sin almacenamiento */ }
-        if (navigator.serviceWorker?.controller && seen !== CODIGO) {
-          try {
-            const version = (document.querySelector('script[src*="data-seasons.js"]')?.getAttribute('src').match(/[?&]v=([^&#]+)/) || [])[1];
-            const home = new URL('./', location.href).pathname;
-            let stale = false;
-            for (const name of await caches.keys()) {
-              // Solo las cachés de esta app: el origen es de todos los proyectos de la cuenta.
-              if (!name.startsWith('futbolbase2-v') || name === `futbolbase2-v${version}`) continue;
-              const cache = await caches.open(name);
-              for (const request of await cache.keys()) {
-                const { pathname } = new URL(request.url);
-                if (pathname.startsWith(home) && /\/src\/[^/]+\.js$|\.css$/.test(pathname) && await cache.delete(request)) stale = true;
-              }
-            }
-            const sheet = document.querySelector('link[rel="stylesheet"]');
-            if (stale && sheet) {
-              const fresh = sheet.cloneNode();
-              fresh.href = `${sheet.href}?c=${CODIGO}`;
-              await new Promise((resolve) => { fresh.onload = fresh.onerror = resolve; sheet.after(fresh); });
-              if (fresh.sheet) sheet.remove(); else fresh.remove();
-            }
-          } catch { /* sin Cache Storage: no hay nada que quitar */ }
-        }
         const { start } = await import('./dist/app-64eba0b3.js');
         start(document, window);
-        if (navigator.serviceWorker?.controller) {
-          try { localStorage.setItem('fb2:codigo', CODIGO); } catch { /* sin almacenamiento */ }
-        }
       } catch (error) {
         console.error('[arranque]', error);
         document.getElementById('contenido').innerHTML = `<div role="alert" style="max-width:40rem;margin:0 auto;padding:24px 16px;font:16px/1.5 system-ui,sans-serif">
@@ -107,14 +62,9 @@
     })();
   </script>
   <script>
-    // Standard SW registration: the browser's update cycle detects a
-    // byte-different sw.js; skipWaiting+clients.claim in sw.js make the new
-    // version take over immediately. registration.update() forces a check on
-    // every load. (Never unregister here: that re-installed the full ~500KB
-    // precache on EVERY visit.)
-    // Tras el evento load (Plan B4): con los datos en defer, este guion corre durante el análisis, y en la
-    // primera visita el precache del SW (unos 450 KB con gzip) competía con los datos y los módulos de la portada.
-    // Si load ya pasó, en seguida.
+    // El registro del SW, tras load: en la primera visita su instalación compite con los datos y el código de
+    // la portada. register y update() en cada apertura (nunca unregister: reinstalaría todo cada vez); sw.js
+    // toma el mando en seguida (skipWaiting y clients.claim).
     if ('serviceWorker' in navigator) {
       const register = () => navigator.serviceWorker.register('./sw.js')
         .then(reg => reg.update())

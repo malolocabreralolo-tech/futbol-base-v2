@@ -81,14 +81,16 @@ test('los data-*.js eager de index.html existen y declaran algo', () => {
   }
 });
 
-test('el service worker precachea todos los data-*.js eager', () => {
-  // Si un data-*.js eager falta en STATIC_ASSETS, la PWA arranca sin él en la
-  // primera carga offline y esa sección aparece vacía.
+test('el service worker precachea todos los data-*.js eager, como obligatorios', () => {
+  // Si un data-*.js eager falta en el manifiesto del precache (scripts/precache.py), la PWA arranca sin él
+  // en la primera carga offline y esa sección aparece vacía.
   const sw = read('sw.js');
-  const assets = sw.slice(sw.indexOf('STATIC_ASSETS'), sw.indexOf('SEASON_FILES'));
+  const bloque = sw.slice(sw.indexOf('const PRECACHE = {'), sw.indexOf('const OPCIONALES'));
+  const opcionales = sw.slice(sw.indexOf('const OPCIONALES'), sw.indexOf('// <<< precache'));
   for (const file of eagerDataScripts()) {
-    assert.ok(assets.includes(`'./${file}'`),
-      `${file} se carga eager en index.html pero no está en STATIC_ASSETS de sw.js`);
+    assert.match(bloque, new RegExp(`^  "${file.replace(/[.]/g, '\\.')}": "[0-9a-f]{8}",$`, 'm'),
+      `${file} se carga eager en index.html pero no está en el precache de sw.js`);
+    assert.ok(!opcionales.includes(`"${file}"`), `${file} no puede ser opcional`);
   }
 });
 

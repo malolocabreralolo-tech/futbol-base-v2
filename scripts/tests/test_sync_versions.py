@@ -141,6 +141,17 @@ def test_solo_marcas_distingue_al_bot_de_un_arreglo_en_main():
     assert not sync_versions.only_marks_changed(MAIN_INDEX, MAIN_SW, MAIN_INDEX, MAIN_SW + "// otra línea\n")
 
 
+def test_solo_marcas_cuenta_el_bloque_del_precache_como_del_bot():
+    # El bot reescribe también el manifiesto del precache de sw.js (generate_js.main → precache.escribir):
+    # unas huellas nuevas no son un arreglo en main; lo de fuera del bloque, sí.
+    bloque = ("// >>> precache: lo escribe scripts/precache.py\nconst PRECACHE = {{\n  \"index.html\": \"{}\",\n}};\n"
+              "const OPCIONALES = [\n];\n// <<< precache\n")
+    old_sw = MAIN_SW + bloque.format("00000000")
+    new_sw = MAIN_SW.replace("20260930b", "20261001") + bloque.format("11111111")
+    assert sync_versions.only_marks_changed(MAIN_INDEX, old_sw, MAIN_INDEX.replace("20260930b", "20261001"), new_sw)
+    assert not sync_versions.only_marks_changed(MAIN_INDEX, old_sw, MAIN_INDEX, old_sw + "// otra línea\n")
+
+
 def test_cli_since_avisa_si_main_cambio_algo_mas_que_las_marcas(repo, capsys):
     bot = MAIN_INDEX.replace("20260930b", "20261002")
     for tag, index in (("bot", bot), ("arreglo", bot.replace("sec-miequipo", "sec-otra"))):

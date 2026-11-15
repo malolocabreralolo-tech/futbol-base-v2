@@ -20,6 +20,7 @@ import tempfile
 from urllib.parse import parse_qs, urlparse
 
 from db import get_connection, PROJECT_ROOT
+import precache
 from categorias import DB_NAME
 from fetch_futbolaspalmas import fetch, parse_all_matches, parse_standings
 from portal_config import load_config
@@ -295,25 +296,6 @@ def insert_groups(conn, sid, evidence):
             conn.execute("INSERT OR REPLACE INTO fiflp_full_pending(group_id, since) VALUES (?, date('now'))", (gid,))
 
 
-# Las plantillas de temporada entera (data-lineups-<S>.js) que precacheaba el SW antes de partir las
-# actas por grupo: si un sw.js antiguo aún las lleva, se quitan.
-LINEUPS_URL = re.compile(r"\./data-lineups-\d{4}-\d{4}\.js")
-
-
-def season_files_for(worker, closing, opening):
-    """sw.js con SEASON_FILES al activar `opening`: delante, el archivo de la temporada que se cierra
-    (data-season-<closing>.js), si no estaba. Las actas, por grupo, no se precachean (el SW conserva las
-    ya usadas entre versiones). El resto de sw.js, igual."""
-    start = worker.index("const SEASON_FILES = [")
-    end = worker.index("];", start) + len("];")
-    entries = [url for url in re.findall(r"'([^']+)'", worker[start:end]) if not LINEUPS_URL.fullmatch(url)]
-    archive = f"./data-season-{closing}.js"
-    if archive not in entries:
-        entries.insert(0, archive)
-    literal = "const SEASON_FILES = [\n" + "".join(f"  '{url}',\n" for url in entries) + "];"
-    return worker[:start] + literal + worker[end:]
-
-
 def apply_manifest(manifest, evidence, root=Path(PROJECT_ROOT)):
     """Generate in a temporary checkout before replacing any live artifact."""
     import generate_js
@@ -345,9 +327,6 @@ def apply_manifest(manifest, evidence, root=Path(PROJECT_ROOT)):
             seed_season(conn, manifest, evidence)
         finally:
             conn.close()
-        sw_path = stage / "sw.js"
-        sw_path.write_text(season_files_for(sw_path.read_text(encoding="utf-8"), config["season"], manifest["season"]),
-                           encoding="utf-8")
         config.update(season=manifest["season"], defaultTeam=manifest["defaultTeam"],
                       nextSeason=f'{manifest["season"].split("-")[1]}-{int(manifest["season"].split("-")[1]) + 1}')
         (stage / "src/config.js").write_text("export const PORTAL = " + json.dumps(config, ensure_ascii=False, indent=2) + ";\n")
@@ -371,6 +350,9 @@ def apply_manifest(manifest, evidence, root=Path(PROJECT_ROOT)):
             for path in root.glob("data-lineups-*.js"):
                 if not (stage / path.name).exists():
                     path.unlink()
+            # El manifiesto del precache, con lo ya copiado: la carpeta temporal no tiene dist/ y allí
+            # generate_js no lo escribe; src/config.js y el archivo de la temporada que cierra cambian aquí.
+            precache.escribir(root)
         except Exception:
             for path in artifacts:
                 relative = path.relative_to(stage)
@@ -379,7 +361,7 @@ def apply_manifest(manifest, evidence, root=Path(PROJECT_ROOT)):
                 else:
                     (root / relative).unlink(missing_ok=True)
             raise
-    # src/config.js no entra en el paquete ni en CODIGO (scripts/codigo.py): activar no empaqueta.
+    # src/config.js no entra en el paquete (scripts/codigo.py): activar no empaqueta.
     return backup
 
 

@@ -23,7 +23,7 @@ function cargarSw(globales = {}) {
   const self = {
     addEventListener: (tipo, fn) => { escuchas[tipo] = fn; },
     skipWaiting: () => {},
-    clients: { claim: () => {} },
+    clients: { claim: async () => {}, matchAll: async () => [] },
     location: { origin: 'https://example.test', href: 'https://example.test/futbol-base-v2/sw.js' },
   };
   const ctx = { self, console, URL, ...globales };
@@ -62,17 +62,23 @@ test('sw.js lleva los nombres de v2 en sus dos primeras líneas', () => {
   assert.match(l2, /^const CRESTS_CACHE = 'futbolbase2-escudos-[0-9a-f]{8}';$/);
 });
 
-test('al activarse, el SW solo borra cachés viejas de v2', async () => {
+test('al activarse, el SW solo borra cachés viejas de v2 y solo abre su precache', async () => {
   const { CACHE_NAME, CRESTS_CACHE } = cargarSw();
-  // Las de v1 (datos y escudos), dos viejas de v2, la de otro proyecto del origen y las dos de este SW.
+  // Las de v1 (datos y escudos), dos viejas de v2, la de otro proyecto del origen y las tres de este SW.
   const claves = ['futbolbase-v20261113', 'futbolbase-escudos-aaaa1111', 'futbolbase2-vvieja', 'futbolbase2-escudos-00000000', 'otra-app',
-    CACHE_NAME, CRESTS_CACHE];
+    CACHE_NAME, CRESTS_CACHE, 'futbolbase2-precache'];
   const borradas = [];
-  const sw = cargarSw({ caches: { keys: async () => claves, delete: async (nombre) => { borradas.push(nombre); return true; } } });
+  const abiertas = [];
+  const sw = cargarSw({ caches: {
+    keys: async () => claves,
+    delete: async (nombre) => { borradas.push(nombre); return true; },
+    open: async (nombre) => { abiertas.push(nombre); return { keys: async () => [], delete: async () => true }; },
+  } });
   let hecho;
   sw.escuchas.activate({ waitUntil: (promesa) => { hecho = promesa; } });
   await hecho;
   assert.deepEqual(borradas.sort(), ['futbolbase2-escudos-00000000', 'futbolbase2-vvieja']);
+  assert.deepEqual(abiertas, ['futbolbase2-precache']);
 });
 
 test('«Borrar datos» solo quita claves de v2', () => {

@@ -83,13 +83,11 @@ def test_check_falla_si_index_no_referencia(tmp_path, capsys):
     assert f"index.html no referencia ./{css}" in capsys.readouterr().out
 
 
-def test_check_falla_si_sw_no_referencia(tmp_path, capsys):
+def test_check_no_mira_sw_js(tmp_path):
+    # El paquete en sw.js es cosa del manifiesto del precache (scripts/precache.py y test_precache.py).
     site = _copia(tmp_path)
-    app = codigo.leer_origen(site)["app"]
-    sw = (site / "sw.js").read_text(encoding="utf-8")
-    (site / "sw.js").write_text(sw.replace(f"'./{app}'", "'./dist/app-00000000.js'"), encoding="utf-8")
-    assert codigo.main(["--check", "--root", str(site)]) == 1
-    assert f"sw.js no precachea ./{app}" in capsys.readouterr().out
+    (site / "sw.js").write_text("const CACHE_NAME = 'futbolbase2-v20260101';\n", encoding="utf-8")
+    assert codigo.main(["--check", "--root", str(site)]) == 0
 
 
 def test_origen_describe_el_paquete():
@@ -112,8 +110,9 @@ def test_index_y_sw_cargan_el_paquete():
     sw = (ROOT / "sw.js").read_text(encoding="utf-8")
     assert f'<link rel="stylesheet" href="./{origen["css"]}">' in index
     assert f"await import('./{origen['app']}');" in index
-    assert f"  './{origen['app']}',\n  './{origen['css']}',\n" in sw
-    assert "'./acta.css'" not in sw
+    for key in ("app", "css"):
+        assert f'  "{origen[key]}": "{Path(origen[key]).stem.split("-")[-1]}",\n' in sw, f"{key}, en el precache con su huella"
+    assert '"acta.css"' not in sw and "'./acta.css'" not in sw
 
 
 @con_esbuild
@@ -143,8 +142,8 @@ def test_empaquetar_cambia_el_nombre_si_cambia_el_codigo(tmp_path):
         ["origen.json", Path(despues["app"]).name, Path(despues["css"]).name])
     index = (site / "index.html").read_text(encoding="utf-8")
     assert f"./{despues['app']}" in index and f"./{antes['app']}" not in index
-    assert f"const CODIGO = '{despues['codigo']}';" in index
-    assert f"'./{despues['app']}'" in (site / "sw.js").read_text(encoding="utf-8")
+    assert "CODIGO" not in index
+    assert (site / "sw.js").read_bytes() == (ROOT / "sw.js").read_bytes(), "sw.js lo escribe precache.py, no codigo.py"
     assert codigo.main(["--check", "--root", str(site)]) == 0
 
 

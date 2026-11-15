@@ -89,12 +89,12 @@ def test_el_sello_de_los_escudos_no_lo_toca_ni_el_bot_ni_sync_versions(site):
 @pytest.mark.skipif(not (ROOT / "scripts/empaquetar/node_modules/esbuild").exists(),
                     reason="sin esbuild: npm ci --prefix scripts/empaquetar")
 def test_el_sello_de_los_escudos_no_lo_toca_publicar(site, monkeypatch):
-    """publicar.py reescribe la línea 1 entera y, al empaquetar (codigo.py), las rutas de dist/ de
-    STATIC_ASSETS: la línea 2, nunca."""
+    """publicar.py reescribe la línea 1 entera y el bloque del precache (precache.py): la línea 2, nunca."""
     import publicar
 
-    shutil.copy(ROOT / "acta.css", site / "acta.css")
-    for name in ("src", "dist"):
+    for name in ("acta.css", "manifest.json", *(path.name for path in ROOT.glob("data-*.js"))):
+        shutil.copy(ROOT / name, site / name)
+    for name in ("src", "dist", "fonts", "icons"):
         shutil.copytree(ROOT / name, site / name)
     seal = _line2(site)
     monkeypatch.setattr(publicar, "_today_utc", lambda: "20991231")

@@ -42,6 +42,7 @@ except ImportError:
 # Allow importing db.py from the same directory
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from db import get_connection, PROJECT_ROOT
+import precache  # noqa: E402
 
 
 def js_val(v):
@@ -1535,7 +1536,7 @@ def generate_per_season_files(seasons_list):
         with open(out_path, "w", encoding="utf-8") as f:
             f.write(content)
         written.append((name, len(content)))
-        # El alevín, en su fichero (perezoso, fuera de SEASON_FILES del SW: docs/alevin.md §5); el de una
+        # El alevín, en su fichero (perezoso, fuera del precache del SW: docs/alevin.md §5); el de una
         # temporada que ya no tiene alevín, fuera (la web trata su 404 como «sin alevín»).
         alevin_path = os.path.join(PROJECT_ROOT, f"data-season-{name}-alevin.js")
         if alevin:
@@ -1546,37 +1547,6 @@ def generate_per_season_files(seasons_list):
             os.remove(alevin_path)
             print(f"  data-season-{name}-alevin.js: borrado (la temporada no tiene alevín)")
     return written
-
-
-# El literal de sw.js con los archivos de temporada que precachea el SW.
-SEASON_FILES_RE = re.compile(r"const SEASON_FILES = \[[^\]]*\];")
-
-
-def sync_season_files(names, root=None):
-    """sw.js con SEASON_FILES = los data-season-<S>.js de `names` (las temporadas pasadas que acaba de
-    escribir generate_per_season_files), de la más nueva a la más vieja, con el formato de
-    activate_season.season_files_for. Una temporada archivada nueva (import_fiflp_grupos) entra en la
-    misma pasada del bot que publica su archivo: sin precachearla, sin conexión se rompen la
-    Trayectoria y «Ver temporadas anteriores», que cargan el archivo entero. Las que ya estaban se
-    quedan (una temporada no sale nunca de la base). Solo escribe si cambia; True si ha escrito. No
-    toca CACHE_NAME ni el resto de sw.js."""
-    path = os.path.join(root or PROJECT_ROOT, "sw.js")
-    if not os.path.exists(path):
-        return False
-    with open(path, encoding="utf-8") as f:
-        worker = f.read()
-    match = SEASON_FILES_RE.search(worker)
-    if not match:
-        return False
-    seasons = set(re.findall(r"'\./data-season-(\d{4}-\d{4})\.js'", match.group(0))) | set(names)
-    ordered = sorted(seasons, key=lambda s: int(s[:4]), reverse=True)
-    literal = "const SEASON_FILES = [\n" + "".join(f"  './data-season-{s}.js',\n" for s in ordered) + "];"
-    if literal == match.group(0):
-        return False
-    with open(path, "w", encoding="utf-8") as f:
-        f.write(worker[:match.start()] + literal + worker[match.end():])
-    print(f"  sw.js SEASON_FILES: {len(ordered)} temporadas ({', '.join(ordered)})")
-    return True
 
 
 def snapshot_data_files(root=None):
@@ -1693,7 +1663,7 @@ def main():
     print("2. data-prebenjamin.js")
     write_file("data-prebenjamin.js", generate_category_js(conn, "PREBENJAMIN", "PREBENJAMIN", "PREBENJ_STATS"))
 
-    # Alevín, perezoso y siempre (vacío si no hay): no va en index.html ni en STATIC_ASSETS del SW.
+    # Alevín, perezoso y siempre (vacío si no hay): no va en index.html; en el precache del SW, opcional.
     print("2b. data-alevin.js")
     write_file("data-alevin.js", generate_alevin_js(conn))
 
@@ -1718,9 +1688,6 @@ def main():
     for name, sz in written:
         print(f"  data-season-{name}.js: {sz:,} bytes")
 
-    print("8b. sw.js SEASON_FILES")
-    sync_season_files([name for name, _ in written])
-
     # Actas: un data-lineups-<S>-<grupo>.js por grupo con alguna acta.
     print("\n9. data-lineups-<S>-<grupo>.js (actas)")
     write_lineups(conn)
@@ -1731,6 +1698,11 @@ def main():
 
     print("\n10. Cache version (only if data changed — C4)")
     bump_if_changed(before_snapshot)
+
+    # Después de subir la versión: la huella de index.html del manifiesto es la del index.html ya subido. En
+    # todas las pasadas (solo escribe si cambia); en un árbol parcial no hace nada.
+    print("\n11. sw.js: el manifiesto del precache")
+    precache.escribir(PROJECT_ROOT)
 
     conn.close()
     print("\nDone!")

@@ -1,30 +1,24 @@
 /**
- * Node test runner — Service Worker + index.html registration fixes.
+ * Node test runner — el contrato del service worker con el bot, con index.html y con v1, los escudos y
+ * data-health.json. Lo de instalar, activar y servir por contenido, en test_sw_precache.mjs.
  * Run: node --test scripts/tests/test_sw_fixes.mjs
  *
- * Covers (review 2026-06-11, agente SW-HTML):
- *   1. STATIC_ASSETS lleva el código empaquetado de dist/origen.json y, de src/, solo config.js
- *   2. data-*.js reach the stale-while-revalidate branch (was unreachable:
- *      the generic cache-first .js branch captured them first); escudos clause
- *      fixed (pathname never starts with './')
- *   3. old ?v= query entries are purged from the cache on successful put
- *   4. index.html uses standard SW registration (no unregister-on-every-load)
- *   5. C3: CACHE_NAME literal on line 1, matcheable by /futbolbase2-v[0-9a-z]+/
- *   6. activate: solo las cachés de esta app de otras versiones (decisión 8 de B4)
- *   7. los escudos, en su propia caché: CRESTS_CACHE en la línea 2, con el sello de
- *      escudos/, que el bot no toca y activate no borra (decisión 1 de B5)
- *   8. data-health.json, primero de la red: el aviso de estado de la portada no
- *      puede leer la salud de la visita anterior
+ * Cubre:
+ *   1. el manifiesto del precache: las temporadas archivadas y el alevín, opcionales; las actas, fuera
+ *   2. index.html registra el SW sin desregistrarlo en cada carga
+ *   3. C3: CACHE_NAME literal en la línea 1, que sube el bot con /futbolbase2-v[0-9a-z]+/
+ *   4. activate: solo las cachés de esta app de otras versiones
+ *   5. los escudos, en su propia caché: CRESTS_CACHE en la línea 2, con el sello de escudos/
+ *   6. data-health.json, primero de la red: el aviso de estado de la portada no puede leer la salud de la
+ *      visita anterior
  *
- * sw.js is a classic script (not a module): it is loaded in a vm context with
- * a stubbed `self`, and its pure decision functions (classifyRequest,
- * staleKeysFor) are probed via bare identifiers — same technique as
- * loadDataFile in test_js_modules.mjs.
+ * sw.js es un guion clásico: se carga en un contexto vm con un `self` falso, y sus funciones puras se leen
+ * por su nombre.
  */
 
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
-import { readFileSync, readdirSync, existsSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
@@ -33,18 +27,18 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const swSrc = readFileSync(join(ROOT, 'sw.js'), 'utf8');
 const idxSrc = readFileSync(join(ROOT, 'index.html'), 'utf8');
 
-// ─── sw.js loader (classic script → vm with stubbed self) ─────────────────
+// ─── cargar sw.js (guion clásico → vm con un self falso) ──────────────────
 function loadSw(globals = {}) {
   const listeners = {};
   const selfStub = {
     addEventListener: (type, fn) => { listeners[type] = fn; },
     skipWaiting: () => {},
-    clients: { claim: () => {} },
+    clients: { claim: async () => {}, matchAll: async () => [] },
     location: { origin: 'https://example.test', href: 'https://example.test/sw.js' },
   };
   const ctx = { self: selfStub, console, URL, ...globals };
   vm.createContext(ctx);
-  const probes = ['CACHE_NAME', 'CRESTS_CACHE', 'STATIC_ASSETS', 'SEASON_FILES', 'LAZY_FILES', 'LINEUPS_KEEP', 'lineupsToCarry', 'classifyRequest', 'staleKeysFor', 'matchIgnoringVersion', 'versionedAssetURL', 'LIMITE_SALUD_MS'];
+  const probes = ['CACHE_NAME', 'CRESTS_CACHE', 'PRECACHE', 'OPCIONALES', 'LINEUPS_KEEP', 'lineupsToCarry', 'classifyRequest', 'LIMITE_SALUD_MS'];
   const probe = probes
     .map(n => `${n}:typeof ${n}!=='undefined'?${n}:undefined`)
     .join(',');
@@ -54,95 +48,27 @@ function loadSw(globals = {}) {
 
 const sw = loadSw();
 
-test('network URLs use the active version, retaining other query parameters', () => {
-  const url = new URL(sw.versionedAssetURL({ url: 'https://example.test/index.html?lang=es&v=old' }));
-  assert.equal(url.searchParams.get('v'), sw.CACHE_NAME.replace('futbolbase2-v', ''));
-  assert.equal(url.searchParams.get('lang'), 'es');
-  assert.equal(new URL(sw.versionedAssetURL('./src/config.js')).pathname, '/src/config.js');
-});
-
-// ─── 1. el código empaquetado en STATIC_ASSETS ────────────────────────────
-// La página carga el paquete de dist/ (scripts/codigo.py) y src/config.js, que se queda fuera: ni un
-// módulo más de src/ (su código va en el paquete), ni la hoja sin empaquetar.
-const ORIGEN = JSON.parse(readFileSync(join(ROOT, 'dist', 'origen.json'), 'utf8'));
-
-test('STATIC_ASSETS lleva el paquete de dist/origen.json y, de src/, solo lo que se queda fuera', () => {
-  assert.ok(Array.isArray(sw.STATIC_ASSETS), 'STATIC_ASSETS must be an array');
-  for (const file of [ORIGEN.app, ORIGEN.css]) assert.ok(sw.STATIC_ASSETS.includes(`./${file}`), `./${file} missing in STATIC_ASSETS`);
-  assert.deepEqual([...sw.STATIC_ASSETS].filter((url) => url.startsWith('./src/')), ORIGEN.externos.map((file) => `./${file}`));
-  assert.deepEqual([...sw.STATIC_ASSETS].filter((url) => url.startsWith('./dist/')), [`./${ORIGEN.app}`, `./${ORIGEN.css}`]);
-  assert.ok(!sw.STATIC_ASSETS.includes('./acta.css'), 'la hoja va empaquetada');
-});
-
-test('STATIC_ASSETS lleva la página, la fuente alojada y los iconos de la PWA (spec §5.5)', () => {
-  const files = (dir, ext) => readdirSync(join(ROOT, dir)).filter(f => f.endsWith(ext)).map(f => `./${dir}/${f}`);
-  const wanted = ['./', './index.html', `./${ORIGEN.css}`, './manifest.json', './data-health.json',
-    ...files('fonts', '.woff2'), ...files('icons', '.png')];
-  assert.ok(wanted.length >= 10, wanted.join(', '));
-  for (const url of wanted) assert.ok(sw.STATIC_ASSETS.includes(url), `${url} missing in STATIC_ASSETS`);
-});
-
-test('cada entrada de STATIC_ASSETS existe en el repositorio', () => {
-  for (const url of sw.STATIC_ASSETS) {
-    if (url === './') continue;
-    assert.ok(existsSync(join(ROOT, url)), `${url} no existe: el service worker lo pediría en cada instalación`);
-  }
-});
-
-// Los data-*.js del precache son exactamente los inmediatos de index.html, en su orden (spec §5.5): ni
-// falta uno (la primera apertura sin conexión saldría sin él) ni sobra uno (B4 retiró los que ya no
-// lee nadie, decisión 1). data-matchdetail.js es perezoso: nunca en el precache.
-test('invariant: los data-*.js de STATIC_ASSETS son los inmediatos de index.html; data-matchdetail.js, perezoso, no', () => {
-  const eager = [...idxSrc.matchAll(/<script\b[^>]*\bsrc="(\.\/data-[\w.-]+\.js)\?v=[0-9a-z]+"/g)].map((m) => m[1]);
-  assert.deepEqual([...sw.STATIC_ASSETS].filter((url) => /^\.\/data-[\w.-]+\.js$/.test(url)), eager);
-  assert.ok(!sw.STATIC_ASSETS.includes('./data-matchdetail.js'),
-    'data-matchdetail.js must NOT be precached');
-});
-
-// SEASON_FILES: los archivos de las temporadas pasadas (activate_season.py añade el de la que cierra).
-// Las actas van por grupo y no se precachean: serían ~10 MB por temporada en cada subida de datos.
-test('SEASON_FILES: solo las temporadas archivadas, sin actas', () => {
-  const files = [...sw.SEASON_FILES];
-  assert.ok(files.length > 0);
-  for (const url of files) assert.match(url, /^\.\/data-season-\d{4}-\d{4}\.js$/);
-});
-
-// Invariante: SEASON_FILES son las temporadas no actuales de data-seasons.js, en el mismo orden (de la
-// más nueva a la más vieja). Lo mantiene generate_js.py (sync_season_files) en la misma pasada del bot
-// que publica una temporada archivada nueva: sin precachearla, sin conexión se rompen la Trayectoria y
-// «Ver temporadas anteriores», que cargan el archivo entero.
-test('invariant: SEASON_FILES = las temporadas no actuales de data-seasons.js, en su orden', () => {
+// ─── 1. el manifiesto: lo perezoso que se instala, y lo que no ─────────────
+// Las temporadas archivadas (Trayectoria y «Ver temporadas anteriores» cargan el archivo entero) y el
+// alevín de la temporada en curso se guardan al instalar, opcionales: si fallan, se bajan al usarse. El
+// manifiesto lo escribe scripts/precache.py con todo data-season-AAAA-AAAA.js del árbol.
+test('invariant: cada temporada pasada de data-seasons.js tiene su archivo en el precache, opcional', () => {
   const ctx = {};
   vm.createContext(ctx);
   vm.runInContext(`${readFileSync(join(ROOT, 'data-seasons.js'), 'utf8')}\nthis.__s = SEASONS;`, ctx);
-  const past = Array.from(ctx.__s).filter((s) => !s.current).map((s) => `./data-season-${s.name}.js`);
-  assert.deepEqual([...sw.SEASON_FILES], past);
+  const past = Array.from(ctx.__s).filter((s) => !s.current).map((s) => `data-season-${s.name}.js`);
+  assert.ok(past.length > 0);
+  for (const file of past) assert.ok(sw.OPCIONALES.includes(file), file);
+  const seasons = sw.OPCIONALES.filter((f) => f.startsWith('data-season-'));
+  assert.deepEqual([...seasons], [...seasons].sort().reverse(), 'de la más nueva a la más vieja');
 });
 
-// LAZY_FILES (alevín, contrato común punto 4; r3.md §6.6): data-alevin.js es perezoso (la app lo pide
-// cuando una pantalla lo necesita, nunca en la carga inicial ni tras pintar la portada), pero se guarda
-// en la instalación, que ocurre después de `load` y no toca el pintado, para que alevín abra sin conexión.
-// Nunca en STATIC_ASSETS (que son los inmediatos de index.html). Los data-season-<S>-alevin.js, ni ahí
-// ni en SEASON_FILES: se guardan según se usan (stale-while-revalidate, como cualquier data-*.js).
-test('LAZY_FILES: data-alevin.js se guarda al instalar, fuera de STATIC_ASSETS; los data-season-<S>-alevin.js, bajo demanda', async () => {
-  assert.deepEqual([...(sw.LAZY_FILES || [])], ['./data-alevin.js']);
-  assert.ok(!sw.STATIC_ASSETS.includes('./data-alevin.js'));
+test('data-alevin.js, opcional y fuera de index.html; los data-season-<S>-alevin.js y las actas, fuera del precache', () => {
+  assert.ok(sw.OPCIONALES.includes('data-alevin.js'));
   assert.doesNotMatch(idxSrc, /data-alevin\.js/, 'index.html no lo carga');
   assert.ok(existsSync(join(ROOT, 'data-alevin.js')), 'data-alevin.js existe siempre (vacío sin grupos de alevín)');
-  assert.ok(![...sw.SEASON_FILES].some((url) => /alevin/.test(url)));
-  assert.equal(sw.classifyRequest('/futbol-base/data-alevin.js'), 'swr');
-  assert.equal(sw.classifyRequest('/futbol-base/data-season-2025-2026-alevin.js'), 'swr');
-  // La instalación de verdad, con unas cachés y una red falsas: pide LAZY_FILES con la versión y lo guarda.
-  const put = [];
-  const worker = loadSw({
-    caches: { keys: async () => [], open: async () => ({ put: async (url) => { put.push(url); } }) },
-    fetch: async (url) => ({ ok: true, status: 200, url }),
-  });
-  let done;
-  worker.listeners.install({ waitUntil: (promise) => { done = promise; } });
-  await done;
-  assert.ok(put.includes('./data-alevin.js'), put.join(', '));
-  assert.ok(!put.some((url) => /data-season-.*-alevin/.test(url)));
+  assert.ok(!Object.keys(sw.PRECACHE).some((f) => /^data-season-.*-alevin\.js$|^data-lineups-|^data-jugadores-/.test(f)));
+  assert.equal(sw.classifyRequest('/data-season-2025-2026-alevin.js', null), 'dato');
 });
 
 // Las actas de grupo ya usadas pasan a la versión nueva (decisión 2 de B5: la ficha de mi equipo, ya
@@ -161,85 +87,12 @@ test('lineupsToCarry: las actas de grupo de las cachés anteriores, sin repetir,
   assert.equal(kept.at(-1), './data-lineups-2025-2026-P20.js');
 });
 
-// ─── 2. strategy: SWR reachable for data-*.js, cache-first for the rest ───
-test('classifyRequest is a pure function exposed by sw.js', () => {
-  assert.equal(typeof sw.classifyRequest, 'function',
-    'sw.js must define classifyRequest(pathname) for the fetch handler');
+test('source contract: el fetch reparte con classifyRequest(url.pathname, ?v=)', () => {
+  assert.equal(typeof sw.classifyRequest, 'function');
+  assert.match(swSrc, /classifyRequest\(url\.pathname, url\.searchParams\.get\('v'\)\)/);
 });
 
-test('classifyRequest: data-*.js → stale-while-revalidate (reachable branch)', () => {
-  assert.equal(sw.classifyRequest('/futbol-base/data-benjamin.js?v=1'.split('?')[0]), 'swr');
-  assert.equal(sw.classifyRequest('/futbol-base/data-benjamin.js'), 'swr');
-  assert.equal(sw.classifyRequest('/futbol-base/data-matchdetail.js'), 'swr');
-  assert.equal(sw.classifyRequest('/data-lineups-2024-2025-A1.js'), 'swr');
-});
-
-test('classifyRequest: code/styles/images → cache-first; html → swr', () => {
-  // src/*.js pasó a 'swr' el 26/07/2026: se piden sin ?v= y con cache-first un
-  // arreglo de solo código no llegaba al usuario hasta el siguiente cambio de
-  // datos o un bump manual de CACHE_NAME.
-  assert.equal(sw.classifyRequest('/futbol-base/src/app.js'), 'swr');
-  assert.equal(sw.classifyRequest('/futbol-base/style.css'), 'cache-first');
-  assert.equal(sw.classifyRequest('/futbol-base/icons.svg'), 'cache-first');
-  assert.equal(sw.classifyRequest('/futbol-base/index.html'), 'swr');
-  assert.equal(sw.classifyRequest('/futbol-base/'), 'swr');
-  assert.equal(sw.classifyRequest('/'), 'swr');
-});
-
-test('classifyRequest: los escudos, originales y miniaturas, van a su propia caché (decisión 1 de B5)', () => {
-  // El pathname empieza por "/" (la cláusula de escudos arreglada en 2026-06-11), y la rama de los
-  // escudos va antes del cache-first genérico, que casaría con sus .png y .jpg.
-  assert.equal(sw.classifyRequest('/futbol-base/escudos/100x100arucas.png'), 'escudo');
-  assert.equal(sw.classifyRequest('/escudos/100x100arucas.png'), 'escudo');
-  assert.equal(sw.classifyRequest('/futbol-base/escudos/s/100x100arucas.png'), 'escudo');
-  assert.equal(sw.classifyRequest('/futbol-base/escudos/joveroLasRosas.jpg'), 'escudo');
-  assert.equal(sw.classifyRequest('/futbol-base/icons/icon-192.png'), 'cache-first');
-});
-
-test('source contract: fetch handler dispatches via classifyRequest, data- before generic js', () => {
-  assert.ok(/classifyRequest\(url\.pathname\)/.test(swSrc),
-    'fetch handler must call classifyRequest(url.pathname)');
-  const body = sw.classifyRequest.toString();
-  const dataIdx = body.indexOf('data-');
-  const genericIdx = body.search(/\(js\|css/);
-  assert.ok(dataIdx >= 0, 'classifyRequest must special-case data- files');
-  assert.ok(genericIdx > dataIdx,
-    'the data- check must be evaluated BEFORE the generic .js/.css cache-first check');
-});
-
-// ─── 3. purge of stale ?v= entries ─────────────────────────────────────────
-test('staleKeysFor returns same-pathname entries with a different query', () => {
-  assert.equal(typeof sw.staleKeysFor, 'function',
-    'sw.js must define staleKeysFor(requestUrl, cachedUrls)');
-  const cached = [
-    'https://x.test/fb/data-benjamin.js?v=20260610',
-    'https://x.test/fb/data-benjamin.js?v=20260611',
-    'https://x.test/fb/data-benjamin.js',
-    'https://x.test/fb/data-prebenjamin.js?v=20260610',
-    'https://x.test/fb/src/app.js?v=20260610',
-  ];
-  // [...result]: normalize the vm-realm array to the host realm for deepEqual
-  const stale = [...sw.staleKeysFor('https://x.test/fb/data-benjamin.js?v=20260611', cached)];
-  assert.deepEqual(stale.sort(), [
-    'https://x.test/fb/data-benjamin.js',
-    'https://x.test/fb/data-benjamin.js?v=20260610',
-  ].sort());
-});
-
-test('staleKeysFor: unversioned request purges nothing', () => {
-  const cached = ['https://x.test/fb/data-benjamin.js?v=20260611'];
-  assert.deepEqual([...sw.staleKeysFor('https://x.test/fb/data-benjamin.js', cached)], []);
-});
-
-test('source contract: putAndPurge used by BOTH cache-first and SWR branches', () => {
-  const defs = swSrc.match(/async function putAndPurge\s*\(/g) || [];
-  assert.equal(defs.length, 1, 'sw.js must define putAndPurge once');
-  const calls = swSrc.match(/putAndPurge\(e\.request/g) || [];
-  assert.ok(calls.length >= 2,
-    `putAndPurge must be called in both fetch branches (found ${calls.length} call(s))`);
-});
-
-// ─── 4. index.html: standard registration, no unregister-every-load ───────
+// ─── 2. index.html: el registro de siempre, sin desregistrar ──────────────
 test('index.html registers SW without unregistering on every load', () => {
   assert.ok(!/unregister\s*\(/.test(idxSrc),
     'index.html must NOT unregister the SW on every load');
@@ -251,6 +104,10 @@ test('index.html registers SW without unregistering on every load', () => {
     'index.html must call registration.update() on each load');
 });
 
+test('index.html ya no limpia cachés al arrancar: lo hace el SW al activarse', () => {
+  assert.doesNotMatch(idxSrc, /caches\.|CODIGO|fb2:codigo/);
+});
+
 test('sw.js lifecycle: skipWaiting on install, clients.claim on activate', () => {
   assert.ok(/self\.skipWaiting\(\)/.test(swSrc), 'install must call self.skipWaiting()');
   assert.ok(/clients\.claim\(\)/.test(swSrc), 'activate must call clients.claim()');
@@ -259,7 +116,7 @@ test('sw.js lifecycle: skipWaiting on install, clients.claim on activate', () =>
   assert.equal(typeof sw.listeners.fetch, 'function', 'fetch listener registered');
 });
 
-// ─── 5. C3: CACHE_NAME contract for generate_js.py ────────────────────────
+// ─── 3. C3: CACHE_NAME contract for generate_js.py ────────────────────────
 test('C3: CACHE_NAME literal on line 1, bumpable via /futbolbase2-v[0-9a-z]+/', () => {
   const firstLine = swSrc.split('\n')[0];
   assert.ok(/^const CACHE_NAME = 'futbolbase2-v[0-9a-z]+';\s*$/.test(firstLine),
@@ -279,56 +136,19 @@ test('CRESTS_CACHE literal on line 2, with the seal of escudos/ and out of reach
   assert.doesNotMatch(second, /futbolbase2-v[0-9a-z]+/);
 });
 
-test('el SW busca en caché ignorando la ?v=: si no, el precache es basura', () => {
-  const s = swSrc;
-  // STATIC_ASSETS guarda './data-benjamin.js' y la página pide
-  // './data-benjamin.js?v=2026...': con búsqueda exacta no casaba ninguna, así
-  // que se descargaban ~1,2 MB en cada instalación para no usarlos jamás.
-  assert.match(s, /ignoreSearch:\s*true/);
-  assert.match(s, /matchIgnoringVersion\(e\.request\)/);
-  assert.doesNotMatch(s, /caches\.match\(e\.request\)\.then/);
-  // El precache sigue sin versión: es lo que lo hace estable entre bumps.
-  assert.match(s, /'\.\/data-benjamin\.js'/);
-});
-
-test('los módulos de src/ se revalidan: un arreglo de código no se queda atrás', () => {
-  const s = swSrc;
-  assert.match(s, /pathname\.includes\('\/src\/'\)[^\n]*return 'swr'/);
-  // Y la rama tiene que ir ANTES del cache-first genérico de .js, o nunca se
-  // alcanza (el mismo error que ya pasó con los data-*.js).
-  const iSrc = s.indexOf("pathname.includes('/src/')");
-  const iJs = s.indexOf("\\.(js|css|png");
-  assert.ok(iSrc > 0 && iSrc < iJs, 'la rama de src/ debe ir antes del cache-first de .js');
-});
-
-test('only the active cache is read; exact URLs precede unversioned precache', async () => {
-  const calls = [];
-  let exact = 'exact response';
-  const worker = loadSw({ caches: {
-    match: () => { throw new Error('Global cache lookup could return a previous release'); },
-    open: async name => {
-      assert.equal(name, sw.CACHE_NAME);
-      return { match: async (request, options) => { calls.push(options?.ignoreSearch || false); return options?.ignoreSearch ? 'precache response' : exact; } };
-    },
-  } });
-  assert.equal(await worker.matchIgnoringVersion('https://example.test/index.html?v=new'), 'exact response');
-  assert.deepEqual(calls, [false]);
-  exact = undefined; calls.length = 0;
-  assert.equal(await worker.matchIgnoringVersion('https://example.test/index.html?v=new'), 'precache response');
-  assert.deepEqual(calls, [false, true]);
-});
-
-// ─── 6. activate: solo las cachés de esta app (decisión 8 de B4 y 1 de B5) ──
-test('activate solo borra las cachés de esta app de otras versiones, futbolbase2-v* y futbolbase2-escudos-*: el origen es compartido (decisión 8 de B4 y 1 de B5)', async () => {
+// ─── 4. activate: solo las cachés de esta app (decisión 8 de B4 y 1 de B5) ──
+test('activate solo borra las cachés de esta app de otras versiones, futbolbase2-v* y futbolbase2-escudos-*: el origen es compartido', async () => {
   // malolocabreralolo-tech.github.io lo comparten v1 y otros proyectos de la cuenta: sus cachés no se
-  // tocan. La de los escudos se queda mientras su sello sea el de CRESTS_CACHE, aunque cambie CACHE_NAME.
+  // tocan. La de los escudos se queda mientras su sello sea el de CRESTS_CACHE, aunque cambie CACHE_NAME;
+  // futbolbase2-precache no se borra nunca (solo pierde las claves que ya no están en el manifiesto).
   assert.match(sw.CRESTS_CACHE ?? '', /^futbolbase2-escudos-[0-9a-f]{8}$/);
   assert.notEqual(sw.CRESTS_CACHE, 'futbolbase2-escudos-00000000');
   const deleted = [];
   const worker = loadSw({ caches: {
     keys: async () => ['futbolbase2-v20250101', sw.CACHE_NAME, 'futbolbase2-v20991231z', 'otro-proyecto-v1', 'workbox-precache-v2', 'futbolbase2',
-      sw.CRESTS_CACHE, 'futbolbase2-escudos-00000000', 'futbolbase2-escudos', 'otro-proyecto-escudos-1'],
+      sw.CRESTS_CACHE, 'futbolbase2-escudos-00000000', 'futbolbase2-escudos', 'otro-proyecto-escudos-1', 'futbolbase2-precache'],
     delete: async (name) => { deleted.push(name); return true; },
+    open: async () => ({ keys: async () => [], delete: async () => true }),
   } });
   let done;
   worker.listeners.activate({ waitUntil: (promise) => { done = promise; } });
@@ -336,7 +156,14 @@ test('activate solo borra las cachés de esta app de otras versiones, futbolbase
   assert.deepEqual(deleted.sort(), ['futbolbase2-escudos-00000000', 'futbolbase2-v20250101', 'futbolbase2-v20991231z']);
 });
 
-// ─── 7. los escudos, en su propia caché (decisión 1 de B5) ──────────────────
+// ─── 5. los escudos, en su propia caché (decisión 1 de B5) ──────────────────
+test('classifyRequest: los escudos, originales y miniaturas, con cualquier ?v=, van a su propia caché', () => {
+  assert.equal(sw.classifyRequest('/futbol-base/escudos/100x100arucas.png', null), 'escudo');
+  assert.equal(sw.classifyRequest('/escudos/100x100arucas.png', 'otra'), 'escudo');
+  assert.equal(sw.classifyRequest('/futbol-base/escudos/s/100x100arucas.png', null), 'escudo');
+  assert.equal(sw.classifyRequest('/futbol-base/escudos/joveroLasRosas.jpg', null), 'escudo');
+});
+
 test('los escudos se sirven de CRESTS_CACHE; si no están, de la red con su sello como ?v=, y se guardan allí (decisión 1 de B5)', async () => {
   // El fetch de verdad, con unas cachés y una red falsas: nunca se abre CACHE_NAME, que cambia con cada
   // subida de datos, y la red se pide con el sello como ?v= (la clave de la caché HTTP del navegador).
@@ -366,57 +193,48 @@ test('los escudos se sirven de CRESTS_CACHE; si no están, de la red con su sell
   assert.deepEqual([...new Set(opened)], [sw.CRESTS_CACHE], 'nunca CACHE_NAME');
 });
 
-// ─── 8. data-health.json: primero la red, con límite; si no, la copia marcada ──
-test('classifyRequest: data-health.json → network-first; los data-*.js siguen en swr', () => {
-  assert.equal(sw.classifyRequest('/futbol-base-v2/data-health.json'), 'network-first');
-  assert.equal(sw.classifyRequest('/data-health.json'), 'network-first');
-  assert.equal(sw.classifyRequest('/futbol-base-v2/data-benjamin.js'), 'swr');
-  assert.ok(sw.STATIC_ASSETS.includes('./data-health.json'), 'sigue en el precache: la primera apertura sin red');
+// ─── 6. data-health.json: primero la red, con límite; si no, la copia marcada ──
+test('classifyRequest: data-health.json → salud, con cualquier ?v=; fuera del precache', () => {
+  assert.equal(sw.classifyRequest('/futbol-base-v2/data-health.json', null), 'salud');
+  assert.equal(sw.classifyRequest('/data-health.json', 'otra'), 'salud');
+  assert.ok(!('data-health.json' in sw.PRECACHE), 'la instalación la guarda en CACHE_NAME, aparte');
   assert.equal(sw.LIMITE_SALUD_MS, 2500);
 });
 
-// Un SW con una caché en memoria (con su copia de data-health.json) y la red que se pida.
+// Un SW con una caché en memoria (con su copia de data-health.json, sin query) y la red que se pida.
 function healthWorker({ network, timers = { setTimeout, clearTimeout } }) {
   const stored = new Map([['https://example.test/data-health.json', new Response('{"checkedAt":"vieja"}', {
     status: 200, headers: { 'content-type': 'application/json' } })]]);
+  const opened = [];
   const cache = {
-    match: async (request, options) => {
-      const url = typeof request === 'string' ? request : request.url;
-      if (stored.has(url)) return stored.get(url).clone();
-      if (options?.ignoreSearch) {
-        const bare = url.split('?')[0];
-        for (const [key, value] of stored) if (key.split('?')[0] === bare) return value.clone();
-      }
-      return undefined;
-    },
+    match: async (request) => stored.get(typeof request === 'string' ? request : request.url)?.clone(),
     put: async (request, response) => { stored.set(typeof request === 'string' ? request : request.url, response); },
-    keys: async () => [...stored.keys()].map((url) => ({ url })),
-    delete: async (request) => stored.delete(request.url),
   };
   const asked = [];
   const worker = loadSw({
-    caches: { open: async () => cache }, Response, Headers, ...timers,
+    caches: { open: async (name) => { opened.push(name); return cache; } }, Response, Headers, ...timers,
     fetch: (url, init) => { asked.push(`${url} ${init.cache}`); return network(); },
   });
   const pending = [];
   const serve = (url) => new Promise((resolve) => {
     worker.listeners.fetch({ request: { url, method: 'GET' }, respondWith: resolve, waitUntil: (p) => pending.push(p) });
   });
-  return { serve, stored, asked, settle: () => Promise.all(pending) };
+  return { serve, stored, asked, opened, settle: () => Promise.all(pending) };
 }
 const URL_SALUD = 'https://example.test/data-health.json?v=20261114t';
 
-test('network-first: con red, la respuesta de la red, guardada (sin las ?v= anteriores) y sin marca', async () => {
+test('salud: con red, la respuesta de la red, guardada sin query en CACHE_NAME y sin marca', async () => {
   const w = healthWorker({ network: async () => new Response('{"checkedAt":"nueva"}', { status: 200 }) });
   const response = await w.serve(URL_SALUD);
   assert.equal(await response.text(), '{"checkedAt":"nueva"}');
   assert.equal(response.headers.get('x-fb2-origen'), null);
   await w.settle();
-  assert.equal(await w.stored.get(URL_SALUD).text(), '{"checkedAt":"nueva"}', 'guardada con putAndPurge');
-  assert.ok(w.asked[0].startsWith('https://example.test/data-health.json?v='), w.asked[0]);
+  assert.equal(await w.stored.get('https://example.test/data-health.json').text(), '{"checkedAt":"nueva"}');
+  assert.deepEqual([...new Set(w.opened)], [sw.CACHE_NAME]);
+  assert.equal(w.asked[0], `${URL_SALUD} no-cache`);
 });
 
-test('network-first: si la red rechaza o no da un 200, la copia guardada con x-fb2-origen: cache y sus cabeceras', async () => {
+test('salud: si la red rechaza o no da un 200, la copia guardada con x-fb2-origen: cache y sus cabeceras', async () => {
   for (const network of [async () => { throw new TypeError('Failed to fetch'); }, async () => new Response('', { status: 503 })]) {
     const w = healthWorker({ network });
     const response = await w.serve(URL_SALUD);
@@ -424,11 +242,11 @@ test('network-first: si la red rechaza o no da un 200, la copia guardada con x-f
     assert.equal(response.headers.get('content-type'), 'application/json');
     assert.equal(response.status, 200);
     assert.equal(await response.text(), '{"checkedAt":"vieja"}');
-    await w.settle();
+    await w.settle().catch(() => {});
   }
 });
 
-test('network-first: con la red colgada, la copia marcada en cuanto pasa LIMITE_SALUD_MS', async () => {
+test('salud: con la red colgada, la copia marcada en cuanto pasa LIMITE_SALUD_MS', async () => {
   const timers = [];
   const w = healthWorker({
     network: () => new Promise(() => {}),
@@ -445,7 +263,7 @@ test('network-first: con la red colgada, la copia marcada en cuanto pasa LIMITE_
   assert.equal(await response.text(), '{"checkedAt":"vieja"}');
 });
 
-test('network-first: sin copia guardada, lo que dé la red', async () => {
+test('salud: sin copia guardada, lo que dé la red', async () => {
   const w = healthWorker({ network: async () => new Response('', { status: 404 }) });
   w.stored.clear();
   const response = await w.serve(URL_SALUD);

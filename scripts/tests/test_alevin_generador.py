@@ -6,7 +6,7 @@
   - data-history.js (carga inicial) solo con benjamín y prebenjamín: HISTORY, ESTADOS, EQUIPOS y
     HIST_MATCHES; si no, la carga inicial crecería sola con 32 grupos alevín.
   - Temporadas pasadas: el alevín nunca dentro de data-season-<S>.js, sino en
-    data-season-<S>-alevin.js (SEASON_<S>_ALEVIN), fuera de SEASON_FILES del service worker, y
+    data-season-<S>-alevin.js (SEASON_<S>_ALEVIN), fuera del precache del service worker, y
     solo si la temporada tiene grupos alevín.
 """
 import json
@@ -78,8 +78,7 @@ def site(tmp_path, alevin=True):
     root = tmp_path / "site"
     root.mkdir()
     (root / "index.html").write_text('<script src="./data-seasons.js?v=20260101"></script>\n', encoding="utf-8")
-    (root / "sw.js").write_text("const CACHE_NAME = 'futbolbase2-v20260101';\nconst SEASON_FILES = [\n];\n",
-                                encoding="utf-8")
+    (root / "sw.js").write_text("const CACHE_NAME = 'futbolbase2-v20260101';\n", encoding="utf-8")
     return db, root
 
 
@@ -129,8 +128,9 @@ def test_past_seasons_keep_alevin_in_their_own_lazy_file(tmp_path, monkeypatch):
     assert alevin["name"] == "2025-2026" and [g["id"] for g in alevin["alevin"]] == ["AL3"]
     assert set(alevin["alevin"][0]) == set(past["benjamin"][0])
     assert [g["id"] for g in alevin["gol"]["alevin"]] == ["AL3"]
-    worker = (root / "sw.js").read_text(encoding="utf-8")
-    assert "./data-season-2025-2026.js" in worker and "alevin" not in worker
+    # El archivo entra en el precache del SW (opcional); su alevín, no: se baja al usarse.
+    import precache
+    assert precache.temporadas(root) == ["data-season-2025-2026.js"]
 
 
 def test_without_alevin_the_file_is_empty_and_no_season_file_is_left(tmp_path, monkeypatch):
@@ -150,9 +150,10 @@ def test_the_published_empty_file_is_the_one_in_the_repository():
     assert re.findall(r"^const (\w+)=", text, re.M) == [
         "ALEVIN", "ALEV_STATS", "HISTORY_ALEV", "GOL_ALEV", "ESTADOS_ALEV", "EQUIPOS_ALEV"]
     index = (ROOT / "index.html").read_text(encoding="utf-8")
-    worker = (ROOT / "sw.js").read_text(encoding="utf-8")
     assert "data-alevin.js" not in index
-    assert "data-alevin.js" not in worker[worker.index("STATIC_ASSETS"):worker.index("SEASON_FILES")]
+    import precache
+    entries, opcionales = precache.entradas(ROOT)
+    assert "data-alevin.js" in entries and "data-alevin.js" in opcionales, "en el precache, pero opcional"
 
 
 def test_check_missing_shields_reads_alevin(tmp_path, monkeypatch, capsys):

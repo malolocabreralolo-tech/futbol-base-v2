@@ -68,10 +68,18 @@ def differences(index_html, sw_js, wanted):
     return out
 
 
+# El manifiesto del precache de sw.js también lo reescribe el bot (generate_js.main → scripts/precache.py),
+# con las huellas de los datos: tras fusionar, se rehace con python3 scripts/precache.py.
+PRECACHE_RE = re.compile(r"// >>> precache: lo escribe scripts/precache\.py\n.*?// <<< precache", re.S)
+
+
 def only_marks_changed(old_index, old_sw, new_index, new_sw):
-    """True si de (old_index, old_sw) a (new_index, new_sw) solo cambian las marcas del bot."""
+    """True si de (old_index, old_sw) a (new_index, new_sw) solo cambian las marcas del bot (y el manifiesto
+    del precache)."""
     neutral = {"v": "00000000", "footer": "00/00/0000", "cache": "0"}
-    return apply_marks(old_index, old_sw, neutral) == apply_marks(new_index, new_sw, neutral)
+    old_index, old_sw = apply_marks(old_index, old_sw, neutral)
+    new_index, new_sw = apply_marks(new_index, new_sw, neutral)
+    return (old_index, PRECACHE_RE.sub("", old_sw)) == (new_index, PRECACHE_RE.sub("", new_sw))
 
 
 def git_show(root, ref, path):

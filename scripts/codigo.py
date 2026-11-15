@@ -1,17 +1,18 @@
 #!/usr/bin/env python3
-"""El código de la web, empaquetado en dist/, y CODIGO, su versión, en el arranque de index.html.
+"""El código de la web, empaquetado en dist/.
 
 La página no pide src/ ni acta.css: carga dist/app-<h>.js (src/app.js con todo su grafo, en un módulo) y
 dist/acta-<h>.css (la hoja minificada), cada uno con las 8 primeras cifras del SHA-1 de su contenido en el
 nombre, y src/config.js aparte, que queda fuera del paquete porque lo reescribe la activación de una
 temporada sin que cambie el código. Los empaqueta scripts/empaquetar/empaquetar.mjs (esbuild); este guion
-lo llama, borra los anteriores, escribe dist/origen.json, pone las rutas en index.html y en STATIC_ASSETS
-de sw.js y escribe CODIGO, la huella de las fuentes: acta.css y src/*.js salvo src/config.js. Solo se
-empaqueta al publicar, en el PC (scripts/publicar.py); ni el bot ni la activación de una temporada lo
-hacen nunca, y `--check`, que no necesita node, comprueba que dist/ es el de las fuentes.
+lo llama, borra los anteriores, escribe dist/origen.json (con la huella de las fuentes: acta.css y src/*.js
+salvo src/config.js) y pone las dos rutas en index.html. El manifiesto del precache de sw.js, que lleva
+las rutas y sus huellas, lo escribe después scripts/precache.py. Solo se empaqueta al publicar, en el PC
+(scripts/publicar.py); ni el bot ni la activación de una temporada lo hacen nunca, y `--check`, que no
+necesita node, comprueba que dist/ es el de las fuentes.
 
 Uso, desde la raíz del repositorio:
-  python3 scripts/codigo.py          # empaqueta y escribe dist/, index.html y sw.js
+  python3 scripts/codigo.py          # empaqueta y escribe dist/ e index.html (después: scripts/precache.py)
   python3 scripts/codigo.py --check  # no escribe nada: sale con 1 si dist/ no es el de las fuentes
 """
 import argparse
@@ -25,7 +26,6 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 EMPAQUETAR = ROOT / "scripts" / "empaquetar" / "empaquetar.mjs"
 ESBUILD = ROOT / "scripts" / "empaquetar" / "node_modules" / "esbuild"
-CODIGO_RE = re.compile(r"const CODIGO = '([0-9a-f]{8})';")
 APP_RE = re.compile(r"\./dist/app-[0-9a-f]{8}\.js")
 CSS_RE = re.compile(r"\./dist/acta-[0-9a-f]{8}\.css")
 PAQUETE_RE = re.compile(r"(?:app-[0-9a-f]{8}\.js|acta-[0-9a-f]{8}\.css)")
@@ -52,20 +52,17 @@ def leer_origen(root=ROOT):
     return json.loads((Path(root) / "dist" / "origen.json").read_text(encoding="utf-8"))
 
 
-def _marcas(index, sw):
-    """Lo que tiene que haber en index.html y sw.js para poner las rutas: uno de cada."""
+def _marcas(index):
+    """Lo que tiene que haber en index.html para poner las rutas: una de cada."""
     problems = []
-    if len(CODIGO_RE.findall(index)) != 1:
-        problems.append(f"index.html tiene que llevar un CODIGO, y lleva {len(CODIGO_RE.findall(index))}")
-    for name, text in (("index.html", index), ("sw.js", sw)):
-        for pattern, what in ((APP_RE, "./dist/app-<h>.js"), (CSS_RE, "./dist/acta-<h>.css")):
-            if len(pattern.findall(text)) != 1:
-                problems.append(f"{name} tiene que llevar una ruta {what}, y lleva {len(pattern.findall(text))}")
+    for pattern, what in ((APP_RE, "./dist/app-<h>.js"), (CSS_RE, "./dist/acta-<h>.css")):
+        if len(pattern.findall(index)) != 1:
+            problems.append(f"index.html tiene que llevar una ruta {what}, y lleva {len(pattern.findall(index))}")
     return problems
 
 
 def comprobar(root=ROOT):
-    """Lo que no cuadra entre las fuentes, dist/, index.html y sw.js; vacío si todo está al día."""
+    """Lo que no cuadra entre las fuentes, dist/ e index.html; vacío si todo está al día."""
     root = Path(root)
     try:
         origen = leer_origen(root)
@@ -76,10 +73,6 @@ def comprobar(root=ROOT):
     if origen.get("codigo") != want:
         problems.append(f"dist/ es de las fuentes {origen.get('codigo')}, y las del árbol son {want}: python3 scripts/codigo.py")
     index = (root / "index.html").read_text(encoding="utf-8")
-    sw = (root / "sw.js").read_text(encoding="utf-8")
-    found = CODIGO_RE.findall(index)
-    if found != [want]:
-        problems.append(f"el CODIGO de index.html ({', '.join(found) or 'ninguno'}) no es la huella de las fuentes, {want}")
     wanted = set()
     for key, prefix, ext in (("app", "dist/app-", ".js"), ("css", "dist/acta-", ".css")):
         rel = origen.get(key) or ""
@@ -93,8 +86,6 @@ def comprobar(root=ROOT):
             problems.append(f"{rel} no lleva en el nombre la huella de su contenido, {huella_fichero(path)}")
         if f"./{rel}" not in index:
             problems.append(f"index.html no referencia ./{rel}")
-        if f"'./{rel}'" not in sw:
-            problems.append(f"sw.js no precachea ./{rel}")
     extra = sorted(path.name for path in (root / "dist").glob("*") if PAQUETE_RE.fullmatch(path.name) and path.name not in wanted)
     if extra:
         problems.append(f"sobran en dist/ paquetes viejos: {', '.join(extra)}")
@@ -136,11 +127,11 @@ def main(argv=None):
             print(problem)
         if not problems:
             origen = leer_origen(root)
-            print(f"CODIGO {origen['codigo']}: dist/ es el de las fuentes ({origen['app']} y {origen['css']})")
+            print(f"fuentes {origen['codigo']}: dist/ es el de las fuentes ({origen['app']} y {origen['css']})")
         return 1 if problems else 0
-    index_path, sw_path = root / "index.html", root / "sw.js"
-    index, sw = index_path.read_text(encoding="utf-8"), sw_path.read_text(encoding="utf-8")
-    problems = _marcas(index, sw)
+    index_path = root / "index.html"
+    index = index_path.read_text(encoding="utf-8")
+    problems = _marcas(index)
     why = puede_empaquetar(root)
     if problems or why:
         print("\n".join(problems + ([why] if why else [])))
@@ -157,13 +148,10 @@ def main(argv=None):
     want = huella(root)
     origen = {"codigo": want, "app": rutas["app"], "css": rutas["css"], "externos": EXTERNOS}
     (root / "dist" / "origen.json").write_text(json.dumps(origen, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
-    index = CSS_RE.sub(f"./{rutas['css']}", APP_RE.sub(f"./{rutas['app']}", index))
-    index = CODIGO_RE.sub(f"const CODIGO = '{want}';", index)
-    sw = CSS_RE.sub(f"./{rutas['css']}", APP_RE.sub(f"./{rutas['app']}", sw))
-    for path, text in ((index_path, index), (sw_path, sw)):
-        if path.read_text(encoding="utf-8") != text:
-            path.write_text(text, encoding="utf-8")
-    print(f"CODIGO {want}: {rutas['app']} y {rutas['css']}, en index.html y sw.js")
+    nuevo = CSS_RE.sub(f"./{rutas['css']}", APP_RE.sub(f"./{rutas['app']}", index))
+    if nuevo != index:
+        index_path.write_text(nuevo, encoding="utf-8")
+    print(f"fuentes {want}: {rutas['app']} y {rutas['css']}, en index.html (el precache de sw.js: scripts/precache.py)")
     return 0
 
 

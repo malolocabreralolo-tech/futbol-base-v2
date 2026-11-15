@@ -1,11 +1,11 @@
 """Plan B4, tarea 2: la subida de versión de una publicación (spec §5.5; decisión 10 de B4).
 
-Cada fase del rediseño se publica al terminarla. La publicación sube a la vez las ?v= de index.html y
-CACHE_NAME de sw.js, con la misma cadena, y empaqueta dist/ con CODIGO, sin tocar «Última
-actualización», que es la fecha de los datos (source_health la publica como lastDataChange). La versión
-es la fecha UTC y estrictamente mayor que la vigente. El bot sigue como hoy: bump_cache_version sin
-argumentos mueve el pie. Árboles sintéticos, y una copia del index.html, el sw.js y dist/ reales: nunca
-los data-*.js vivos. Las que empaquetan se saltan sin esbuild, como en el bot.
+Cada fase del rediseño se publica al terminarla. La publicación empaqueta dist/, sube a la vez las ?v= de
+index.html y CACHE_NAME de sw.js, con la misma cadena, y reescribe el manifiesto del precache, sin tocar
+«Última actualización», que es la fecha de los datos (source_health la publica como lastDataChange). La
+versión es la fecha UTC y estrictamente mayor que la vigente. El bot sigue como hoy: bump_cache_version sin
+argumentos mueve el pie. Árboles sintéticos, y una copia del árbol real: nunca los ficheros vivos. Las que
+empaquetan se saltan sin esbuild, como en el bot.
 """
 import re
 import shutil
@@ -19,6 +19,7 @@ ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 import codigo  # noqa: E402
 import generate_js  # noqa: E402
+import precache  # noqa: E402
 import publicar  # noqa: E402
 
 VERSION_RE = re.compile(r"\?v=(\d{8}[a-z]?)")
@@ -26,25 +27,47 @@ FOOTER = "Última actualización: 01/09/2026"
 
 
 def _tree(tmp_path, version="20260925b"):
-    """index.html y sw.js con las marcas del bot, CODIGO, las rutas de dist/ y el código que se empaqueta."""
-    (tmp_path / "src").mkdir()
-    (tmp_path / "src" / "app.js").write_text("export function start() {}\n", encoding="utf-8")
-    (tmp_path / "acta.css").write_text("body { margin: 0; }\n", encoding="utf-8")
-    (tmp_path / "index.html").write_text(
-        '<link rel="stylesheet" href="./dist/acta-00000000.css">\n'
-        f'<span id="legacyUpdated" hidden>{FOOTER}</span>\n'
-        f'<script defer src="./data-benjamin.js?v={version}"></script>\n'
-        f'<script defer src="./data-seasons.js?v={version}"></script>\n'
-        "<script type=\"module\">\n"
-        "  const CODIGO = '00000000';\n"
-        "  import('./dist/app-00000000.js');\n"
-        "</script>\n",
-        encoding="utf-8",
-    )
-    (tmp_path / "sw.js").write_text(
-        f"const CACHE_NAME = 'futbolbase2-v{version}';\nconst OFFLINE_URL = './index.html';\n"
-        "const STATIC_ASSETS = [\n  './dist/app-00000000.js',\n  './dist/acta-00000000.css',\n];\n", encoding="utf-8")
+    """Un árbol completo de juguete: index.html y sw.js con las marcas del bot y el bloque del precache, un
+    dist/ de una publicación anterior, el código que se empaqueta y lo demás que se precachea."""
+    files = {
+        "src/app.js": "export function start() {}\n",
+        "src/config.js": "export const PORTAL = {};\n",
+        "acta.css": "body { margin: 0; }\n",
+        "index.html": (
+            '<link rel="stylesheet" href="./dist/acta-00000000.css">\n'
+            f'<span id="legacyUpdated" hidden>{FOOTER}</span>\n'
+            f'<script defer src="./data-benjamin.js?v={version}"></script>\n'
+            f'<script defer src="./data-seasons.js?v={version}"></script>\n'
+            "<script type=\"module\">\n"
+            "  import('./dist/app-00000000.js');\n"
+            "</script>\n"),
+        "sw.js": (f"const CACHE_NAME = 'futbolbase2-v{version}';\nconst CRESTS_CACHE = 'futbolbase2-escudos-00000000';\n"
+                  f"{precache.INICIO}\nconst PRECACHE = {{}};\nconst OPCIONALES = [];\n{precache.FIN}\n"),
+        "dist/origen.json": '{"codigo": "00000000", "app": "dist/app-00000000.js", "css": "dist/acta-00000000.css", "externos": ["src/config.js"]}\n',
+        "dist/app-00000000.js": "export function start() {}\n",
+        "dist/acta-00000000.css": "body{}\n",
+        "data-benjamin.js": "const BENJAMIN=[];\n",
+        "data-seasons.js": "const SEASONS=[];\n",
+        **{rel: f"fijo {rel}\n" for rel in precache.FIJOS},
+    }
+    for rel, text in files.items():
+        path = tmp_path / rel
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(text, encoding="utf-8")
     return tmp_path
+
+
+def _copia_del_arbol(tmp_path):
+    """Lo que leen publicar.py, codigo.py y precache.py, copiado del repositorio."""
+    for name in ("index.html", "sw.js", "acta.css", "manifest.json", *(path.name for path in ROOT.glob("data-*.js"))):
+        shutil.copy(ROOT / name, tmp_path / name)
+    for name in ("src", "dist", "fonts", "icons"):
+        shutil.copytree(ROOT / name, tmp_path / name)
+    return tmp_path
+
+
+def _fuera_del_bloque(sw):
+    return sw[:sw.index(precache.INICIO)] + sw[sw.index(precache.FIN):]
 
 
 con_esbuild = pytest.mark.skipif(not codigo.ESBUILD.exists(), reason="sin esbuild: npm ci --prefix scripts/empaquetar")
@@ -126,26 +149,59 @@ def test_publicar_sube_las_marcas_y_empaqueta_sin_tocar_el_pie(tmp_path, monkeyp
     assert VERSION_RE.findall(index) == ["20260925c"] * 2
     assert FOOTER in index
     origen = codigo.leer_origen(site)
-    assert f"const CODIGO = '{codigo.huella(site)}';" in index and origen["codigo"] == codigo.huella(site)
+    assert origen["codigo"] == codigo.huella(site) and "CODIGO" not in index
     assert f"./{origen['app']}" in index and f"./{origen['css']}" in index
+    assert not (site / "dist" / "app-00000000.js").exists(), "el paquete viejo se borra"
     assert (site / "sw.js").read_text(encoding="utf-8").splitlines()[0] == "const CACHE_NAME = 'futbolbase2-v20260925c';"
     assert codigo.main(["--check", "--root", str(site)]) == 0
-    assert capsys.readouterr().out.splitlines()[:2] == [
+    # El manifiesto, el último: con la huella del index.html ya subido y la del paquete nuevo.
+    assert precache.comprobar(site) == []
+    entries, _ = precache.entradas(site)
+    assert origen["app"] in entries and origen["css"] in entries
+    assert capsys.readouterr().out.splitlines()[:4] == [
+        f"fuentes {codigo.huella(site)}: {origen['app']} y {origen['css']}, en index.html (el precache de sw.js: scripts/precache.py)",
         f"versión 20260925c (antes, 20260925b): 2 ?v= en index.html y futbolbase2-v20260925c en sw.js; «{FOOTER}», sin tocar",
-        f"CODIGO {codigo.huella(site)}: {origen['app']} y {origen['css']}, en index.html y sw.js",
+        f"precache: {len(entries)} ficheros, 0 opcionales, en sw.js",
+        "fuentes " + codigo.huella(site) + f": dist/ es el de las fuentes ({origen['app']} y {origen['css']})",
     ]
+
+
+def _textos(site):
+    return {path.relative_to(site).as_posix(): path.read_bytes() for path in sorted(site.rglob("*")) if path.is_file()}
 
 
 def test_publicar_sin_esbuild_se_para_sin_escribir(tmp_path, monkeypatch, capsys):
     # Sin esbuild, la versión subiría con el código de antes: nada escrito, ni las ?v=.
     site = _tree(tmp_path)
-    before = [(site / name).read_text(encoding="utf-8") for name in ("index.html", "sw.js")]
+    before = _textos(site)
     monkeypatch.setattr(publicar, "_today_utc", lambda: "20260925")
     monkeypatch.setattr(codigo, "ESBUILD", tmp_path / "no-esta" / "esbuild")
     assert publicar.main(["--root", str(site)]) == 1
-    assert [(site / name).read_text(encoding="utf-8") for name in ("index.html", "sw.js")] == before
-    assert not (site / "dist").exists()
+    assert _textos(site) == before
     assert capsys.readouterr().out.strip() == "falta esbuild: npm ci --prefix scripts/empaquetar: nada escrito"
+
+
+def test_publicar_sin_un_obligatorio_del_precache_se_para_sin_escribir(tmp_path, monkeypatch, capsys):
+    # Sin manifest.json el SW no se instalaría: nada escrito, ni dist/ ni las ?v=.
+    site = _tree(tmp_path)
+    (site / "manifest.json").unlink()
+    before = _textos(site)
+    monkeypatch.setattr(publicar, "_today_utc", lambda: "20260925")
+    assert publicar.main(["--root", str(site)]) == 1
+    assert _textos(site) == before
+    out = capsys.readouterr().out.strip()
+    assert out.startswith("el precache no se puede calcular") and out.endswith(": nada escrito"), out
+
+
+def test_publicar_sin_el_bloque_del_precache_se_para_sin_escribir(tmp_path, monkeypatch, capsys):
+    site = _tree(tmp_path)
+    sw = (site / "sw.js").read_text(encoding="utf-8")
+    (site / "sw.js").write_text(_fuera_del_bloque(sw).replace(precache.FIN, ""), encoding="utf-8")
+    before = _textos(site)
+    monkeypatch.setattr(publicar, "_today_utc", lambda: "20260925")
+    assert publicar.main(["--root", str(site)]) == 1
+    assert _textos(site) == before
+    assert capsys.readouterr().out.strip().endswith(": nada escrito")
 
 
 def test_publicar_se_para_si_las_v_no_son_todas_iguales(tmp_path, monkeypatch, capsys):
@@ -185,22 +241,24 @@ def test_publicar_se_para_en_la_z_sin_escribir(tmp_path, monkeypatch, capsys):
 
 @con_esbuild
 def test_publicar_sobre_una_copia_del_arbol_solo_cambia_las_marcas(tmp_path, monkeypatch):
-    # El index.html, el sw.js y dist/ reales, con el código del que salen: solo cambian las ?v= y
-    # CACHE_NAME (dist/ ya es el de las fuentes, test_empaquetar.py), nunca el pie, el paquete ni el resto.
-    for name in ("index.html", "sw.js", "acta.css"):
-        shutil.copy(ROOT / name, tmp_path / name)
-    for name in ("src", "dist"):
-        shutil.copytree(ROOT / name, tmp_path / name)
-    before = (tmp_path / "index.html").read_text(encoding="utf-8")
-    sw_before = (tmp_path / "sw.js").read_text(encoding="utf-8")
-    dist_before = {path.name: path.read_bytes() for path in (tmp_path / "dist").iterdir()}
+    # El árbol real, con el código del que sale: solo cambian las ?v=, CACHE_NAME y, en el bloque del
+    # precache, la huella de index.html (dist/ ya es el de las fuentes, test_empaquetar.py), nunca el pie, el
+    # paquete ni el resto.
+    site = _copia_del_arbol(tmp_path)
+    before = (site / "index.html").read_text(encoding="utf-8")
+    sw_before = (site / "sw.js").read_text(encoding="utf-8")
+    dist_before = {path.name: path.read_bytes() for path in (site / "dist").iterdir()}
+    entries_before, _ = precache.entradas(site)
     monkeypatch.setattr(publicar, "_today_utc", lambda: "20991231")
-    assert publicar.main(["--root", str(tmp_path)]) == 0
-    after = (tmp_path / "index.html").read_text(encoding="utf-8")
+    assert publicar.main(["--root", str(site)]) == 0
+    after = (site / "index.html").read_text(encoding="utf-8")
     assert VERSION_RE.sub("", after) == VERSION_RE.sub("", before)
     assert set(VERSION_RE.findall(after)) == {"20991231"}
     assert len(VERSION_RE.findall(after)) == len(VERSION_RE.findall(before))
-    sw = (tmp_path / "sw.js").read_text(encoding="utf-8")
+    sw = (site / "sw.js").read_text(encoding="utf-8")
     assert sw.splitlines()[0] == "const CACHE_NAME = 'futbolbase2-v20991231';"
-    assert sw.splitlines()[1:] == sw_before.splitlines()[1:]
-    assert {path.name: path.read_bytes() for path in (tmp_path / "dist").iterdir()} == dist_before
+    assert _fuera_del_bloque(sw).splitlines()[1:] == _fuera_del_bloque(sw_before).splitlines()[1:]
+    assert {path.name: path.read_bytes() for path in (site / "dist").iterdir()} == dist_before
+    assert precache.comprobar(site) == []
+    entries, _ = precache.entradas(site)
+    assert [ruta for ruta in entries if entries[ruta] != entries_before.get(ruta)] == ["index.html"]

@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 """La subida de versión de una publicación del rediseño (spec §5.5; Plan B4, decisión 10).
 
-Cada fase se publica al terminarla (docs/rediseno-rebase.md). La publicación sube a la vez todas las
-?v= de index.html y CACHE_NAME de sw.js, con la misma cadena, para que los móviles con la app
-instalada cambien a la versión nueva, y empaqueta el código en dist/ con CODIGO, la versión del código
-que lee el arranque (scripts/codigo.py, que necesita esbuild: npm ci --prefix scripts/empaquetar; sin
-él, se para sin escribir nada). No toca «Última actualización»: es la fecha de los datos, la escribe el
-bot y source_health la publica como lastDataChange. Las marcas las reescribe bump_cache_version, la
-misma función del bot, con touch_footer=False.
+Cada fase se publica al terminarla (docs/rediseno-rebase.md). La publicación, en este orden: empaqueta el
+código en dist/ (scripts/codigo.py, que necesita esbuild: npm ci --prefix scripts/empaquetar; sin él, se
+para sin escribir nada); sube a la vez todas las ?v= de index.html y CACHE_NAME de sw.js, con la misma
+cadena, para que los móviles con la app instalada cambien a la versión nueva; y reescribe el manifiesto
+del precache de sw.js (scripts/precache.py), con las huellas de lo que ya ha quedado escrito. No toca
+«Última actualización»: es la fecha de los datos, la escribe el bot y source_health la publica como
+lastDataChange. Las marcas las reescribe bump_cache_version, la misma función del bot, con
+touch_footer=False.
 
 La versión es la fecha UTC, como la del bot (date.today() en el runner de GitHub: con la de Canarias,
 entre las 00:00 y la 01:00 se podía repetir o hacer retroceder una CACHE_NAME), y estrictamente mayor
@@ -16,7 +17,7 @@ es de un día posterior), la letra siguiente de la vigente: 20260925 → 2026092
 sin escribir nada si la vigente ya lleva la z.
 
 Uso, desde la raíz del repositorio:
-  python3 scripts/publicar.py    # las ?v= y CACHE_NAME de index.html y sw.js, y dist/ con CODIGO
+  python3 scripts/publicar.py    # dist/, las ?v= y CACHE_NAME de index.html y sw.js, y el precache
 """
 import argparse
 import contextlib
@@ -29,6 +30,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import codigo  # noqa: E402
 import generate_js  # noqa: E402
+import precache  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 VERSION_RE = re.compile(r"\?v=(\d{8}[a-z]?)")
@@ -66,9 +68,9 @@ def main(argv=None):
     marks = VERSION_RE.findall(index)
     footer = FOOTER_RE.findall(index)
     cache_line = CACHE_LINE_RE.match(sw.split("\n", 1)[0])
-    if not marks or len(footer) != 1 or not cache_line or len(codigo.CODIGO_RE.findall(index)) != 1:
-        print("index.html y sw.js tienen que llevar sus marcas: las ?v=, un «Última actualización», un CODIGO "
-              "y CACHE_NAME en la línea 1 de sw.js: nada escrito")
+    if not marks or len(footer) != 1 or not cache_line or precache.tramo(sw) is None:
+        print("index.html y sw.js tienen que llevar sus marcas: las ?v=, un «Última actualización», CACHE_NAME "
+              "en la línea 1 de sw.js y el bloque del precache: nada escrito")
         return 1
     if len(set(marks)) != 1 or cache_line.group(1) != marks[0]:
         print(f"las ?v= de index.html tienen que ir todas iguales y coincidir con el CACHE_NAME de sw.js "
@@ -80,10 +82,18 @@ def main(argv=None):
     except ValueError as error:
         print(f"{error}: nada escrito")
         return 1
-    # Sin poder empaquetar, la versión subiría con el código de antes: se para antes de escribir.
+    # Sin poder empaquetar, la versión subiría con el código de antes; sin un obligatorio del precache, el SW
+    # no se instalaría: se para antes de escribir.
     why = codigo.puede_empaquetar(root)
     if why:
         print(f"{why}: nada escrito")
+        return 1
+    try:
+        precache.entradas(root)
+    except (OSError, ValueError, KeyError) as error:
+        print(f"el precache no se puede calcular ({error}): nada escrito")
+        return 1
+    if codigo.main(["--root", str(root)]) != 0:
         return 1
     # Las mismas expresiones que el bot; sus avisos por línea sobran aquí, que lo resume en una.
     with contextlib.redirect_stdout(io.StringIO()):
@@ -95,7 +105,12 @@ def main(argv=None):
     assert first == f"const CACHE_NAME = 'futbolbase2-v{version}';", first
     print(f"versión {version} (antes, {current}): {len(marks)} ?v= en index.html y futbolbase2-v{version} en sw.js; "
           f"«{footer[0]}», sin tocar")
-    return codigo.main(["--root", str(root)])
+    # El último: las huellas de index.html, ya subido, y del paquete nuevo.
+    with contextlib.redirect_stdout(io.StringIO()):
+        precache.escribir(root)
+    entries, opcionales = precache.entradas(root)
+    print(f"precache: {len(entries)} ficheros, {len(opcionales)} opcionales, en sw.js")
+    return 0
 
 
 if __name__ == "__main__":

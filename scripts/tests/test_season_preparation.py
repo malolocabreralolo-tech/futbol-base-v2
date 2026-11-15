@@ -13,6 +13,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 from activate_season import validate_manifest, verify_sources, seed_season, apply_manifest
 import activate_season
 import codigo
+import precache
 from db import SCHEMA, get_connection
 from migrate_actas_schema import migrate
 from fetch_futbolaspalmas import parse_all_matches, parse_standings, existing_jornada
@@ -181,31 +182,10 @@ def test_activation_generates_new_season_and_retains_every_old_sporting_row(tmp_
     assert json.loads((tmp_path / 'data-health.json').read_text())['season'] == season
 
 
-# Un sw.js sintético con la forma del de verdad: CACHE_NAME, CRESTS_CACHE y los dos literales.
+# Un sw.js sintético de un árbol parcial (sin el bloque del precache ni dist/): activar solo le sube CACHE_NAME.
 WORKER = ("const CACHE_NAME = 'futbolbase2-v20280101';\n"
           "const CRESTS_CACHE = 'futbolbase2-escudos-00000000';\n"
-          "const STATIC_ASSETS = [\n  './',\n];\n\n"
-          "// Season data files\n"
-          "const SEASON_FILES = [\n  './data-season-2027-2028.js',\n  './data-lineups-2028-2029.js',\n];\n\n"
           "function classifyRequest(pathname) {}\n")
-
-
-def test_season_files_add_the_closing_archive_and_drop_whole_season_lineups():
-    # Al activar 2029-2030, el archivo de 2028-2029 entra delante; una plantilla de temporada entera de
-    # un sw.js antiguo se quita (las actas van por grupo y no se precachean); el resto, igual.
-    out = activate_season.season_files_for(WORKER, "2028-2029", "2029-2030")
-    assert out == WORKER.replace("  './data-season-2027-2028.js',\n  './data-lineups-2028-2029.js',\n",
-                                 "  './data-season-2028-2029.js',\n  './data-season-2027-2028.js',\n")
-    assert activate_season.season_files_for(out, "2028-2029", "2029-2030") == out, "otra vez con la misma temporada: igual"
-    # El sw.js del repositorio, con la temporada de su último archivo (nunca la de config.js): activar
-    # la siguiente solo toca SEASON_FILES.
-    real = (ROOT / "sw.js").read_text(encoding="utf-8")
-    last = max(re.findall(r"'\./data-season-\d{4}-(\d{4})\.js'", real))
-    portal = f"{last}-{int(last) + 1}"
-    after = activate_season.season_files_for(real, portal, next_season(portal))
-    assert f"'./data-season-{portal}.js'" in after and "data-lineups-" not in after.split("const SEASON_FILES")[1].split("];")[0]
-    literal = re.compile(r"const SEASON_FILES = \[[^\]]*\];")
-    assert literal.sub("", after) == literal.sub("", real)
 
 
 def test_activation_on_a_synthetic_tree_archives_the_closing_season(tmp_path):
@@ -241,34 +221,38 @@ def test_activation_on_a_synthetic_tree_archives_the_closing_season(tmp_path):
     apply_manifest(manifest, evidence_for(manifest), tmp_path)
     assert load_config(tmp_path / "src/config.js")["season"] == opening
     worker = (tmp_path / "sw.js").read_text(encoding="utf-8")
-    assert "const SEASON_FILES = [\n  './data-season-2028-2029.js',\n  './data-season-2027-2028.js',\n];" in worker
-    assert worker.splitlines()[1] == "const CRESTS_CACHE = 'futbolbase2-escudos-00000000';"
+    assert worker.splitlines()[1:] == WORKER.splitlines()[1:], "un árbol parcial: el precache no se toca"
     assert (tmp_path / "data-season-2028-2029.js").exists() and (tmp_path / "data-lineups-2028-2029-OLD1.js").exists()
     assert not list(tmp_path.glob("data-lineups-2029-2030*.js"))
 
 
-def test_activar_no_cambia_ni_codigo_ni_el_paquete(tmp_path):
-    # --apply reescribe src/config.js, que se queda fuera del paquete y de CODIGO (scripts/codigo.py):
-    # activar no empaqueta, y dist/, CODIGO y las rutas de index.html y sw.js siguen al día. Una copia del
-    # árbol entero que lee codigo.py --check, para comprobarlo antes y después.
-    shutil.copytree(ROOT / 'src', tmp_path / 'src')
-    shutil.copytree(ROOT / 'dist', tmp_path / 'dist')
-    shutil.copy2(ROOT / 'acta.css', tmp_path / 'acta.css')
-    for file in [*ROOT.glob('data-*.js'), ROOT / 'index.html', ROOT / 'sw.js']:
+def test_apply_manifest_deja_el_bloque_al_dia(tmp_path):
+    # --apply reescribe src/config.js, que se queda fuera del paquete (scripts/codigo.py): activar no
+    # empaqueta, y dist/ y sus rutas en index.html siguen al día; y escribe el archivo de la temporada que
+    # cierra: el manifiesto del precache de sw.js, con las huellas nuevas de config.js e index.html y ese
+    # archivo, queda al día. Una copia del árbol entero, la que leen codigo.py --check y precache.py.
+    for name in ('src', 'dist', 'fonts', 'icons'):
+        shutil.copytree(ROOT / name, tmp_path / name)
+    for file in [*ROOT.glob('data-*.js'), ROOT / 'index.html', ROOT / 'sw.js', ROOT / 'acta.css', ROOT / 'manifest.json']:
         shutil.copy2(file, tmp_path / file.relative_to(ROOT))
     source, target = get_connection(ROOT / 'futbolbase.db'), sqlite3.connect(tmp_path / 'futbolbase.db')
     source.backup(target)
     source.close()
     target.close()
     assert codigo.main(['--check', '--root', str(tmp_path)]) == 0, 'la copia empieza con dist/ al día'
+    assert precache.comprobar(tmp_path) == [], 'y con el precache al día'
     dist = {path.name: path.read_bytes() for path in (tmp_path / 'dist').iterdir()}
-    codigo_antes = codigo.CODIGO_RE.findall((tmp_path / 'index.html').read_text(encoding='utf-8'))
+    antes, _ = precache.entradas(tmp_path)
     # Same reasoning as the test above: activate the season after the copy's own
     # portal season, not a season fixed at 2026-2027.
-    season = next_season(load_config(tmp_path / 'src/config.js')['season'])
+    closing = load_config(tmp_path / 'src/config.js')['season']
+    season = next_season(closing)
     manifest = manifest_for(season)
     apply_manifest(manifest, evidence_for(manifest), tmp_path)
     assert load_config(tmp_path / 'src/config.js')['season'] == season
     assert codigo.main(['--check', '--root', str(tmp_path)]) == 0
     assert {path.name: path.read_bytes() for path in (tmp_path / 'dist').iterdir()} == dist
-    assert codigo.CODIGO_RE.findall((tmp_path / 'index.html').read_text(encoding='utf-8')) == codigo_antes
+    assert precache.comprobar(tmp_path) == []
+    despues, opcionales = precache.entradas(tmp_path)
+    assert despues['src/config.js'] != antes['src/config.js']
+    assert f'data-season-{closing}.js' in opcionales
