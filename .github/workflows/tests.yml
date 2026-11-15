@@ -113,6 +113,10 @@ jobs:
         run: node scripts/tests/interaction-smoke.mjs
       - name: PWA update and offline smoke
         run: node scripts/tests/pwa-smoke.mjs
+      # Publica versiones nuevas sobre una copia con generate_js y precache.py: el python3 del sistema basta
+      # (solo la biblioteca estándar); sin esbuild, porque una subida de datos no toca el código.
+      - name: Frescura tras una subida de datos (headless Chrome, SW de verdad)
+        run: node scripts/tests/frescura-smoke.mjs
 
   # v1 y v2 en el mismo origen, con sus SW de verdad: ninguna toca las cachés ni las claves de la otra,
   # tampoco al actualizarse. Saca v1 de su commit con git archive (y lo trae si el clon no lo tiene).

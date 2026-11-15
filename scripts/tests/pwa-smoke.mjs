@@ -9,9 +9,11 @@
 //  - la hoja nueva va en otra URL, la de dist/ (con su huella en el nombre), que su caché no tiene;
 //  - y el módulo, también en dist/: el index.html nuevo no mezcla nada con lo de la caché anterior (desde
 //    la fase 3 ya no limpia cachés al arrancar: el SW nuevo instala por contenido, con huellas).
-// Desde la fase 3 (tarea 6), los servidores de esta prueba vuelven a sellar el sw.js que sirven con las
-// huellas de lo que sirven (resellar), y lo que ya no vale del SW de antes va marcado APARTADA: la tarea 8
-// rehace la prueba.
+// Desde la fase 3, el SW instala por contenido (con huellas) y la página va de la red primero: los
+// servidores de esta prueba vuelven a sellar el sw.js que sirven con las huellas de lo que sirven
+// (resellar). Lo que una subida de datos del bot tiene que dar (la primera apertura con los datos nuevos,
+// una actualización a medias, la página abierta que se pone al día) está en frescura-smoke.mjs.
+// Sirven una copia de la web y de la app anterior, en carpetas temporales (copia-web.mjs), nunca el árbol.
 // Mientras el SW nuevo se instala (su precache queda retenido), cada apertura tiene que ser entera de
 // una versión: la 1.ª, la anterior; la 2.ª y la 3.ª, la nueva (documento, hoja y módulos), también si
 // en la 1.ª falló la actualización en segundo plano de app.js y state.js. Sin conexión entre la 1.ª y
@@ -24,7 +26,7 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { createServer } from 'node:http';
-import { existsSync, readFileSync, statSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -33,10 +35,17 @@ import { takeOver, waitForAsync } from './browser-wait.mjs';
 import { fixture } from './fixtures/rediseno/load.mjs';
 import { alevinRaw, dataFile } from './fixtures/rediseno/simulate.mjs';
 import { STORE_KEY } from '../../src/store.js';
+import { copiaDeLaWeb } from './copia-web.mjs';
 
 const { chromium } = createRequire(import.meta.url)('playwright');
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
-const PREVIOUS = join(ROOT, 'scripts', 'tests', 'fixtures', 'app-anterior');
+// Lo que se sirve: la web del árbol y la app anterior, copiadas (se borran al acabar).
+const WEB = copiaDeLaWeb('pwa-web-');
+const ANTERIOR_DIR = join(ROOT, 'scripts', 'tests', 'fixtures', 'app-anterior');
+const ANTERIOR = copiaDeLaWeb('pwa-anterior-', { origen: ANTERIOR_DIR, entradas: readdirSync(ANTERIOR_DIR) });
+const SITE = WEB.dir;
+const PREVIOUS = ANTERIOR.dir;
+process.on('exit', () => { WEB.limpiar(); ANTERIOR.limpiar(); });
 // La portada del rediseño, en cualquier estado (spec §11), y la de la app anterior.
 const HOME = 'section[data-screen="home"][data-state]';
 const OLD_HOME = '.me-hero';
@@ -46,9 +55,9 @@ const read = (dir, file) => {
 };
 const versionOf = (sw) => sw.match(/CACHE_NAME = 'futbolbase2-v([^']+)'/)[1];
 // El código que carga la página: el paquete de dist/ (scripts/codigo.py) y src/config.js, aparte.
-const ORIGEN = JSON.parse(read(ROOT, 'dist/origen.json'));
+const ORIGEN = JSON.parse(read(SITE, 'dist/origen.json'));
 const OLD_VERSION = versionOf(read(PREVIOUS, 'sw.js'));
-const TREE_VERSION = versionOf(read(ROOT, 'sw.js'));
+const TREE_VERSION = versionOf(read(SITE, 'sw.js'));
 const PUBLISHED = '20991231a';
 const oldCache = `futbolbase2-v${OLD_VERSION}`;
 const expected = `futbolbase2-v${PUBLISHED}`;
@@ -66,9 +75,6 @@ const resellar = (sw, contenido) => sw.replace(/^ {2}"([^"]+)": "[0-9a-f]{8}",$/
 // precache del SW nuevo), que no estaba antes, o una petición con Cache-Control: no-cache (la página que el
 // SW nuevo pide a la red, sin query: el navegador la revalida).
 const fresca = (url, req) => url.searchParams.has('v') || url.searchParams.has('h') || /no-cache/.test(req.headers['cache-control'] || '');
-// APARTADA: las afirmaciones que fijaban el SW de antes de la fase 3 (tarea 6), hasta que la tarea 8
-// rehaga esta prueba; cada una, con su porqué al lado.
-const APARTADA = () => {};
 
 // Los datos y la configuración de las dos versiones, congelados (R2-2 de la revisión adversarial): las
 // fixtures de B1, el día de los datos de hoy (23/09/2026), y el config.js de la app anterior (2025/26,
@@ -128,7 +134,7 @@ function generation(file, body) {
   const data = frozen(file);
   if (data) return body === data.body ? 'igual' : 'ninguna';
   const before = read(PREVIOUS, file);
-  const now = read(ROOT, file);
+  const now = read(SITE, file);
   const after = now === null ? null : publish(file, now);
   if (body === before && body === after) return 'igual';
   if (body === after) return 'nueva';
@@ -136,7 +142,7 @@ function generation(file, body) {
   return 'ninguna';
 }
 
-const upstream = await startServer();
+const upstream = await startServer(SITE);
 let phase = 'anterior';
 let release;
 const precacheHeld = new Promise((resolve) => { release = resolve; });
@@ -180,14 +186,14 @@ const proxy = createServer(async (req, res) => {
     }
     const response = await fetch(`http://127.0.0.1:${upstream.address().port}${req.url}`);
     // Los módulos de la app anterior ya no existen: su SW los pide en segundo plano y le dan 404.
-    const expectedGone = phase === 'nueva' && fromWorker && read(PREVIOUS, file) !== null && read(ROOT, file) === null;
+    const expectedGone = phase === 'nueva' && fromWorker && read(PREVIOUS, file) !== null && read(SITE, file) === null;
     if (!response.ok && !expectedGone) console.error('PWA fixture HTTP', response.status, req.url);
     let body = Buffer.from(await response.arrayBuffer());
     if (phase === 'nueva' && response.ok) {
       let text = publish(file, body.toString());
       if (file === 'sw.js') {
         text += "\nself.addEventListener('message', e => e.ports[0]?.postMessage(CACHE_NAME));";
-        text = resellar(text, (ruta) => frozen(ruta)?.body ?? (ruta === 'index.html' ? publish(ruta, read(ROOT, ruta)) : null));
+        text = resellar(text, (ruta) => frozen(ruta)?.body ?? (ruta === 'index.html' ? publish(ruta, read(SITE, ruta)) : null));
       }
       // Una CDN que aún guarda las URL sin ?v= de antes de publicar: el SW nuevo las pide con ?v= o ?h=.
       if (isDocument && !fresca(url, req)) text += '\n<!-- previously cached HTTP document -->';
@@ -219,8 +225,8 @@ const CODE_B = '20991231b';
 const MARK = '--version-codigo';
 // El paquete de «b»: el del árbol con sus marcas, con la huella de su contenido en el nombre.
 const BUNDLE_B = (() => {
-  const app = `${read(ROOT, ORIGEN.app)}\ndocument.documentElement.dataset.codigo = 'b';\n`;
-  const css = `${read(ROOT, ORIGEN.css)}\n:root{${MARK}:"b"}\n`;
+  const app = `${read(SITE, ORIGEN.app)}\ndocument.documentElement.dataset.codigo = 'b';\n`;
+  const css = `${read(SITE, ORIGEN.css)}\n:root{${MARK}:"b"}\n`;
   return { [`dist/app-${sha8(app)}.js`]: app, [`dist/acta-${sha8(css)}.css`]: css };
 })();
 const [APP_B, CSS_B] = Object.keys(BUNDLE_B);
@@ -243,7 +249,7 @@ async function codeDeploy(browser) {
   const code = (file) => {
     if (phase === 'b' && Object.hasOwn(BUNDLE_B, file)) return BUNDLE_B[file];
     if (!(file === 'index.html' || file === 'sw.js' || /^dist\/[^/]+\.(?:js|css)$/.test(file) || /^src\/[^/]+\.js$/.test(file))) return null;
-    let text = read(ROOT, file);
+    let text = read(SITE, file);
     if (text === null) return null;
     if (file === 'index.html' || file === 'sw.js') text = text.replaceAll(TREE_VERSION, phase === 'a' ? CODE_A : CODE_B);
     if (phase === 'b' && (file === 'index.html' || file === 'sw.js')) {
@@ -322,25 +328,30 @@ async function codeDeploy(browser) {
     await waitForAsync(o.page, (name) => caches.keys().then((keys) => keys.includes(name) && !!navigator.serviceWorker.controller),
       `futbolbase2-v${CODE_A}`, { label: 'despliegue de código, «a» instalada' });
     await o.page.close();
-    // Se publica «b». 1.ª apertura: «a» entera; su SW revalida el documento en segundo plano.
+    // Se publica «b». 1.ª apertura: «b» entera, de la red. El SW de «a» pide la página a la red primero y su
+    // paquete (otra URL, que «a» no tiene) también; y no guarda nada de «b»: lo guarda la instalación de «b».
     phase = 'b';
     o = await open('despliegue de código, 1.ª apertura');
-    // APARTADA: «1.ª apertura, «a» entera» y «el index.html de «b» en la caché de «a»». La página va de la red
-    // primero y no se guarda (la guarda la instalación de su versión): con conexión, la 1.ª apertura ya es
-    // «b» entera, con su paquete de la red.
-    APARTADA(() => whole('1.ª apertura, «a» entera', o.seen, ''));
     whole('1.ª apertura, «b» entera, de la red', o.seen, '"b"');
+    const guardaB = await o.page.evaluate(async (bodies) => {
+      for (const name of await caches.keys()) {
+        const cache = await caches.open(name);
+        for (const request of await cache.keys()) {
+          if (bodies.includes(await (await cache.match(request)).text())) return `${name}: ${request.url}`;
+        }
+      }
+      return null;
+    }, [code('index.html'), ...Object.values(BUNDLE_B)]);
+    assert.equal(guardaB, null, 'despliegue de código, 1.ª apertura: el SW de «a» guarda la página o el paquete de «b»');
     await o.page.close();
     // 2.ª apertura, con el SW de «a» al mando: «b» entera.
     o = await open('despliegue de código, 2.ª apertura');
     whole('2.ª apertura, «b» entera', o.seen, '"b"');
     await o.page.close();
-    // 3.ª, sin conexión, con el SW de «a» al mando (el de «b», retenido).
-    // APARTADA: «3.ª apertura sin conexión, «b» entera». Sin red, el SW de «a» sirve el index.html que instaló:
-    // «a» entera, hasta que «b» esté instalado entero.
+    // 3.ª, sin conexión, con el SW de «a» al mando (el de «b», retenido): el index.html que instaló «a», con lo
+    // suyo: «a» entera, hasta que «b» esté instalado entero.
     down = true;
     o = await open('despliegue de código, 3.ª apertura sin conexión');
-    APARTADA(() => whole('3.ª apertura sin conexión, «b» entera', o.seen, '"b"'));
     whole('3.ª apertura sin conexión, «a» entera', o.seen, '');
     await o.page.close();
     down = false;
@@ -420,9 +431,9 @@ const NEW_SEAL = 'c0c0c0c0';
 async function dataDeploy(browser) {
   let phase = 'a';
   let down = false;          // sin conexión: el servidor corta cada conexión
-  const treeCrests = (read(ROOT, 'sw.js').match(/^const CRESTS_CACHE = '(futbolbase2-escudos-[0-9a-f]{8})';$/m) || [])[1];
+  const treeCrests = (read(SITE, 'sw.js').match(/^const CRESTS_CACHE = '(futbolbase2-escudos-[0-9a-f]{8})';$/m) || [])[1];
   assert.notEqual(treeCrests, `futbolbase2-escudos-${NEW_SEAL}`);
-  assert.notEqual(statSync(join(ROOT, CHANGED)).size, statSync(join(ROOT, REPLACEMENT)).size);
+  assert.notEqual(statSync(join(SITE, CHANGED)).size, statSync(join(SITE, REPLACEMENT)).size);
   const server = createServer(async (req, res) => {
     if (down) { req.socket.destroy(); return; }
     const url = new URL(req.url, 'http://portal.test');
@@ -436,10 +447,10 @@ async function dataDeploy(browser) {
         return;
       }
       if (file === 'index.html' || file === 'sw.js') {
-        let text = read(ROOT, file).replaceAll(TREE_VERSION, DATA[phase]);
+        let text = read(SITE, file).replaceAll(TREE_VERSION, DATA[phase]);
         if (file === 'sw.js' && phase === 'c') text = text.replace(/futbolbase2-escudos-[0-9a-f]{8}/, `futbolbase2-escudos-${NEW_SEAL}`);
         if (file === 'sw.js') {
-          text = resellar(text, (ruta) => frozen(ruta)?.body ?? (ruta === 'index.html' ? read(ROOT, ruta).replaceAll(TREE_VERSION, DATA[phase]) : null));
+          text = resellar(text, (ruta) => frozen(ruta)?.body ?? (ruta === 'index.html' ? read(SITE, ruta).replaceAll(TREE_VERSION, DATA[phase]) : null));
         }
         res.writeHead(200, { 'Content-Type': `${file === 'sw.js' ? 'text/javascript' : 'text/html'}; charset=utf-8`, 'Cache-Control': 'no-store' });
         res.end(text);
@@ -532,7 +543,7 @@ async function dataDeploy(browser) {
     await waitForAsync(o.page, async ([name, path, size]) => {
       const response = await (await caches.open(name)).match(path);
       return !!response && (await response.arrayBuffer()).byteLength === size;
-    }, [`futbolbase2-escudos-${NEW_SEAL}`, `./${CHANGED}`, statSync(join(ROOT, REPLACEMENT)).size], { label: 'un escudo cambiado, el nuevo en la caché nueva' });
+    }, [`futbolbase2-escudos-${NEW_SEAL}`, `./${CHANGED}`, statSync(join(SITE, REPLACEMENT)).size], { label: 'un escudo cambiado, el nuevo en la caché nueva' });
     await o.page.close();
     console.log(`PASS: sin conexión tras una subida de datos: la ficha pinta sus ${online.mini} escudos en miniatura, como con conexión, porque su caché (${treeCrests}) no cambia con CACHE_NAME, y su plantilla y la de Mi equipo con Unión Viera, con las actas de A1 que el SW nuevo heredó de la caché anterior; con un escudo cambiado, su sello nuevo da otra caché, con el escudo nuevo`);
   } finally {

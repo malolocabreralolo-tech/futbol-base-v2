@@ -64,10 +64,11 @@ node --test scripts/tests/test_*.mjs
 node scripts/tests/render-smoke.mjs
 node scripts/tests/interaction-smoke.mjs
 node scripts/tests/pwa-smoke.mjs
+node scripts/tests/frescura-smoke.mjs
 ```
 
 - `--check` sale con 0 si `index.html` y `sw.js` llevan las marcas de `origin/main`. Si no, dice cuáles faltan.
-- Después vienen las suites y los tres smoke, todos en verde. Los smoke necesitan Playwright (`npm install --no-save --package-lock=false playwright@1.58.0`) y Chrome.
+- Después vienen las suites y los cuatro smoke, todos en verde. Los smoke necesitan Playwright (`npm install --no-save --package-lock=false playwright@1.58.0`) y Chrome.
 
 ## Empujar
 
@@ -118,3 +119,5 @@ La app instalada se actualiza con el service worker (`sw.js`), que guarda en tre
 **Qué sirve a cada petición:** la página, de la red primero (2,5 s como mucho) y, si no llega, el `index.html` instalado; `data-health.json`, igual, guardado en `CACHE_NAME` y marcado `x-fb2-origen: cache` cuando sale de la copia; los escudos, de su caché; lo que pide una página de otra versión (otra `?v=`), de la red primero (8 s) y, si no, la copia que haya, sin guardarlo; lo del manifiesto, de su clave; los datos perezosos, de `CACHE_NAME` o de la red, y se guardan; lo demás, la red. Tras un fallo de la red, durante 30 s la página y la salud van derechas a la copia: con mala cobertura se espera una sola vez.
 
 **Limitación aceptada:** si la página nueva llega de la red y un dato suyo no llega en 8 s, se pinta con la copia anterior de ese dato y nadie avisa; se corrige en la apertura siguiente.
+
+**Lo prueba en un Chrome de verdad** `scripts/tests/frescura-smoke.mjs`: sobre una copia de la web, publica versiones de datos como el bot (`generate_js.bump_cache_version` y `precache.escribir`) y comprueba la primera apertura tras publicar, sin conexión después, un obligatorio en 404, un despliegue a medias, la página abierta que vuelve a primer plano, la página en uso y la red que no contesta.

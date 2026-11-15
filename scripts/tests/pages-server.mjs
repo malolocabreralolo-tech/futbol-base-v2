@@ -12,6 +12,9 @@
 // - transform({ site, path, body }): lo que se sirve en lugar de `body` (un Buffer), o undefined para
 //   servirlo tal cual; site es el prefijo ('/futbol-base-v2' para `root`) y path, la ruta dentro del
 //   sitio. Se llama en cada petición: así una prueba publica otra versión sin tocar los ficheros.
+// - intercept({ site, path, url, req, res }): antes de servir nada; si devuelve (o resuelve) true, la prueba
+//   ya se ha encargado de la petición (un 404, una conexión cortada o una que no contesta nunca, que close()
+//   corta); si no, se sirve como siempre. Puede esperar antes de devolver: así se retiene una petición.
 import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
 import { extname, join, normalize, resolve, sep } from 'node:path';
@@ -54,7 +57,7 @@ function fileFor(sites, pathname) {
   return file.startsWith(root + sep) ? { site, path: file.slice(root.length + 1).split(sep).join('/'), file } : null;
 }
 
-export async function startPagesServer(root, { port = 0, sites = {}, transform = null } = {}) {
+export async function startPagesServer(root, { port = 0, sites = {}, transform = null, intercept = null } = {}) {
   const roots = { [PREFIX]: resolve(root) };
   for (const [prefix, dir] of Object.entries(sites)) roots[prefix] = resolve(dir);
   const gzipped = new Map();
@@ -65,7 +68,9 @@ export async function startPagesServer(root, { port = 0, sites = {}, transform =
         res.end();
         return;
       }
-      const found = fileFor(roots, new URL(req.url, 'http://pages.local').pathname);
+      const url = new URL(req.url, 'http://pages.local');
+      const found = fileFor(roots, url.pathname);
+      if (intercept && found && await intercept({ site: found.site, path: found.path, url, req, res })) return;
       const info = found ? await stat(found.file).catch(() => null) : null;
       if (!info || !info.isFile()) {
         res.writeHead(404, { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'max-age=600' });

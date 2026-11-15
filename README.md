@@ -32,10 +32,11 @@ node scripts/tests/render-smoke.mjs
 npm install --no-save --package-lock=false playwright@1.58.0
 node scripts/tests/interaction-smoke.mjs
 node scripts/tests/pwa-smoke.mjs
+node scripts/tests/frescura-smoke.mjs
 node scripts/tests/aislamiento-smoke.mjs
 ```
 
-Las pruebas de navegador usan Chrome instalado; se puede indicar su ruta con `CHROME`. `aislamiento-smoke.mjs` abre v1 (sacada de su commit con `git archive`) y v2 en el mismo origen, con sus service workers, y comprueba que ninguna borra ni cambia las cachés o las claves de la otra, tampoco al actualizarse; sin Chrome, falla.
+Las pruebas de navegador usan Chrome instalado; se puede indicar su ruta con `CHROME`. `aislamiento-smoke.mjs` abre v1 (sacada de su commit con `git archive`) y v2 en el mismo origen, con sus service workers, y comprueba que ninguna borra ni cambia las cachés o las claves de la otra, tampoco al actualizarse; sin Chrome, falla. `frescura-smoke.mjs` publica versiones de datos nuevas sobre una copia de la web (con `python3`, como el bot) y comprueba con el service worker de verdad que la primera apertura ya enseña los datos nuevos, que una actualización a medias nunca deja la app sin abrir sin conexión y que la página abierta se pone al día sola; sin Chrome, falla.
 
 ```text
 src/                         La app, en módulos planos sin compilar: arranque, rutas, modelo, mi equipo y pantallas

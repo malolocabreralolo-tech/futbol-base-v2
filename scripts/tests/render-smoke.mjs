@@ -61,14 +61,15 @@ const MIME = {
   '.webmanifest': 'application/manifest+json',
 };
 
-export function startServer() {
+// El servidor estático de las pruebas: el árbol o, con `root`, otra carpeta (la copia de la web de pwa-smoke.mjs).
+export function startServer(root = ROOT) {
   return new Promise((resolve) => {
     const srv = createServer(async (req, res) => {
       try {
         let p = decodeURIComponent((req.url || '/').split('?')[0]);
         if (p === '/' || p === '') p = '/index.html';
-        const fp = normalize(join(ROOT, p));
-        if (!fp.startsWith(ROOT + sep) || !existsSync(fp)) {
+        const fp = normalize(join(root, p));
+        if (!fp.startsWith(root + sep) || !existsSync(fp)) {
           res.statusCode = 404; res.end('not found'); return;
         }
         const body = await readFile(fp);

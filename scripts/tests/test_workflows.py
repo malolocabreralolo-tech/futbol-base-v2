@@ -627,6 +627,15 @@ def test_tests_yml_render_smoke_intact():
     assert "node scripts/tests/render-smoke.mjs" in runs
 
 
+def test_tests_yml_frescura_smoke():
+    """La frescura tras una subida de datos (frescura-smoke.mjs, fase 3, O6) corre en CI, en un job con
+    Playwright; publica sobre una copia con python3 (generate_js y precache.py) y sin esbuild."""
+    runs = _runs(_load("tests.yml"), "render-smoke")
+    assert "npm install --no-save --package-lock=false playwright@1.58.0" in runs
+    assert "node scripts/tests/frescura-smoke.mjs" in runs
+    assert not any("empaquetar" in run for run in runs)
+
+
 def test_tests_yml_aislamiento_smoke_job():
     """v1 y v2 en el mismo origen, con sus SW de verdad (aislamiento-smoke.mjs): su propio job, con
     Playwright y Chrome como los demás smokes de navegador."""
