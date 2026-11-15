@@ -1,9 +1,10 @@
 // La página se pone al día sola. El SW nuevo, al activarse, manda a las ventanas { type: 'version',
-// version } (sw.js); si no es la versión de la página, está vieja: si nadie la ha tocado desde que se
-// abrió o volvió a primer plano, se recarga (una sola vez por versión, apuntada en la sesión); si no, el
-// aviso de la cabecera, «Hay datos nuevos.» con «Actualizar». Al volver a primer plano pide al navegador
-// que busque un SW nuevo, como mucho una vez por minuto. No toca el navegador al importarse: start le
-// pasa la ventana y el documento.
+// version } (sw.js); si es más nueva que la de la página, la página está vieja (una más vieja es la de
+// un SW intermedio que se activa cuando la página ya llegó más nueva de la red: no se hace nada). Si
+// nadie la ha tocado desde que se abrió o volvió a primer plano, se recarga (una sola vez por versión,
+// apuntada en la sesión); si no, el aviso de la cabecera, «Hay datos nuevos.» con «Actualizar». Al
+// volver a primer plano pide al navegador que busque un SW nuevo, como mucho una vez por minuto. No
+// toca el navegador al importarse: start le pasa la ventana y el documento.
 import { safeStorage } from './store.js';
 import { updateNotice } from './shell.js';
 
@@ -44,7 +45,8 @@ export function startUpdates({ win, doc, version, now = () => Date.now() } = {})
   function onMessage(event) {
     const data = event?.data;
     if (!data || data.type !== 'version' || typeof data.version !== 'string' || !data.version) return;
-    if (!version || data.version === version) return;
+    // Versiones del bot (AAAAMMDD y una letra opcional): su orden alfabético es el de las versiones.
+    if (!version || data.version <= version) return;
     if (doc.hidden) pendiente = data.version;
     else ponerseAlDia(data.version);
   }

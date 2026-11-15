@@ -70,6 +70,38 @@ test('la misma versión: ni recarga ni aviso', () => {
   assert.equal(p.slot.innerHTML, '');
 });
 
+test('una versión más vieja que la de la página (un SW intermedio): ni recarga ni aviso, tocada o no, visible u oculta', () => {
+  for (const vieja of ['20261114', '20261114a', '20261113z']) {
+    const sinTocar = pagina();
+    arrancar(sinTocar);
+    sinTocar.version(vieja);
+    const tocada = pagina();
+    arrancar(tocada);
+    tocada.touch();
+    tocada.version(vieja);
+    const oculta = pagina();
+    arrancar(oculta);
+    oculta.hide();
+    oculta.version(vieja);
+    oculta.show();
+    for (const p of [sinTocar, tocada, oculta]) {
+      assert.deepEqual(p.reloads, [], vieja);
+      assert.equal(p.slot.innerHTML, '', vieja);
+    }
+  }
+});
+
+test('más nueva por la letra o por el día: 20261114b sobre 20261114, y 20261115 sobre 20261114z, recargan', () => {
+  for (const [paginaV, nueva] of [['20261114', '20261114b'], ['20261114z', '20261115']]) {
+    const session = new Map();
+    const p = pagina({ session });
+    arrancar(p, paginaV);
+    p.version(nueva);
+    assert.equal(p.reloads.length, 1, `${nueva} sobre ${paginaV}`);
+    assert.equal(session.get('fb2:recarga'), nueva);
+  }
+});
+
 test('otra versión, sin tocar la página: recarga una vez y apunta la versión en fb2:recarga', () => {
   const session = new Map();
   const p = pagina({ session });
