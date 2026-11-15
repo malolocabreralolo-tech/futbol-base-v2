@@ -487,6 +487,12 @@ abbr[title] { text-decoration: none; }
 .brand { display: none; }
 .shell-offline:not(:empty) { border-bottom: 1px solid var(--rule); }
 .shell-offline .notice { max-width: 640px; margin: 0 auto; padding: 8px var(--gutter); }
+/* El aviso de datos nuevos (actualizacion.js), en su hueco: la letra y el ancho del de sin conexión, con
+ * «Actualizar» a la derecha, del alto de los demás controles. En el flujo: empuja, nunca tapa. */
+.shell-update:not(:empty) { border-bottom: 1px solid var(--rule); }
+.update-notice { display: flex; align-items: center; justify-content: space-between; gap: 12px; max-width: 640px; margin: 0 auto; padding: 0 var(--gutter); }
+.update-notice .notice { margin: 0; padding: 8px 0; }
+.update-notice .button { flex: none; padding: 0 16px; }
 
 /* ── Esqueletos de carga: gris plano, sin animación (spec §3.4 y §7) ──── */
 
@@ -554,6 +560,7 @@ abbr[title] { text-decoration: none; }
   .brand-version { font-size: 0.78125rem; font-weight: 600; color: var(--ink); }
   .shell-bar .tabbar { margin-left: auto; }
   .shell-offline .notice { max-width: 1120px; }
+  .update-notice { max-width: 1120px; }
 }
 
 /* ── Mi equipo: la portada (spec §4.2) ─────────────────────────────────── */

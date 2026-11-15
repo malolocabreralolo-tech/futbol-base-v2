@@ -85,8 +85,8 @@ function alevinMissing(ctx, s) {
 // - Si es de otra temporada: el paso 1 de resolveMyTeam busca en las tres categorías, y sin alevín daría
 //   «ok» en silencio y, al cargarlo, la pregunta (opción (a) de critic.md). No es «una vez al año»: un
 //   cambio de temporada nunca se guarda solo (myTeamToSave), así que, mientras la familia no lo confirme,
-//   se espera en cada carga en frío de toda la temporada (con el SW, data-alevin.js sale de su caché:
-//   LAZY_FILES). Por eso es soft: si no llega (ctx.alevinTried, la temporada ya pedida en esta
+//   se espera en cada carga en frío de toda la temporada (con el SW, data-alevin.js sale del precache,
+//   donde va como opcional). Por eso es soft: si no llega (ctx.alevinTried, la temporada ya pedida en esta
 //   navegación), se resuelve sin él, como antes de alevín, nunca con la caja de error en su portada.
 function mineWaits(ctx) {
   const mine = ctx.myTeam;

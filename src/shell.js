@@ -1,5 +1,5 @@
 // Marco de la app (spec §4.1, §4.8, §4.10, §7 y §8): cabecera con la marca y la barra,
-// aria-current de la barra, aviso sin conexión, esqueletos de carga, caja de error y aviso de
+// aria-current de la barra, avisos sin conexión y de datos nuevos, esqueletos de carga, caja de error y aviso de
 // redirección. Todo son funciones puras que devuelven Html, salvo updateTabbar, que cambia la
 // barra ya pintada del documento que recibe, y retryBlock, que vuelve a pintar un bloque de la
 // pantalla. La cabecera de cada pantalla es screenHead (ui.js).
@@ -27,9 +27,10 @@ export function routeTitle(screen) {
 // La marca y la barra de 4 destinos. En móvil y tableta la barra es fija abajo y la marca no se
 // ve; desde 1024 px, la marca va a la izquierda y los destinos en pestañas, con 1120 px de
 // ancho máximo (spec §4.8). .shell-offline es el hueco del aviso sin conexión (§4.10), que
-// rellena app.js. index.html lleva esta misma cabecera, con Mi equipo activo.
+// rellena app.js, y .shell-update, el de los datos nuevos, que rellena actualizacion.js. index.html
+// lleva esta misma cabecera, con Mi equipo activo.
 export function renderHeader({ active = 'miequipo', current = 'page' } = {}) {
-  return html`<div class="shell-bar"><a class="brand" href="#/">Fútbol base <span class="brand-place">Las Palmas</span> <span class="brand-version">v2</span></a>${tabbar(active, { current })}</div><div class="shell-offline" role="status"></div>`;
+  return html`<div class="shell-bar"><a class="brand" href="#/">Fútbol base <span class="brand-place">Las Palmas</span> <span class="brand-version">v2</span></a>${tabbar(active, { current })}</div><div class="shell-offline" role="status"></div><div class="shell-update" role="status"></div>`;
 }
 
 // El destino de una pestaña de la barra por su enlace, sea el de siempre («#/tabla») o uno con su grupo
@@ -67,6 +68,14 @@ export function offlineNotice(health, legacyDate) {
   const legacy = /^\d{2}\/\d{2}\/\d{4}$/.test(String(legacyDate ?? '')) ? legacyDate : null;
   const date = isoToDMY(health?.lastDataChange) || legacy;
   return notice('Sin conexión.', date ? `Datos del ${date}` : '');
+}
+
+// ── Aviso de datos nuevos (actualizacion.js) ─────────────────────────────
+
+// La página es de una versión anterior a la del SW y alguien la está usando: «Actualizar» la recarga
+// (data-action="actualizar", que atiende actualizacion.js). Con la letra del aviso sin conexión.
+export function updateNotice() {
+  return html`<div class="update-notice">${notice('Hay datos nuevos.', '')}<button class="button is-main" type="button" data-action="actualizar">Actualizar</button></div>`;
 }
 
 // ── Esqueletos de carga (spec §5.4 y §7) ─────────────────────────────────

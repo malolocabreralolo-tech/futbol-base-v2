@@ -268,6 +268,37 @@ test('aviso sin conexión en vivo: aparece al arrancar sin conexión, se va con 
   assert.match(slot(), /Sin conexión\.<\/b> Datos del 23\/09\/2026/, 'sin conexión otra vez: el aviso vuelve, con la fecha correcta');
 });
 
+// La página se pone al día sola (actualizacion.js): start la arranca después de pintar, con la versión de
+// la página (la ?v= de data-seasons.js, que dataVersion() lee del documento) y el SW de la ventana.
+test('start: tras pintar, la versión nueva del SW recarga la página sin tocar; la misma, nada', async (t) => {
+  installData(raw, {});
+  const page = fakeBrowser('#/', { storage: new Map() });
+  const bag = {};
+  const sw = {
+    addEventListener: (type, fn) => { (bag[type] ||= []).push(fn); },
+    getRegistration: () => Promise.resolve(null),
+  };
+  page.win.navigator.serviceWorker = sw;
+  // Como un navegador: scrollTo a donde ya se está no lanza scroll (el del primer pintado, arriba).
+  const scrollTo = page.win.scrollTo;
+  page.win.scrollTo = (x, y) => { if (y !== page.win.scrollY) scrollTo(x, y); };
+  const send = (version) => (bag.message || []).forEach((fn) => fn({ data: { type: 'version', version } }));
+  const script = { getAttribute: (name) => (name === 'src' ? './data-seasons.js?v=20261114w' : null) };
+  globalThis.document = { querySelector: (selector) => (selector === 'script[src*="data-seasons.js"]' ? script : null) };
+  t.after(() => { delete globalThis.document; });
+  const listen = sw.addEventListener;
+  let paintedFirst = null;
+  sw.addEventListener = (type, fn) => { paintedFirst ??= page.main.innerHTML !== ''; listen(type, fn); };
+  const router = start(page.doc, page.win, PORTAL_2526, { now: () => new Date('2026-03-01T12:00:00Z') });
+  await router.idle();
+  assert.equal(paintedFirst, true, 'escucha al SW después del primer pintado');
+  send('20261114w');
+  assert.deepEqual(page.reloads, []);
+  send('20261115a');
+  assert.equal(page.reloads.length, 1);
+  assert.equal(page.win.sessionStorage.getItem('fb2:recarga'), '20261115a');
+});
+
 // El cableado de app.js con el navegador, por su conducta (B5, decisión 7; antes se leía su código):
 // lo que start() escucha y guarda antes del primer pintado, la sesión y «Hacer mi equipo».
 test('start: la cadena de los escudos, en captura, la importación de v1 y el cambio de fase guardado, antes del primer pintado', async () => {
@@ -397,7 +428,8 @@ test('«Borrar datos»: nav.clearData borra el almacén, los seguidos y el desti
   await router.nav.clearData();
   // La primera carga ya puso la marca de la importación (con fb2:almacen puesto, no copió nada).
   assert.deepEqual([...storage], [...fromV1, [IMPORTED_KEY, '1']], 'se va el almacén; lo de v1 y la marca, intactos');
-  assert.deepEqual(removed.mock.calls.map((call) => call.arguments[0]), ['fb2:destino']);
+  // Y de la sesión, el último destino y la marca de la recarga sola (actualizacion.js): nada de esta app queda.
+  assert.deepEqual(removed.mock.calls.map((call) => call.arguments[0]), ['fb2:destino', 'fb2:recarga']);
   assert.deepEqual(page.entries(), ['#/', '#/tabla', '#/ajustes', '#/']);
   assert.match(page.main.innerHTML, /<h1>Las Mesas Hu\.<\/h1>/, 'Mi equipo, con el equipo por defecto');
   // Al recargar, la clave de favoritos de v1 sigue ahí (v2 no la borra), pero la marca también: no se

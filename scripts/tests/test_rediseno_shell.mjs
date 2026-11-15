@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { SCREENS } from '../../src/links.js';
 import { tabbar, screenHead } from '../../src/ui.js';
 import {
-  renderHeader, updateTabbar, offlineNotice, skeleton, errorBox, errorScreen, routeNotice, routeTitle, retryBlock,
+  renderHeader, updateTabbar, offlineNotice, updateNotice, skeleton, errorBox, errorScreen, routeNotice, routeTitle, retryBlock,
 } from '../../src/shell.js';
 import { fakeSection } from './fixtures/rediseno/fake-browser.mjs';
 import { block } from '../../src/ui.js';
@@ -35,9 +35,9 @@ function fakeDoc() {
 }
 const marks = (doc) => doc.tabs.map((t) => [t.attrs.href, t.attrs['aria-current'] ?? null]);
 
-test('renderHeader: la marca lleva a Mi equipo; dentro, la barra de ui.js y el hueco del aviso', () => {
+test('renderHeader: la marca lleva a Mi equipo; dentro, la barra de ui.js y los huecos de los avisos', () => {
   assert.equal(s(renderHeader()), '<div class="shell-bar"><a class="brand" href="#/">Fútbol base <span class="brand-place">Las Palmas</span> <span class="brand-version">v2</span></a>'
-    + `${tabbar('miequipo')}</div><div class="shell-offline" role="status"></div>`);
+    + `${tabbar('miequipo')}</div><div class="shell-offline" role="status"></div><div class="shell-update" role="status"></div>`);
   assert.ok(s(renderHeader({ active: 'tabla', current: 'true' })).includes(s(tabbar('tabla', { current: 'true' }))));
   assert.equal((s(renderHeader()).match(/<nav /g) || []).length, 1);
 });
@@ -164,20 +164,31 @@ test('CSS: en escritorio, marca y pestañas a 1120 px con regla de tinta; en mó
   assert.doesNotMatch(shell, /transform|filter|contain|will-change|perspective/);
 });
 
-test('CSS: esqueletos grises y quietos; el hueco del aviso sin conexión nunca se oculta', () => {
+test('CSS: esqueletos grises y quietos; los huecos de los avisos de la cabecera nunca se ocultan', () => {
   assert.match(decl('.sk'), /background:\s*var\(--line\)/);
   assert.match(decl('.box.skeleton'), /border-color:\s*var\(--line\)/);
   const sk = RULES.filter((r) => /\.sk\b|\.sk-|skeleton/.test(r.selector)).map((r) => r.body).join(';');
   assert.doesNotMatch(sk, /animation|transition/);
   assert.match(decl('.shell-offline:not(:empty)'), /border-bottom/);
+  assert.match(decl('.shell-update:not(:empty)'), /border-bottom/);
   // Una región viva con display: none deja de anunciarse.
   assert.doesNotMatch(CSS, /\.shell-offline[^{]*\{[^}]*display:\s*none/);
+  assert.doesNotMatch(CSS, /\.shell-update[^{]*\{[^}]*display:\s*none/);
+});
+
+test('CSS: el aviso de datos nuevos, con la letra y el ancho del de sin conexión y «Actualizar» de 44 px', () => {
+  assert.match(decl('.update-notice'), /max-width:\s*640px/);
+  assert.match(decl('.update-notice', DESKTOP), /max-width:\s*1120px/);
+  // El texto es un .notice (la letra del aviso sin conexión) y el botón, un .button (44 px de alto).
+  assert.match(s(updateNotice()), /^<div class="update-notice"><p class="notice">/);
+  assert.match(decl('.button'), /min-height:\s*44px/);
+  assert.doesNotMatch(RULES.filter((r) => /update-notice/.test(r.selector)).map((r) => r.body).join(';'), /min-height:\s*(?:[0-3]?\d|4[0-3])px|height:\s*(?:[0-3]?\d|4[0-3])px/);
 });
 
 test('cada clase que emite shell.js existe en acta.css (salvo los ganchos del router y las pruebas)', () => {
   const defined = new Set([...CSS.replace(/\/\*[\s\S]*?\*\//g, '').matchAll(/\.([a-zA-Z][\w-]*)/g)].map((m) => m[1]));
   const HOOKS = new Set(['skeleton-screen', 'sk-head', 'error-box', 'route-notice']);
-  const out = [renderHeader(), offlineNotice(null, '23/09/2026'),
+  const out = [renderHeader(), offlineNotice(null, '23/09/2026'), updateNotice(),
     screenHead('t', { sub: 's', action: { href: '#', label: 'a' }, back: '#' }),
     ...['home', 'jornada', 'tabla', 'partido', 'equipo', 'explorar', 'ligas', 'records', 'copa', 'goleadores', 'ajustes'].map(skeleton),
     errorScreen({ screenId: 'home', title: 't', what: 'w' }), routeNotice('x')].map(String).join('');

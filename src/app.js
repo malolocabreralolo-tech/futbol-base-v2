@@ -2,9 +2,10 @@
 // start(document, window) cuando ya han llegado los datos inmediatos: importar este módulo no toca
 // el navegador (test_rediseno_modulos). Antes del primer pintado, start instala la cadena de los
 // escudos, sigue la conexión para el aviso de la cabecera y guarda el cambio de fase de mi equipo;
-// sin los datos inmediatos de la temporada, pinta la caja de error y no arranca el router.
+// sin los datos inmediatos de la temporada, pinta la caja de error y no arranca el router. Tras el
+// primer pintado (el de la pantalla o el de la caja de error), escucha al SW para ponerse al día sola.
 import { PORTAL } from './config.js';
-import { readGlobals, healthNeeds } from './state.js';
+import { readGlobals, healthNeeds, dataVersion } from './state.js';
 import { createModel, seasonLabel } from './model.js';
 import { buildClubIndex, resolveMyTeam, myTeamToSave } from './myteam.js';
 import { loadStore, saveStore, safeStorage, addRecent, clearStore, importFromV1 } from './store.js';
@@ -14,6 +15,7 @@ import { crestFallback } from './ui.js';
 import { errorScreen, offlineNotice, routeTitle, updateTabbar } from './shell.js';
 import { startRouter, activeTab, SESSION_KEY } from './router.js';
 import { SCREEN_MAP } from './screens.js';
+import { startUpdates, RELOAD_KEY } from './actualizacion.js';
 
 // Los datos de un pintado (el ctx de las pantallas sin la ruta, que añade el router): mi equipo
 // resuelto contra la temporada del portal con el «hoy» de Canarias, un solo reloj (decisión 4), y
@@ -84,6 +86,8 @@ export function start(doc, win, config = PORTAL, { now = () => new Date() } = {}
     doc.addEventListener('click', (event) => {
       if (event.target?.closest?.('[data-action="retry"]')) win.location.reload();
     });
+    // Una versión nueva puede traer lo que falta: que se ponga al día sola, como la app entera.
+    startUpdates({ win, doc, version: dataVersion() });
     return null;
   }
 
@@ -115,7 +119,7 @@ export function start(doc, win, config = PORTAL, { now = () => new Date() } = {}
     console.error('[app] guardado al arrancar', err);
   }
 
-  return startRouter({
+  const router = startRouter({
     screens: SCREEN_MAP,
     root: doc.getElementById('contenido'),
     getContext,
@@ -135,22 +139,26 @@ export function start(doc, win, config = PORTAL, { now = () => new Date() } = {}
         store = addRecent(store, entry);
         return saveStore(storage, store);
       },
-      // «Borrar datos de esta app» (§4.7 y §4.9): el almacén y los seguidos (clearStore: las claves de v1
-      // y la marca de la importación se quedan) y el último destino de la sesión; en memoria, lo de un
-      // almacén vacío (loadStore sin almacenamiento da el equipo por defecto), aunque el navegador no
-      // deje borrar.
       // «Seguir a este jugador» (la ficha de jugador): entra el primero o sale; se guarda o, si el
       // almacenamiento falla, queda en memoria.
       toggleFollow(player) {
         followed = toggleFollowed(followed, player);
         return saveFollowed(storage, followed);
       },
+      // «Borrar datos de esta app» (§4.7 y §4.9): el almacén y los seguidos (clearStore: las claves de v1
+      // y la marca de la importación se quedan) y, de la sesión, el último destino y la marca de la
+      // recarga sola (actualizacion.js); en memoria, lo de un almacén vacío (loadStore sin
+      // almacenamiento da el equipo por defecto), aunque el navegador no deje borrar.
       clearData() {
         followed = [];
         clearStore(storage);
-        safeStorage(() => win.sessionStorage).removeItem(SESSION_KEY);
+        const session = safeStorage(() => win.sessionStorage);
+        session.removeItem(SESSION_KEY);
+        session.removeItem(RELOAD_KEY);
         store = loadStore(null, { defaultTeam: portal.defaultTeam, portalSeason: portal.season });
       },
     },
   });
+  startUpdates({ win, doc, version: dataVersion() });
+  return router;
 }
