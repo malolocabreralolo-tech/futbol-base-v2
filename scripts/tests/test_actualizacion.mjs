@@ -427,6 +427,30 @@ test('una versión más nueva contestada a la pregunta hace lo mismo que el avis
   assert.equal(e.p.slot.innerHTML, AVISO);
 });
 
+test('ya pedida la recarga, nada más actúa: ni el aviso por la respuesta a «version?» ni otra recarga', async () => {
+  const session = new Map();
+  const { p, controller } = conSw({ session });
+  controller.respuesta = PAGINA;
+  arrancar(p);
+  await turnos();
+  // El SW nuevo se activa con la página oculta; al volver, recarga y pregunta, y la respuesta llega
+  // antes de que la página nueva sustituya a esta.
+  p.hide();
+  p.version(NUEVA);
+  controller.respuesta = NUEVA;
+  p.show();
+  assert.equal(p.reloads.length, 1);
+  await turnos();
+  assert.equal(p.reloads.length, 1, 'una sola recarga');
+  assert.equal(p.slot.innerHTML, '', 'sin el aviso');
+  p.version('20261115b');
+  p.hide();
+  p.show();
+  await turnos();
+  assert.equal(p.reloads.length, 1);
+  assert.equal(p.slot.innerHTML, '');
+});
+
 test('stop(): quita todos sus oyentes', async () => {
   const p = pagina();
   const updates = arrancar(p);

@@ -39,8 +39,8 @@ al que afecta. Solo lo que sigue siendo verdad: la historia de cómo se llegó a
 - **El SW se registra tras `load` y pide `update()` en cada apertura; nunca `unregister`**, que reinstalaría todo. `index.html`.
 - **Si el arranque falla, un aviso con «Reintentar»**, nunca «Cargando…» para siempre. `index.html`.
 - **La página y la salud van a la red con poca espera (2,5 s) y si no, la copia**; un dato de otra versión espera más (8 s), porque sin él la página nueva se pintaría con el dato viejo. `sw.js`.
-- **La copia de `data-health.json` vale poco (30 s)** frente a la de la red (10 min): la web tiene que enterarse pronto de que volvió la conexión. `src/state.js`.
-- **La página se pone al día sola** si nadie la ha tocado desde que se abrió; si no, «Hay datos nuevos.» con «Actualizar». `src/actualizacion.js`.
+- **La copia de `data-health.json` vale poco (30 s)** frente a la de la red (10 min): la web tiene que enterarse pronto de que volvió la conexión. Con una copia caducada, la pantalla no espera a la red: se pinta con la copia y la respuesta queda para la navegación siguiente. `src/state.js` (`healthNeeds`).
+- **La página se pone al día sola** si nadie la ha tocado desde que se abrió o volvió a primer plano; si no, «Hay datos nuevos.» con «Actualizar». `src/actualizacion.js`.
 
 ## El bot y la federación
 
@@ -70,10 +70,10 @@ al que afecta. Solo lo que sigue siendo verdad: la historia de cómo se llegó a
 
 ## Publicar
 
-- **Solo los workflows del grupo `update-data` suben datos o base**, uno detrás de otro, sin cancelar el que corre. `.github/workflows/update.yml`, `activar.yml`.
+- **Solo los workflows del grupo `update-data` suben datos (`data-*.js`) o base (`futbolbase.db`)**, uno detrás de otro, sin cancelar el que corre. `.github/workflows/update.yml`, `activar.yml`. Otros cinco suben solo originales a `scripts/` (`actas-federacion.yml`, `goleadores-federacion.yml`, `detalle-federacion.yml`, `discover-fiflp.yml`, `fetch-fiflp-islas.yml`).
 - **`dist/` solo se empaqueta en el PC, al publicar**; ni el bot ni la activación lo hacen, y `--check` no necesita node. `scripts/codigo.py`, `scripts/publicar.py`.
 - **Una publicación sube la versión sin mover la fecha «Última actualización»**, que es la de los datos. `scripts/publicar.py`, `scripts/generate_js.py` (`bump_cache_version`).
-- **Al rebasar una rama sobre `main` solo cuentan tres marcas** (las `?v=`, «Última actualización» y `CACHE_NAME`), que el bot sube siempre a la vez. `scripts/sync_versions.py`.
+- **Al rebasar una rama sobre `main` solo cuentan tres marcas** (las `?v=`, «Última actualización» y `CACHE_NAME`), que el bot sube siempre a la vez, y el bloque del precache de `sw.js`, que el bot también reescribe y se rehace con `python3 scripts/precache.py`. `scripts/sync_versions.py`.
 
 ## Límites conocidos y aceptados
 

@@ -29,6 +29,9 @@ export function startUpdates({ win, doc, version, now = () => Date.now() } = {})
   // La versión nueva que llegó con la página oculta: se decide al volver a verse.
   let pendiente = null;
   let ultimaBusqueda = -Infinity;
+  // Pedida la recarga, esta página ya se va: lo que llegue mientras tanto (la respuesta a «version?»,
+  // por ejemplo) no puede pintar el aviso ni pedir otra.
+  let recargando = false;
 
   function avisar() {
     if (avisada) return;
@@ -39,8 +42,12 @@ export function startUpdates({ win, doc, version, now = () => Date.now() } = {})
   }
 
   function ponerseAlDia(nueva) {
+    if (recargando) return;
     if (tocada || session.getItem(RELOAD_KEY) === nueva || !session.setItem(RELOAD_KEY, nueva)) avisar();
-    else win.location.reload();
+    else {
+      recargando = true;
+      win.location.reload();
+    }
   }
 
   function onMessage(event) {

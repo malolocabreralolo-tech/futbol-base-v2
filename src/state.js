@@ -560,16 +560,23 @@ export async function ensureHealth({ now = Date.now } = {}) {
 }
 
 // Lo que ponen en `needs` las pantallas que leen data-health: una promesa que deja la salud (o null)
-// en datasets.health y su hora en datasets.healthAt, o null si no hace falta pedirla. Se pide si no
-// se ha pedido nunca o si la última respuesta tiene más de HEALTH_TTL_MS (HEALTH_TTL_COPIA_MS si es
-// fromCache); sin healthAt (una salud puesta a mano), vale la que hay. Nunca rechaza.
+// en datasets.health y su hora en datasets.healthAt, o null si no hace falta esperarla. Se pide si
+// no se ha pedido nunca o si la última respuesta tiene más de HEALTH_TTL_MS (HEALTH_TTL_COPIA_MS si
+// es fromCache); sin healthAt (una salud puesta a mano), vale la que hay. Con una copia caducada se
+// pide sin esperarla: con la red que no contesta, cada navegación esperaría su límite; la pantalla se
+// pinta con la copia y la respuesta queda para la siguiente. Nunca rechaza.
 export function healthNeeds(datasets, { ensure = ensureHealth, now = Date.now } = {}) {
   const fresh = datasets.health !== undefined && !(Number.isFinite(datasets.healthAt) && now() - datasets.healthAt > ttlDe(datasets.health));
   if (fresh) return null;
-  return ensure().then((health) => {
+  const copia = !!(datasets.health && datasets.health.fromCache);
+  const load = ensure().then((health) => {
     datasets.health = health;
     datasets.healthAt = now();
   });
+  if (!copia) return load;
+  // Si falla, se queda la copia y la navegación siguiente lo vuelve a intentar.
+  load.catch(() => {});
+  return null;
 }
 
 /* `needs` de las pantallas que leen una temporada: [] si es la del portal o ya

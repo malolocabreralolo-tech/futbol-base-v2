@@ -22,7 +22,9 @@
 //   5. Página abierta que vuelve a primer plano: en menos de 10 s, el dato nuevo, sin tocar nada.
 //   6. Página en uso al llegar el SW nuevo (tocada tras volver a primer plano, mientras el SW nuevo se
 //      instala): no recarga, «Hay datos nuevos»; «Actualizar» trae el dato nuevo.
-//   7. Red que no contesta (ni la página ni data-health.json): la portada con lo guardado en menos de 4 s.
+//   7. Red que no contesta (ni la página ni data-health.json): la portada con lo guardado en menos de 4 s; y,
+//      pasados 31 s (con la copia de la salud ya caducada y la ventana de red mala del SW también), volver a
+//      Mi equipo desde Tabla pinta en menos de 1 s, y la salud se sigue pidiendo.
 //   8. En cada contexto, una caché de otra app del origen (futbolbase-v1-prueba), creada al empezar, sigue
 //      intacta al acabar, y todas las demás son futbolbase2-.
 //   9. Página abierta que no recibe el aviso del SW nuevo al activarse (lo descarta un oyente de captura de
@@ -464,9 +466,24 @@ const CASOS = [
     // La salud la pide la portada tras pintarse: se espera a que el servidor la vea colgada.
     await esperar(() => caso.red.colgadas.includes('data-health.json'), { label: `${caso.nombre}: la portada no pidió data-health.json` });
     assert.ok(caso.red.colgadas.includes('index.html'), `${caso.nombre}: la página no llegó a pedirse a la red`);
+    // La salud de la portada es la copia del SW. Pasados 31 s de verdad (la ventana de red mala del SW se
+    // cuenta en su reloj, que no es el de la página) y 31 s en el reloj de la página, la copia está
+    // caducada y el SW vuelve a esperar a la red: la vuelta a Mi equipo no puede esperarla.
+    await new Promise((resolve) => setTimeout(resolve, 31500));
+    await caso.context.clock.setFixedTime(new Date(HOY.getTime() + 31000));
+    await o.page.locator('.tabbar a.tab[href="#/tabla"]').click();
+    await o.page.locator('#contenido section[data-screen="tabla"]').waitFor();
+    const pedidas = caso.red.colgadas.filter((ruta) => ruta === 'data-health.json').length;
+    const inicio = Date.now();
+    await o.page.locator('.tabbar a.tab[href="#/"]').click();
+    await o.page.locator('#contenido section[data-screen="home"]').waitFor();
+    const vuelta = Date.now() - inicio;
+    assert.ok(vuelta < 1000, `${caso.nombre}: la vuelta a Mi equipo con la copia caducada tardó ${vuelta} ms (1 s o más)`);
+    await esperar(() => caso.red.colgadas.filter((ruta) => ruta === 'data-health.json').length > pedidas,
+      { label: `${caso.nombre}: con la copia caducada, la salud no se volvió a pedir` });
     igual(o.errores, [], `${caso.nombre}: errores de JavaScript`);
     await o.page.close();
-    return `caso 7: red que no contesta (la página y data-health.json colgadas): la portada con lo guardado en ${o.ms} ms`;
+    return `caso 7: red que no contesta (la página y data-health.json colgadas): la portada con lo guardado en ${o.ms} ms; pasados 31 s, la vuelta a Mi equipo en ${vuelta} ms, sin esperar a la salud, que se vuelve a pedir`;
   }],
 
   ['caso 9', async (caso) => {

@@ -51,8 +51,9 @@ export const screen = {
   // Todo sale de los datos inmediatos salvo data-health.json (la caja de D, la frescura y el aviso
   // de estado): healthNeeds lo pide si no está o si la respuesta tiene más de 10 minutos, y lo deja
   // en datasets.health, que es undefined mientras no se ha pedido y null si falló; con null, las
-  // visitas siguientes pintan en el acto hasta el siguiente intento. Nunca rechaza: sin él, la
-  // portada se pinta igual.
+  // visitas siguientes pintan en el acto hasta el siguiente intento. Con la copia del SW, la pide
+  // pasados 30 s sin esperarla: la portada se pinta con la copia. Nunca rechaza: sin él, la portada
+  // se pinta igual.
   needs: (params, datasets) => {
     const load = healthNeeds(datasets);
     return load ? [load] : [];

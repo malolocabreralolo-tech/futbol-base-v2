@@ -248,17 +248,63 @@ test('healthNeeds: pide sin salud; no con la de hace 5 min; sí con la de hace 1
   assert.equal(state.healthNeeds(failed, { ensure, now }), null);
 });
 
-test('healthNeeds: una salud fromCache se vuelve a pedir pasados 30 s; la de la red, a los 10 min', async () => {
+test('healthNeeds: una salud fromCache caducada (31 s) se pide sin esperarla: null, y la nueva queda en datasets', async () => {
+  const state = await freshState();
+  let asked = 0;
+  let llegar;
+  const ensure = () => { asked += 1; return new Promise((resolve) => { llegar = resolve; }); };
+  const clock = 50 * MIN;
+  const now = () => clock;
+  const copia = { ...SALUD, fromCache: true };
+  assert.equal(state.HEALTH_TTL_COPIA_MS, 30000);
+  assert.equal(state.healthNeeds({ health: copia, healthAt: clock - 30000 }, { ensure, now }), null, 'a los 30 s justos: nada');
+  assert.equal(asked, 0);
+  const vieja = { health: copia, healthAt: clock - 31000 };
+  assert.equal(state.healthNeeds(vieja, { ensure, now }), null, 'la pantalla no espera');
+  assert.equal(asked, 1, 'pero se pide');
+  assert.equal(vieja.health, copia, 'mientras tanto, la copia');
+  const nueva = { ...SALUD, checkedAt: '2026-11-14T22:01:42+00:00' };
+  llegar(nueva);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.equal(vieja.health, nueva, 'cuando llega, la nueva');
+  assert.equal(vieja.healthAt, clock);
+});
+
+test('healthNeeds: si falla la petición de fondo de una copia caducada, ningún rechazo suelto y la copia sigue', async () => {
+  const state = await freshState();
+  const rejected = [];
+  const onRejection = (reason) => rejected.push(reason);
+  process.on('unhandledRejection', onRejection);
+  try {
+    const clock = 50 * MIN;
+    const copia = { ...SALUD, fromCache: true };
+    const vieja = { health: copia, healthAt: clock - 31000 };
+    assert.equal(state.healthNeeds(vieja, { ensure: () => Promise.reject(new Error('sin red')), now: () => clock }), null);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    assert.equal(vieja.health, copia);
+    assert.equal(vieja.healthAt, clock - 31000);
+  } finally {
+    process.off('unhandledRejection', onRejection);
+  }
+  assert.deepEqual(rejected, []);
+});
+
+test('healthNeeds: sin salud, o con la de la red caducada (11 min), devuelve la promesa, que la pantalla espera', async () => {
   const state = await freshState();
   let asked = 0;
   const ensure = async () => { asked += 1; return SALUD; };
   const clock = 50 * MIN;
   const now = () => clock;
-  const copia = { ...SALUD, fromCache: true };
-  assert.equal(state.healthNeeds({ health: copia, healthAt: clock - 30000 }, { ensure, now }), null, 'a los 30 s justos: nada');
-  const vieja = { health: copia, healthAt: clock - 30001 };
-  await state.healthNeeds(vieja, { ensure, now });
-  assert.equal(asked, 1);
-  assert.equal(vieja.health, SALUD);
   assert.equal(state.healthNeeds({ health: SALUD, healthAt: clock - 9 * MIN }, { ensure, now }), null, 'la de la red, de hace 9 min: nada');
+  const old = { health: { ...SALUD }, healthAt: clock - 11 * MIN };
+  const load = state.healthNeeds(old, { ensure, now });
+  assert.ok(load && typeof load.then === 'function', 'de la red caducada: una promesa');
+  await load;
+  assert.equal(old.health, SALUD);
+  const none = { health: undefined };
+  const first = state.healthNeeds(none, { ensure, now });
+  assert.ok(first && typeof first.then === 'function', 'sin salud: una promesa');
+  await first;
+  assert.equal(none.health, SALUD);
+  assert.equal(asked, 2);
 });

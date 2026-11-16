@@ -143,7 +143,7 @@ def import_group(conn, g, season_id):
 
 def main():
     if not os.path.exists(RAW_PATH):
-        print(f"ERROR: {RAW_PATH} not found. Run scripts/_archive/fetch_wayback_2324.py first.")
+        print(f"ERROR: falta {RAW_PATH}. Lo bajaba scripts/_archive/fetch_wayback_2324.py, que está archivado y escribe en su propia carpeta: para usarlo, devuélvelo antes a scripts/.")
         sys.exit(1)
 
     with open(RAW_PATH, encoding="utf-8") as f:

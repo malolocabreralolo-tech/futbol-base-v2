@@ -49,7 +49,8 @@ export function start(doc, win, config = PORTAL, { now = () => new Date() } = {}
   const portal = { season: config.season, defaultTeam: config.defaultTeam };
   // Registro de datos: los globales inmediatos y lo que traen los cargadores perezosos. health es
   // undefined mientras data-health.json no se ha pedido y null si falló; healthAt, la hora de la última
-  // respuesta: se vuelve a pedir pasados 10 minutos (healthNeeds). El alevín, también perezoso y
+  // respuesta: la de la red se vuelve a pedir pasados 10 minutos y la copia del SW, pasados 30 s y sin
+  // esperarla (healthNeeds). El alevín, también perezoso y
   // nunca en REQUIRED: alevin, undefined hasta que el router lo pide
   // (data-alevin.js), y seasonAlevin, el de cada temporada pasada (data-season-<S>-alevin.js).
   const datasets = { ...readGlobals(), seasonRaw: {}, matchDetail: null, lineups: {}, health: undefined, alevin: undefined, seasonAlevin: {} };
@@ -65,8 +66,8 @@ export function start(doc, win, config = PORTAL, { now = () => new Date() } = {}
   win.addEventListener('offline', showOffline);
   showOffline();
   // El mismo vuelo que la portada (ensureHealth es de un solo vuelo): su resultado, o null si falla,
-  // queda en datasets.health, y así ninguna visita a Mi equipo de los 10 minutos siguientes lo vuelve
-  // a pedir ni lo espera.
+  // queda en datasets.health, y así ninguna visita a Mi equipo lo vuelve a pedir en los 10 minutos
+  // siguientes (30 s si es la copia del SW, y entonces la pide sin esperarla).
   healthNeeds(datasets).then(showOffline);
 
   // Sin los datos inmediatos de la temporada (un precache a medias y sin conexión, por ejemplo), la caja de
