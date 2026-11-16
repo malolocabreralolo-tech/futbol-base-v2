@@ -47,6 +47,7 @@ def begin(season):
     _carry_new()
     _carry_run_health()
     _carry_activation()
+    _carry_base()
 
 
 def _same_season():
@@ -82,6 +83,38 @@ def _carry_activation():
     activation = _previous.get("activation") if _same_season() else None
     if isinstance(activation, dict):
         _report["activation"] = activation
+
+
+def _carry_base():
+    """El tamaño de la base (`base`, de set_base) sigue tal cual: solo set_base lo pone y lo quita, y la base no
+    cambia de tamaño con la temporada."""
+    base = _previous.get("base")
+    if isinstance(base, dict):
+        _report["base"] = base
+
+
+# El aviso de tamaño de la base (base_sana.py --salud): en MiB, como GitHub, que no admite ficheros de 100.
+MB = 1024 * 1024
+GITHUB_MB = 100
+
+
+def set_base(bytes_, aviso, path=None):
+    """Con aviso, `base: {"mb": <entero>, "limite": 100}` en el informe del disco (`path`; sin él, REPORT_PATH);
+    sin aviso, quita la clave. No toca nada más ni reescribe el fichero si no cambia."""
+    path = Path(path) if path is not None else REPORT_PATH
+    try:
+        report = json.loads(path.read_text())
+    except (OSError, ValueError):
+        report = {}
+    if not isinstance(report, dict):
+        report = {}
+    if aviso:
+        new = {**report, "base": {"mb": int(bytes_) // MB, "limite": GITHUB_MB}}
+    else:
+        new = {k: v for k, v in report.items() if k != "base"}
+    if new == report:
+        return
+    escribir_atomico(path, json.dumps(new, ensure_ascii=False, indent=2) + "\n")
 
 
 def _red(previous, reasons, now=None):

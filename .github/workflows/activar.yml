@@ -144,6 +144,13 @@ jobs:
             echo "datos=false" >> "$GITHUB_OUTPUT"
           fi
 
+      # Como en update.yml: la base que se va a subir, entera (base_sana.py), antes de las suites. Si no, ni
+      # suites ni subida (success() falso), y el mismo camino que con las suites en rojo, abajo.
+      - name: Base sana (bloquea el commit si falla)
+        id: base
+        if: steps.cambios.outputs.datos == 'true'
+        run: python3 scripts/base_sana.py --salud
+
       # Como en update.yml: los push con GITHUB_TOKEN no lanzan tests.yml, así que las suites van aquí, sobre
       # la web recién activada y antes del commit.
       - name: Tests Python (bloquean el commit si fallan)
@@ -182,12 +189,12 @@ jobs:
             git pull --rebase --autostash origin main || { git rebase --abort; echo "conflicto con main: lo rehará el intento siguiente"; exit 1; }
           done
 
-      # Las suites en rojo tras activar: no se publica nada de la activación. La base y lo generado vuelven a
-      # lo publicado (y los ficheros nuevos, fuera); data-health.json, el publicado, con lo intentado como
-      # fallido por las pruebas (activar_auto.py --pruebas-fallaron, con el informe de esta ejecución: su
-      # tried y su at frenan al bot un día). Solo se sube ese fichero, y el job en rojo.
+      # Las suites en rojo (o la base mala) tras activar: no se publica nada de la activación. La base y lo
+      # generado vuelven a lo publicado (y los ficheros nuevos, fuera); data-health.json, el publicado, con lo
+      # intentado como fallido por las pruebas (activar_auto.py --pruebas-fallaron, con el informe de esta
+      # ejecución: su tried y su at frenan al bot un día). Solo se sube ese fichero, y el job en rojo.
       - name: Publicar el fallo si las pruebas fallan
-        if: ${{ !cancelled() && (steps.pytest.outcome == 'failure' || steps.node.outcome == 'failure') }}
+        if: ${{ !cancelled() && (steps.pytest.outcome == 'failure' || steps.node.outcome == 'failure' || steps.base.outcome == 'failure') }}
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"

@@ -296,6 +296,31 @@ def test_the_mark_order_on_a_red_report_adds_its_reason_and_keeps_since(portal):
     assert health == {"ok": False, "reasons": ["m", "x"], "since": T0.isoformat(timespec="seconds")}
 
 
+def test_finish_conserva_base(portal):
+    """La clave `base` (el tamaño de la base desde AVISO_MB: base_sana.py --salud, source_health.set_base) la ponen
+    y la quitan solo set_base: finish la arrastra tal cual, también con otra temporada, y no reescribe por ella."""
+    run(OK, T0)
+    source_health.set_base(85 * source_health.MB, True)
+    with_base = source_health.REPORT_PATH.read_text()
+    assert json.loads(with_base)["base"] == {"mb": 85, "limite": 100}
+    assert run(OK, T0 + timedelta(hours=5)) == with_base, "una pasada sin cambios no reescribe por la base"
+    report = json.loads(run([("A1", "error", "HTTP 500"), OK[1]], T0 + timedelta(hours=6)))
+    assert report["groups"]["A1"]["status"] == "error"
+    assert report["base"] == {"mb": 85, "limite": 100}
+    source_health.begin("2026-2027")
+    source_health.finish(now=T0 + timedelta(hours=7))
+    assert json.loads(source_health.REPORT_PATH.read_text())["base"] == {"mb": 85, "limite": 100}
+    source_health.set_base(40 * source_health.MB, False)
+    assert "base" not in json.loads(run(OK, T0 + timedelta(hours=8)))
+
+
+def test_the_mark_order_keeps_base(portal):
+    run(OK, T0)
+    source_health.set_base(85 * source_health.MB, True)
+    assert source_health.main(["marcar", "la base de datos no pasó la comprobación"]) == 0
+    assert json.loads(source_health.REPORT_PATH.read_text())["base"] == {"mb": 85, "limite": 100}
+
+
 PEND_NOW = datetime(2026, 11, 14, 12, 0, tzinfo=timezone.utc)
 PEND_REPORT = {"season": "2026-2027", "groups": {},
                "newCompetitions": [{"id": "55400001", "name": "LIGA BENJAMIN SEGUNDA FASE A", "firstSeen": "2026-11-14"}],

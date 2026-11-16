@@ -89,18 +89,26 @@ jobs:
           FIFLP_CATS: ${{ inputs.cats }}
         run: python3 scripts/fetch_futbolaspalmas.py
 
+      # La base que se va a subir, entera (integridad, referencias, el WAL volcado al fichero, que es lo único
+      # que sube git, y el tamaño: GitHub no admite ficheros de 100 MB): si no, ni pruebas ni commit, y el
+      # diagnóstico lo publica. Con la base bien, su tamaño desde 80 MB va a data-health.json (`base`).
+      - name: Base sana (bloquea el commit si falla)
+        id: base
+        if: steps.scrape.outcome == 'success'
+        run: python3 scripts/base_sana.py --salud
+
       # Los push del bot (GITHUB_TOKEN) NO disparan tests.yml (anti-recursión
       # de GitHub), así que las suites tienen que correr AQUÍ, sobre los datos
       # recién generados y ANTES del commit: si fallan, el job sale rojo y no
       # se publica nada.
       - name: Tests Python (bloquean el commit si fallan)
         id: pytest
-        if: steps.scrape.outcome == 'success'
+        if: steps.base.outcome == 'success'
         run: python3 -m pytest scripts/tests/ -q
 
       - name: Tests Node (bloquean el commit si fallan)
         id: node
-        if: steps.scrape.outcome == 'success'
+        if: steps.base.outcome == 'success'
         run: node --test scripts/tests/test_*.mjs
 
       - name: Commit y push si hay cambios
@@ -144,21 +152,26 @@ jobs:
             done
           fi
 
-      # Si falló el bot o una de las suites (no si solo falló el push de los datos: un conflicto se rehace en
-      # la pasada siguiente), se publica el diagnóstico, y nada más: solo data-health.json. Hasta la fase 2B
-      # (14/11/2026), con las pruebas en rojo se perdía también el diagnóstico.
+      # Si falló el bot, la base o una de las suites (no si solo falló el push de los datos: un conflicto se
+      # rehace en la pasada siguiente), se publica el diagnóstico, y nada más: solo data-health.json. Hasta la
+      # fase 2B (14/11/2026), con las pruebas en rojo se perdía también el diagnóstico.
       - name: Publicar diagnóstico si la fuente o las pruebas fallan
-        if: ${{ !cancelled() && (steps.scrape.outcome == 'failure' || steps.pytest.outcome == 'failure' || steps.node.outcome == 'failure') }}
+        if: ${{ !cancelled() && (steps.scrape.outcome == 'failure' || steps.pytest.outcome == 'failure' || steps.node.outcome == 'failure' || steps.base.outcome == 'failure') }}
         env:
           SCRAPE_OUTCOME: ${{ steps.scrape.outcome }}
+          BASE_OUTCOME: ${{ steps.base.outcome }}
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
           if [ "$SCRAPE_OUTCOME" = success ]; then
-            # Fallaron las pruebas: los datos de esta pasada no se publican, y su informe daría por leído lo
-            # que no se publica (como finish(failed=True)): se parte del publicado y se marca en rojo.
+            # Fallaron la base o las pruebas: los datos de esta pasada no se publican, y su informe daría por
+            # leído lo que no se publica (como finish(failed=True)): se parte del publicado y se marca en rojo.
             git checkout HEAD -- data-health.json
-            python3 scripts/source_health.py marcar "las pruebas fallaron: los datos de esta pasada no se publicaron"
+            if [ "$BASE_OUTCOME" = failure ]; then
+              python3 scripts/source_health.py marcar "la base de datos no pasó la comprobación: los datos de esta pasada no se publicaron"
+            else
+              python3 scripts/source_health.py marcar "las pruebas fallaron: los datos de esta pasada no se publicaron"
+            fi
           fi
           # Falló el bot: no se publican datos deportivos parciales de una ejecución fallida, ni sus
           # comprobaciones correctas (source_health.finish(failed=True)): solo sus errores.

@@ -91,6 +91,19 @@ def test_foreign_key_integrity(conn):
     assert rows == [], f"foreign key violations: {rows[:10]}"
 
 
+def test_la_base_publicada_pasa_base_sana(tmp_path):
+    """La base del repositorio pasa la comprobación con la que el bot la sube (base_sana.comprobar), sobre una
+    copia: el volcado del WAL abre en escritura, y la del repositorio no se toca."""
+    import shutil
+    import base_sana
+    if not os.path.exists(DB_PATH):
+        pytest.skip("futbolbase.db not present")
+    copia = tmp_path / "futbolbase.db"
+    shutil.copy2(DB_PATH, copia)
+    r = base_sana.comprobar(copia)
+    assert r["ok"], r["motivos"]
+
+
 def test_no_duplicate_groups(conn):
     """(f) Ningún grupo repite el calendario de otro de su misma temporada.
 

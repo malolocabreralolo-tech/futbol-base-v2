@@ -391,13 +391,37 @@ def _update_step(name):
 
 
 def test_update_suites_have_ids_for_the_diagnosis():
-    """El paso de diagnóstico mira si fallaron las pruebas (steps.pytest y steps.node): sus ids, y las
-    mismas condiciones de siempre (solo tras un scrape bueno)."""
+    """El paso de diagnóstico mira si fallaron las pruebas (steps.pytest y steps.node): sus ids, y solo tras
+    una base sana (que solo se comprueba tras un scrape bueno)."""
     for name, step_id in (("Tests Python (bloquean el commit si fallan)", "pytest"),
                           ("Tests Node (bloquean el commit si fallan)", "node")):
         _, step = _update_step(name)
         assert step.get("id") == step_id, name
-        assert step.get("if") == "steps.scrape.outcome == 'success'", name
+        assert step.get("if") == "steps.base.outcome == 'success'", name
+
+
+BASE_SANA = "Base sana (bloquea el commit si falla)"
+MOTIVO_BASE = "la base de datos no pasó la comprobación: los datos de esta pasada no se publicaron"
+
+
+def test_update_comprueba_la_base_antes_de_las_pruebas():
+    """Fase 4: la base se comprueba (base_sana.py: integridad, referencias, WAL volcado y tamaño) después de la
+    lectura y antes de las pruebas y del commit; si falla, ni pruebas ni commit (sin continue-on-error), y el
+    diagnóstico lo publica con su motivo."""
+    steps, step = _update_step(BASE_SANA)
+    names = [s.get("name") for s in steps]
+    ids = [s.get("id") for s in steps]
+    assert step.get("id") == "base"
+    assert step.get("if") == "steps.scrape.outcome == 'success'"
+    assert step["run"].strip() == "python3 scripts/base_sana.py --salud"
+    assert not step.get("continue-on-error")
+    assert ids.index("scrape") < ids.index("base") < ids.index("pytest") < ids.index("node") \
+        < names.index("Commit y push si hay cambios") < names.index(DIAGNOSTICO)
+    _, diag = _update_step(DIAGNOSTICO)
+    assert "steps.base.outcome == 'failure'" in diag["if"]
+    assert "${{ steps.base.outcome }}" in (diag.get("env") or {}).values(), "el resultado de la base, por env"
+    commit = next(s for s in steps if s.get("name") == "Commit y push si hay cambios")
+    assert commit["if"] == "success() && steps.scrape.outcome == 'success'", "una base mala lo deja sin commit"
 
 
 def test_update_publishes_the_diagnosis_when_the_source_or_the_tests_fail():
@@ -409,7 +433,8 @@ def test_update_publishes_the_diagnosis_when_the_source_or_the_tests_fail():
     steps, step = _update_step(DIAGNOSTICO)
     assert not any(s.get("name") == "Publicar diagnóstico si la fuente falla" for s in steps)
     assert step["if"] == ("${{ !cancelled() && (steps.scrape.outcome == 'failure' || "
-                          "steps.pytest.outcome == 'failure' || steps.node.outcome == 'failure') }}")
+                          "steps.pytest.outcome == 'failure' || steps.node.outcome == 'failure' || "
+                          "steps.base.outcome == 'failure') }}")
     commit = next(s for s in steps if s.get("name") == "Commit y push si hay cambios")
     assert steps.index(commit) < steps.index(step)
     assert "${{ steps.scrape.outcome }}" in (step.get("env") or {}).values(), "el resultado del scrape, por env"
@@ -453,13 +478,73 @@ def _run_diagnosis_step(tmp_path, scrape_outcome):
     git("push", "origin", "main", cwd=work)
     (work / "data-health.json").write_text('{"de esta pasada": true}', encoding="utf-8")
     (work / "data-x.js").write_text("de esta pasada", encoding="utf-8")
-    env = {**git_env, **{k: (scrape_outcome if v == "${{ steps.scrape.outcome }}" else v)
-                         for k, v in (step.get("env") or {}).items()}}
+    env = {**git_env, **_diagnosis_env(step, scrape_outcome, "success" if scrape_outcome == "success" else "skipped")}
     done = subprocess.run(["bash", "-e", "-c", step["run"]], cwd=work, env=env, capture_output=True, text=True,
                           timeout=60)
     published = json.loads(git("show", "main:data-health.json", cwd=remote))
     files = git("show", "--name-only", "--format=", "main", cwd=remote).split()
     return done.returncode, published, files, done.stdout + done.stderr
+
+
+def _diagnosis_env(step, scrape_outcome, base_outcome):
+    """El env: del paso de diagnóstico con lo que GitHub interpolaría en él."""
+    outcomes = {"${{ steps.scrape.outcome }}": scrape_outcome, "${{ steps.base.outcome }}": base_outcome}
+    env = {k: outcomes.get(v, v) for k, v in (step.get("env") or {}).items()}
+    assert not any("${{" in v for v in env.values()), env
+    return env
+
+
+def test_guion_de_diagnostico_con_base_mala(tmp_path):
+    """Foco 1 de la revisión de la fase 4: una pasada cuya base no pasa la comprobación no publica ni datos ni
+    base, y la portada lo dice. Los guiones de verdad de «Base sana» y del diagnóstico, uno tras otro, con
+    base_sana.py y source_health.py de verdad (copiados con lo que importan), en un clon de un repositorio de
+    mentira con su remoto: la pasada deja la base con una página pisada, un data-x.js y su data-health.json."""
+    import shutil
+    import sqlite3
+    _, base_step = _update_step(BASE_SANA)
+    _, step = _update_step(DIAGNOSTICO)
+    db_fixture = tmp_path / "base.db"
+    con = sqlite3.connect(db_fixture)
+    con.execute("PRAGMA journal_mode=WAL")
+    con.execute("CREATE TABLE t(id INTEGER PRIMARY KEY, texto TEXT)")
+    con.executemany("INSERT INTO t VALUES (?, ?)", [(i, f"fila {i} " * 30) for i in range(300)])
+    con.commit()
+    page_size = con.execute("PRAGMA page_size").fetchone()[0]
+    con.close()
+    published_db = db_fixture.read_bytes()
+    git, remote, work, env = _repo(tmp_path / "repo", {"data-x.js": "publicado", "data-health.json": json.dumps(
+        {"version": 1, "season": "2026-2027", "runHealth": {"ok": True}, "groups": {}})})
+    (work / "scripts").mkdir()
+    for name in ("base_sana.py", "source_health.py", "portal_config.py", "escritura.py"):
+        shutil.copy2(ROOT / "scripts" / name, work / "scripts" / name)
+    (work / "futbolbase.db").write_bytes(published_db)
+    git("add", ".", cwd=work)
+    git("commit", "-m", "los guiones y la base", cwd=work)
+    git("push", "origin", "main", cwd=work)
+    # La pasada: datos nuevos, su informe y la base con la página 3 pisada con ceros.
+    (work / "data-x.js").write_text("de esta pasada", encoding="utf-8")
+    (work / "data-health.json").write_text('{"de esta pasada": true}', encoding="utf-8")
+    with open(work / "futbolbase.db", "r+b") as f:
+        f.seek(2 * page_size)
+        f.write(b"\0" * page_size)
+    done = subprocess.run(["bash", "-e", "-c", base_step["run"]], cwd=work, env=env, capture_output=True, text=True,
+                          timeout=120)
+    log = done.stdout + done.stderr
+    assert done.returncode == 1, log
+    assert "la base de datos no pasa la comprobación de integridad: " in done.stdout, log
+    assert json.loads((work / "data-health.json").read_text()) == {"de esta pasada": True}, "--salud no lo toca"
+    done = subprocess.run(["bash", "-e", "-c", step["run"]], cwd=work, env={**env, **_diagnosis_env(step, "success", "failure")},
+                          capture_output=True, text=True, timeout=60)
+    log += done.stdout + done.stderr
+    assert done.returncode == 1, log
+    assert _last_commit(git, remote) == ["data-health.json"], log
+    published = json.loads(git("show", "main:data-health.json", cwd=remote))
+    health = published.pop("runHealth")
+    assert health["ok"] is False and health["reasons"] == [MOTIVO_BASE] and health["since"], log
+    assert published == {"version": 1, "season": "2026-2027", "groups": {}}, log
+    assert git("show", "main:data-x.js", cwd=remote) == "publicado"
+    blob = subprocess.run(["git", "show", "main:futbolbase.db"], cwd=remote, env=env, capture_output=True, check=True)
+    assert blob.stdout == published_db, "la base mala no se sube"
 
 
 def test_the_diagnosis_after_failed_tests_publishes_the_published_report_in_red(tmp_path):
@@ -898,7 +983,8 @@ def test_the_bot_works_on_the_current_main_not_on_the_dispatch_commit():
 V2_REPO = "malolocabreralolo-tech/futbol-base-v2"
 ACTIVAR_STEPS = ["Checkout", "Set up Python", "Qué hay pendiente", "Instalar dependencias de test",
                  "Instalar Playwright (federación)", "Catálogo de la temporada", "Descargar lo pendiente",
-                 "Subir lo descargado", "Activar", "Cambios en la web", "Tests Python (bloquean el commit si fallan)",
+                 "Subir lo descargado", "Activar", "Cambios en la web", "Base sana (bloquea el commit si falla)",
+                 "Tests Python (bloquean el commit si fallan)",
                  "Tests Node (bloquean el commit si fallan)", "Subir la activación",
                  "Publicar el fallo si las pruebas fallan", "Activación en rojo"]
 PENDING = "steps.pendientes.outputs.ids != ''"
@@ -1104,6 +1190,25 @@ def test_activar_runs_the_suites_only_when_the_web_changed(tmp_path):
         assert done.returncode == 0 and out.read_text() == f"datos={expected}\n", (case, done.stdout + done.stderr)
 
 
+def test_activar_comprueba_la_base():
+    """Fase 4: la base activada se comprueba (base_sana.py) antes de las suites, cuando se va a subir (cambió lo
+    publicado); si no pasa, ni suites ni subida (sin continue-on-error: success() falso) y el mismo camino que
+    con las suites en rojo («Publicar el fallo si las pruebas fallan»: la base y lo generado vuelven a lo
+    publicado)."""
+    _, job = _activar()
+    names = [s["name"] for s in job["steps"]]
+    step = _activar_step(BASE_SANA)
+    assert step.get("id") == "base"
+    assert step["if"] == "steps.cambios.outputs.datos == 'true'"
+    assert step["run"].strip() == "python3 scripts/base_sana.py --salud"
+    assert not step.get("continue-on-error")
+    assert names.index("Cambios en la web") < names.index(BASE_SANA) \
+        < names.index("Tests Python (bloquean el commit si fallan)") < names.index("Subir la activación") \
+        < names.index("Publicar el fallo si las pruebas fallan")
+    assert "steps.base.outcome == 'failure'" in _activar_step("Publicar el fallo si las pruebas fallan")["if"]
+    assert _activar_step("Subir la activación")["if"].startswith("${{ success() && ")
+
+
 def test_activar_commits_the_data_only_with_green_suites(tmp_path):
     """El commit de datos va después de las suites y solo con todo en verde (success(): una suite en rojo deja
     el job en rojo y el paso no corre). Con datos, la base, lo generado, el manifiesto y data-health.json; sin
@@ -1143,7 +1248,8 @@ def test_when_the_suites_fail_after_activating_only_the_published_report_goes_up
     y se sube solo data-health.json, el publicado, con lo intentado como fallido por las pruebas
     (activar_auto.py --pruebas-fallaron, con el informe de esta ejecución). El job, en rojo."""
     step = _activar_step("Publicar el fallo si las pruebas fallan")
-    assert step["if"] == "${{ !cancelled() && (steps.pytest.outcome == 'failure' || steps.node.outcome == 'failure') }}"
+    assert step["if"] == ("${{ !cancelled() && (steps.pytest.outcome == 'failure' || steps.node.outcome == 'failure' || "
+                          "steps.base.outcome == 'failure') }}")
     git, remote, work, env = _repo(tmp_path / "pruebas", PUBLISHED)
     (work / "scripts" / "activar_auto.py").write_text(FAKE_PRUEBAS, encoding="utf-8")
     git("add", ".", cwd=work)
