@@ -1,4 +1,4 @@
-// Fixtures congeladas del rediseño «Acta» (Plan B1, Tarea 1, y Plan B3, Tarea 2):
+// Fixtures congeladas del rediseño «Acta»:
 // forma y hechos reales comprobados el 23/09/2026 sobre los datos de 2025-26 y del
 // archivo, y los ayudantes que montan con ellas los datos de las pruebas.
 // Solo lee scripts/tests/fixtures/rediseno/*.json (load.mjs): nunca los
@@ -261,7 +261,7 @@ test('favorites-v1: forma exacta de futbol-base:favorites:v1 (favorites.js)', ()
   });
 });
 
-// ─── Fixtures de B3 (build_fixtures_b3.mjs, decisión 30 del plan B3) ─────────────────────────
+// ─── Fixtures ampliadas (build_fixtures_b3.mjs) ─────────────────────────
 
 const SEASON_KEYS = ['benjamin', 'current', 'name', 'prebenjamin'];
 const ARCHIVE_GROUP_KEYS = ['current_jornada', 'fullName', 'id', 'island', 'jornadas', 'name', 'phase', 'standings'];
@@ -318,13 +318,13 @@ test('gol-2025-2026: las copias literales de B2 salen de aquí, y la lista globa
   assert.deepEqual([mesas[0], mesas[10]], [['De La Rosa Perello, Theo', 'Las Mesas Hu.', 12, 17], ['Rodriguez Del Rosario, Yadiel', 'Las Mesas Hu.', 1, 21]]);
   assert.deepEqual(gol.benjamin.find(e => e.id === 'A2').s.filter(r => r[1] === 'Las Mesas Hu.')[0], ['Espiau Chicoy, Alvaro', 'Las Mesas Hu.', 23, 19]);
   // Benjamín: 661 filas y 586 jugadores; 75 salen en dos grupos (Primera y Segunda Fase). El máximo
-  // goleador sumado no es el de la fila más alta (Moreno Rodriguez, 54 en B1).
+  // goleador sumado no es el de la fila más alta (54 en B1).
   const benj = byPlayer(gol.benjamin);
   assert.equal(benj.length, 586);
   assert.equal(benj.filter(p => p.groups.length > 1).length, 75);
   assert.deepEqual(benj[0], { name: 'Del Rosario Jimenez, Mario', team: 'Arucas', goals: 56, games: 22, groups: ['A1', 'FF5'] });
   assert.deepEqual(benj[1], { name: 'Moreno Rodriguez, Diego', team: 'Roque Amagro', goals: 54, games: 18, groups: ['B1'] });
-  // Un homónimo de otro equipo va aparte: «Del Rosario Jimenez, Mario» de Arucas B, en B1.
+  // Un homónimo de otro equipo va aparte: el de Arucas B, en B1.
   assert.deepEqual(benj.find(p => p.name === 'Del Rosario Jimenez, Mario' && p.team === 'Arucas B'),
     { name: 'Del Rosario Jimenez, Mario', team: 'Arucas B', goals: 18, games: 11, groups: ['B1'] });
   // Prebenjamín: 299 filas y 299 jugadores, sin fases que sumar.
@@ -523,11 +523,11 @@ test('simulate.mjs: goleadores, withChampions, cupsRaw, archive y lineupsFor', (
   assert.ok(!('BCA1' in base.history));
   assert.throws(() => withChampions(cur), /withChampions: BCA1 ya está en la temporada/);
   assert.equal(withChampions().benjamin.length, 11);
-  // cupsRaw: los de B1 tal cual y, con extra, por código.
+  // cupsRaw: los de cups-2025-2026 tal cual y, con extra, por código.
   assert.deepEqual(cupsRaw(), fixture('cups-2025-2026'));
   const cups = cupsRaw({ extra: true });
   assert.deepEqual([ids(cups.benjamin), ids(cups.prebenjamin)], [['MCB16', 'MCBK1', 'MCBK2'], ['MCP3', 'MCPK1', 'MCPK2']]);
-  // archive: la forma de SEASON_<S>; 2024-25 une B1 y B3 en el orden de data-season-2024-2025.js.
+  // archive: la forma de SEASON_<S>; 2024-25 une historical-2024-2025 y historical-2024-2025-b3 en el orden de data-season-2024-2025.js.
   const a2425 = archive('2024-2025');
   assert.deepEqual(Object.keys(a2425).sort(), SEASON_KEYS);
   assert.deepEqual([a2425.name, a2425.current, ids(a2425.benjamin), ids(a2425.prebenjamin)],

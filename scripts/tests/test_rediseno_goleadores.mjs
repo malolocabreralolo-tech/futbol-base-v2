@@ -169,7 +169,7 @@ test('sin goleadores: una temporada pasada, un grupo que no los publica, uno sin
   assert.match(bare, /class="gol-cats"/, 'se puede cambiar de categoría');
 });
 
-// Elementos mínimos para mount, como en las pruebas de mount de B2: la sección, el buscador, la
+// Elementos mínimos para mount, como en las demás pruebas de mount: la sección, el buscador, la
 // lista, el recuento y el tbody de la tabla, al que mount añade las páginas (insertAdjacentHTML);
 // la primera fila de cada página se encuentra por su id y guarda si recibió el foco.
 function mountWith(params, { myTeam, datasets } = {}) {

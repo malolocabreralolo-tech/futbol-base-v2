@@ -1,5 +1,4 @@
-// Nombres y cronología (spec §4.5, §5.3 y caso
-// real 7 de §11) en src/model.js. Solo fixtures congeladas.
+// Nombres y cronología en src/model.js. Solo fixtures congeladas.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { fixture } from './fixtures/rediseno/load.mjs';
@@ -166,7 +165,7 @@ test('timelineFor: sin marcador o sin entrada, null', () => {
   assert.equal(timelineFor(find('PG3', 'UD Vecindario', 'CD Ingenio'), {}, {}), null);
 });
 
-// ── Plan B2, tarea 4: seasonLabel, la temporada tal como se lee en pantalla ─
+// ── seasonLabel, la temporada tal como se lee en pantalla ─
 import { seasonLabel } from '../../src/model.js';
 
 test('seasonLabel: «2025-2026» → «2025/26»; lo que no es una temporada queda igual', () => {

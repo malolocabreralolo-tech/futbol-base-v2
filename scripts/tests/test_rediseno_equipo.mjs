@@ -1,6 +1,5 @@
-// Plan B3, Tareas 4 y 5: la ficha de Equipo, `#/equipo?s&g&t` (spec §4.6 y §4.8; decisiones 5, 11 y
-// 15, y 12 a 14 de B3). render(ctx) es pura y se prueba sobre su HTML con el ctx común (ctxFor), las
-// fixtures congeladas y `today` inyectado; mount, con una sección y un nav falsos.
+// La ficha de Equipo, `#/equipo?s&g&t`. render(ctx) es pura y se prueba sobre su HTML con el ctx común
+// (ctxFor), las fixtures congeladas y `today` inyectado; mount, con una sección y un nav falsos.
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
 import { fixture } from './fixtures/rediseno/load.mjs';
@@ -286,8 +285,7 @@ test('cada clase que emite la ficha existe en acta.css', () => {
   assert.ok(rules.some((r) => r.media === null && r.selector === '.cal-actions'), 'el botón del .ics tiene su hueco');
 });
 
-// ── Plantilla y trayectoria (decisiones 13 y 14; la evolución de puntos, la 12, se quitó
-// el 19/10/2026: en su sitio, el pronóstico de la clasificación final, en test_proyeccion_web.mjs) ──────
+// ── Plantilla y trayectoria (el pronóstico de la clasificación final está en test_proyeccion_web.mjs) ──
 
 const ACTAS = seasonLineups('2025-2026');
 const A1 = (t) => ({ s: '2025-2026', g: 'A1', t });
@@ -307,8 +305,8 @@ test('teamSquad: las actas de A1 por (s, gr), sin las de un lado vacío; Liam Ga
   // Goleta: sus 10 actas traen al rival en `home` y `away` vacío; Gran Canaria C no tiene ninguna.
   assert.deepEqual(Object.values(teamSquad(ACTAS['2025-2026/A1'], { group: a1(), team: 'Goleta' })).map((v) => (Array.isArray(v) ? v.length : v)), [0, 0, 10, 44]);
   assert.deepEqual(Object.values(teamSquad(ACTAS['2025-2026/A1'], { group: a1(), team: 'Gran Canaria C' })).map((v) => (Array.isArray(v) ? v.length : v)), [0, 0, 0, 44]);
-  // Dorsal: el más repetido (Hmiddouch lleva el 6, el 11 y el 7) y, si empatan, el de su acta más reciente
-  // (Galván Medina, el 2 y el 6 dos veces cada uno: el 6, el del 14/03).
+  // Dorsal: el más repetido (uno de ellos lleva el 6, el 11 y el 7) y, si empatan, el de su acta más
+  // reciente (otro, el 2 y el 6 dos veces cada uno: el 6, el del 14/03).
   const dorsal = (team, name) => teamSquad(ACTAS['2025-2026/A1'], { group: a1(), team }).rows.find((r) => r.name === name).dorsal;
   assert.equal(dorsal('San Nicolás', 'HMIDDOUCH, ADAM'), 7);
   assert.equal(dorsal('Unión Viera', 'GALVAN MEDINA, ADRIAN'), 6);
@@ -340,7 +338,7 @@ test('la plantilla en la ficha: N.º, jugador (un botón con aria-expanded), PJ,
   assert.match(squad, /<tbody><tr><td class="sq-dorsal">9<\/td><th scope="row" class="sq-name"><button type="button" class="squad-player" data-action="jugador" data-index="0" aria-expanded="false">Liam Garcia Larsen<\/button><\/th><td class="sq-num">9<\/td><td class="sq-num">9<\/td><td class="sq-goals">21<\/td><\/tr>/);
   assert.equal((squad.match(/class="squad-player"/g) || []).length, 10);
   assert.doesNotMatch(squad, /squad-detail|Tarjetas/, 'el detalle lo pinta mount; sin tarjetas en la temporada, sin su columna');
-  // La nota va dentro de su bloque (B5, decisión 3: una sola sección, que su «Reintentar» pinta en su sitio).
+  // La nota va dentro de su bloque (una sola sección, que su «Reintentar» pinta en su sitio).
   // Entre la tabla y la nota, su cuerpo técnico habitual (teamStaff), de las mismas actas.
   assert.match(squad, /<\/table><\/div><div class="box"><div class="box-text"><p class="pt-staff"><span class="pt-staff-label">Entrenador\/a:<\/span> David Tauro Medina Santana<\/p><\/div><\/div><p class="notice">Actas de 9 de 20 partidos jugados; 1 acta más llega incompleta \(sin uno de los dos equipos\) y no cuenta\.<\/p><\/section>$/);
   assert.match(squad, /^<section class="block" id="plantilla">/);
@@ -484,7 +482,7 @@ test('la columna de consulta de la ficha: la clasificación, goleadores y cifras
   assert.deepEqual(columnsOf(withActas(A1('Guayarmina'), '2026-03-01')).side,
     ['Clasificación', 'Goleadores del equipo', 'La temporada en cifras', 'Plantilla', 'Trayectoria']);
   assert.deepEqual(columnsOf(withActas(A1('Guayarmina'))).side, ['Clasificación final', 'Plantilla', 'Trayectoria']);
-  // Ni rastro de la evolución de puntos (quitada el 19/10/2026), en ninguna de las dos.
+  // Ni rastro de la evolución de puntos, en ninguna de las dos.
   for (const out of [withActas(A1('Guayarmina'), '2026-03-01'), render(LAS_MESAS, '2026-03-01'), render(LAS_MESAS, '2026-09-23')]) {
     assert.doesNotMatch(out, /Evolución de puntos|points-|Máximo posible|la gráfica suma/);
   }
@@ -502,7 +500,7 @@ test('estilos de la plantilla y la trayectoria: cada clase existe, lo pulsable m
   assert.doesNotMatch(mine, /border-radius|box-shadow|text-transform/);
 });
 
-// ── Plan B5, Tarea 4: «Reintentar» de la Plantilla, sin perder el sitio ──
+// ── «Reintentar» de la Plantilla, sin perder el sitio ──
 
 test('«Reintentar» de la Plantilla: lo atiende la ficha, vuelve a pedir las actas y pinta solo su bloque, con el foco en su título', async (t) => {
   t.mock.method(console, 'warn', () => {});

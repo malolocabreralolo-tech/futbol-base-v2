@@ -1,9 +1,8 @@
 // La portada (screen-home.js) y el arranque (startContext de app.js). render(ctx)
 // es puro: se prueba en Node con el contexto que construye startContext sobre las fixtures
-// congeladas, con `today` inyectado. Estas pruebas fijan lo que comparten la portada
-// mínima del corte y la completa de las Tareas 7 y 8: el estado, la cabecera de pantalla con su h1,
-// el título y el contexto de su primer bloque y los textos de §4.2. El detalle de cada estado va en
-// test_rediseno_portada.mjs (Tareas 7 y 8).
+// congeladas, con `today` inyectado. Estas pruebas fijan lo que comparten todos los estados de la
+// portada: el estado, la cabecera de pantalla con su h1, el título y el contexto de su primer bloque y
+// sus textos. El detalle de cada estado va en test_rediseno_portada.mjs.
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
 import { readFileSync } from 'node:fs';

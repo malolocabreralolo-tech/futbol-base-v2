@@ -1,6 +1,4 @@
-// Análisis de grupo en src/model.js (spec §4.2-§4.4, §4.7,
-// §5.3, §7 y casos reales 1, 5 y 6 de §11). Solo fixtures congeladas; `today`
-// siempre inyectado.
+// Análisis de grupo en src/model.js. Solo fixtures congeladas; `today` siempre inyectado.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { fixture } from './fixtures/rediseno/load.mjs';
@@ -368,7 +366,7 @@ test('bestStreaks: benjamín, un equipo por grupo, y temporadas pasadas', () => 
   ]);
   const mesas = wins.filter(x => x.team === 'Las Mesas Hu.').map(x => x.groupId).sort();
   assert.deepEqual(mesas, ['A2', 'FF5']);
-  // PGC2 2024-25 con los marcadores reparados por el Plan A2.
+  // PGC2 2024-25 con los marcadores reparados.
   const pastPre = bestStreaks(past, 'prebenjamin');
   assert.deepEqual(pastPre.wins.slice(0, 2), [
     { team: 'Unión Viera', n: 12, groupId: 'PGC2' },

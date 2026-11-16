@@ -1,6 +1,4 @@
-// Contrato de los módulos de src/ desde el corte.
-// Sustituye al contrato de B1 (test_rediseno_b1_contract.mjs), que vigilaba que la app vieja no
-// cargara nada nuevo. Es genérico: vale para todo src/, también para los módulos que lleguen.
+// Contrato de los módulos de src/: es genérico, vale para todo src/, también para los módulos que lleguen.
 // - Ningún módulo toca el navegador al importarse, sin excepciones: app.js exporta su arranque
 //   (start) y lo llama index.html.
 // - Solo state.js nombra los globales de datos, y nadie usa globalThis.
@@ -84,7 +82,7 @@ test('imports planos y estáticos, a módulos de src/ que existen; src/ sin subc
   }
 });
 
-// Añadido de la Tarea 5 (decisión del controlador): sin ciclos de imports entre los módulos de
+// Sin ciclos de imports entre los módulos de
 // src/. Recorre el mismo grafo que la prueba de arriba, con su mismo matchAll de imports, y falla
 // con la cadena del ciclo si dos módulos acaban dependiendo uno de otro.
 test('sin ciclos de imports entre los módulos de src/', () => {
@@ -134,7 +132,7 @@ test('ningún módulo formatea con los datos de idioma del motor: ni toLocale*St
   }
 });
 
-// ── Lo compartido, una sola vez (decisión 6; principio I2 del plan B3) ──
+// ── Lo compartido, una sola vez ──
 // Los nombres de categoría viven en model.js; el plural, el marcador, el signo y los decimales, en
 // ui.js. Ningún otro módulo vuelve a escribirlos.
 test('los nombres de categoría, en model.js; countLabel, score, signed y decimal, en ui.js; ningún otro módulo los repite', async () => {

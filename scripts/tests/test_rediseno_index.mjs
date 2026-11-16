@@ -1,11 +1,10 @@
-// Plan B2, tarea 4: index.html es el esqueleto del rediseño. La cabecera, la
-// barra y la primera caja se pintan antes de que lleguen los datos; app.js sustituye la caja. Lo
-// que lee el bot (generate_js.py y source_health.py) se ejecuta de verdad en
-// test_index_bot_contract.py; aquí, la forma. Desde la fase 3, la hoja y el módulo de arranque son los de
-// dist/ (scripts/codigo.py), con la huella de su contenido en el nombre y sin ?v=, y el arranque ya no
-// limpia cachés: el SW instala por contenido (test_sw_precache.mjs).
-// Desde B4, los datos inmediatos van con defer, el arranque, en una función asíncrona (decisiones 4 y
-// 5 de B4), y el registro del SW, tras load; los iconos y el manifiesto, en test_rediseno_pwa.mjs.
+// index.html es el esqueleto del rediseño. La cabecera, la barra y la primera caja se pintan antes de
+// que lleguen los datos; app.js sustituye la caja. Lo que lee el bot (generate_js.py y source_health.py)
+// se ejecuta de verdad en test_index_bot_contract.py; aquí, la forma. La hoja y el módulo de arranque
+// son los de dist/ (scripts/codigo.py), con la huella de su contenido en el nombre y sin ?v=, y el
+// arranque no limpia cachés: el SW instala por contenido (test_sw_precache.mjs). Los datos inmediatos
+// van con defer, el arranque, en una función asíncrona, y el registro del SW, tras load; los iconos y
+// el manifiesto, en test_rediseno_pwa.mjs.
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
 import { createHash } from 'node:crypto';
@@ -96,11 +95,10 @@ test('dist/ es el de las fuentes del árbol: src/*.js sin config.js y acta.css (
   assert.equal(ORIGEN.codigo, hash.digest('hex').slice(0, 8), 'dist/ desfasado: ejecuta python3 scripts/codigo.py');
 });
 
-// B4: data-matchdetail-keys.js, data-stats.js y data-players-<S>.js ya no los lee
-// nadie (el ⚽ de las listas se fue con la app anterior, Récords sale del modelo y la plantilla, de las
-// actas) y el generador ya no los escribe (su prueba, en test_pygen_fixes.py). Si volvieran, cada carga
-// en frío los descargaría para nada. Una fusión con main que se quede con los que el bot regeneró
-// antes de publicar B4 también sale aquí.
+// data-matchdetail-keys.js, data-stats.js y data-players-<S>.js no los lee nadie (el ⚽ de las listas se
+// fue con la app anterior, Récords sale del modelo y la plantilla, de las actas) y el generador no los
+// escribe (su prueba, en test_pygen_fixes.py). Si volvieran, cada carga en frío los descargaría para
+// nada. Una fusión con main que se quede con los que el bot regeneró también sale aquí.
 const RETIRED = /data-(?:matchdetail-keys|stats|players-\d{4}-\d{4})\.js/;
 test('los datos retirados en B4 no vuelven: ni en index.html, ni en sw.js, ni en el repositorio, ni en los mundos de las pruebas', () => {
   assert.doesNotMatch(INDEX, RETIRED);
@@ -113,7 +111,7 @@ test('los datos retirados en B4 no vuelven: ni en index.html, ni en sw.js, ni en
 
 // El SW se registra tras el evento load: con los datos en defer, el <script> del registro corre
 // durante el análisis, y en la primera visita su precache (unos 2 MB) competía con los datos y los
-// módulos de la portada. Si load ya pasó, en seguida. El contrato de §10 se conserva: register('./sw.js')
+// módulos de la portada. Si load ya pasó, en seguida. Se conserva el contrato: register('./sw.js')
 // y .update(), sin unregister, dentro de if ('serviceWorker' in navigator). Se ejecuta el <script> real
 // con un navegador falso, durante el análisis y ya cargada la página.
 test('el service worker se registra tras load, o en seguida si load ya pasó, con register(\'./sw.js\') y .update() (§10)', async () => {

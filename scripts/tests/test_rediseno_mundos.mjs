@@ -1,7 +1,7 @@
 // Los mundos de navegador de fixture-site.mjs. Cada mundo solo
 // anuncia en SEASONS las temporadas cuyo archivo sirve, y sirve el que anuncia: Temporadas, la
 // Trayectoria de Equipo o el selector de Explorar nunca llevan a un fichero que da 404. Y sirve los
-// datos de las fixtures de B3: los goleadores congelados, la Copa de Campeones en los mundos del
+// datos de las fixtures ampliadas: los goleadores congelados, la Copa de Campeones en los mundos del
 // 23/09/2026 (se jugó en junio), las cuatro copas de la Maspalomas y las actas de A1 y FF1. Solo
 // fixtures: nunca los data-*.js vivos.
 import { test } from 'node:test';
@@ -59,7 +59,7 @@ test('en 2025/26, el archivo de las fixtures; en 2026/27, además 2025-26 termin
 test('los datos de B3: goleadores congelados, la Copa de Campeones el 23/09, las cuatro copas de la Maspalomas y las actas de A1 y FF1', () => {
   const d = worldFiles('D');
   assert.deepEqual(globalsOf(d['data-goleadores.js']).GOL_PREBENJ, goleadores().golPrebenj, 'el 23/09, los de fin de temporada');
-  // A mitad de temporada (01/03/2026), reducidos a su día: León Rodríguez no lleva todavía sus 50 en 20.
+  // A mitad de temporada (01/03/2026), reducidos a su día: el máximo goleador no lleva todavía sus 50 en 20.
   const leon = globalsOf(worldFiles('A')['data-goleadores.js']).GOL_PREBENJ.find((e) => e.id === 'PG2').s
     .find((row) => row[0] === 'León Rodríguez, Lucas');
   assert.ok(leon[2] < 50 && leon[3] < 20, JSON.stringify(leon));

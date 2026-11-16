@@ -1,7 +1,7 @@
-// Plan B2, tarea 3: createModel(datasets, { portalSeason, buildClubIndex }), el acceso memorizado a
+// createModel(datasets, { portalSeason, buildClubIndex }), el acceso memorizado a
 // temporadas, grupos, torneos, índice de clubes y goleadores sobre el registro de datos (contrato del
 // esqueleto). buildClubIndex llega inyectado: model.js no importa de myteam.js (sin ciclos).
-// Datos: las fixtures congeladas de B1, nunca los data-*.js vivos.
+// Datos: las fixtures congeladas, nunca los data-*.js vivos.
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
 import { readFileSync } from 'node:fs';

@@ -1,4 +1,4 @@
-// Pantalla Jornada (spec §4.3, §4.8 y caso 5 de §11). render(ctx) es pura:
+// Pantalla Jornada. render(ctx) es pura:
 // se prueba sobre el HTML que devuelve, con las fixtures congeladas y `today` inyectado.
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
@@ -127,7 +127,7 @@ test('faltan: una jornada con menos partidos que la moda del grupo, en singular 
 test('Calendario del grupo: solo con partidos futuros, sin los de retirados, y el .ics con uno por partido', () => {
   assert.doesNotMatch(render({ g: 'PG2' }), /data-action="group-calendar"/, 'sin partidos futuros, se oculta');
   const out = render({ g: 'PG2' }, at('2026-05-27'));
-  // Bajo la botonera, la región de estado común de «Compartir» (shareStatus, I2 de la revisión final).
+  // Bajo la botonera, la región de estado común de «Compartir» (shareStatus).
   assert.match(out, /<div class="buttons"><button class="button" type="button" data-action="share-round">Compartir jornada<\/button><button class="button" type="button" data-action="group-calendar">Calendario del grupo<\/button><\/div><\/div><p class="share-status" role="status"><\/p><\/section>$/);
   const pg2 = ctxFor('jornada', {}, at('2026-05-27')).model.group(PORTAL_SEASON, 'PG2');
   const futuros = groupCalendar(pg2, '2026-05-27');
@@ -141,7 +141,7 @@ test('Calendario del grupo: solo con partidos futuros, sin los de retirados, y e
   assert.ok(fv.every(m => m.home !== 'CD Teguinte' && m.away !== 'CD Teguinte'));
 });
 
-// I2 de la revisión final de B2: la respuesta común de «Compartir» (la de Partido): sin share ni
+// La respuesta común de «Compartir» (la de Partido): sin share ni
 // portapapeles, el enlace de la jornada en la región de estado, para copiarlo a mano; el botón no cambia.
 test('mount: «Compartir jornada» sin share ni portapapeles escribe el enlace en la región de estado', async () => {
   const ctx = ctxFor('jornada', { s: PORTAL_SEASON, g: 'PG2', r: 'Jornada 30' });

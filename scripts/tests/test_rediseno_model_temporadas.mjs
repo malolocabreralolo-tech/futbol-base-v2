@@ -1,5 +1,5 @@
 /**
- * Rediseño «Acta», Tarea 3: model.js, filas, grupos y temporadas.
+ * Rediseño «Acta», model.js, filas, grupos y temporadas.
  * Run: node --test scripts/tests/test_rediseno_model_temporadas.mjs
  *
  * Solo fixtures congeladas (scripts/tests/fixtures/rediseno/) y filas reales
@@ -301,7 +301,7 @@ test('buildCups: MCBK2, final de la Copa Oro por penaltis', () => {
     ['AD Huracán A', 'UD Vecindario A', 2, 2, 'away', '3-4']);
 });
 
-// I2 de la revisión final de B2: la condición de los penaltis y la ronda de un partido, una sola
+// La condición de los penaltis y la ronda de un partido, una sola
 // vez, para la fila de partido (ui.js), Partido y «Verano».
 test('penaltyWinner: quién pasó en una eliminatoria jugada y empatada; null si no hubo penaltis', () => {
   const k1 = byId(cups().groups, 'MCPK1');

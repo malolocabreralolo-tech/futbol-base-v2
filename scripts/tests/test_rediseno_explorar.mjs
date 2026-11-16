@@ -1,4 +1,4 @@
-// Pantalla Explorar (spec §4.7 y maqueta 5-4; decisiones 16 a 19 de B3) y lo que
+// Pantalla Explorar y lo que
 // añade al modelo (phaseLevel, searchKey, searchTeams, competitions y groupSummary) y a ui.js
 // (searchBox, seasonPicker y linkRow). render(ctx) es pura: se prueba sobre el HTML que devuelve, con
 // las fixtures congeladas y `today` inyectado. mount, con el router y el navegador falso comunes: al
@@ -92,7 +92,7 @@ test('searchTeams: la Copa de Campeones de la temporada va con los torneos; en e
   const old = searchTeams(model, '2023-2024', 'hurac');
   assert.deepEqual([names(old.leagues), names(old.cups)], [['At. Huracán B [GC3]'], ['AD Huracán [BC1]']]);
   assert.deepEqual(names(searchTeams(model, '2023-2024', 'tarajalejo').cups), ['UD Tarajalejo [CFV1]'], 'una copa insular');
-  // Una temporada sin cargar no da nada (el router la carga antes de pintar: decisión 2 de B3).
+  // Una temporada sin cargar no da nada (el router la carga antes de pintar).
   assert.deepEqual(searchTeams(modelWith(), '2023-2024', 'mesas'), { leagues: [], cups: [] });
 });
 
@@ -343,7 +343,7 @@ test('otra temporada (2024/25): su selector, sus ligas y copas, su buscador y M�
     ['#/ligas?s=2023-2024&f=copa-campeones', 'Copa de Campeones 1 grupo'],
     ['#/ligas?s=2023-2024&f=fuerteventura-copa', 'Copa Fuerteventura 1 grupo'],
   ]);
-  // Sin la temporada (el router la carga antes: decisión 2), nunca otra: la caja de error con «Reintentar».
+  // Sin la temporada (el router la carga antes), nunca otra: la caja de error con «Reintentar».
   const failed = render({ s: '2023-2024' });
   assert.match(failed, /<h1>Explorar<\/h1>/);
   assert.match(text(failed), /No se pudieron cargar los datos de la temporada 2023\/24\./);

@@ -1,4 +1,4 @@
-// El «hoy» de la app es el de Canarias (decisión 4, M1 de B1).
+// El «hoy» de la app es el de Canarias.
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
 import { canaryTodayISO } from '../../src/links.js';

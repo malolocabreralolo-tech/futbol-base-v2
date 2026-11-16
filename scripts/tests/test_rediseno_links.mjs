@@ -1,4 +1,4 @@
-// Rutas nuevas, enlaces antiguos y cuenta atrás (spec §4.1 y §4.2.A).
+// Rutas nuevas, enlaces antiguos y cuenta atrás.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
@@ -82,7 +82,7 @@ test('enlaces antiguos: cada fila de la tabla de §4.1 (hashes reales de routeUr
     ['#section=isla&cat=benjamin&season=2025-2026&island=lanzarote', '#/ligas?s=2025-2026&c=benjamin&i=lanzarote'],
     ['#section=stats&cat=benjamin&season=2025-2026', '#/records?s=2025-2026&c=benjamin'],
   ];
-  // La temporada del enlace se conserva siempre (M3 de la revisión de B2): tras activar 2026/27, un
+  // La temporada del enlace se conserva siempre: tras activar 2026/27, un
   // enlace de 2025/26 sigue en 2025/26.
   for (const [legacy, expected] of cases) assert.equal(translateLegacy(legacy), expected, legacy);
 });
@@ -96,7 +96,7 @@ test('enlaces antiguos: temporada, parámetros sobrantes y casos límite', () =>
   assert.equal(t('#section=jornadas&group=PG2&round=Jornada+3&match=%5Bmal'), '#/jornada?g=PG2&r=Jornada%203');
   assert.equal(t('#section=jornadas&round=Jornada+3&match=%5B%22A%22%2C%22B%22%2C%22Jornada+3%22%5D'), '#/jornada?r=Jornada%203');
   assert.equal(t('#section=miequipo&cat=prebenjamin&season=2025-2026&team=Las+Mesas+Hu.'), '#/explorar?s=2025-2026&q=Las%20Mesas%20Hu.');
-  // La URL que escribía la app anterior en cada carga, con mi equipo: Mi equipo (M3).
+  // La URL que escribía la app anterior en cada carga, con mi equipo: Mi equipo.
   const mine = (team, group) => team === 'Las Mesas Hu.' && group === 'PG2';
   assert.equal(translateLegacy('#section=miequipo&cat=prebenjamin&season=2025-2026&group=PG2&team=Las+Mesas+Hu.', { isMine: mine }), '#/');
   assert.equal(translateLegacy('#section=miequipo&cat=prebenjamin&season=2025-2026&group=PG2&team=Telde', { isMine: mine }), '#/equipo?s=2025-2026&g=PG2&t=Telde');
@@ -125,7 +125,7 @@ test('countdownLabel: hoy, mañana, faltan N días; nada si ya pasó o la fecha 
   }
 });
 
-// ── Revisión final de B2: ayudantes únicos (I2) y el nombre de los .ics (M3) ──
+// ── Ayudantes únicos y el nombre de los .ics ──
 
 test('matchHref y teamHref: los enlaces a las fichas, siempre con su temporada', () => {
   const m = { season: '2025-2026', groupId: 'PG2', roundKey: 'Jornada 30', home: 'Las Mesas Hu.', away: 'AD Huracán' };

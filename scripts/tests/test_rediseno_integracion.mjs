@@ -1,4 +1,4 @@
-// Plan B2, tarea 12: integración. Rutas y barra completas,
+// Integración. Rutas y barra completas,
 // mi equipo guardado al arrancar solo con un cambio de fase y el
 // cableado de app.js: escudos, aviso sin conexión, sesión y «Hacer mi equipo». start() se ejecuta
 // de verdad sobre un navegador falso y un almacén en memoria: el guardado al arrancar, la
@@ -187,7 +187,7 @@ test('un dato mal formado que hace fallar el guardado al arrancar no impide que 
 
 test('el router deja pasar lo que las pantallas saben leer: la jornada por su número y el único partido h–a (B7)', async (t) => {
   // Con las pantallas reales, el mount() de Jornada y Partido corre de verdad: un error ahí no
-  // debe quedar escondido dentro de la guarda del router (hallazgo de la revisión, ronda 1).
+  // debe quedar escondido dentro de la guarda del router.
   const errorSpy = t.mock.method(console, 'error');
   const open = async (hash) => {
     const { page } = await load(new Map(), { today: '2026-03-01', hash });
@@ -221,7 +221,7 @@ test('temporada pasada que la pantalla no pide (Equipo): la carga el router y la
   assert.doesNotMatch(page.main.innerHTML, /No se pudieron cargar/);
   // El mount de verdad la apunta en el almacén, con el equipo por defecto.
   assert.deepEqual(JSON.parse(storage.get(STORE_KEY)).recent, [{ s: '2024-2025', g: 'PGC2', t: 'Las Mesas Hu.' }]);
-  // El enlace de la revisión (A1, que la temporada 2024/25 de las fixtures no tiene): cargada la
+  // El enlace a A1 (que la temporada 2024/25 de las fixtures no tiene): cargada la
   // temporada, el grupo se valida y lleva a Explorar con su aviso, tampoco a la caja de error.
   const other = await load(new Map(), { today: '2026-03-01', hash: '#/equipo?s=2024-2025&g=A1&t=Guayarmina', seasons: WITH_PAST });
   assert.equal(other.page.hash(), '#/explorar?s=2024-2025&q=Guayarmina');
@@ -299,7 +299,7 @@ test('start: tras pintar, la versión nueva del SW recarga la página sin tocar;
   assert.equal(page.win.sessionStorage.getItem('fb2:recarga'), '20261115a');
 });
 
-// El cableado de app.js con el navegador, por su conducta (B5, decisión 7; antes se leía su código):
+// El cableado de app.js con el navegador, por su conducta (no leyendo su código):
 // lo que start() escucha y guarda antes del primer pintado, la sesión y «Hacer mi equipo».
 test('start: la cadena de los escudos, en captura, la importación de v1 y el cambio de fase guardado, antes del primer pintado', async () => {
   const ff5 = { name: 'Las Mesas Hu.', season: '2025-2026', cat: 'benjamin', groupId: 'FF5' };
@@ -462,7 +462,7 @@ test('primera vez en v2: start() trae mi equipo y los seguidos de v1, sin tocarl
   assert.equal(storage.get(STORE_KEY), fromV1[0][1]);
 });
 
-// ── Plan B3, tarea 11: «Borrar datos de esta app» desde la pantalla Ajustes, con start() ──
+// ── «Borrar datos de esta app» desde la pantalla Ajustes, con start() ──
 
 test('Ajustes con start(): mi equipo guardado, y «Borrar» (tras desplegar el aviso) borra el almacén y abre Mi equipo con el equipo por defecto, también al recargar (decisión 29 de B3)', async () => {
   const huracan = { name: 'AD Huracán', season: '2025-2026', cat: 'prebenjamin', groupId: 'PG2' };
