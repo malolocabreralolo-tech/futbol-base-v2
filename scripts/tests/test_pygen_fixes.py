@@ -450,7 +450,7 @@ class TestRetiredOutsideTable:
         assert retired_outside_table(stored, [("Ret", "Alfa", None, None)]) == set()
 
 
-# ─── Fix (2026-06-15): row-level points repair for corrupt-but-complete tables ─
+# ─── Fix: row-level points repair for corrupt-but-complete tables ─
 
 class TestStandingsPointsRepair:
     """Valkyrias Bec. (PG1) y Lanzarote B (LZ3) se publicaron con 0/7 pts pese
@@ -741,7 +741,7 @@ class TestPointsOrder:
             pytest.skip("sin clasificaciones publicadas")
 
 
-# ─── Fix (2026-06-15): match-detail/lineup keys mirror the frontend (#11) ────
+# ─── Fix: match-detail/lineup keys mirror the frontend ────
 
 class TestMatchKeySanitize:
     """Las claves de MATCH_DETAIL/LINEUPS usaban hs/as_ crudos;
@@ -781,7 +781,7 @@ class TestMatchKeySanitize:
         assert "Home FC|Away FC|3-1" in generate_lineups_js(conn, "2025-2026", "A1")
 
 
-# ─── Fix (2026-06-15): knockout round ordering (cups) ───────────────────────
+# ─── Fix: knockout round ordering (cups) ───────────────────────
 
 class TestJornadaSortKey:
     """Las rondas de cup ("( Cuartos )"/"( Semifinales )"/"( Final )", mismo día) no pueden ordenarse por el

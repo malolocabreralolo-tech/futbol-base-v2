@@ -65,7 +65,7 @@ test('rechaza la caja de error, el esqueleto sin sustituir y otro equipo en el h
   assert.ok(other.failures.some((f) => /AD Huracán/.test(f)), other.failures.join('; '));
 });
 
-// Mi equipo con todo lo de la ficha (04/10/2026): la Plantilla se llena después del primer pintado, y
+// Mi equipo con todo lo de la ficha: la Plantilla se llena después del primer pintado, y
 // si sus actas fallan, su caja de error lo dice con su propio mensaje, no con el de la portada.
 test('la caja de error de la Plantilla falla con su propio mensaje, no con el de la portada', () => {
   const squadError = '<section class="block" id="plantilla"><div class="block-head"><h2 class="block-title">Plantilla</h2></div><div class="box error-box" role="alert"><p class="error-text">No se pudieron cargar los datos de las actas de 2025/26.</p><div class="buttons"><button class="button is-main" type="button" data-action="retry">Reintentar</button></div></div></section>';

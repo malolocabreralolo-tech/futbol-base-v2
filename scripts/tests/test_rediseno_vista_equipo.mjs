@@ -125,7 +125,7 @@ test('la portada pinta, byte a byte, lo que fijan sus huellas en A, B, C, D, E y
   assert.ok(pendiente.includes('data-state="C"') && pendiente.includes('Resultado pendiente de publicar'));
   assert.ok(pocos.includes('data-state="A"') && pocos.includes('Últimos resultados') && !pocos.includes('Últimos cinco'));
   assert.match(sinHora, /<div class="cell is-muted"><dt class="cell-label">Hora<\/dt><dd class="cell-value">por confirmar<\/dd><\/div>/);
-  // Lo de la ficha (2026-10-04), en claro. A: el calendario completo con su .ics y la consulta entera,
+  // Lo de la ficha, en claro. A: el calendario completo con su .ics y la consulta entera,
   // con el hueco de la plantilla (homeCtx no trae actas).
   const [a, b, d] = ['A', 'B', 'D'].map((name) => text(HOME[name][0]));
   const calendar = (out) => out.match(/<section class="block" id="calendario">[\s\S]*?<\/section>/)[0];

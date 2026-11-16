@@ -204,7 +204,7 @@ def pasada(conn):
 
 
 def test_reimportar_las_actas_deja_las_mismas_identidades_y_las_mismas_fichas():
-    """Review Focus 1, de punta a punta, dos veces seguidas: _import_one borra y reescribe."""
+    """De punta a punta, dos veces seguidas: _import_one borra y reescribe."""
     conn = base()
     pasada(conn)
     primera = foto(conn)
@@ -242,7 +242,7 @@ def test_reimportar_un_acta_ya_migrada_no_crea_identidades_nuevas(tmp_path):
 # ── prune_players ────────────────────────────────────────────────────────
 
 def test_prune_no_borra_una_fila_a_la_que_apunta_otra():
-    """Review Focus 5: ninguna ficha_id apunta a una fila que no existe."""
+    """Ninguna ficha_id apunta a una fila que no existe."""
     conn = base()
     pasada(conn)
     noa = conn.execute("SELECT id FROM players WHERE fiflp_id=81").fetchone()[0]

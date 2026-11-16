@@ -122,7 +122,7 @@ def test_a_round_read_empty_that_the_base_has_with_matches_writes_nothing():
 
 
 def test_a_round_emptied_because_its_unplayed_matches_moved_is_not_empty():
-    """Review Focus 5: la federación movió los partidos sin jugar de la jornada 2 a la 5, leída en la misma
+    """La federación movió los partidos sin jugar de la jornada 2 a la 5, leída en la misma
     llamada (test_update_fiflp.test_an_unplayed_match_moved_by_the_federation_changes_round)."""
     conn, gid = T.seeded()
     moved = {"Jornada 2": [], "Jornada 5": [{"home": 'ARUCAS, C.F. "A"', "away": 'MESAS HURACAN, U.D. LAS "A"',
@@ -142,7 +142,7 @@ def test_a_played_match_cannot_have_moved_so_its_round_is_empty():
 
 
 def test_a_group_without_rounds_in_the_base_cannot_have_an_empty_round():
-    """Review Focus 5: un grupo recién activado, sin jornadas en la base, en su primera pasada completa."""
+    """Un grupo recién activado, sin jornadas en la base, en su primera pasada completa."""
     conn, gid = T.seeded()
     conn.execute("DELETE FROM matches")
     assert U.update_group(conn, gid, "PG1", [], {"Jornada 1": [], "Jornada 2": []}, log=quiet)[0] == "ok"
@@ -241,7 +241,7 @@ def test_update_groups_saves_the_verdict_of_the_pass(monkeypatch, health, passes
 
 
 def test_with_fiflp_cats_the_groups_of_other_categories_do_not_count(monkeypatch, health, passes):
-    """Review Focus 2: FIFLP_CATS=prebenjamin. Los de las demás categorías (source_health.carry) no
+    """FIFLP_CATS=prebenjamin. Los de las demás categorías (source_health.carry) no
     cuentan ni como leídos ni como previstos."""
     monkeypatch.setenv("FIFLP_CATS", "prebenjamin")
     monkeypatch.setattr(U, "_with_browser", lambda work, deadline=None: work(A._Page(), A._Fed()))

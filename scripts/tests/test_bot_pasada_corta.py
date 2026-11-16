@@ -718,7 +718,7 @@ def test_with_a_perfect_clock_the_actas_of_las_mesas_do_not_wait_for_the_end_of_
     prioritario ya frío se lee en su pasada cada ~3 h, y con un solo plazo de 4 h (ACTA_RETRY_AFTER) un acta
     suya que falló no se reintentaría en toda la ventana: la de PG2 de la jornada 3 (la federación la
     completa 3 h después del resultado, el sábado) esperaría 12,4 h, hasta la madrugada del domingo. Con el
-    2.º intento desde 2 h 45 (ACTA_RETRY_SOON), ninguna tarda más de 8 h (la de B2, que la federación
+    2.º intento desde 2 h 45 (ACTA_RETRY_SOON), ninguna tarda más de 8 h (la del grupo B2, que la federación
     completa 9 h después del resultado, ~7 h), todas se importan y ninguna se queda sin intentos."""
     passes, season, conn = perfect_clock_week
     hours = mine_acta_hours(passes, season)

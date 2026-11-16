@@ -153,7 +153,7 @@ def test_pendientes_son_las_competiciones_enteras_y_los_grupos_sueltos():
     assert A.nombres(report)[PLZ[0]] == PLZ[1]
 
 
-# ── Review Focus 1: lo que encaja se activa solo ────────────────────────────
+# ── Lo que encaja se activa solo ────────────────────────────
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="la sonda de fases necesita node")
 def test_una_liga_prebenjamin_insular_y_una_segunda_fase_se_activan_solas(tmp_path):
@@ -184,7 +184,7 @@ def test_una_liga_prebenjamin_insular_y_una_segunda_fase_se_activan_solas(tmp_pa
     assert (backup / "index.html").exists()
 
 
-# ── Review Focus 2: sin convenio, nada cambia ────────────────────────────────
+# ── Sin convenio, nada cambia ────────────────────────────────
 
 def test_una_competicion_sin_convenio_no_cambia_nada_y_sale_en_rojo(tmp_path):
     raw = [entry(FF, n) for n in (1, 2, 3)] + [entry(TORNEO, 1)]
@@ -204,7 +204,7 @@ def test_una_competicion_sin_convenio_no_cambia_nada_y_sale_en_rojo(tmp_path):
     assert report["runHealth"] == {"ok": True}          # lo demás del informe, igual
 
 
-# ── Review Focus 3: una no bloquea a la otra ─────────────────────────────────
+# ── Una no bloquea a la otra ─────────────────────────────────
 
 def test_de_dos_pendientes_se_activa_la_que_encaja_y_la_otra_sigue_pendiente(tmp_path):
     raw = [entry(PLZ, 1), entry(TORNEO, 1)]
@@ -218,7 +218,7 @@ def test_de_dos_pendientes_se_activa_la_que_encaja_y_la_otra_sigue_pendiente(tmp
     assert [f["competition"] for f in report["activation"]["failed"]] == [TORNEO[0]]
 
 
-# ── Review Focus 4: un grupo nuevo en una competición ya activada ────────────
+# ── Un grupo nuevo en una competición ya activada ────────────
 
 def test_un_grupo_25_nuevo_entra_solo_y_los_24_de_antes_no_se_tocan(tmp_path):
     raw = [entry(FF, n) for n in range(1, 26)]

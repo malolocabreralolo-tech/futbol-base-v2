@@ -171,7 +171,7 @@ test('A (PG2, 01/03/2026): próximo partido con cuenta atrás, casillas, local y
   assert.match(out, /data-state="A"/);
   const block = blockOf(out, 'Próximo partido');
   assert.match(block, /<p class="block-context">faltan 6 días<\/p>/);
-  // Bajo los dos equipos, la línea del pronóstico (prebenjamín de la temporada del portal, 17/10/2026),
+  // Bajo los dos equipos, la línea del pronóstico (prebenjamín de la temporada del portal),
   // con su frase para el lector de pantalla; el 94 %, del 1X2 de las notas de Massey (el Poisson daba 91 %).
   assert.equal(text(block), 'Próximo partido faltan 6 días Jornada 18 Fecha sáb 7 mar Hora 09:00 '
     + 'Local Veteranos – Visitante Las Mesas Hu. Pronóstico 6–2 · Veteranos 94 % '

@@ -1,4 +1,4 @@
-"""El reloj de las pasadas (reloj.yml, scripts/reloj_pasadas.py; 17/10/2026): cada ~15 min decide si lanza una
+"""El reloj de las pasadas (reloj.yml, scripts/reloj_pasadas.py): cada ~15 min decide si lanza una
 pasada del bot (update.yml). Una cada 2 h (update_fiflp.PASS_EVERY) y una cada hora en las ventanas de partidos,
 hora de Canarias (viernes de 18 a 24 y sábado y domingo de 10 a 24, con su cambio de hora: el 25/10/2026 a las
 02:00 vuelve a UTC+0), con 10 min de holgura; nunca con una ejecución de update.yml sin acabar. Sin red: la

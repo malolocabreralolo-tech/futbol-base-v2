@@ -215,7 +215,7 @@ def test_the_federation_budget_fits_in_the_update_job():
 
 
 def test_update_has_no_schedule_the_clock_launches_it():
-    """Desde el 17/10/2026 update.yml no tiene cron: su '23 */2 * * *' casi no llegaba (5 de 13 en ~26 h) y lo
+    """update.yml no tiene cron: su '23 */2 * * *' casi no llegaba (5 de 13 en ~26 h) y lo
     lanza el reloj (reloj.yml) con workflow_dispatch, que también usan las tandas y quien lo lance a mano. Un
     cron aquí volvería a sumar ejecuciones fuera del reloj (y GITHUB_RUN_NUMBER, del que sale la rotación).
     Una sola pasada a la vez: la concurrency las pone en fila, sin cancelar ninguna."""
@@ -233,7 +233,7 @@ def _reloj_job():
 
 
 def test_the_clock_ticks_every_15_minutes_off_the_hour():
-    """El reloj (17/10/2026): un tick cada 15 min, nunca a en punto ni a y media (GitHub retrasa o pierde más
+    """El reloj: un tick cada 15 min, nunca a en punto ni a y media (GitHub retrasa o pierde más
     esos), cada hora del día: si GitHub pierde uno, el siguiente lanza la pasada que toque. Y a mano."""
     data, _ = _reloj_job()
     assert data["name"] == "Reloj de las pasadas"
@@ -592,7 +592,7 @@ def test_update_admite_pasada_de_pocas_categorias():
 
 
 def test_update_prints_the_runner_ip_before_the_bot_and_never_fails():
-    """Diagnóstico del freno de la federación (15/10/2026): la IP pública del runner en el log, antes del
+    """Diagnóstico del freno de la federación: la IP pública del runner en el log, antes del
     paso del bot, para cruzar frenos con IPs. Nunca para el job (continue-on-error, tope de 5 s y una
     alternativa si curl falla), sin secretos, sin variables ni nada interpolado."""
     steps = _steps(_load("update.yml"), "update")
@@ -636,7 +636,7 @@ def test_update_gates_db_commit_on_published_changes():
     """futbolbase.db churns every run (SQLite header) even when no data-*.js
     changes -> ~13/14 noise commits. The commit must be gated on the published
     artifacts: stage data-*.js/index.html/sw.js first, and only add the DB (and
-    commit) when that set actually changed (review 2026-06-15, #3)."""
+    commit) when that set actually changed."""
     runs = _runs(_load("update.yml"), "update")
     commit_run = next(r for r in runs if "git commit" in r)
     lines = commit_run.splitlines()
@@ -877,7 +877,7 @@ def test_tests_yml_pytest_installs_pyyaml():
 
 def test_python_tests_run_without_playwright():
     """El job pytest de tests.yml no instala Playwright (update.yml sí): una prueba que lo importa
-    tal cual tumba el job (14/10/2026, test_bot_plazo). Las que necesitan navegador lo piden con
+    tal cual tumba el job (test_bot_plazo). Las que necesitan navegador lo piden con
     pytest.importorskip, mejor dentro de la prueba o de un fixture, para no saltarse las demás."""
     runs = " ".join(_runs(_load("tests.yml"), "pytest"))
     assert "playwright" not in runs
@@ -1010,7 +1010,7 @@ def test_every_workflow_pins_its_runner_image():
 
 def test_update_push_rebases_and_retries():
     """El bot tarda hasta ~30 min con las actas de la federación: un push ajeno a
-    main en ese rato no debe tirar el trabajo (pasó el 3/10/2026: «rejected»)."""
+    main en ese rato no debe tirar el trabajo («rejected»)."""
     runs = _runs(_load("update.yml"), "update")
     commit_run = next(r for r in runs if "Actualización automática" in r and "git commit" in r)
     assert "git pull --rebase --autostash origin main" in commit_run, "con cambios sin subir, git no rebasa"

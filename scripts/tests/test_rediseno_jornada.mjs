@@ -232,7 +232,7 @@ test('myTeamIn: el de la resolución en su grupo, el nombre exacto en su categor
   assert.equal(myTeamIn(g('2024-2025', 'P1'), MY_TEAM, ctx.resolution), null);
   assert.equal(myTeamIn(g(PORTAL_SEASON, 'PG2'), MY_TEAM, { status: 'ask', candidates: [] }), 'Las Mesas Hu.');
   assert.equal(myTeamIn(null, MY_TEAM, ctx.resolution), null);
-  // Santa Brígida juega en B1 y en B2 (Segunda Fase B): con B1 resuelto, la de B2 es otro equipo;
+  // Santa Brígida juega en B1 y en B2 (Segunda Fase B): con B1 resuelto, el de B2 es otro equipo;
   // la de FF9, su grupo de la Primera Fase, sí es la suya.
   const brigida = { name: 'Santa Brígida', season: PORTAL_SEASON, cat: 'benjamin', groupId: 'B1' };
   const ok = { status: 'ok', group: g(PORTAL_SEASON, 'B1'), name: 'Santa Brígida', cat: 'benjamin' };

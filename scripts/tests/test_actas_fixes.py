@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Regression tests for the actas/importers fixes (agente PY-ACTAS, 2026-06-11).
+"""Regression tests for the actas/importers fixes.
 
 All tests use SYNTHETIC SQLite DBs built in tmp_path — never the repo
 futbolbase.db. Schema comes from scripts/db.py (init_db) plus

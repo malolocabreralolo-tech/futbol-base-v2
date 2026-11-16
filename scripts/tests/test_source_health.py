@@ -222,7 +222,7 @@ def test_a_healthy_pass_is_ok_and_a_second_one_does_not_rewrite_the_report(porta
 
 
 def test_a_red_pass_keeps_its_since_until_a_healthy_one(portal):
-    """Review Focus 4: dos pasadas en rojo seguidas, `since` no cambia; la tercera, sana, vuelve a ok."""
+    """Dos pasadas en rojo seguidas, `since` no cambia; la tercera, sana, vuelve a ok."""
     report = json.loads(bot_run(T0, ["m"]))
     assert report["runHealth"] == {"ok": False, "reasons": ["m"], "since": T0.isoformat(timespec="seconds")}
     later = T0 + timedelta(hours=2)
@@ -234,7 +234,7 @@ def test_a_red_pass_keeps_its_since_until_a_healthy_one(portal):
 
 
 def test_a_run_without_the_federation_carries_the_previous_run_health(portal):
-    """Review Focus 3: sin federación (FIFLP_UPDATE sin poner) nadie llama a set_run_health."""
+    """Sin federación (FIFLP_UPDATE sin poner) nadie llama a set_run_health."""
     red = json.loads(bot_run(T0, ["m"]))["runHealth"]
     assert json.loads(bot_run(T0 + timedelta(days=2)))["runHealth"] == red
     bot_run(T0 + timedelta(days=3), [])

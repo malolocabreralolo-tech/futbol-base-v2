@@ -365,7 +365,7 @@ def test_antes_de_migrar_la_fila_pegada_es_imposible_por_edad(mundo):
 
 
 def test_dos_homonimos_sin_id_en_la_misma_alineacion_no_pierden_ninguna_aparicion(tmp_path):
-    """Review Focus 3: dos «DANIEL» sin id en un equipo y un partido. Con original: el de dorsal más bajo es
+    """Dos «DANIEL» sin id en un equipo y un partido. Con original: el de dorsal más bajo es
     la identidad normal y el otro lleva ordinal; sin original, igual por el dorsal."""
     conn = base()
     conn.execute("INSERT INTO players(id, full_name, norm_name, fiflp_id) VALUES (40, 'DANIEL', 'DANIEL', 701),"

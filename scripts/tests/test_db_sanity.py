@@ -294,8 +294,7 @@ def test_lineup_keys_point_at_teams_that_played(conn):
     deja el partido sin alineación en el modal, en silencio. Y hay temporadas
     (2022-23, 2024-25) con CERO actas en la base: sus ficheros publicados son de
     una generación anterior y generate_js.py ya no los reescribe, así que un
-    renombrado de equipos los deja atrás sin que nada falle. Pasó con la fusión
-    de duplicados del 2026-07-26.
+    renombrado de equipos los deja atrás sin que nada falle (pasó al fusionar clubes duplicados).
     """
     import glob
     import re
