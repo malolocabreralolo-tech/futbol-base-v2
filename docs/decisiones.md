@@ -51,6 +51,7 @@ al que afecta. Solo lo que sigue siendo verdad: la historia de cómo se llegó a
 - **Un 4xx de la federación también es un rechazo**: si no, un 403 a todo daría una pasada en verde sin leer nada. `scripts/fiflp_carga.py` (`_refused`), `scripts/pasada_sana.py`.
 - **Las pasadas las lanza un reloj (`reloj.yml`), no el cron**: GitHub pierde o retrasa los cron. Una cada 2 h; cada hora en las ventanas de partidos (viernes tarde, sábado y domingo). `scripts/reloj_pasadas.py`.
 - **El orden de cada pasada sale de su número**, no de nada guardado: una pasada sin cambios publicados no sube nada, y la siguiente repetiría los mismos grupos. `scripts/update_fiflp.py` (`plan_groups`).
+- **El reparto de lecturas por turnos se queda**: una regla más simple («el más antiguo primero», con estado guardado) se midió en las simulaciones y empeoraba lo de los equipos del dueño (y más). `docs/planificador-medidas.md`.
 - **Los prioritarios solo cuando toca** (cada 6 h, o en cada pasada mientras tienen un partido recién jugado sin resultado o sin acta, 12 h como mucho). `scripts/update_fiflp.py`.
 - **Alevín va intercalado con benjamín y prebenjamín**, con una cuota mínima: delante se llevaría todo el cupo. `scripts/update_fiflp.py` (`ALEVIN_MIN_GROUPS`).
 - **Cada grupo se lee completo (calendario, goleadores y actas) antes del siguiente**, para que el freno no deje calendarios sin sus actas. `scripts/update_fiflp.py` (`run_passes`).

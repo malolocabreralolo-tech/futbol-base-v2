@@ -1,4 +1,4 @@
-"""El planificador por antigüedad (scripts/planificador.py): el orden de una pasada sale de cuándo se leyó completo
+"""El planificador por antigüedad (planificador.py, aquí al lado): el orden de una pasada sale de cuándo se leyó completo
 cada grupo por última vez, con preferencia para los del dueño. Rápidas: sin base, sin red y sin simulación (la
 frescura que da, comparada con la de hoy, la mide scripts/tests/frescura_planificador.py)."""
 from datetime import datetime, timedelta, timezone
@@ -6,7 +6,7 @@ import random
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 from planificador import Grupo, apuntar, planificar  # noqa: E402
 
 AHORA = datetime(2026, 11, 16, 12, 0, tzinfo=timezone.utc)

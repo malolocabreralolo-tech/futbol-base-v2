@@ -1,7 +1,9 @@
 # La frescura del planificador del bot: medidas
 
+**En pocas palabras.** Se probó, en simulación, una forma más sencilla de decidir qué grupos lee el bot en cada pasada: leer primero el que lleva más tiempo sin leerse, dando preferencia a los equipos del dueño. Lo bueno: los grupos normales estarían al día antes; el que más tarda pasaría de 7,8 a 4,1 días. Lo malo: los equipos del dueño podrían pasar algunas horas más sin actualizarse en ciertos casos, quedarían más actas pendientes al final del fin de semana y, si el bot perdiera su memoria cada día, 30 grupos no se leerían nunca. **Decisión: se queda el reparto de hoy.** El prototipo está archivado en `scripts/_archive/planificador_antiguedad/` (LEEME.md).
+
 **Qué se mide.** `scripts/tests/frescura_planificador.py` corre las simulaciones de `test_bot_pasada_corta.py` y `test_bot_rotacion.py` (sin red, reloj falso) y saca como números lo que esas pruebas comparan con sus umbrales, con el nombre de la prueba. Añade dos escenarios sin prueba, de tres semanas: **seca 1 de 5** (una de cada cinco pasadas la federación frena desde la primera página) y **estado perdido cada 12** (antes de las pasadas 12, 24… se borran las comprobaciones por grupo de `data-health.json`, lo único que el planificador de hoy recibe de la pasada anterior; la base sigue).
-**Cómo se lanza.** `python3 scripts/tests/frescura_planificador.py` (tabla; `--json`, `--semillas`, `--escenarios`). Con 3 semillas y 36 escenarios tarda ~2,5 min en 8 núcleos (~11 min de CPU); no está en la suite. Desde código: `medir(planificar=otro, semilla=7)` instala `otro` en lugar de `update_fiflp.plan_groups` mientras dura la medida.
+**Cómo se lanza.** `python3 scripts/tests/frescura_planificador.py` (tabla; `--json`, `--semillas`, `--escenarios`; otro planificador con `--planificador modulo:nombre` o `ruta.py:nombre`, y `--comparar` para enfrentarlo al de hoy). Con 3 semillas y 36 escenarios tarda ~2,5 min en 8 núcleos (~11 min de CPU); no está en la suite. Desde código: `medir(planificar=otro, semilla=7)` instala `otro` en lugar de `update_fiflp.plan_groups` mientras dura la medida.
 **Semillas.** 7 (la de las pruebas), 11 y 23: cambian la temporada simulada (horas de publicación de resultados y actas) y los ticks perdidos del reloj (con la 7, el reloj usa la 1, la de la prueba). `test_bot_rotacion` no tiene azar.
 
 ## Línea base (el planificador de hoy)
@@ -48,22 +50,22 @@ No se miden: `test_the_clock_without_losses_…` (no depende del planificador) y
 
 Eso es con los dos añadidos que se permiten. Con un tercero, que no cuenta, seguiría siendo peor en cinco magnitudes.
 
-**Qué se mide.** `scripts/planificador.py` es una función pura que devuelve el orden de la pasada. Aplica cuatro tramos:
+**Qué se mide.** `planificador.py` (hoy en `scripts/_archive/planificador_antiguedad/`) es una función pura que devuelve el orden de la pasada. Aplica cuatro tramos:
 1. los calientes;
 2. los prioritarios abiertos cuya última lectura completa tiene más de `max_prioritario`;
 3. los demás abiertos, por antigüedad;
 4. los cerrados sin actas pendientes, al final.
 
-`PlanNuevo`, en `frescura_planificador.py`, lo enchufa a las simulaciones con la firma de `plan_groups`, sin tocar `update_fiflp.py`. Cuatro decisiones del adaptador:
+`PlanNuevo`, en `scripts/_archive/planificador_antiguedad/adaptador.py`, lo enchufa a las simulaciones con la firma de `plan_groups`, sin tocar `update_fiflp.py`. Cuatro decisiones del adaptador:
 - **Antigüedad.** Es la más reciente entre la última lectura completa y el último intento. Si contara solo la lectura completa, un grupo que falla siempre sería el primero en todas las pasadas.
 - **Leído completo.** `status` ok y fuera de `run.extrasDeferred` (sin goleadores ni actas por hacer): es lo que el bot sabe de sí mismo. Una lectura con error solo mueve `intento`. Lo que el freno o el plazo no dejaron empezar no apunta nada, así que una pasada seca no marca nada.
 - **`max_prioritario`.** El adaptador pasa 6 h − 2 h + 30 min = 4,5 h, lo mismo que mira `stale` hoy: «en la pasada siguiente pasaría de 6 h». Con 6 h literales, los huecos serían de 8 h. No cuenta como añadido.
 - **Respaldo y estado.** El estado se guarda en memoria de una pasada a otra; en el bot iría en la caché de GitHub Actions. Para un grupo que no está en el estado se usa `checks` (`data-health.json`): la última comprobación correcta cuenta como lectura completa y una que falló, como intento. En «estado perdido cada 12» se vacían los dos a la vez.
 
 **Cómo se repite.**
-- `python3 scripts/tests/frescura_planificador.py --comparar` compara el de hoy con el nuevo con sus dos añadidos.
-- `--comparar regla` lo compara con la regla sin añadidos.
-- `--planificador nuevo` da la tabla del nuevo sola.
+- `python3 scripts/tests/frescura_planificador.py --planificador scripts/_archive/planificador_antiguedad/adaptador.py:nuevo --comparar` compara el de hoy con el nuevo con sus dos añadidos.
+- Con `:regla` en lugar de `:nuevo`, la regla sin añadidos.
+- Sin `--comparar`, da la tabla del nuevo sola.
 - Cada ejecución, unos 3 min.
 - Magnitudes nuevas, sin umbral, para el criterio de páginas: `paginas_pedidas_dia` (semana, reloj y los dos escenarios nuevos), `paginas_pedidas` (rotación) y `paginas_servidas` (cupo). Además, `prioritarios_hueco_pasadas` se mide también sin commits.
 
@@ -128,7 +130,7 @@ Eso es con los dos añadidos que se permiten. Con un tercero, que no cuenta, seg
 - `cerrados_fuera_de_epoca`: es la forma de `closed_turn`, una lectura exacta en cada época de 4 pasadas; la frescura de los cerrados es `hueco_cerrados`. Nuevo: 23 (no sigue épocas).
 - `fijos_en_todas`: es la forma de la rotación sin estado (sin `data-health.json` publicado, los prioritarios tocan en todas y se llevan el cupo los primeros por código); la frescura es `prioritarios_hueco_pasadas`. Nuevo: 0.
 
-**Los dos añadidos**, con su medida antes y después. Están en `planificar`, apagados por defecto; `PlanNuevo` los enciende con `AÑADIDOS`.
+**Los dos añadidos**, con su medida antes y después. Están en `planificar`, apagados por defecto; `adaptador.py` los enciende con `AÑADIDOS`.
 1. **`nivelar=3`** (unas 6 líneas): si en la pasada siguiente vencerían más de 3 prioritarios, los más viejos de ellos se adelantan a esta. Sin él, los prioritarios que se leyeron juntos vencen juntos. Un sábado, 3 calientes y 4 alevines vencidos no caben en ~30 páginas, y uno se va a la pasada siguiente: 8 h.
    - Regla sola → con el añadido:
      - semana, hueco de los prioritarios: 8,01 / 8,11 / 7,89 h → 6,11 / 6,12 / 7,89;
@@ -159,8 +161,8 @@ Eso es con los dos añadidos que se permiten. Con un tercero, que no cuenta, seg
   - Líneas en blanco entre ellas: ~22.
   - `daily_turn`, `extras_turn` y `run_number` se quedan, porque también los usa `run_passes`.
 - **Lo que pondría: unas 165 líneas.**
-  - `scripts/planificador.py`: 92 (unas 30 de docstrings y comentarios).
+  - `planificador.py`: 92 (unas 30 de docstrings y comentarios).
   - El adaptador (`respaldo` y `__call__` de `PlanNuevo`): ~50.
   - Guardar y leer el estado y apuntar cada pasada: ~25 más en la tarea 3 (sin escribir), además de un paso de `actions/cache` en `update.yml`.
 - **Neto: unas 60 líneas menos de código del bot**, no las ~1.100 que estimaba el plan, que contaban también `run_passes` y el freno, y esos no cambian.
-- En pruebas, saldrían unas 200 líneas: 9 pruebas de `test_bot_plazo.py` (147) y 4 de `test_bot_prioritarios.py` (51) prueban las funciones de rotación. Entran las 151 de `test_planificador.py`.
+- En pruebas, saldrían unas 200 líneas: 9 pruebas de `test_bot_plazo.py` (147) y 4 de `test_bot_prioritarios.py` (51) prueban las funciones de rotación. Entrarían las 151 de `test_planificador.py`.

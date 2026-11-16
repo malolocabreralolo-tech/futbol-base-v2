@@ -8,20 +8,22 @@ una de cada cinco pasadas, seca (la federación frena desde la primera página),
 pasada a otra (las comprobaciones de data-health.json, lo que plan_groups lee de `checks`), perdido cada 12.
 
 No es una prueba (no entra en la suite: tarda minutos). Sirve para comparar otro planificador con el de hoy:
-medir(planificar=otro) lo instala en lugar de plan_groups mientras dura la medida. El planificador por antigüedad
-(scripts/planificador.py) entra con PlanNuevo, que guarda su estado entre pasadas.
+medir(planificar=otro) lo instala en lugar de plan_groups mientras dura la medida. Así se midió el planificador por
+antigüedad, que no entró (archivado con su adaptador en scripts/_archive/planificador_antiguedad/, LEEME.md).
 
 Uso, desde la raíz del repositorio:
   python3 scripts/tests/frescura_planificador.py                    # la tabla, con las semillas 7, 11 y 23
   python3 scripts/tests/frescura_planificador.py --json             # los números, en JSON
   python3 scripts/tests/frescura_planificador.py --semillas 7 --escenarios semana tres_semanas
-  python3 scripts/tests/frescura_planificador.py --planificador nuevo        # la tabla del planificador nuevo
-  python3 scripts/tests/frescura_planificador.py --comparar [regla|nuevo]    # el de hoy contra ese
+  python3 scripts/tests/frescura_planificador.py --planificador modulo:nombre            # la tabla de otro
+  python3 scripts/tests/frescura_planificador.py --planificador ruta.py:nombre --comparar  # el de hoy contra ese
 """
 import argparse
+import importlib
+import importlib.util
 from concurrent.futures import ProcessPoolExecutor
 import contextlib
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 import itertools
 import json
 import math
@@ -38,7 +40,6 @@ AQUI = Path(__file__).resolve().parent
 sys.path.insert(0, str(AQUI.parent))
 sys.path.insert(0, str(AQUI))
 import fiflp_names  # noqa: E402
-import planificador as P  # noqa: E402
 import reloj_pasadas as R  # noqa: E402
 import source_health  # noqa: E402
 import test_bot_pasada_corta as T  # noqa: E402
@@ -57,7 +58,8 @@ ROT = "test_bot_rotacion"
 def _con(planificar, trabajo):
     """trabajo(tmp, mp) con lo que conftest.py pone a cada prueba (sin la tabla de nombres revisados y con los
     originales de las actas fuera de scripts/) y, si hay, `planificar` en lugar de plan_groups: run_passes lo
-    busca en el módulo en cada pasada (y, si tiene `instalar(mp)`, lo que necesita además: PlanNuevo). Lo que
+    busca en el módulo en cada pasada (y, si tiene `instalar(mp, medida)`, lo que necesita además; `medida`
+    es este módulo). Lo que
     imprime el bot, fuera (en las pruebas lo captura pytest). Todo se deshace al acabar."""
     mp = pytest.MonkeyPatch()
     with tempfile.TemporaryDirectory(prefix="frescura-") as d:
@@ -69,7 +71,7 @@ def _con(planificar, trabajo):
             if planificar is not None:
                 mp.setattr(U, "plan_groups", planificar)
                 if hasattr(planificar, "instalar"):
-                    planificar.instalar(mp)
+                    planificar.instalar(mp, sys.modules[__name__])
             with open(os.devnull, "w") as nada, contextlib.redirect_stdout(nada):
                 return trabajo(tmp, mp)
         finally:
@@ -229,101 +231,6 @@ def seca(tmp, mp, semilla):
 def estado_perdido(tmp, mp, semilla):
     mp.setattr(source_health, "begin", _begin_sin_estado(ESTADO_CADA))
     return _tres_semanas_con(*T.simulate(tmp, mp, days=T.LONG_DAYS, seed=semilla))
-
-
-# ── El planificador nuevo, enchufado a la simulación ──────────────────────────
-
-class PlanNuevo:
-    """Con la firma y la salida de update_fiflp.plan_groups, el orden de scripts/planificador.py. De la base y de
-    los argumentos saca cada Grupo con las funciones de hoy (is_priority, pinned_groups, hot_reason, is_closed,
-    pending_actas, _level); el estado, `{código: {"completa", "intento"}}`, lo guarda en memoria de una pasada a
-    la siguiente (en el bot, la caché de GitHub Actions) y, para un grupo que no está en él, sale de `checks`
-    (data-health.json), como haría el bot sin caché. Una instancia por medida: `instalar` la deja sin estado."""
-
-    def __init__(self, **opciones):
-        self.estado, self.opciones = {}, opciones
-
-    def instalar(self, mp):
-        """Lo que hace falta además de plan_groups: apuntar lo leído al acabar cada pasada (en run_passes, que
-        las simulaciones buscan en el módulo) y perder también este estado donde se pierde el de hoy
-        (perder_estado, que _begin_sin_estado busca en este módulo)."""
-        self.estado = {}
-        pasada, perder, modulo = U.run_passes, perder_estado, sys.modules[__name__]
-
-        def run_passes(*a, **k):
-            run = pasada(*a, **k)
-            self.apuntar_pasada(run)
-            return run
-
-        def perder_los_dos():
-            perder()
-            self.estado = {}
-        mp.setattr(U, "run_passes", run_passes)
-        mp.setattr(modulo, "perder_estado", perder_los_dos)
-
-    def apuntar_pasada(self, run):
-        """Lo que la pasada leyó, a la hora de su lectura. Completo: leído bien (status ok) y sin goleadores ni
-        actas por hacer (no está en extrasDeferred), lo mismo que el bot sabe de sí; lo que leyó con error, solo
-        un intento; lo que el freno o el plazo no dejaron empezar (unserved, deferred), nada."""
-        report = source_health._report or {}
-        cortados = set((report.get("run") or {}).get("extrasDeferred") or [])
-        for code, status in run["estados"].items():
-            at = U.checked_at(report["groups"][code])
-            self.estado = P.apuntar(self.estado, code, at, completa=status == "ok" and code not in cortados)
-
-    @staticmethod
-    def respaldo(checks):
-        """El estado que da data-health.json: su última comprobación correcta como lectura completa; una que
-        falló, como intento."""
-        out = {}
-        for code, check in (checks or {}).items():
-            at = U.checked_at(check)
-            if at is not None:
-                iso = at.isoformat(timespec="seconds")
-                out[code] = {"completa": iso, "intento": iso} if U.checked_ok(check) else {"intento": iso}
-        return out
-
-    def __call__(self, conn, groups, checks, today, number, priority=None, pinned=None, env=None, now=None):
-        if not groups:
-            return U.Plan([], [], set(), number, [], {}, set())
-        now = U._aware(now or datetime.now(timezone.utc))
-        keys = U.priority_keys(U.priority_teams() if priority is None else priority)
-        pinned = U.pinned_groups() if pinned is None else set(pinned)
-        ids = [g[0] for g in groups]
-        marks = ",".join("?" * len(ids))
-        categories = dict(conn.execute(
-            f"SELECT g.id, c.name FROM groups g JOIN categories c ON c.id=g.category_id WHERE g.id IN ({marks})", ids))
-        teams = {}
-        for gid, name in conn.execute(
-                f"""SELECT s.group_id, t.name FROM standings s JOIN teams t ON t.id=s.team_id WHERE s.group_id IN ({marks})
-                    UNION SELECT m.group_id, t.name FROM matches m JOIN teams t ON t.id IN (m.home_team_id, m.away_team_id)
-                    WHERE m.group_id IN ({marks})""", ids + ids):
-            teams.setdefault(gid, []).append(name)
-        grupos, hot = [], {}
-        for gid, code, _ in groups:
-            closed = U.is_closed(conn, gid, today)
-            mine = code in pinned or any(U.is_priority(t, keys) for t in teams.get(gid, []))
-            why = U.hot_reason(conn, gid, keys, now, checks.get(code)) if mine and not closed else None
-            if why:
-                hot[code] = why
-            grupos.append(P.Grupo(code, U._level(categories.get(gid), code), mine, bool(why), closed,
-                                  bool(U.pending_actas(conn, gid))))
-        estado = {**self.respaldo(checks), **self.estado}
-        # Lo que mira stale: un prioritario toca si en la pasada siguiente (PASS_EVERY después) pasaría de su
-        # frescura (FIFLP_PRIORITY_MAX_H) con PASS_SLACK de margen; el planificador lo mira ahora.
-        limite = U.priority_max_age(env) - U.PASS_EVERY + U.PASS_SLACK
-        opciones = {"adelanto": U.PASS_EVERY, **self.opciones}
-        orden = P.planificar(grupos, estado, now, max_prioritario=limite, **opciones)
-        primeros = P.delante(grupos, estado, now, max_prioritario=limite,
-                             **{k: v for k, v in opciones.items() if k in ("nivelar", "adelanto")})
-        rows = {g[1]: g for g in groups}
-        fresh = [rows[x.codigo] for x in grupos if x.prioritario and not x.cerrado and x.codigo not in primeros]
-        return U.Plan([rows[c] for c in orden], fresh, primeros, number, fresh, hot, set(primeros))
-
-
-# La regla sola y con sus dos añadidos (scripts/planificador.py; por qué, en docs/planificador-medidas.md).
-AÑADIDOS = {"nivelar": 3, "cerrado_cada": timedelta(days=1)}
-PLANIFICADORES = {"hoy": lambda: None, "regla": PlanNuevo, "nuevo": lambda: PlanNuevo(**AÑADIDOS)}
 
 
 # ── test_bot_rotacion ─────────────────────────────────────────────────────────
@@ -543,9 +450,26 @@ def medir(planificar=None, semilla=7, escenarios=None):
     return {n: _con(planificar, lambda tmp, mp, fn=ESCENARIOS[n][0]: fn(tmp, mp, semilla)) for n in nombres}
 
 
+def cargar(espec):
+    """El planificador de `modulo:nombre` o `ruta/fichero.py:nombre` (su carpeta entra en sys.path), o None (el de
+    hoy) sin espec."""
+    if not espec:
+        return None
+    modulo, _, nombre = espec.rpartition(":")
+    if modulo.endswith(".py"):
+        ruta = Path(modulo).resolve()
+        sys.path.insert(0, str(ruta.parent))
+        spec = importlib.util.spec_from_file_location(ruta.stem, ruta)
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+    else:
+        mod = importlib.import_module(modulo)
+    return getattr(mod, nombre)
+
+
 def _uno(args):
-    nombre, semilla, plan = args
-    return nombre, semilla, plan, medir(PLANIFICADORES[plan](), semilla, [nombre])[nombre]
+    nombre, semilla, espec = args
+    return nombre, semilla, espec, medir(cargar(espec), semilla, [nombre])[nombre]
 
 
 def _fmt(v):
@@ -655,14 +579,14 @@ def main(argv=None):
     ap.add_argument("--json", action="store_true", help="los números en JSON, sin tabla")
     ap.add_argument("--semillas", type=int, nargs="+", default=list(SEMILLAS))
     ap.add_argument("--escenarios", nargs="+", choices=list(ESCENARIOS), default=list(ESCENARIOS))
-    ap.add_argument("--planificador", choices=list(PLANIFICADORES), default="hoy",
-                    help="hoy (update_fiflp.plan_groups), regla (scripts/planificador.py sin añadidos) o nuevo (con "
-                         "los añadidos, AÑADIDOS)")
-    ap.add_argument("--comparar", nargs="?", const="nuevo", choices=[p for p in PLANIFICADORES if p != "hoy"],
-                    help="el de hoy y este (por defecto, nuevo), magnitud a magnitud")
+    ap.add_argument("--planificador", metavar="MODULO:NOMBRE",
+                    help="otra función con la firma de plan_groups (modulo:nombre o ruta.py:nombre); sin ella, la de hoy")
+    ap.add_argument("--comparar", action="store_true", help="el de hoy contra --planificador, magnitud a magnitud")
     args = ap.parse_args(argv)
     inicio = time.monotonic()
-    planes = ["hoy", args.comparar] if args.comparar else [args.planificador]
+    if args.comparar and not args.planificador:
+        ap.error("--comparar necesita --planificador")
+    planes = [None, args.planificador] if args.comparar else [args.planificador]
     trabajos = [(n, s, p) for p in planes for s in args.semillas for n in args.escenarios]
     # Un proceso por escenario, semilla y planificador: cada uno con su propio monkeypatch, sin estado compartido.
     medidas = {p: {s: {} for s in args.semillas} for p in planes}
@@ -672,10 +596,10 @@ def main(argv=None):
     # El orden de los escenarios, el pedido.
     medidas = {p: {s: {n: m[s][n] for n in args.escenarios} for s in args.semillas} for p, m in medidas.items()}
     if args.json:
-        datos = {p: {str(s): v for s, v in m.items()} for p, m in medidas.items()}
-        print(json.dumps(datos if args.comparar else datos[planes[0]], ensure_ascii=False, indent=1))
+        datos = {p or "hoy": {str(s): v for s, v in m.items()} for p, m in medidas.items()}
+        print(json.dumps(datos if args.comparar else datos[planes[0] or "hoy"], ensure_ascii=False, indent=1))
     elif args.comparar:
-        print(tabla_comparada(comparar(medidas["hoy"], medidas[args.comparar], args.semillas)))
+        print(tabla_comparada(comparar(medidas[None], medidas[args.planificador], args.semillas)))
     else:
         print(tabla(medidas[planes[0]], args.semillas))
     print(f"\n{len(trabajos)} medidas en {time.monotonic() - inicio:.0f} s", file=sys.stderr)
