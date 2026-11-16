@@ -90,6 +90,31 @@ def test_fichero_que_no_es_sqlite_no_ok(tmp_path):
     assert len(r["motivos"]) == 1 and r["motivos"][0].startswith(INTEGRIDAD), r["motivos"]
 
 
+VACIA = "la base de datos está vacía"
+
+
+@pytest.mark.parametrize("caso", ["cero-bytes", "sin-tablas"])
+def test_base_vacia_no_ok(tmp_path, caso):
+    """Un fichero de 0 bytes o una base sin ninguna tabla pasan integrity_check (SQLite las ve sanas), pero subir
+    eso borraría la web: no está bien."""
+    db = tmp_path / "futbolbase.db"
+    if caso == "cero-bytes":
+        db.write_bytes(b"")
+    else:
+        con = sqlite3.connect(db)
+        con.execute("PRAGMA journal_mode=WAL")
+        con.execute("PRAGMA user_version = 1")
+        con.commit()
+        con.close()
+    r = base_sana.comprobar(db)
+    assert r["ok"] is False
+    assert r["motivos"] == [VACIA]
+    done = subprocess.run([sys.executable, str(ROOT / "scripts" / "base_sana.py"), "--db", str(db)],
+                          capture_output=True, text=True, timeout=120)
+    assert done.returncode == 1, done.stdout + done.stderr
+    assert done.stdout.splitlines() == [VACIA], done.stdout
+
+
 def test_sin_fichero_no_ok_y_no_lo_crea(tmp_path):
     db = tmp_path / "futbolbase.db"
     r = base_sana.comprobar(db)

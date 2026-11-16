@@ -7,6 +7,7 @@ Mira, por este orden:
     (.gitignore), así que lo que se quedara en él se perdería; se vuelca (wal_checkpoint(TRUNCATE)) y se
     comprueba que no queda nada;
   - PRAGMA integrity_check (la entera, no quick_check: unos segundos con la base real);
+  - que tenga alguna tabla: un fichero de 0 bytes o recién creado pasa integrity_check y borraría la web;
   - PRAGMA foreign_key_check;
   - el tamaño: desde AVISO_MB la web lo dice (data-health.json, `base`); desde PARADA_MB no se sube, porque
     GitHub rechaza ficheros de 100 MB y el push fallaría en cada pasada.
@@ -59,6 +60,8 @@ def comprobar(db_path) -> dict:
             filas = con.execute("PRAGMA integrity_check").fetchall()
             if filas != [("ok",)]:
                 motivos.append(_integridad(filas[0][0] if filas else "sin respuesta"))
+            elif con.execute("SELECT count(*) FROM sqlite_master WHERE type = 'table'").fetchone()[0] == 0:
+                motivos.append("la base de datos está vacía")
             else:
                 rotas = con.execute("PRAGMA foreign_key_check").fetchall()
                 if rotas:
