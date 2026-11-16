@@ -12,10 +12,15 @@ Para cada fichero del alcance (src/*.js, sw.js, index.html, scripts/*.py, script
 - index.html: sin comentarios HTML ni espacios de principio y fin de línea, y el JS de cada <script> en
   línea pasado por el mismo esbuild.
 
+Con --pruebas mira en su lugar las pruebas (scripts/tests/*.py, scripts/tests/*.mjs y los ayudantes .mjs de
+fixtures/rediseno y fixtures/config-2026-2027) con las mismas comparaciones. Los nombres de las pruebas y los
+textos de test('…') son código, así que un cambio en ellos sale en rojo. fixtures/app-anterior es una copia
+congelada de la web anterior y no entra, y la propia guardia tampoco (es lo que se amplía).
+
 No es una prueba de pytest: se lanza a mano antes de un commit que solo toca comentarios.
 
 Uso, desde la raíz del repositorio:
-  python3 scripts/tests/solo_comentarios.py <commit base>
+  python3 scripts/tests/solo_comentarios.py [--pruebas] <commit base>
 Sale con 0 y la lista de ficheros comprobados; con 1, el fichero y la primera diferencia; con 2 si falta
 esbuild o el commit no existe.
 """
@@ -31,6 +36,8 @@ from pathlib import Path, PurePosixPath
 ROOT = Path(__file__).resolve().parents[2]
 ESBUILD = ROOT / "scripts" / "empaquetar" / "node_modules" / "esbuild"
 ALCANCE = ["src/*.js", "sw.js", "index.html", "scripts/*.py", "scripts/*.mjs"]
+ALCANCE_PRUEBAS = ["scripts/tests/*.py", "scripts/tests/*.mjs", "scripts/tests/fixtures/rediseno/*.mjs",
+                   "scripts/tests/fixtures/config-2026-2027/*.mjs"]
 PRECACHE_INICIO = "// >>> precache: lo escribe scripts/precache.py"
 PRECACHE_FIN = "// <<< precache"
 
@@ -60,9 +67,11 @@ class Diferencia(Exception):
     pass
 
 
-def en_alcance(rel):
+def en_alcance(rel, alcance=ALCANCE):
+    if alcance is ALCANCE_PRUEBAS and rel == "scripts/tests/solo_comentarios.py":
+        return False
     path = PurePosixPath(rel)
-    return any(path.match(pattern) and len(path.parts) == len(PurePosixPath(pattern).parts) for pattern in ALCANCE)
+    return any(path.match(pattern) and len(path.parts) == len(PurePosixPath(pattern).parts) for pattern in alcance)
 
 
 def git(*args):
@@ -216,16 +225,19 @@ def comparar(rel, antes, ahora):
 
 
 def main(argv):
+    pruebas = "--pruebas" in argv
+    argv = [arg for arg in argv if arg != "--pruebas"]
     if len(argv) != 1:
         print(__doc__.strip().split("\n\n")[-1])
         return 2
     base = argv[0]
+    alcance = ALCANCE_PRUEBAS if pruebas else ALCANCE
     try:
         git("rev-parse", "--verify", f"{base}^{{commit}}")
     except subprocess.CalledProcessError:
         print(f"{base} no es un commit de este repositorio")
         return 2
-    cambiados = [rel for rel in git("diff", "--name-only", base, "--").split("\n") if rel and en_alcance(rel)]
+    cambiados = [rel for rel in git("diff", "--name-only", base, "--").split("\n") if rel and en_alcance(rel, alcance)]
     if not ESBUILD.exists() and any(rel.endswith((".js", ".mjs", ".html")) for rel in cambiados):
         print(f"falta esbuild ({ESBUILD}): npm ci --prefix scripts/empaquetar")
         return 2
