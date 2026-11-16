@@ -1,9 +1,8 @@
 """Cuándo está lista una página de la federación y cuánto espera el bot entre una y otra (fiflp_carga.py).
 
-Hasta octubre de 2026 cada página costaba ~6,8 s en el bot (2,5 s fijos tras cargar y 2-3,5 s de
-pausa): 33 grupos eran 19 min de primera pasada. Ahora la carga espera a lo que el lector necesita
-(las hojas de estilo de la federación, de las que salen las cifras que lee el aplanado, y el
-desplegable que rellena su JS), con tope, y la pausa es menor y configurable (FIFLP_DELAY).
+La carga espera a lo que el lector necesita (las hojas de estilo de la federación, de las que salen las
+cifras que lee el aplanado, y el desplegable que rellena su JS), con tope, y la pausa es corta y
+configurable (FIFLP_DELAY): con esperas fijas, cada página costaría ~6,8 s y 33 grupos serían 19 min.
 Sin red: una página falsa o un servidor local con Chromium (si no está, esas pruebas se saltan).
 """
 from datetime import datetime, timedelta, timezone
@@ -438,7 +437,7 @@ def test_a_streak_of_dead_pages_while_another_page_loads_is_not_the_brake():
 def test_with_no_page_loaded_yet_the_season_catalog_tells_dead_pages_from_the_brake():
     """Las dos URLs muertas, las primeras de la pasada: aún no ha cargado ninguna página que volver a pedir.
     El bot prueba la de competiciones de la temporada (CATALOG_URL, que existe siempre): si carga, no es el
-    freno (antes: «como el freno», tres pausas de 5 min y sus grupos sin error, en cada pasada)."""
+    freno."""
     b = Brake(start=10 ** 9)
     fed, page = b.fed(deadline=1000.0 + 25 * 60), b.page()
     catalog = BASE + "/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22"
@@ -500,8 +499,8 @@ def test_a_503_or_a_429_is_a_brake_signal_without_asking_another_page():
 
 def test_no_page_starts_past_the_deadline_after_its_interval():
     """El plazo se mira cuando la página EMPEZARÍA, tras la espera del intervalo: con el plazo dentro de esa
-    espera, no se pide, y no cuenta como fallo de la federación. Antes se miraba antes de esperar, y una
-    página podía empezar hasta un intervalo (7 s, 14 tras frenar) pasado el plazo. La espera sí se hace: el
+    espera, no se pide, y no cuenta como fallo de la federación. Si se mirara antes de esperar, una
+    página podría empezar hasta un intervalo (7 s, 14 tras frenar) pasado el plazo. La espera sí se hace: el
     bot ve el plazo agotado (clock() > deadline) y deja el resto para otra pasada."""
     b = Brake(start=10 ** 9)
     fed, page = b.fed(deadline=1005.0), b.page()
@@ -545,8 +544,8 @@ class ClosedPage(FakePage):
 
 def test_a_closed_browser_is_not_the_federation_braking():
     """Si Chromium cae (la página o el navegador cerrados), no es la federación: ni reintentos ni pausas
-    largas, y nada más en esta pasada (`closed`, `blocked`). Antes: tres páginas «no carga» con sus esperas,
-    tres pausas de 5 min («la federación frena») y sus grupos sin error, como un freno."""
+    largas, y nada más en esta pasada (`closed`, `blocked`): no son tres páginas «no carga» con sus esperas
+    y tres pausas de 5 min («la federación frena») con sus grupos sin error, como un freno."""
     b = Brake(start=10 ** 9)
     fed = b.fed(deadline=1000.0 + 25 * 60)
     page = ClosedPage(serves=2)

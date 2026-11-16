@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 """
-DB and generated-JS integrity tests — catch the kinds of regressions we hit
-during the 2021-22 re-scrape (per-season files lagging DB, standings format
-drift, missing groups, duplicate matches).
+DB and generated-JS integrity tests — catch per-season files lagging DB, standings format drift,
+missing groups and duplicate matches.
 
 Run: python3 -m pytest scripts/tests/test_data_integrity.py -v
 """
@@ -207,8 +206,8 @@ class TestGeneratedFiles:
 
     def test_per_season_files_match_db_codes(self):
         """Codes in each per-season file must match codes in DB for that season.
-        Catches the regression we fixed 2026-05-08 (GC1 in DB but missing in
-        per-season file because the file was hand-maintained, not auto-gen)."""
+        Catches a code in DB but missing in a per-season file (e.g. GC1, when the file was
+        hand-maintained, not auto-gen)."""
         c = _conn()
         seasons = _load_seasons_js()
         for entry in seasons:

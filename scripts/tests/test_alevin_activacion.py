@@ -61,10 +61,10 @@ def test_comp_meta_codes(name, meta):
 
 
 @pytest.mark.parametrize("name", [
-    "LIGA ALEVIN LANZAROTE FASE 1",              # antes: LZ, benjamín (chocaba con LZ1-5)
+    "LIGA ALEVIN LANZAROTE FASE 1",              # alevín: el prefijo LZ chocaría con LZ1-5
     "LIGA ALEVIN FUERTEVENTURA F7 1ª FASE",
     "LIGA ALEVIN FUTBOL SALA GRAN CANARIA",
-    "COPA CAMPEONES PREBENJAMIN",                # antes: PG (chocaba con PG1-4)
+    "COPA CAMPEONES PREBENJAMIN",                # el prefijo PG chocaría con PG1-4
     "TORNEO CLAUSURA TEMPORADA PREBENJAMIN",
     "COPA CAMPEONES BENJAMÍN",
     # Las eliminatorias de Lanzarote y Fuerteventura (el catálogo de 2026-27 ya las tiene en sénior)
@@ -199,7 +199,7 @@ def test_the_acta_code_of_the_raw_is_kept_at_activation():
     manifest = alevin_manifest(raw)
     add_groups(conn, manifest, verify_sources(manifest, fiflp_raw=raw, names=NAMES))
     assert conn.execute("SELECT fiflp_acta, home_score FROM matches").fetchone() == (281234, 3)
-    # Sin código en el raw (los de antes de octubre de 2026), la fila de siempre, de 7 columnas.
+    # Sin código en el raw (los antiguos), la fila de siempre, de 7 columnas.
     plain = [group("54976940", ALEVIN, 1, TEAMS)]
     assert fiflp_evidence(alevin_manifest(plain)["groups"][0], plain, NAMES)[0]["Jornada 1"][0][-1] == "CAMPO"
 
@@ -380,9 +380,9 @@ def test_the_alevin_quota_takes_turns_by_the_pass_number_even_without_commits(mo
 
 
 def test_a_base_with_the_old_turn_table_still_works_and_it_is_not_used(monkeypatch):
-    """La primera versión del turno de alevín guardaba en la base cuándo se leyó cada grupo (fiflp_reads,
-    descartada: ese estado no se sube en una pasada sin cambios). Ninguna base publicada la tiene, pero
-    una que la tenga (una copia local de entonces) sigue valiendo: nadie la lee ni la escribe."""
+    """Un turno de alevín guardado en la base (fiflp_reads: cuándo se leyó cada grupo) no se usa: ese estado
+    no se sube en una pasada sin cambios. Ninguna base publicada lo tiene, pero una que lo tenga (una copia
+    local) sigue valiendo: nadie la lee ni la escribe."""
     monkeypatch.setattr(U, "flatten", lambda page, selector=None: 0)
     conn = _bot_base()
     conn.execute("CREATE TABLE fiflp_reads (group_id INTEGER PRIMARY KEY, read_at TEXT)")

@@ -586,7 +586,7 @@ def test_both_passes_end_to_end_with_a_simulated_federation(monkeypatch, number)
 
 def past_base():
     """2025-26 con el Tamaraceite–Huracán del acta TAMA y otro partido con un acta
-    importada antes de octubre de 2026 (sin aplanar)."""
+    importada sin aplanar."""
     conn = sqlite3.connect(":memory:")
     conn.executescript(SCHEMA)
     migrate(conn)

@@ -1,8 +1,8 @@
-"""El esquema compacto de las actas (migrate_compactar, 10/2026): appearances WITHOUT ROWID con el orden del
+"""El esquema compacto de las actas (migrate_compactar): appearances WITHOUT ROWID con el orden del
 acta (ord), match_staff como vista de match_staff_all, los índices que sobran fuera y el de pair_id dentro.
 
 Sobre bases sintéticas (nombres inventados) con el esquema de antes, tal como lo dejaba
-migrate_actas_schema hasta octubre de 2026."""
+migrate_actas_schema antes de compactar."""
 import sqlite3
 import sys
 from pathlib import Path

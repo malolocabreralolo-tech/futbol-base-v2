@@ -653,7 +653,7 @@ try {
   await page.reload();
   await page.locator(HOME).waitFor();
   await opening('con el SW nuevo', 'nueva');
-  // Lo instalado va en futbolbase2-precache, con clave <ruta>?h=<huella> (antes, en CACHE_NAME sin query).
+  // Lo instalado va en futbolbase2-precache, con clave <ruta>?h=<huella>.
   const config = await page.evaluate(async () => {
     const response = await (await caches.open('futbolbase2-precache')).match('./src/config.js', { ignoreSearch: true });
     return response ? response.text() : null;

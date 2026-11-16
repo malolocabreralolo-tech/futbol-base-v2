@@ -193,11 +193,9 @@ def test_update_has_concurrency_and_timeout():
     assert conc, "update.yml must declare a concurrency group"
     assert conc.get("group") == "update-data"
     assert conc.get("cancel-in-progress") is False
-    # 45 desde 2026/27: los grupos de la federación se leen con navegador. 55 desde el 15/10/2026: el
-    # plazo del bot pasa de 25 a 33 min (update_fiflp.DEADLINE_SECONDS: la federación sirve ~15 páginas
-    # por IP y frena ~5 min, y el plazo se mide en vueltas), y el resto del job son 4-8 min más. 40 desde
-    # el 16/10/2026: pasadas cortas (16 min de plazo; una espera del freno por pasada), cada 2 h (desde el
-    # 17/10/2026 las lanza reloj.yml: cada 2 h, y cada hora en las ventanas de partidos).
+    # 40 min: pasadas cortas (16 min de plazo; una espera del freno por pasada: la federación sirve ~15
+    # páginas por IP y frena ~5 min), y el resto del job son 4-8 min más. Las lanza reloj.yml: cada 2 h, y
+    # cada hora en las ventanas de partidos.
     assert data["jobs"]["update"].get("timeout-minutes") == 40
 
 
@@ -370,8 +368,7 @@ def test_two_passes_in_a_row_do_not_step_on_each_other():
     pisan: la concurrency update-data las pone en fila (sin cancelar la que corre); cada una parte del main de
     cuando arranca (checkout ref: main), con la base y data-health.json que subió la anterior; y al subir,
     si main se ha movido (una tanda sube su raw), se rebasa con --autostash y se reintenta, también el
-    diagnóstico de una pasada fallida (hasta el 16/10/2026, un git push a secas que fallaba si main se
-    movía). Un conflicto aborta el rebase y se deja para la pasada siguiente."""
+    diagnóstico de una pasada fallida. Un conflicto aborta el rebase y se deja para la pasada siguiente."""
     data = _load("update.yml")
     steps = _steps(data, "update")
     checkout = next(s for s in steps if str(s.get("uses", "")).startswith("actions/checkout"))
@@ -610,9 +607,9 @@ def test_update_prints_the_runner_ip_before_the_bot_and_never_fails():
 
 
 def test_update_no_abre_issues():
-    """Sin aviso por issue de las competiciones nuevas (13/11/2026): el repositorio tiene las issues
-    desactivadas, el paso (avisar_competiciones.py) fallaba en cada pasada tapado por continue-on-error y
-    no se quieren avisos fuera de la web. Las nuevas siguen en newCompetitions de data-health.json, que
+    """Sin aviso por issue de las competiciones nuevas: el repositorio tiene las issues desactivadas (un paso
+    que las abriera fallaría en cada pasada, tapado por continue-on-error) y no se quieren avisos fuera de
+    la web. Las nuevas siguen en newCompetitions de data-health.json, que
     enseña «Datos y fuentes» (update_fiflp.check_competitions)."""
     data = _load("update.yml")
     # actions: write, solo para lanzar activar.yml (su paso, el único con GH_TOKEN).

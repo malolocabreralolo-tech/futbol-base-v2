@@ -169,7 +169,7 @@ test('todo el calendario: el 20/10/2025, la 3 de PG2, la 4, la 10 y la última, 
   const ctx = ctxOf('jornada', { g: 'PG2' });
   const group = ctx.model.group(PORTAL_SEASON, 'PG2');
   assert.equal(forecastOptions(ctx).full, true, 'la web, con todo el calendario');
-  // El horizonte de antes (sin full) sigue en pronostico.js, pero la web ya no corta en él.
+  // El horizonte (sin full) sigue en pronostico.js, pero la web no corta en él.
   assert.equal(horizonOf(group, TODAY), '2025-10-29', 'seis días después del primero de la 3 (el 23)');
   const last = group.rounds[group.rounds.length - 1].key;
   const ahead = { 'Jornada 3': 1, 'Jornada 4': 2, 'Jornada 10': 8, [last]: 28 };

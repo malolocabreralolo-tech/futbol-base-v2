@@ -174,9 +174,8 @@ class TestShortGroupsAreProtectedToo:
 
 class TestFailedStandingsDownloadSkipsTheGroup:
     """Si mostrar_clasi.php falla no se puede comprobar nada, así que el grupo
-    entero se salta. Antes el guard ni se llamaba y los partidos entraban a
-    ciegas: un 500 transitorio en septiembre metía la temporada nueva en los
-    grupos de la vieja sin poner el run rojo."""
+    entero se salta: sin el guard, los partidos entrarían a ciegas y un 500 transitorio en septiembre
+    metería la temporada nueva en los grupos de la vieja sin poner el run rojo."""
 
     def test_the_call_site_passes_an_empty_table_when_the_download_failed(self):
         import re

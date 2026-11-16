@@ -957,8 +957,8 @@ class TestMatchKeyCollisions:
     """MATCH_DETAIL y LINEUPS_<S> se indexan por `local|visitante|gl-gv`, que no
     es única: 'CD Calero|La Garita|1-11' es un partido de FF15 (benjamín) y
     otro de PG2 (prebenjamín), y al activar 2026/27 chocarán claves entre
-    temporadas (la consulta de MATCH_DETAIL no filtra temporada). Antes ganaba
-    el último partido y el otro desaparecía en silencio. Ahora cada entrada
+    temporadas (la consulta de MATCH_DETAIL no filtra temporada); si ganara el último partido, el otro
+    desaparecería en silencio. Por eso cada entrada
     lleva s (temporada) y gr (código de grupo), LINEUPS además cod
     (matches.cod_acta), y una clave repetida sale como {dup: true, list: [...]}."""
 

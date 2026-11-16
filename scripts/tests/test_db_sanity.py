@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-DB sanity tests — regressions for the 2026-06-11 data cleanup:
+DB sanity tests — regressions for the data cleanup:
   (a) no score > 50 (parser once captured DOM ids like 41736 as away_score)
   (b) no duplicate matches per group once the jornada label is normalized
       ('Jornada 5' vs '5' — double import of FF1-FF23 in 2025-2026)

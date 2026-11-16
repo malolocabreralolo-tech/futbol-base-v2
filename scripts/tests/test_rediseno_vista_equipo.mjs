@@ -89,8 +89,8 @@ const HOME = {
   'A con menos de cinco resultados': [{ raw: currentAt('2025-10-25'), today: '2025-10-25' }, 'a0b05c59cc9116f2710597f6c59a57e0a9aa3b5a'],
   'A con la hora por confirmar': [{ raw: untimedJ18(), today: '2026-03-01' }, 'e0c45a26160ff1fc042be442b64f54b51179b3c4'],
 };
-// Las huellas de esos tres antes de las líneas del calendario (el pronóstico, solo bajo el próximo partido);
-// desde el 19/10/2026, sin la evolución de puntos.
+// Las huellas de esos tres antes de las líneas del calendario (el pronóstico, solo bajo el próximo partido),
+// sin evolución de puntos.
 const BEFORE_CALENDAR = {
   A: '115f4142f5be33054c2be4d82ebd01eb60e9ea17',
   'A con menos de cinco resultados': 'e6c45c665b3b2799fe88e1051cd1b938c962636f',

@@ -67,7 +67,7 @@ test('followed: limpia, alterna (el nuevo el primero), guarda en su clave y «Bo
   assert.equal(saveFollowed(blocked, list), false);
 });
 
-// Antes la ruta solo aceptaba un número (el id de la federación); ahora, cualquier clave pública.
+// La ruta acepta cualquier clave pública (el id de la federación o la clave propia de una ficha).
 test('ruta: #/jugador?id con una clave (un número o «n» + 9 cifras en base 36); cualquier otra cosa se queda sin id', () => {
   assert.equal(playerHref(ID), `#/jugador?id=${ID}`);
   assert.equal(playerHref(SIN_ID), `#/jugador?id=${SIN_ID}`);

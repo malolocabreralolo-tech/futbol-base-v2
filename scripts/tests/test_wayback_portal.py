@@ -1,4 +1,4 @@
-"""Las temporadas antiguas de futbolaspalmas.com desde Wayback (2026-10): los lectores de sus
+"""Las temporadas antiguas de futbolaspalmas.com desde Wayback: los lectores de sus
 tres formatos (páginas reales en fixtures/wayback/) y su importación."""
 import gzip
 import json

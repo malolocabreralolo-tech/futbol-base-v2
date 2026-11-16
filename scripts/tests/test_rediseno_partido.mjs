@@ -348,8 +348,8 @@ test('previousMeetings: equipos con el mismo nombre normalizado, nunca mezclados
   });
   assert.deepEqual(previousMeetings(pastModel([ambiguous]), ['2024-2025'], { home: 'Barrial', away: 'Arucas' }, 'prebenjamin'), []);
 
-  // 3) El partido actual enfrenta a dos equipos que normalizan igual entre sí: antes, el bucle
-  // (a,b)/(b,a) sobre headToHead (que ya da los dos sentidos) contaba cada partido dos veces.
+  // 3) El partido actual enfrenta a dos equipos que normalizan igual entre sí: un bucle (a,b)/(b,a) sobre
+  // headToHead (que ya da los dos sentidos) contaría cada partido dos veces.
   const self = pastRawGroup('PGX3', {
     '1': [['05/10', 'UD Barrial', 'Barrial Atl.', 3, 0, null, '10:00', '']],
     '2': [['12/10', 'Barrial Atl.', 'UD Barrial', 1, 1, null, '10:00', '']],

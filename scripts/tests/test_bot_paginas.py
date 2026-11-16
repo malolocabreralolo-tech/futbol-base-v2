@@ -61,7 +61,7 @@ def window(today, back, ahead, options):
 @pytest.mark.parametrize("offset", range(14))
 def test_the_window_reads_the_last_played_round_and_the_next_one_and_little_more(offset):
     """Cualquier día de dos semanas: la última jornada jugada (o la de hoy) y la próxima, siempre; como mucho
-    tres jornadas de la ventana (antes, 5-6)."""
+    tres jornadas de la ventana."""
     today = date(2026, 10, 12) + timedelta(days=offset)
     options = calendar()
     got = picked(options, today)
@@ -111,8 +111,8 @@ def test_the_first_full_read_of_a_new_group_does_not_change():
 
 
 def test_what_is_no_longer_reread_is_a_complete_round_two_or_three_weeks_old():
-    """Lo que se deja de hacer, a propósito: una jornada COMPLETA de hace 11-21 días ya no se relee (antes,
-    sí). Una corrección de un resultado tan tardía no la ve la jornada; el acta (que manda) sí se lee, y
+    """Lo que se deja de hacer, a propósito: una jornada COMPLETA de hace 11-21 días no se relee. Una corrección
+    de un resultado tan tardía no la ve la jornada; el acta (que manda) sí se lee, y
     la clasificación, en cada pasada."""
     options = calendar()
     today = date(2026, 10, 15)                                  # la 4 (10/10) y la 3 (3/10): 5 y 12 días
@@ -231,7 +231,7 @@ def scrape(monkeypatch):
                          ids=["miércoles", "sábado"])
 def test_a_group_costs_fewer_pages(scrape, today, now, before):
     """Un grupo de liga semanal con todo lo jugado al día: un miércoles, 4 páginas (clasificación, calendario,
-    la jornada del sábado pasado y la del que viene); un sábado, 5 (también la de hoy). Antes, 7 y 8."""
+    la jornada del sábado pasado y la del que viene); un sábado, 5 (también la de hoy)."""
     urls, rounds = scrape(today)
     assert len(urls) == now and len(rounds) == now - 2
     old, _ = scrape(today, back=21, ahead=14)

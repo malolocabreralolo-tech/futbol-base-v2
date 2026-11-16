@@ -2,8 +2,8 @@
 scripts/migrate_categories.py), con alevín de Gran Canaria como tercera categoría.
 
 Todo lo que importa de la federación decide la categoría de una competición con
-categorias.category_of: antes, cada importador tenía su copia y todo lo que no era
-prebenjamín acababa en benjamín, alevín incluido.
+categorias.category_of, una sola para todos los importadores: lo que no es prebenjamín no puede acabar
+en benjamín, alevín incluido.
 """
 import json
 import sqlite3

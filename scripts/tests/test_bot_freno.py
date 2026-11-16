@@ -246,7 +246,7 @@ def test_the_1103_brake_passes_after_the_brake_wait_and_the_pass_goes_on(bot, ca
             "60 s, hasta las 03:49 UTC como mucho\n") in log
     assert "      la federación vuelve a servir a los 240 s: se sigue\n" in log
     assert "error" not in log and "sin federación" not in log
-    # Al mismo ritmo el resto de la pasada (antes, ×1,5): 7 s entre el inicio de dos peticiones.
+    # Al mismo ritmo el resto de la pasada: 7 s entre el inicio de dos peticiones.
     resumed = next(i for i, (t, u) in enumerate(web.starts) if u.endswith("&CodJornada=4") and t > web.brake_from + 240)
     starts = [t for t, _ in web.starts[resumed:]]
     assert len(starts) > 20 and min(b - a for a, b in zip(starts, starts[1:])) >= 7.0
@@ -441,8 +441,7 @@ def test_after_a_late_resume_no_page_starts_past_the_deadline(bot, capsys):
 
 
 def test_a_group_cut_by_the_deadline_waits_for_another_pass(bot, capsys):
-    """Ninguna página empieza pasado el plazo global, tampoco a mitad de un grupo (antes, el último grupo
-    se pasaba de él; tras una pausa larga podría pasarse más): Federacion no la pide, y el grupo, que no
+    """Ninguna página empieza pasado el plazo global, tampoco a mitad de un grupo: Federacion no la pide, y el grupo, que no
     acabó, conserva su última comprobación sin escribir nada (plazo agotado, como lo que no cabe). Aquí,
     páginas de 30 s y 110 s de plazo: la jornada 4 de PG2 empezaría a los 124. (El informe anterior, de
     hace más de 24 h: si no, sin cambios, no se reescribiría y no se vería `run`.)"""
@@ -547,8 +546,7 @@ def test_two_dead_urls_at_the_start_of_the_pass_are_still_errors(bot, capsys):
     """Como la anterior, pero los dos muertos son los dos primeros de la pasada (PG2 y FF5: los prioritarios
     van siempre los primeros, en el mismo orden). Aún no ha cargado ninguna página que volver a pedir: el bot
     prueba la página de competiciones de la temporada, que existe siempre. Carga: no es el freno, los dos
-    como error y la pasada sigue (antes: tres pausas de 5 min, la pasada perdida y los dos con su «ok» de
-    antes, en cada pasada)."""
+    como error y la pasada sigue."""
     data, web, F, log = bot(capsys, dead={"PG2", "FF5"})
     groups = data["groups"]
     assert groups["PG2"]["status"] == groups["FF5"]["status"] == "error"
@@ -564,7 +562,7 @@ def test_a_short_brake_of_error_pages_is_not_an_error(bot, capsys, cost, lasts):
     """Un 503 (o un 429) es la federación que no sirve («no disponible», «demasiadas peticiones»), no la
     página: es señal del freno aunque no llegue a la racha de tres páginas. Un freno con 503 que se pasa
     antes de la racha (60-190 s a 7 s por página) o justo antes de comprobar si la federación sirve otra
-    (154 s) no deja a AL4 como error ni mueve su hora (antes: «error», «no carga la jornada 4»)."""
+    (154 s) no deja a AL4 como error ni mueve su hora."""
     previous = report()
     data, web, F, log = bot(capsys, previous=previous, web=Refusing, serve=SERVED_1103, lasts=lasts, cost=cost)
     assert data["groups"]["AL4"] == previous["groups"]["AL4"] and "AL4" in data["run"]["unserved"]

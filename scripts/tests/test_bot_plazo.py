@@ -222,8 +222,7 @@ def test_the_turns_are_four_fixed_blocks_whatever_the_size():
 
 def test_the_part_of_a_turn_left_out_changes_from_one_day_to_the_next():
     """spin: si el plazo solo deja leer el principio de un turno, lo que queda fuera cambia de una época
-    (cuatro pasadas) a otra; con hasta un tercio fuera, ningún grupo se queda fuera dos seguidas. Antes
-    el corte caía siempre en la cola de un turno que avanzaba un puesto cada cuatro pasadas."""
+    (cuatro pasadas) a otra; con hasta un tercio fuera, ningún grupo se queda fuera dos seguidas."""
     assert U.spin(list("abcde"), 0) == list("abcde") and U.spin([], 7) == []
     for size in range(1, 40):
         items = list(range(size))
@@ -237,8 +236,7 @@ def test_the_part_of_a_turn_left_out_changes_from_one_day_to_the_next():
 def test_the_margin_and_the_rest_are_interleaved():
     """Si el plazo corta el margen (el turno siguiente), corta a todos los niveles por igual y el primero
     de cada uno entra antes que el segundo de ninguno: con una pasada perdida cada día, el margen de la
-    anterior lee algo de cada nivel (antes, la cuota de alevín se lo llevaba todo y benjamín no se
-    recuperaba)."""
+    anterior lee algo de cada nivel (si la cuota de alevín se lo llevara todo, benjamín no se recuperaría)."""
     assert U.interleave([list("abc"), ["x"], list("123456")]) == ["a", "x", "1", "2", "b", "3", "4", "c", "5", "6"]
     assert U.interleave([[], ["x"], []]) == ["x"] and U.interleave([]) == []
 

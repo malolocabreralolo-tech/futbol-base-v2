@@ -378,8 +378,7 @@ def test_a_pass_lost_every_day_at_the_same_hour_does_not_starve_its_turn(tmp_pat
     misma hora cada día: una franja en que bloquea o se cae). El turno de esa pasada lo lee el margen
     de la anterior: con ~3 s por página, todo grupo se lee (con sus goleadores) al menos una vez en cada
     cuatro pasadas, la perdida incluida; con 4 s, el margen no da para el turno entero, pero cada día
-    lee otra parte (spin): al menos una vez en cada ocho. Antes, a 3,8 s, FF1 y FF2 pasaban 17
-    seguidas sin leer y a 4,5 s algunos no se leían en toda la semana."""
+    lee otra parte (spin): al menos una vez en cada ocho."""
     lost = {i for i in range(28) if i % 4 == phase}
     passes, everyone = simulate(tmp_path, monkeypatch, commits=False, numbers=range(1000, 1028), page=page, lost=lost)
     check(passes, everyone, page=page, most=most)

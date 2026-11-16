@@ -144,7 +144,7 @@ def test_option_round_reads_the_real_federation_format():
 @pytest.mark.parametrize("text", ["14-11-2026 ( Única )", " 14-11-2026 ( Única ) "])
 def test_the_single_round_of_a_cup_keeps_its_label_and_gets_its_date(text):
     """La jornada única de la copa (CGC1, Copa Benjamín de Gran Canaria 2026-27): su opción no trae « - »
-    entre número y fecha, y hasta el 14/11/2026 quedaba sin fecha: el día de los partidos no se releía
+    entre número y fecha, y sin fecha el día de los partidos no se releería
     («0 jornadas leídas» en cada pasada). La fecha sale de la primera que haya en el texto; la etiqueta, la
     de siempre (la guardada en la base: otra duplicaría sus partidos)."""
     assert U.option_round(text) == ("Jornada 14-11-2026 ( Única )", date(2026, 11, 14))
@@ -164,7 +164,7 @@ def test_rounds_to_refresh_recent_new_and_overdue_only():
                {"value": "10", "text": "10 - 08-03-2027"}]
     picked = [o["value"] for o in U.rounds_to_refresh(options, stored, today)]
     # 3: reciente; 2: resultado pendiente desde hace 49 días; 10: nueva; 9: lejana y ya guardada. La 1, completa
-    # y de hace 17 días, ya no (15/10/2026: la ventana es de 10 días atrás; antes, 21, y se releía).
+    # y de hace 17 días, ya no (la ventana es de 10 días atrás).
     assert picked == ["2", "3", "10"]
 
 

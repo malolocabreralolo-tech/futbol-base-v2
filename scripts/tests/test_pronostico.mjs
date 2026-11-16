@@ -429,7 +429,7 @@ test('el entrenamiento: solo jornadas anteriores, con marcador y fecha; un aplaz
   const lateUsed = trainingFor(group, late);
   assert.equal(lateUsed.length, 6);
   assert.ok(lateUsed.every(m => m.roundKey !== late.roundKey));
-  // La caché de los ajustes no los confunde: antes, el de la 2 en su fecha (solo la 1 detrás: sin
+  // La caché de los ajustes no los confunde: el de la 2 en su fecha (solo la 1 detrás: sin
   // pronóstico) y luego el aplazado, en el mismo grupo, con su propio ajuste.
   const fresh = makeGroup();
   const onTime = { ...matchOf(fresh, 2, 'Alfa'), hs: null, as: null };

@@ -132,9 +132,9 @@ def test_la_base_de_las_actas_trae_las_columnas_de_las_identidades():
 # ── _import_one ──────────────────────────────────────────────────────────
 
 def test_dos_homonimos_sin_id_en_la_misma_alineacion_no_se_pierde_ninguno():
-    """Review Focus 3. Antes las tres apariciones iban a la misma fila y la segunda reventaba la clave
-    primaria de appearances (sqlite3.IntegrityError: el acta no se importaba). Ahora, el dorsal más bajo
-    es la identidad normal, y los siguientes llevan ordinal (sin dorsal, detrás)."""
+    """Las tres apariciones no pueden ir a la misma fila: la segunda reventaría la clave primaria de
+    appearances (sqlite3.IntegrityError: el acta no se importaría). El dorsal más bajo es la identidad
+    normal, y los siguientes llevan ordinal (sin dorsal, detrás)."""
     conn = base()
     a = acta([(9, "SUAREZ, DANIEL", None), (None, "suarez, daniel", None), (4, "SUÁREZ, DANIEL", None),
               (7, "SUAREZ, DANIEL", 4321)],
