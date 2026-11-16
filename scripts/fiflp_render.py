@@ -76,7 +76,7 @@ def flatten(page, selector=None):
 
 # Las páginas de la federación cargan decenas de scripts de publicidad y medición (refinery89,
 # doubleclick, prebid, consentmanager, criteo…) que retrasan el «documento cargado» hasta el límite
-# de 30 s de goto: cada acta tardaba ~55 s con sus reintentos (4/10/2026) y el bot agotaba su plazo.
+# de 30 s de goto: cada acta tardaría ~55 s con sus reintentos y el bot agotaría su plazo.
 # Solo hace falta lo de la federación: sus páginas y scripts (www.fiflp.com), las hojas de estilo y
 # las fuentes con los glifos de las cifras que lee el aplanado (files.fiflp.com y
 # laspalmas.filesnovanet.es). Un dominio vale con todos sus subdominios. Los escudos se leen del
@@ -124,14 +124,13 @@ def fiflp_launch_args(hosts=FIFLP_HOSTS):
         necesita cargadas: los escudos se leen del src; las cifras salen de las hojas de estilo y las
         fuentes, que sí cargan. Con los ajustes de ratón de Playwright (PLAYWRIGHT_HEADLESS_BLINK).
 
-    Por qué así y no con page.route/context.route (fiflp_only, hasta el 15/10/2026): una ruta de
-    Playwright DESACTIVA LA CACHÉ HTTP del navegador, y cada página volvía a pedir los ~20 scripts y las
-    hojas de la federación (Cache-Control: max-age=15552000, public) y las imágenes: ~45-52 peticiones a
-    la red por página, 22-24 a www.fiflp.com. Sin ruta, con estos argumentos y el mismo contexto de
-    página en página (medido por el controlador con Chromium de verdad el 15/10/2026, 3 páginas
-    seguidas): 34 la primera y 5 las siguientes (3 a www.fiflp.com: el documento y 2 XHR), ~10 veces
-    menos; el desplegable de jornadas se rellena igual y las hojas de estilo están. Desde el 14/10 la
-    federación frena al bot tras unas decenas de páginas, y lo que cuenta su freno son, muy
+    Por qué así y no con page.route/context.route: una ruta de Playwright DESACTIVA LA CACHÉ HTTP del
+    navegador, y cada página vuelve a pedir los ~20 scripts y las hojas de la federación (Cache-Control:
+    max-age=15552000, public) y las imágenes: ~45-52 peticiones a la red por página, 22-24 a
+    www.fiflp.com. Sin ruta, con estos argumentos y el mismo contexto de página en página (medido con
+    Chromium de verdad, 3 páginas seguidas): 34 la primera y 5 las siguientes (3 a www.fiflp.com: el
+    documento y 2 XHR), ~10 veces menos; el desplegable de jornadas se rellena igual y las hojas de estilo
+    están. La federación frena al bot tras unas decenas de páginas, y lo que cuenta su freno son, muy
     probablemente, las peticiones.
 
     Ojo: con un proxy (Playwright `proxy` o las variables http_proxy/https_proxy que Chromium lee en
@@ -142,10 +141,10 @@ def fiflp_launch_args(hosts=FIFLP_HOSTS):
             f"--blink-settings={PLAYWRIGHT_HEADLESS_BLINK},imagesEnabled=false"]
 
 
-# ── Lo que se repite, a la red (15/10/2026) ───────────────────────────────────
+# ── Lo que se repite, a la red ──────────────────────────────────────────────
 # Los documentos de la federación (sus NFG_*) llegan con «Cache-Control: private, max-age=300»: con la
 # caché HTTP (fiflp_launch_args, sin ruta), volver a la MISMA URL antes de 5 min sale de la caché de
-# disco sin pedirle nada a la federación (medido por el controlador con CDP: fromDiskCache). Y las URLs
+# disco sin pedirle nada a la federación (medido con CDP: fromDiskCache). Y las URLs
 # que se repiten son justo las del freno: el reintento de una página con un 503 o un corte
 # (fiflp_carga.goto), la «otra página» con la que Federacion._serving mira si la federación sirve, los
 # sondeos de la espera del freno (la misma página), la recarga del calendario y la clasificación perdida
@@ -280,9 +279,9 @@ def goto(page, url, **kwargs):
 
 
 def fiflp_only(page):
-    """Ya no hace nada: devuelve la página tal cual. Hasta el 15/10/2026 bloqueaba lo que no era de la
-    federación con page.route, y una ruta de Playwright desactiva la caché HTTP (~10 veces más
-    peticiones por página: fiflp_launch_args). El bloqueo va ahora en el lanzamiento del navegador
+    """No hace nada: devuelve la página tal cual. Bloquear lo que no es de la federación con page.route
+    desactivaría la caché HTTP (~10 veces más peticiones por página: fiflp_launch_args); el bloqueo va en
+    el lanzamiento del navegador
     (chromium.launch(..., args=fiflp_launch_args())). Se conserva para que una llamada de otra rama o de
     un script suelto no rompa al importarla; ningún lector la usa, y test_fiflp_lanzamiento falla si un
     lector de la federación vuelve a usar una ruta o lanza Chromium sin esos argumentos."""

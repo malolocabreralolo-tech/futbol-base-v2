@@ -1,6 +1,6 @@
 """freno_experimento.py — Mide el freno de la federación desde un runner de GitHub (freno-fiflp.yml).
 
-Desde el 14/10/2026 la federación sirve páginas vacías tras ~10-25 páginas seguidas, también con 3
+La federación sirve páginas vacías tras ~10-25 páginas seguidas, también con 3
 peticiones por página (fiflp_launch_args, con caché). Este experimento NO toca la base ni el repo: pide
 documentos distintos (calendario y primeras jornadas de los grupos de la temporada) a un ritmo fijo
 (FRENO_INTERVAL segundos), y cuando llega la primera página vacía prueba, por orden:

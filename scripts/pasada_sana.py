@@ -1,13 +1,13 @@
-"""pasada_sana.py — ¿Leyó de verdad la pasada del bot de la federación? (fase 2B de v2, objetivo O4).
+"""pasada_sana.py — ¿Leyó de verdad la pasada del bot de la federación?
 
-Hasta noviembre de 2026 el bot podía acabar en verde sin haber leído nada (la federación sirviendo un 403
-a todo, el navegador sin abrir). veredicto da los motivos por los que una pasada no es sana; update_fiflp
+Sin esto, el bot puede acabar en verde sin haber leído nada (la federación sirviendo un 403 a todo, el
+navegador sin abrir). veredicto da los motivos por los que una pasada no es sana; update_fiflp
 lo calcula al final de cada pasada y source_health lo guarda en data-health.json (runHealth). Puro: sin
 base ni red. El freno (grupos sin servir) y la rotación (aplazados por plazo, los que descansan) son
 funcionamiento normal: una pasada con freno que leyó bien algunos grupos es sana. Y también una pasada
-SECA (ningún grupo leído bien) mientras la racha de secas no pase de LIMITE_SECA_HORAS: el 14/11/2026, 3 de
-16 pasadas leyeron 0 grupos (el runner salía por una IP que la federación frena desde la primera página;
-la siguiente, con otra IP, leía 29-43).
+SECA (ningún grupo leído bien) mientras la racha de secas no pase de LIMITE_SECA_HORAS: hay runners que
+salen por una IP que la federación frena desde la primera página (se han visto 3 de 16 pasadas de un día
+con 0 grupos), y la siguiente, con otra IP, lee con normalidad.
 """
 import math
 import re

@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
-"""reloj_pasadas.py — ¿Toca lanzar una pasada del bot (update.yml)? Lo decide el reloj (reloj.yml, desde el
-17/10/2026): cada ~15 min le pasa por la entrada las últimas ejecuciones de update.yml (el JSON de
+"""reloj_pasadas.py — ¿Toca lanzar una pasada del bot (update.yml)? Lo decide el reloj (reloj.yml): cada
+~15 min le pasa por la entrada las últimas ejecuciones de update.yml (el JSON de
 `gh run list --workflow update.yml --json number,event,status,conclusion,createdAt,startedAt`) y, si toca,
 lanza `gh workflow run update.yml --ref main`.
 
-Por qué un reloj y no el cron de update.yml: del 16/10/2026 11:50 UTC al 17/10 12:16, su `'23 */2 * * *'`
-disparó 5 veces de las 13 que tocaban (16:48 y 21:24 del 16; 00:36, 07:03 y 12:16 del 17): en la práctica,
-una pasada cada 4-6 h. GitHub pierde o retrasa los cron (más los de las :00); con un tick cada 15 min y la
-decisión hecha aquí, perder uno solo retrasa la pasada hasta el siguiente que llegue.
+Por qué un reloj y no el cron de update.yml: GitHub pierde o retrasa los cron (más los de las :00), y un
+`'23 */2 * * *'` ha llegado a disparar 5 veces de las 13 que tocaban en un día: una pasada cada 4-6 h. Con
+un tick cada 15 min y la decisión hecha aquí, perder uno solo retrasa la pasada hasta el siguiente.
 
 Cuándo toca (due): nunca con una ejecución de update.yml sin acabar (en cola, en marcha, esperando…: status
 distinto de «completed»), que la siguiente se pondría en fila detrás (concurrency update-data) y otra más
@@ -15,16 +14,15 @@ cancelaría la pendiente, gastando un número de pasada sin pasada (update_fiflp
 hay ninguna o desde que empezó la última (cualquier evento: el reloj, una tanda de actas, goleadores o
 detalle, una a mano; y cualquier resultado, también fallida o cancelada) han pasado `interval(now)` menos
 SLACK. «Empezó»: la más tardía de su createdAt y su startedAt (run_time). Relanzar una ejecución (Re-run)
-conserva su createdAt y cambia su startedAt (corrector del 17/10/2026: con solo createdAt, la 1120 creada a
-las 10:08 y relanzada a las 11:30 contaba como de las 10:08, y el tick de las 11:52 lanzaba otra pasada
-detrás); sin startedAt (o vacío), la de creación. El relanzamiento de una de hace más de 20 ejecuciones
+conserva su createdAt y cambia su startedAt (con solo createdAt, una creada a las 10:08 y relanzada a las
+11:30 contaría como de las 10:08, y el tick de las 11:52 lanzaría otra pasada detrás); sin startedAt (o
+vacío), la de creación. El relanzamiento de una de hace más de 20 ejecuciones
 (--limit de reloj.yml) no se ve: como mucho, una pasada de más en fila detrás de él. Los intervalos:
-  - 60 min (WINDOW) en las VENTANAS DE PARTIDOS, hora de Canarias (Atlantic/Canary, con su cambio de hora:
-    el 25/10/2026 a las 02:00 vuelve a UTC+0): viernes de 18:00 a 24:00 y sábado y domingo de 10:00 a 24:00.
-    En la base de 2026-27 (1.638 partidos), el sábado tiene 1.023 (620 a las 9, 260 a las 10, ~100 de 11 a
-    13 y 42 de 16 a 18), el viernes 364 (238 a las 17, 109 a las 18, 13 a las 19), el domingo 199 (105 a
-    las 9, 41 a las 10, 31 de 11 a 12, 2 a las 17) y entre semana ~52; los equipos de la familia (los
-    prioritarios), 57 el sábado, 17 el domingo y 4 el viernes. Cada ventana empieza una hora después de los
+  - 60 min (WINDOW) en las VENTANAS DE PARTIDOS, hora de Canarias (Atlantic/Canary, con su cambio de
+    hora): viernes de 18:00 a 24:00 y sábado y domingo de 10:00 a 24:00. Es cuando se juega: en 2026-27,
+    casi dos tercios de los partidos el sábado (sobre todo a las 9 y las 10), casi un cuarto el viernes por
+    la tarde (de las 17 a las 19), la mayor parte del resto el domingo por la mañana y entre semana, casi
+    ninguno; los de los equipos prioritarios, igual. Cada ventana empieza una hora después de los
     primeros saques (FIRST_KICKOFF + HOT_AFTER): antes, el bot no tiene ningún resultado que buscar
     (update_fiflp.hot_reason calienta un prioritario desde el saque + HOT_AFTER, 60 min);
   - 120 min (BASE) fuera de ellas: update_fiflp.PASS_EVERY, la cadencia base, de la que salen sus turnos,
@@ -34,7 +32,7 @@ una creada a las 10:08 haría esperar a la de las 11:08 hasta el tick de las 11:
 
 Sin la base de zonas horarias del sistema (ZoneInfoNotFoundError: en ubuntu-24.04 viene, pero el reloj no
 instala tzdata) no hay ventanas: una pasada cada BASE, con un aviso (::warning::) y sin dejar el job en rojo,
-que como update.yml ya no tiene cron, sin reloj no habría ninguna pasada (corrector del 17/10/2026).
+que como update.yml no tiene cron, sin reloj no habría ninguna pasada.
 
 Puro y sin dependencias (solo la biblioteca estándar): el reloj corre con el python3 del sistema, sin pip ni
 el resto del repositorio (checkout disperso de este fichero). Lo prueban test_reloj_pasadas.py y, el

@@ -45,96 +45,52 @@ from pasada_sana import seca, veredicto
 from fiflp_names import MIN_TEAM_SCORE, team_key, team_score
 import source_health
 
-# Qué jornadas se vuelven a leer (rounds_to_refresh). Cada página es ~1/15 del cupo de la federación
-# (~15 documentos por IP y ~5 min de bloqueo: fiflp_carga), así que la ventana es la justa (15/10/2026;
-# antes, 21 días atrás y 14 adelante: ~5 jornadas, ~7 páginas por grupo; ahora 2-3 jornadas, ~4-5):
-#   - BACK_DAYS: la última jornada jugada siempre (las jornadas son semanales: 0-6 días) y la anterior unos
-#     días más (7-10), por si la federación corrige un resultado o completa el código del acta tras el
-#     fin de semana. Un resultado que FALTA no depende de esto: lo busca PENDING_DAYS (120 días), y un
-#     aplazado con él; una jornada entre semana cae dentro igual (está más cerca, no más lejos);
-#   - AHEAD_DAYS: la próxima siempre (≤ 7 días; 8 con una jornada fechada en domingo vista un sábado),
-#     que es la que publica horarios y campos. La de dentro de dos semanas se lee cuando entra en ella;
-#   - una jornada que la base no tiene, siempre; y la primera pasada de un grupo recién activado
-#     (full_read_pending), todas las jugadas, como antes.
+# Qué jornadas se vuelven a leer (rounds_to_refresh). Cada página es ~1/15 del cupo de la federación por
+# IP (fiflp_carga), así que la ventana es la justa: la última jornada jugada y la anterior (por si la
+# federación corrige un resultado o completa el acta tras el fin de semana), la próxima (horarios y campos)
+# y las que la base no tiene. Un resultado que FALTA lo busca PENDING_DAYS, no esta ventana.
 BACK_DAYS = 10          # jornadas ya jugadas que se vuelven a mirar
 AHEAD_DAYS = 8          # jornadas próximas (horarios y campos se publican tarde)
 PENDING_DAYS = 120      # resultados pendientes (aplazados) que se siguen buscando
 MAX_ACTAS_PER_RUN = 60   # actas por pasada del bot (~3-6 s cada una); el resto, en la siguiente
 MAX_ACTA_TRIES = 4       # lecturas fallidas de un acta antes de dejarla (se puede releer a mano)
-# Un acta que ya falló (acta_tries > 0) se reintenta solo si la última comprobación correcta publicada de su
-# grupo es de hace un rato (retry_actas): los MAX_ACTA_TRIES intentos son para dar tiempo a la federación a
-# rellenarla (~18 h con una lectura cada 6 h, como con el cron cada 6 h). Con una pasada cada 2 h, un
-# prioritario caliente se lee en todas, y un acta suya que tarda se quedaba sin intentos en ~6-8 h (corrector
-# del 16/10/2026: en la simulación de cuatro semanas, una de AL27). Los demás grupos se leen cada uno o varios
-# días: se reintentan siempre. Cada lectura deja la comprobación al día, así que entre dos intentos de un acta
-# pasa al menos ese rato. Desde el 17/10/2026, en dos tramos:
-#   - el 2.º intento, desde ACTA_RETRY_SOON (2 h 45): en las ventanas de partidos (reloj.yml, una pasada cada
-#     hora) un prioritario ya frío se lee en su pasada cada ~3 h (priority_slot), y con las 4 h de antes no se
-#     reintentaba en toda la ventana (un sábado de 10 a 24): las de Las Mesas que la federación completa tarde
-#     tardaban el doble, p90 de 14 h desde que las tiene en vez de 7,5 (corrector del 17/10/2026). Por debajo
-#     de las ~3 h de su pasada y por encima de las 1-2 h de las lecturas calientes;
-#   - el 3.º y el 4.º, desde ACTA_RETRY_AFTER (4 h), como antes: en una ventana, al acabarla (o si GitHub
-#     pierde ticks). Así entre el primer intento y el último pasan al menos 2 h 45 + 4 + 4 h (~11 h; un
-#     sábado, ~20 h, hasta la mañana del domingo), y no ~8-9 h, como con 2 h 45 para todos.
-# Medido (test_bot_pasada_corta, la semana a las horas del reloj; doce semillas, las 84 actas de Las Mesas,
-# desde que la federación las tiene): con el reloj sin perder ticks, p90 de 4,3 h en vez de 12,5; perdiendo
-# el 20 % y con 0-15 min de retraso, 6,0 en vez de 11,8; perdiendo el 55 % y con 0-60 min, 4,8 en vez de
-# 7,7; con una pasada cada 2 h exactas, 5,8 en vez de 6,2. Ninguna sin intentos en tres semanas
-# (docs/federacion.md, «El reloj de las pasadas»).
+# Un acta que ya falló se reintenta solo si la última comprobación correcta de su grupo es de hace un rato
+# (retry_actas): los MAX_ACTA_TRIES intentos tienen que dar tiempo a la federación a rellenarla, y un
+# prioritario caliente se lee en cada pasada. El 2.º intento, desde ACTA_RETRY_SOON (por debajo de las ~3 h
+# de la pasada de un prioritario en una ventana de partidos, por encima de las 1-2 h de las lecturas
+# calientes); el 3.º y el 4.º, desde ACTA_RETRY_AFTER: entre el primero y el último, al menos ~11 h. Lo
+# medido, en test_bot_pasada_corta y en docs/federacion.md, «El reloj de las pasadas».
 ACTA_RETRY_SOON = timedelta(hours=2, minutes=45)
 ACTA_RETRY_SOON_TRIES = 2      # las que fallaron menos de esto (una vez) se reintentan desde ACTA_RETRY_SOON
 ACTA_RETRY_AFTER = timedelta(hours=4)
-# La PASADA CORTA (16/10/2026). En las pasadas 1107-1110 la federación servía ~15 documentos por IP y el
-# bloqueo escalaba dentro de la pasada: el 1.º ~300 s, el 2.º ~900 s y el 3.º más que el plazo. Cada
-# ejecución de GitHub tiene IP nueva y vuelve a empezar con ~5 min, así que cada pasada espera solo el 1.º
-# freno (fiflp_carga.BRAKE_PAUSES = 1) y acaba en el 2.º: ~15 páginas, ~5 min, ~15 más, en ~9 min; y el
-# cron de update.yml pasa de cada 6 h a cada 2 h (PASS_EVERY; desde el 17/10/2026 las lanza reloj.yml, cada
-# 2 h y cada hora en las ventanas de partidos). El plazo (FIFLP_BUDGET_MIN, desde que arranca update_groups)
-# es para una pasada SIN freno (o con un 1.º largo: sondeos hasta 2 min antes del plazo,
-# fiflp_carga.BRAKE_ROOM): 16 min, ~130 páginas a 7 s. Fuera de la federación el job gasta 4-8 min
-# (preparación, app, importaciones, generate_js, pruebas y commit): 20-24 min, ~26 en el peor caso (la
-# última página empezada justo antes del plazo, con sus reintentos), sobre los 40 de update.yml. Hasta el
-# 16/10/2026 eran 33 min (con una espera tras otra, sin tope) y el cron cada 6 h: ~45 páginas útiles por
-# pasada, ~180 al día; ahora, ~30 por pasada y ~360 al día (test_bot_pasada_corta). La espera del freno
-# cabe dentro de este plazo, y ninguna página empieza después: no lo alarga.
+# La PASADA CORTA: la federación sirve ~15 documentos por IP y su bloqueo escala dentro de la pasada (~5
+# min, ~15, más que el plazo), y cada ejecución de GitHub tiene IP nueva; así que cada pasada espera solo el
+# 1.º freno (fiflp_carga.BRAKE_PAUSES) y acaba en el 2.º. El plazo (FIFLP_BUDGET_MIN, desde que arranca
+# update_groups) es el de una pasada sin freno (~130 páginas a 7 s); con los 4-8 min del resto del job, cabe
+# con holgura en los 40 de update.yml. La espera del freno va dentro del plazo: no lo alarga.
 DEADLINE_SECONDS = 16 * 60
 # El final del plazo en el que ya no empieza ningún grupo (FIFLP_RESERVE_MIN): es de los goleadores y las
-# actas del que se está leyendo (cada grupo, completo: run_passes) y de las competiciones nuevas. Hasta el
-# 16/10/2026 era la reserva de la segunda pasada (8 de 33 min); ya no hay segunda pasada.
+# actas del que se está leyendo (cada grupo, completo: run_passes) y de las competiciones nuevas.
 RESERVE_SECONDS = 2 * 60
-# La cadencia BASE de las pasadas: una cada 2 h (reloj_pasadas.BASE: desde el 17/10/2026 las lanza reloj.yml;
-# hasta entonces, el cron '23 */2 * * *' de update.yml, que GitHub casi nunca disparaba a su hora: 5 de 13 en
-# ~26 h). En las ventanas de partidos (viernes de 18 a 24 y sábado y domingo de 10 a 24, hora de Canarias), una
-# cada hora (reloj_pasadas.WINDOW). Lo que va por número de pasada (los turnos de ROTATION_PASSES,
-# priority_slot, closed_turn, extras_turn) solo se adelanta en ellas; lo que mira PASS_EVERY (stale: «la
-# pasada siguiente», que en una ventana llega antes; la franja de run_number fuera de GitHub), la base: lee
-# antes, nunca después. Los plazos que van por tiempo (HOT_FOR, scorers_due), igual; los de retry_actas,
-# en dos tramos desde el 17/10/2026 (ACTA_RETRY_SOON): con las 4 h de antes, en las ventanas no se reintentaba.
+# La cadencia BASE de las pasadas: una cada 2 h (reloj_pasadas.BASE, que lanza reloj.yml: el cron de GitHub
+# casi nunca llega a su hora); en las ventanas de partidos, una cada hora (reloj_pasadas.WINDOW). Lo que va
+# por número de pasada (ROTATION_PASSES, priority_slot, closed_turn, extras_turn) se adelanta en ellas; lo
+# que mira PASS_EVERY (stale, la franja de run_number fuera de GitHub) va por la base: lee antes, nunca
+# después.
 PASS_EVERY = timedelta(hours=2)
 PASS_SLACK = timedelta(minutes=30)  # lo que puede retrasarse una pasada (stale): ticks del reloj perdidos
 CLOSED_DAYS = 21                 # un grupo con todo jugado y la última jornada más vieja: cerrado
-# Los prioritarios, SOLO CUANDO TOCA (16/10/2026; plan_groups): hasta entonces, todos en cada pasada (con el
-# cron cada 6 h, cada 6 h; ~33 de las ~45 páginas de cada pasada). Toca (stale) en su pasada
-# (priority_slot: una de cada PRIORITY_MAX_AGE/PASS_EVERY, 3, repartidos por su puesto: así no tocan todos a
-# la vez), si en la pasada siguiente su última comprobación correcta (data-health.json, cuya hora se publica
-# siempre para ellos) ya pasaría de PRIORITY_MAX_AGE (FIFLP_PRIORITY_MAX_H; la frescura de antes) con
-# PASS_SLACK de margen, o si no la tiene; o si está CALIENTE (hot_reason): un partido de sus equipos
-# prioritarios de los últimos HOT_DAYS días, empezado hace más de HOT_AFTER, sin resultado o con su acta por
-# leer (con código, sin importar y sin intentar: pending_actas), mientras ninguna lectura correcta del grupo
-# sea de más de HOT_FOR después (lo que falta y la federación no da en ese rato ya no corre prisa: un
-# aplazado que conserva su fecha, un resultado o un acta que llegan al día siguiente). Si no toca, descansa
-# como un cerrado: conserva su comprobación. Con una pasada cada 2 h, cada prioritario se lee al menos cada
-# 6 h y, con un partido suyo recién jugado, en cada pasada hasta tener su resultado y su acta (como mucho
-# HOT_FOR; después, cada 6 h). En las ventanas de partidos, con una pasada cada hora, en la suya cada ~3 h y,
-# caliente, cada hora.
+# Los prioritarios, SOLO CUANDO TOCA (plan_groups), para no gastar en ellos el cupo de la federación: en su
+# pasada (priority_slot, repartidos para que no toquen todos a la vez) si en la siguiente su última
+# comprobación correcta pasaría de PRIORITY_MAX_AGE (FIFLP_PRIORITY_MAX_H) con PASS_SLACK de margen, o si
+# está CALIENTE (hot_reason: un partido suyo de los últimos HOT_DAYS días, empezado hace más de HOT_AFTER,
+# sin resultado o sin acta, durante HOT_FOR como mucho). Si no toca, conserva su comprobación.
 PRIORITY_MAX_AGE = timedelta(hours=6)
 HOT_DAYS = 2
 HOT_AFTER = timedelta(minutes=60)   # un partido de fútbol base dura ~1 h: antes, no hay resultado que leer
-# Cuánto se relee en cada pasada un prioritario caliente: desde HOT_AFTER tras el saque, 12 h (~6 pasadas cada
-# 2 h; en una ventana de partidos, ~12: las mismas páginas de cada pasada, en más pasadas).
-# En la base real (16/10/2026) hay resultados de mesa (3-0 a un retirado) sin acta posible y aplazados que
-# conservan su fecha sin resultado: sin este tope, su grupo se leía en todas las pasadas durante ~3 días
-# (HOT_DAYS), ~36 lecturas en vez de ~12, ~100-150 páginas del cupo de ~360 al día.
+# Cuánto se relee en cada pasada un prioritario caliente, desde HOT_AFTER tras el saque. Sin tope, un
+# resultado de mesa sin acta posible o un aplazado que conserva su fecha leerían su grupo en todas las
+# pasadas durante HOT_DAYS, unas 100-150 páginas del cupo diario.
 HOT_FOR = timedelta(hours=12)
 # Un partido sin hora (la federación aún no la ha puesto, o un resultado de mesa): el primer saque habitual
 # de una mañana de fútbol base (9:00; la base de 2026-27 va de las 9:00 a las 20:00). Contar desde las 0:00
@@ -152,15 +108,13 @@ LOCAL_ZONE = "Atlantic/Canary"      # la hora de los partidos de la base (date y
 # lo mismo.
 ROTATION_PASSES = 4
 GOLDEN = (5 ** 0.5 - 1) / 2      # el giro de spin: una fracción irracional, que no repite ciclo
-# Un grupo cerrado se lee una vez cada CLOSED_PASSES pasadas (closed_turn: 24 h a la cadencia base, como
-# antes con 4 cada 6 h; un sábado o un domingo, con 19 pasadas, ~15 h), en una que salta dos puestos de una
-# época de CLOSED_PASSES a otra.
+# Un grupo cerrado se lee una vez cada CLOSED_PASSES pasadas (closed_turn: 24 h a la cadencia base), en una
+# que salta dos puestos de una época de CLOSED_PASSES a otra.
 CLOSED_PASSES = 12
 # Las competiciones nuevas (check_competitions), el directorio de campos y las fichas de los equipos que
 # no la tienen: una vez cada EXTRAS_PASSES pasadas (extras_turn, como closed_turn: 24 h a la cadencia
 # base), tras los prioritarios que tocan, con como mucho EXTRAS_PAGES páginas de fichas; y al final de
-# cualquier pasada que acabe sin frenar ni llegar al plazo. Hasta el 16/10/2026, en cada pasada entre la primera y la
-# segunda (las competiciones) y en la segunda (el directorio), que el freno casi nunca dejaba leer.
+# cualquier pasada que acabe sin frenar ni llegar al plazo.
 EXTRAS_PASSES = 12
 EXTRAS_PAGES = 8
 # Las actas NUEVAS (sin intentar) de grupos que no se leen en la pasada (new_actas): las que el segundo freno
@@ -176,10 +130,9 @@ CATCHUP_SKIP = 3
 RELECTURA_POR_PASADA = 20
 # Cuota de alevín (FIFLP_ALEVIN_MIN): su parte del turno, tras los prioritarios y los cerrados que tocan,
 # es de al menos estos grupos (y nunca menos que ceil(N/4)), intercalada con el turno de prebenjamín y el
-# de benjamín (interleave): el último nivel no se queda sin leer aunque benjamín y prebenjamín llenen el
-# plazo, ni ellos si lo llena alevín. Hasta el 15/10/2026 iba DELANTE de ellos: con el cupo de la
-# federación (~15 páginas por IP: una pasada lee los prioritarios y ~3-8 grupos más) se llevaba todos los
-# no prioritarios y benjamín y prebenjamín no se leían nunca (test_bot_rotacion).
+# de benjamín (interleave): ni el último nivel se queda sin leer aunque los otros llenen el plazo, ni ellos
+# si lo llena alevín (delante de ellos, con el cupo de la federación, se los llevaría todos:
+# test_bot_rotacion).
 ALEVIN_MIN_GROUPS = 8
 ACTA_URL = "/NFG_CmpPartido?cod_primaria=1000120&CodActa={code}"
 GOLEADORES_URL = ("/NFG_CMP_Goleadores?cod_primaria=1000120&CodJornada="
@@ -380,9 +333,9 @@ def daily_turn(key, number, passes):
 
 def closed_turn(code, number, passes=None):
     """¿Le toca a este grupo cerrado? Una vez en cada época de `passes` pasadas (CLOSED_PASSES: 24 h a la
-    cadencia base, menos los días con ventana de partidos; hasta el 16/10/2026, 4 cada 6 h), en una que
-    salta dos puestos de una época a otra (daily_turn): una pasada que se pierde cada día a la misma hora le
-    quita como mucho una de cada dos (con un turno fijo, los de esa hora no se leían nunca)."""
+    cadencia base, menos los días con ventana de partidos), en una que salta dos puestos de una época a otra
+    (daily_turn): una pasada que se pierde cada día a la misma hora le quita como mucho una de cada dos (con
+    un turno fijo, los de esa hora no se leerían nunca)."""
     return daily_turn(code, number, passes or CLOSED_PASSES)
 
 
@@ -466,7 +419,7 @@ def hot_reason(conn, group_id, keys, now, check=None):
     leer: con código (fiflp_acta), sin importar y aún sin intentar («acta»: el bot la lee tras el
     calendario; la que ya falló se reintenta en las pasadas por edad, que dan tiempo a la federación a
     rellenarla). Como pending_actas: un resultado sin código de acta (uno de mesa, 3-0 a un retirado) no
-    tiene acta que leer, nunca (hasta el 16/10/2026 calentaba su grupo ~3 días). Y no si la última
+    tiene acta que leer, nunca (si no, calentaría su grupo ~3 días). Y no si la última
     comprobación correcta del grupo (`check`, la de data-health.json) es de más de HOT_AFTER + HOT_FOR
     después del saque: se leyó pasado ese rato y seguía sin ello (un aplazado que conserva su fecha, un
     resultado o un acta que la federación da al día siguiente): al ritmo de PRIORITY_MAX_AGE. Solo la base y
@@ -502,23 +455,22 @@ def plan_groups(conn, groups, checks, today, number, priority=None, pinned=None,
     """El orden de la pasada `number` (run_number), a la hora `now` (UTC). Plan(order, resting, priority,
     number, fresh, hot, timed):
     - order: los grupos que tocan, por este orden:
-        1. los de los equipos prioritarios (priority_teams, pinned_groups) a los que les toca (desde el
-           16/10/2026; hasta entonces, todos en cada pasada): los calientes (hot_reason: un partido suyo
-           recién jugado sin resultado o con su acta por leer, durante HOT_FOR) y los que en la pasada
-           siguiente pasarían de
-           PRIORITY_MAX_AGE desde su última comprobación correcta, o no la tienen (stale; checks: las
-           entradas publicadas de data-health.json, cuya hora se publica siempre para ellos:
-           source_health.record). Los calientes primero y, dentro, la comprobación más vieja primero: si
-           el cupo no da para todos, el que se queda fuera va el primero en la siguiente. Un cerrado
-           prioritario va aquí en su turno de cerrado (como cualquier cerrado);
+        1. los de los equipos prioritarios (priority_teams, pinned_groups) a los que les toca: los
+           calientes (hot_reason: un partido suyo recién jugado sin resultado o con su acta por leer,
+           durante HOT_FOR) y los que en la pasada siguiente pasarían de PRIORITY_MAX_AGE desde su última
+           comprobación correcta, o no la tienen (stale; checks: las entradas publicadas de
+           data-health.json, cuya hora se publica siempre para ellos: source_health.record). Los calientes
+           primero y, dentro, la comprobación más vieja primero: si el cupo no da para todos, el que se
+           queda fuera va el primero en la siguiente. Un cerrado prioritario va aquí en su turno de cerrado
+           (como cualquier cerrado);
         2. los cerrados a los que les toca (closed_turn: una vez al día), los que fallaron y los nunca
            comprobados (checks);
         3. el turno de cada nivel (rotate, turn_blocks): la cuota de alevín (alevin_quota, ≥ su
-           turno), el de prebenjamín y el de benjamín, intercalados (interleave, desde el 15/10/2026: si
-           el plazo o el cupo de la federación lo cortan, cortan a todos los niveles por igual), y dentro
-           de cada turno, primero los que fallaron o no se han comprobado nunca (los «error» que dejó un
-           freno: se limpian al releerlos). Con el cupo (~3 grupos por pasada además de los prioritarios
-           que tocan) cada nivel lee el principio de su turno, y cada época otro (spin);
+           turno), el de prebenjamín y el de benjamín, intercalados (interleave: si el plazo o el cupo de la
+           federación lo cortan, cortan a todos los niveles por igual), y dentro de cada turno, primero los
+           que fallaron o no se han comprobado nunca (los «error» que dejó un freno: se limpian al
+           releerlos). Con el cupo (~3 grupos por pasada además de los prioritarios que tocan) cada nivel
+           lee el principio de su turno, y cada época otro (spin);
         4. el turno siguiente de cada nivel, intercalados (interleave): el margen para una pasada
            perdida (un número que se salta, o una que cae cada día a la misma hora: la anterior lee
            lo que puede de su turno, cada época una parte distinta) o lenta;
@@ -672,7 +624,7 @@ def check_competitions(page, F, conn, season_id, today, log=print):
     return fresh
 
 
-# ── Grupos nuevos de las competiciones que la web ya sigue (fase 2D, 14/11/2026) ──
+# ── Grupos nuevos de las competiciones que la web ya sigue ──
 
 # El desplegable de grupos de la competición (el mismo JS que fetch_fiflp_2425.scrape_competition), en el
 # calendario de cada grupo que el bot ya carga: un «Grupo 25» añadido o una fase nueva publicada como grupos
@@ -763,8 +715,8 @@ def new_groups(seen, known, previous=(), today=None, names=None):
 def option_round(text):
     """'3 - 17-10-2026' (así lo escribe FIFLP; también con barras) ->
     ('Jornada 3', date(2026, 10, 17)); sin fecha, None. La jornada única de una copa, sin « - »
-    ('14-11-2026 ( Única )'): la etiqueta de siempre, con la primera fecha del texto (hasta el 14/11/2026,
-    sin fecha, y el día de sus partidos no se releía)."""
+    ('14-11-2026 ( Única )'): la etiqueta de siempre, con la primera fecha del texto (sin fecha, el día de
+    sus partidos no se releería)."""
     num, _, day = (text or "").partition(" - ")
     date_re = r"(\d{2})[-/](\d{2})[-/](\d{4})"
     m = re.fullmatch(date_re, day.strip()) or re.search(date_re, text or "")
@@ -852,8 +804,8 @@ def _twin_pairs(conn, group_id):
     fuera de su clasificación con TODOS sus partidos repetidos por otro equipo de nombre parecido
     (team_score) y más antiguo en el grupo (su primer partido es anterior): la misma jornada, el mismo
     rival y el mismo lado (local o visitante). Nadie juega dos veces contra el mismo rival en una
-    jornada, así que es el mismo equipo entrado dos veces: lo que dejaba update_group antes de
-    group_team_names ('FOMENTO, ATLÉTICO "A"' con J1-J3 de Atlético Fomento en PG2 de 2026-27)."""
+    jornada, así que es el mismo equipo entrado dos veces, con el nombre de la federación y con el de la
+    base ('FOMENTO, ATLÉTICO "A"' y Atlético Fomento en PG2 de 2026-27)."""
     listed = {r[0] for r in conn.execute("SELECT team_id FROM standings WHERE group_id=?", (group_id,))}
     fixtures, first = {}, {}
     for mid, jornada, home, away in conn.execute(
@@ -1145,8 +1097,8 @@ def current_round(conn, group_id):
 class NotServed(RuntimeError):
     """La federación no sirvió una página del calendario de un grupo (no carga, vacía, un 5xx o un 429, o
     no cabe en el plazo): la red, la federación o el plazo, no los datos del grupo. run_passes mira si fue
-    su freno (15/10/2026): entonces el grupo conserva su última comprobación; si fue el plazo, también; si
-    no (una URL muerta mientras el resto carga), es un error, como siempre."""
+    su freno: entonces el grupo conserva su última comprobación; si fue el plazo, también; si
+    no (una URL muerta mientras el resto carga), es un error."""
 
 
 class JornadaVacia(RuntimeError):
@@ -1196,7 +1148,7 @@ def _match_keys(matches):
 
 
 def calendar_shows(page, F, picked):
-    """DIAGNÓSTICO, sin peticiones (15/10/2026): el calendario de un grupo (la primera carga de
+    """DIAGNÓSTICO, sin peticiones: el calendario de un grupo (la primera carga de
     NFG_CmpJornada, sin CodJornada) puede traer ya los partidos de una jornada, y esa página se podría
     ahorrar (cada página es ~1/15 del cupo de la federación). Pero no hay ninguna guardada (ni fixture ni
     raw: las tandas y el bot leen cada jornada por su URL o con BuscarPartidos), el desplegable lo rellena
@@ -1207,14 +1159,10 @@ def calendar_shows(page, F, picked):
     opción seleccionada de su desplegable o None, los partidos del calendario), o None si no hay nada que
     comparar. Nunca falla: es solo un diagnóstico.
 
-    Hasta el 16/10/2026 solo se comparaba si la opción SELECCIONADA se iba a leer, y run.calendarShows no
-    salió en ninguna pasada real (1107-1110). El selector es el mismo que el de JORNADAS_JS; lo distinto es
-    que SELECTED_JS se fía de selectedIndex: si el JS de la federación rellena el desplegable sin marcar
-    la jornada que enseña, selectedIndex es 0, la primera opción, que es o la vacía o «0» (que el filtro
-    quita: null) o la jornada 1 (fuera de la ventana de rounds_to_refresh), y calendar_shows devolvía None
-    en todos los grupos. Sin red no se puede saber cuál de las dos; por eso ahora la comparación no
-    depende del desplegable (se compara con todas las jornadas leídas) y run.calendarShows dice también
-    si había una seleccionada."""
+    La comparación no depende del desplegable (se compara con todas las jornadas leídas): SELECTED_JS se
+    fía de selectedIndex, y si el JS de la federación rellena el desplegable sin marcar la jornada que
+    enseña, selectedIndex es 0, la primera opción (la vacía, «0» o la jornada 1), y no se compararía nada.
+    run.calendarShows dice también si había una seleccionada."""
     if not picked:
         return None
     try:
@@ -1281,10 +1229,10 @@ def scrape_group(page, F, url, stored, today, full=False, check=None, selects=No
     if not F.goto(page, calendar):
         raise NotServed("no carga el calendario de la federación")
     # La carga ya esperó, con tope, al desplegable (fiflp_carga.ready_selector). Si no llegó y el grupo
-    # tiene jornadas, FIFLP tarda en servirlo («0J»): hasta dos esperas más, al desplegable y con tope,
-    # y si aún no, se recarga el calendario una vez (antes de octubre eran 4 × 3 s fijos; con una
-    # sola espera fallaban grupos sanos), de la federación y no de la caché HTTP (fiflp_render.goto: la
-    # misma URL otra vez). Sin jornadas (un calendario aún sin publicar), nada que esperar.
+    # tiene jornadas, FIFLP tarda en servirlo («0J»): hasta dos esperas más, al desplegable y con tope, y si
+    # aún no, se recarga el calendario una vez (con una sola espera fallan grupos sanos), de la federación y
+    # no de la caché HTTP (fiflp_render.goto: la misma URL otra vez). Sin jornadas (un calendario aún sin
+    # publicar), nada que esperar.
     options = page.evaluate(JORNADAS_JS)
     for attempt in range(JORNADAS_TRIES if stored else 0):
         if options:
@@ -1527,8 +1475,8 @@ def import_actas(page, F, conn, group_id, budget, deadline=None, log=print, trie
     `unloaded` (un set): se apuntan los partidos cuya acta no cargó (run_passes:
     quedan para otra pasada). `retry`, como en pending_actas: True, todas;
     False, solo las nunca intentadas; un número (retry_actas), las que han
-    fallado menos veces. Desde la fase 2C (14/11/2026), el original de cada
-    acta importada se guarda (actas_bot)."""
+    fallado menos veces. El original de cada acta importada se guarda
+    (actas_bot)."""
     import actas_bot
     where = actas_bot.de_grupo(conn, group_id)
     season, category = where if where else (None, None)
@@ -1620,8 +1568,8 @@ def sin_original(conn, season_id, group_ids):
 
 
 def releer_originales(page, F, conn, season_id, group_ids, budget, deadline=None, tried=None, log=print):
-    """La relectura de los originales (fase 2C, 14/11/2026): el bot guarda el de cada acta que importa
-    desde entonces, y las de la temporada ya importadas antes no lo tienen. Al final de la pasada
+    """La relectura de los originales: el bot guarda el de cada acta que importa, y las de la temporada
+    importadas antes de que lo hiciera no lo tienen. Al final de la pasada
     (run_passes), si la federación no está bloqueada y queda plazo y cupo, relee como mucho
     RELECTURA_POR_PASADA de ellas (sin_original, en su orden), con `budget` (lo que queda de
     MAX_ACTAS_PER_RUN), cada una una vez por pasada (`tried`); cada una se aplica (apply_acta) y se
@@ -1740,10 +1688,9 @@ def missing_venues(conn, season_id):
 def update_campos(page, F, conn, deadline=None):
     """Refresca el directorio de campos (páginas de 100, hasta `deadline`). Devuelve cuántos leyó. Leído
     entero, sustituye la tabla venues (los campos que ya no están, fuera); a medias (la federación deja de
-    servir, F.goto da False: su segundo freno corta la pasada al momento desde el 16/10/2026,
-    fiflp_carga.BRAKE_PAUSES; o llega el plazo), solo añade o actualiza los leídos y conserva los demás:
-    hasta el 16/10/2026 la vaciaba igual, y un directorio cortado en la 2.ª página dejaba publicados
-    (generate_js, CAMPOS) 100 de ~250 campos hasta otra lectura entera."""
+    servir, F.goto da False: su segundo freno corta la pasada al momento, fiflp_carga.BRAKE_PAUSES; o llega
+    el plazo), solo añade o actualiza los leídos y conserva los demás: vaciarla dejaría publicados
+    (generate_js, CAMPOS) los de una lectura cortada, 100 de ~250 campos si se corta en la 2.ª página."""
     from generate_js import venue_key
     rows, pages, whole = [], 1, False
     for n in range(1, 30):
@@ -1891,9 +1838,7 @@ def scorers_due(conn, group_id, check, today, now, changed=False):
       - un cerrado (is_closed): no (nada cambia);
       - si no, una vez al día: sí si su última comprobación correcta es de otro día (hora de Canarias) o no
         la hay. Un grupo no prioritario se lee cada uno o varios días: casi siempre. Un prioritario (cada
-        6 h, o cada pasada mientras está caliente): en la primera lectura del día y cuando cambia algo.
-    Hasta el 16/10/2026 se leían en la segunda pasada, la de cada grupo leído (los del turno y del
-    margen, primero), y el freno casi nunca dejaba llegar."""
+        6 h, o cada pasada mientras está caliente): en la primera lectura del día y cuando cambia algo."""
     if not conn.execute("SELECT 1 FROM matches WHERE group_id=? AND home_score IS NOT NULL LIMIT 1",
                         (group_id,)).fetchone():
         return False
@@ -1916,13 +1861,12 @@ def run_passes(page, F, conn, season_id, groups, today, pending, deadline_second
     plan_groups (el de la pasada `number`, por defecto run_number(), a la hora `now`) y con un plazo GLOBAL
     (`deadline`, en clock(); o `deadline_seconds` desde ahora; por defecto, budget_seconds(): 16 min).
 
-    Desde el 16/10/2026, una PASADA CORTA: la federación sirve ~15 páginas por IP y su bloqueo escala dentro
+    Una PASADA CORTA: la federación sirve ~15 páginas por IP y su bloqueo escala dentro
     de la pasada (~300 s, ~900 s, más que el plazo), así que F (fiflp_carga.Federacion) espera solo el
     primer freno (BRAKE_PAUSES) y, en el segundo, deja de pedir (F.blocked): ~30 páginas en ~9 min, y la
     siguiente pasada, 1-2 h después (reloj.yml) y con otra IP, sigue. Por eso cada grupo se lee COMPLETO
-    antes del siguiente, para que el freno final no deje calendarios leídos sin sus goleadores ni sus actas (hasta el
-    16/10/2026, en una segunda pasada que el freno casi nunca dejaba empezar: «sin federación: las actas y
-    los goleadores de 3 grupos, en otra pasada», en cada pasada):
+    antes del siguiente, para que el freno final no deje calendarios leídos sin sus goleadores ni sus
+    actas (en una segunda pasada, el freno casi nunca las dejaría empezar):
       1. su clasificación y sus jornadas (scrape_group, update_group: todas las jugadas en la primera
          pasada de un grupo recién activado, fiflp_full_pending), si empieza antes de los últimos
          reserve_seconds del plazo; si no, a otra pasada (rotación sin estado);
@@ -1940,7 +1884,7 @@ def run_passes(page, F, conn, season_id, groups, today, pending, deadline_second
     los equipos que no la tienen (update_directorio, como mucho EXTRAS_PAGES páginas); y en cada pasada,
     las actas nuevas que el final de otra dejó a medias (catch_up: como mucho CATCHUP_ACTAS páginas, con
     los goleadores del grupo). Al final de cualquier pasada que acabe sin frenar ni llegar al plazo, lo que
-    no se hizo de lo de una vez al día; y lo último, desde la fase 2C (14/11/2026), los originales de las
+    no se hizo de lo de una vez al día; y lo último, los originales de las
     actas ya importadas que no lo tienen (releer_originales: como mucho RELECTURA_POR_PASADA, dentro del
     cupo de actas; run.rawBackfill), que no cuentan como grupo.
 
@@ -2106,8 +2050,8 @@ def run_passes(page, F, conn, season_id, groups, today, pending, deadline_second
             except Exception as e:
                 print(f"  ! competiciones: {e}")
         # Hecho solo si se leyó: en la pasada de los extras (antes del turno) aún no están los campos de los
-        # calendarios que se leen después, y al final de la pasada se mira otra vez (hasta el 17/10/2026, no:
-        # el directorio esperaba al día siguiente, y test_both_passes_end_to_end fallaba 1 de cada 12 pasadas).
+        # calendarios que se leen después, y al final de la pasada se mira otra vez (si no, el directorio
+        # esperaría al día siguiente).
         if "campos" not in extras_done and clock() <= deadline and not blocked():
             try:
                 if missing_venues(conn, season_id):

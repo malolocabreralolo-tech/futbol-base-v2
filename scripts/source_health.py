@@ -239,8 +239,8 @@ def _discard_checks():
     ejecución fallida («Publicar diagnóstico si la fuente o las pruebas fallan»: solo data-health.json, sin
     la base), así que su «ok» con la hora nueva diría leído lo que no se ha publicado; y la hora de los
     prioritarios (_timed) decide cuándo les toca (update_fiflp.plan_groups): con ella, la pasada siguiente
-    los daba por al día y no los releía hasta su turno (hasta ~6 h; antes del 16/10/2026 se releían en
-    todas). Los errores y los rechazos se quedan: son el diagnóstico."""
+    los daría por al día y no los releería hasta su turno (hasta ~6 h). Los errores y los rechazos se
+    quedan: son el diagnóstico."""
     previous = previous_groups()
     for code, entry in list(_report["groups"].items()):
         if not isinstance(entry, dict) or entry.get("status") != "ok":
