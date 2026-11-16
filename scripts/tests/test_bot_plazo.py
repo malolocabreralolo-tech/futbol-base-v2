@@ -1,8 +1,7 @@
-"""El bot de la federación cabe siempre en su job (update_fiflp.py, octubre de 2026).
+"""El bot de la federación cabe siempre en su job (update_fiflp.py).
 
-Con 33 grupos la primera pasada eran 19 min sin plazo, la segunda tenía lo que quedara de 25 y los
-grupos iban por orden alfabético: PG2, el de la familia, el último. Con la Segunda Fase (+12-16
-grupos) y alevín (+32, códigos AL…) no cabría en los 45 min del job. Ahora:
+Con muchos grupos (33 en octubre, más la Segunda Fase, +12-16, y alevín, +32, códigos AL…), una pasada sin
+plazo no cabría en los 45 min del job, y por orden alfabético PG2, el de la familia, iría el último. Por eso:
   - cada página cuesta menos (fiflp_carga: sin esperas fijas; test_fiflp_carga.py);
   - el orden es por prioridad: los grupos de los equipos prioritarios, los cerrados que tocan, una
     cuota de alevín y el turno de prebenjamín y de benjamín, el turno siguiente de cada nivel (el
@@ -10,19 +9,17 @@ grupos) y alevín (+32, códigos AL…) no cabría en los 45 min del job. Ahora:
   - la rotación NO tiene estado: cada nivel tiene cuatro turnos fijos y la pasada lee primero el de su
     número (run_number), no según nada guardado (update.yml no sube la base ni data-health.json en una
     pasada sin cambios publicados); dentro del turno, el inicio cambia de una época a otra (spin);
-  - un plazo GLOBAL (16 min desde el 16/10/2026: pasadas cortas cada 2 h) cubre la pasada; en su último
-    cuarto como mucho (2 min) no empieza ningún grupo; lo que no cabe queda para otra pasada, sin
-    marcarlo como error;
-  - cada grupo se lee COMPLETO antes del siguiente (desde el 16/10/2026): su calendario y justo después
-    sus goleadores, si tocan, y sus actas pendientes (hasta entonces, las actas y los goleadores iban en
-    una segunda pasada, y los de los prioritarios, tras todos sus calendarios, a cuenta de su reserva: el
-    segundo freno de la federación casi nunca dejaba llegar); cada acta, una vez por pasada, y las que el
-    final de una pasada deja a medias, las primeras de la siguiente tras los prioritarios (catch_up);
+  - un plazo GLOBAL (16 min: pasadas cortas cada 2 h) cubre la pasada; en su último cuarto como mucho
+    (2 min) no empieza ningún grupo; lo que no cabe queda para otra pasada, sin marcarlo como error;
+  - cada grupo se lee COMPLETO antes del siguiente: su calendario y justo después sus goleadores, si
+    tocan, y sus actas pendientes (en una segunda pasada, el segundo freno de la federación casi nunca
+    las dejaría llegar); cada acta, una vez por pasada, y las que el final de una pasada deja a medias,
+    las primeras de la siguiente tras los prioritarios (catch_up);
   - los prioritarios, solo cuando toca (test_bot_prioritarios.py);
   - un grupo cerrado (todo jugado, última jornada hace más de 21 días) solo se refresca una vez al día
-    (CLOSED_PASSES: una de cada doce pasadas, cada cuatro con el cron cada 6 h), en una que salta dos
-    puestos de un día a otro. La simulación de muchas pasadas con 81 grupos está en test_bot_rotacion.py
-    y la de una semana con el cupo de la federación, en test_bot_pasada_corta.py.
+    (CLOSED_PASSES: una de cada doce pasadas), en una que salta dos puestos de un día a otro. La
+    simulación de muchas pasadas con 81 grupos está en test_bot_rotacion.py y la de una semana con el
+    cupo de la federación, en test_bot_pasada_corta.py.
 Sin red: páginas y raspador falsos.
 """
 from datetime import date, datetime, timedelta, timezone
@@ -38,7 +35,7 @@ from migrate_actas_schema import migrate  # noqa: E402
 import update_fiflp as U  # noqa: E402
 
 # Una jornada servida sin nada nuevo: solo el descanso. Una vacía que la base tiene con partidos es un error
-# desde el 14/11/2026 (update_fiflp.JornadaVacia, fase 2B de v2): estas pasadas no van de eso.
+# (update_fiflp.JornadaVacia): estas pasadas no van de eso.
 BYE_ROUND = [{"home": "DESCANSA", "away": "DESCANSA", "hs": None, "as": None, "date": "", "time": "", "venue": ""}]
 TODAY = date(2026, 10, 14)
 NOW = datetime(2026, 10, 14, 4, 0, tzinfo=timezone.utc)
@@ -166,23 +163,22 @@ def test_a_priority_team_includes_its_club_filials_and_not_a_namesake_club():
 def test_order_is_priority_then_the_turns_then_the_rest_by_level():
     """Los prioritarios; el turno de cada nivel (la cuota de alevín, prebenjamín, benjamín: ceil(N/4)
     de cada uno); el turno siguiente de cada nivel (el margen); y el resto. Los tres, intercalados
-    (interleave; el turno, desde el 15/10/2026), cada nivel con la fase de su turno (pass_phase, desde el
-    16/10/2026: el primero de cada nivel ya no va siempre antes que el segundo de ninguno; aquí, en la
-    pasada 0, prebenjamín tras benjamín)."""
+    (interleave), cada nivel con la fase de su turno (pass_phase: el primero de cada nivel no va siempre
+    antes que el segundo de ninguno; aquí, en la pasada 0, prebenjamín tras benjamín)."""
     order = codes(plan(season(), env={"FIFLP_ALEVIN_MIN": "1"}).order)
     assert order[:3] == ["PG2", "FF5", "AL3"]                         # los de Las Mesas, por categoría
     assert order[3:] == ["AL1", "FF1", "PG1",                         # los turnos
                          "ALX1", "FF2",                               # los siguientes
                          "FF10", "LZ1"]                               # el resto
     # Por defecto la cuota es de 8: aquí, los dos alevín, intercalados en el turno con prebenjamín y
-    # benjamín. Hasta el 15/10/2026 iban delante de ellos (AL1, ALX1, PG1, FF1): con el cupo de la
-    # federación, la cuota se llevaba todos los grupos no prioritarios de la pasada (test_bot_rotacion).
+    # benjamín. Delante de ellos (AL1, ALX1, PG1, FF1), con el cupo de la federación la cuota se llevaría todos
+    # los grupos no prioritarios de la pasada (test_bot_rotacion).
     assert codes(plan(season()).order)[3:] == ["AL1", "FF1", "ALX1", "PG1", "FF2", "FF10", "LZ1"]
 
 
 def test_the_portal_group_is_a_priority_even_before_it_has_teams():
     """El grupo del equipo del portal va el primero aunque aún no tenga equipos. (Sin él, los dos, en su
-    turno: desde el 16/10/2026 cada nivel con su fase, y aquí benjamín va antes.)"""
+    turno: cada nivel con su fase, y aquí benjamín va antes.)"""
     conn = season([("FF1", "BENJAMIN", ["Arucas", "Tablero"]), ("PG4", "PREBENJAMIN", ["Unión Viera", "Moya"])])
     assert codes(plan(conn, priority=[], pinned={"PG4"}).order) == ["PG4", "FF1"]
     assert codes(plan(conn, priority=[], pinned=()).order) == ["FF1", "PG4"]
@@ -250,7 +246,7 @@ def test_the_margin_and_the_rest_are_interleaved():
 def test_the_order_depends_on_the_pass_number_and_not_on_what_was_published():
     """Sin estado: dos pasadas con el mismo número dan el mismo orden de la rotación aunque data-health.json
     diga otra cosa (una pasada sin cambios publicados no lo sube), y dos números seguidos, órdenes
-    distintos. Los prioritarios, desde el 16/10/2026, sí dependen de su última comprobación publicada (solo
+    distintos. Los prioritarios sí dependen de su última comprobación publicada (solo
     cuando toca: test_bot_prioritarios): comprobados hace 1 h, solo el de su turno; hace 30 h o nunca,
     todos."""
     conn = season()
@@ -276,10 +272,10 @@ def test_alevin_keeps_its_quota_even_when_benjamin_would_fill_the_pass():
     """Alevín, el último nivel, no se queda sin leer aunque benjamín y prebenjamín llenen el plazo: su
     cuota (FIFLP_ALEVIN_MIN, 8 por defecto, y nunca menos que su turno) es su parte del turno, intercalada
     con el de benjamín y el de prebenjamín (interleave): si el plazo o el cupo de la federación cortan el
-    turno, cada nivel conserva su parte (el primero de cada uno antes que el segundo de ninguno). Hasta el
-    15/10/2026 la cuota iba delante de ellos: con el cupo (~15 páginas por IP: ~6 grupos no prioritarios
-    por pasada) se los llevaba todos y benjamín y prebenjamín no se leían nunca (test_bot_rotacion). Los
-    prioritarios, delante de todo, también de la cuota."""
+    turno, cada nivel conserva su parte (el primero de cada uno antes que el segundo de ninguno). Con la
+    cuota delante de ellos y el cupo (~15 páginas por IP: ~6 grupos no prioritarios por pasada) se los
+    llevaría todos y benjamín y prebenjamín no se leerían nunca (test_bot_rotacion). Los prioritarios,
+    delante de todo, también de la cuota."""
     groups = ([("PG2", "PREBENJAMIN", ["Las Mesas Hu.", "Moya"])]
               + [(f"FF{i}", "BENJAMIN", [f"Local {i}", f"Visitante {i}"]) for i in range(1, 31)]
               + [(f"AL{i}", "ALEVIN", [f"Alevín {i}", f"Alevín R{i}"]) for i in range(1, 33)])
@@ -312,9 +308,9 @@ def test_alevin_keeps_its_quota_even_when_benjamin_would_fill_the_pass():
 
 def test_a_closed_group_is_refreshed_once_every_four_passes():
     """Una vez en cada época de CLOSED_PASSES pasadas, en una que salta dos puestos de una época a otra: con
-    un turno fijo (crc32 % 4), una pasada perdida cada día a la misma hora dejaba sin leer, para siempre,
-    a los cerrados de esa hora. Desde el 16/10/2026, con una pasada cada 2 h, la época es de 12 pasadas (24 h,
-    como antes las 4 cada 6 h; y lo mismo daily_turn con cualquier número de pasadas)."""
+    un turno fijo (crc32 % 4), una pasada perdida cada día a la misma hora dejaría sin leer, para siempre,
+    a los cerrados de esa hora. Con una pasada cada 2 h, la época es de 12 pasadas (24 h; y lo mismo
+    daily_turn con cualquier número de pasadas)."""
     period = U.CLOSED_PASSES
     assert period == 12 and U.PASS_EVERY * period == timedelta(hours=24)
     conn = season(played="2026-09-19")                 # todo jugado hace 25 días
@@ -436,7 +432,7 @@ def test_a_calendar_without_rounds_costs_no_fixed_waits(monkeypatch):
     assert U.scrape_group(page, Fed(Clock()), url(1), {}, TODAY) == ([], {})
     assert page.reads == 1 and page.waits == []
     # Un grupo con jornadas cuyo desplegable tarda («0J»): hasta dos esperas más, al desplegable y con
-    # tope (antes de octubre eran 4 × 3 s fijos; con una sola espera, 14/10, fallaban grupos sanos).
+    # tope (con una sola espera fallarían grupos sanos).
     page = CalendarPage(ready_on=3)
     assert list(U.scrape_group(page, Fed(Clock()), url(1), stored, TODAY)[1]) == ["Jornada 1"]
     assert len(page.waits) == 2
@@ -520,11 +516,10 @@ def steps(fed):
 
 
 def test_what_does_not_fit_waits_for_the_next_pass_without_an_error(health):
-    """Lo que no cabe en el plazo queda para otra pasada, sin error y con su comprobación de antes. Desde el
-    16/10/2026 cada grupo se lee completo antes del siguiente (sus goleadores, justo tras su calendario: aquí
-    sin goleadores en la base, tocan) y en el último cuarto del plazo (aquí 20 s de 80; por defecto, 2 min:
-    RESERVE_SECONDS) no empieza ninguno: ya no hay segunda pasada que reservar. Al acabar, si sobra pasada
-    (ni freno ni plazo), la página de competiciones."""
+    """Lo que no cabe en el plazo queda para otra pasada, sin error y con su comprobación de antes. Cada grupo
+    se lee completo antes del siguiente (sus goleadores, justo tras su calendario: aquí sin goleadores en la
+    base, tocan) y en el último cuarto del plazo (aquí 20 s de 80; por defecto, 2 min: RESERVE_SECONDS) no
+    empieza ninguno. Al acabar, si sobra pasada (ni freno ni plazo), la página de competiciones."""
     previous = report({code: checked(6) for code in ALL})
     data, fed = health(previous, season(), budget=80)
     groups = data["groups"]
@@ -544,12 +539,11 @@ def test_what_does_not_fit_waits_for_the_next_pass_without_an_error(health):
 @pytest.mark.parametrize("commits", [True, False])
 def test_the_rotation_reaches_every_group_without_any_saved_state(health, commits, monkeypatch):
     """Con plazo para 7 de 10 grupos (3 prioritarios), la pasada siguiente lee primero otro turno y en
-    cuatro pasadas seguidas todos se refrescan, alevín también, con sus goleadores (cada grupo, completo:
-    desde el 16/10/2026 los goleadores van con cada grupo leído, no en una segunda pasada). Igual si ninguna
-    pasada sube nada (commits=False: cada una arranca del mismo data-health.json): el orden sale del número
-    de la pasada. (Con la cuota de alevín por defecto, 8, los dos grupos alevín irían siempre y no quedaría
-    sitio para benjamín: aquí, la cuota es su turno, 1 de 2. Las pasadas, cada 6 h: los prioritarios, en
-    todas.)"""
+    cuatro pasadas seguidas todos se refrescan, alevín también, con sus goleadores (cada grupo, completo).
+    Igual si ninguna pasada sube nada (commits=False: cada una arranca del mismo data-health.json): el
+    orden sale del número de la pasada. (Con la cuota de alevín por defecto, 8, los dos grupos alevín
+    irían siempre y no quedaría sitio para benjamín: aquí, la cuota es su turno, 1 de 2. Las pasadas,
+    cada 6 h: los prioritarios, en todas.)"""
     monkeypatch.setenv("FIFLP_ALEVIN_MIN", "0")
     conn = season()
     base = report({code: checked(6) for code in ALL})
@@ -569,9 +563,9 @@ def test_the_rotation_reaches_every_group_without_any_saved_state(health, commit
 
 def test_each_group_read_has_its_scorers_right_after_its_calendar(health):
     """Cada grupo leído, completo antes del siguiente: sus goleadores, si tocan (scorers_due: aquí, sin
-    goleadores en la base), justo tras su calendario. Hasta el 16/10/2026 iban en una segunda pasada (los del
-    turno y del margen, primero), que el segundo freno de la federación casi nunca dejaba empezar: los grupos
-    leídos se quedaban sin goleadores («sin federación: las actas y los goleadores de 3 grupos»)."""
+    goleadores en la base), justo tras su calendario. En una segunda pasada (los del turno y del margen,
+    primero), el segundo freno de la federación casi nunca la dejaría empezar: los grupos leídos se
+    quedarían sin goleadores («sin federación: las actas y los goleadores de 3 grupos»)."""
     data, fed = health(report({code: checked(6) for code in ALL}), season(), budget=600)
     s = [x for x in steps(fed) if x != "competiciones"]
     assert s == [x for code in read_groups(fed) for x in (code, f"{code} goleadores")]
@@ -633,11 +627,10 @@ def test_a_federation_that_stops_serving_cuts_the_pass(health, actas_ok, actas):
     """Tres páginas seguidas sin cargar: la federación bloquea o se ha caído. No se le piden más (el resto
     de grupos, a otra pasada, sin marcarlos como error), y lo que se leyó, se queda. Aquí sirve 12 páginas.
     Sin actas, justo los tres prioritarios completos (calendario y goleadores, 4 páginas cada uno); el
-    siguiente, AL1, no carga y conserva su comprobación. Con 3 actas en PG2 y en FF5, desde el 16/10/2026
-    cada grupo se lee completo antes del siguiente: PG2 entero (7 páginas), FF5 con su calendario, sus
-    goleadores y la primera de sus actas, y AL3, a otra pasada con su comprobación de antes; las dos actas
-    de FF5 que la federación ya no sirvió, también (run.extrasDeferred). Hasta entonces las actas iban
-    tras los tres calendarios: AL3 se leía y las actas se quedaban todas para otra pasada."""
+    siguiente, AL1, no carga y conserva su comprobación. Con 3 actas en PG2 y en FF5, cada grupo se lee
+    completo antes del siguiente: PG2 entero (7 páginas), FF5 con su calendario, sus goleadores y la
+    primera de sus actas, y AL3, a otra pasada con su comprobación de antes; las dos actas de FF5 que la
+    federación ya no sirvió, también (run.extrasDeferred)."""
     previous = report({code: checked(6) for code in ALL})
     conn = with_actas(season(), actas)
     data, fed = health(previous, conn, budget=600, make_fed=lambda clock: BlockedFed(clock, serve=12))
@@ -663,14 +656,13 @@ def test_a_federation_that_stops_serving_cuts_the_pass(health, actas_ok, actas):
 
 
 def test_the_federation_stops_after_the_priority_groups_and_their_actas_and_scorers_are_in(health, actas_ok, capsys):
-    """La pasada 1101 (14/10/2026): la federación sirvió los calendarios de los seis grupos prioritarios
-    y algunas páginas más, y después páginas vacías (su freno, F.blocked). Sus actas y sus goleadores
-    iban en la segunda pasada y se perdían («sin federación: las actas y los goleadores de 6 grupos, en otra
-    pasada»), un fin de semana tras otro. Desde el 16/10/2026 cada grupo se lee completo antes del
-    siguiente: las páginas que la federación sirve son para los prioritarios enteros (calendario,
-    goleadores y actas). AL1 y FF1 (los dos siguientes, que la federación ya no sirve) conservan su última
-    comprobación (un freno no es un error): FF1 la deja bloqueada y AL1 falló justo antes, sin ninguna
-    página servida entre su fallo y el bloqueo."""
+    """La federación sirvió los calendarios de los seis grupos prioritarios y algunas páginas más, y después
+    páginas vacías (su freno, F.blocked). Sus actas y sus goleadores no pueden ir en una segunda pasada que
+    se pierde («sin federación: las actas y los goleadores de 6 grupos, en otra pasada») un fin de semana
+    tras otro: cada grupo se lee completo antes del siguiente, y las páginas que la federación sirve son
+    para los prioritarios enteros (calendario, goleadores y actas). AL1 y FF1 (los dos siguientes, que la
+    federación ya no sirve) conservan su última comprobación (un freno no es un error): FF1 la deja
+    bloqueada y AL1 falló justo antes, sin ninguna página servida entre su fallo y el bloqueo."""
     conn = with_actas(season(), {"PG2": 2, "FF5": 1})
     previous = report({code: checked(6) for code in ALL})
     # PG2 con sus goleadores y sus dos actas (6 páginas), FF5 con los suyos y su acta (5) y AL3 con los suyos
@@ -742,11 +734,10 @@ def test_a_federation_that_stops_at_the_first_calendar_changes_nothing(health, a
 @pytest.mark.parametrize("n", [0, 2, 10])
 def test_each_group_is_complete_before_the_next_and_the_deadline_cuts_the_rest(health, actas_ok, n):
     """Las actas de PG2 (0, 2 o 10), justo tras su calendario y sus goleadores, antes que el calendario de
-    FF5: cada grupo, completo antes del siguiente (desde el 16/10/2026; hasta entonces iban tras los tres
-    calendarios de los prioritarios, a cuenta de la reserva de la segunda pasada, y no les quitaban nada a
-    los demás). Ahora se las quitan: con más actas, los demás leen menos en esa pasada, y lo que no cabe,
-    a otra pasada (en el último cuarto del plazo, 20 s de 80, no empieza ningún grupo). Ninguna página
-    empieza pasado el plazo y, si sobra pasada, se leen las competiciones."""
+    FF5: cada grupo, completo antes del siguiente. Esas actas se las quitan a los demás: con más actas, los
+    demás leen menos en esa pasada, y lo que no cabe, a otra pasada (en el último cuarto del plazo, 20 s de
+    80, no empieza ningún grupo). Ninguna página empieza pasado el plazo y, si sobra pasada, se leen las
+    competiciones."""
     conn = with_actas(season(), {"PG2": n})
     data, fed = health(report({code: checked(6) for code in ALL}), conn, budget=80)
     s = steps(fed)
@@ -761,7 +752,7 @@ def test_each_group_is_complete_before_the_next_and_the_deadline_cuts_the_rest(h
 
 def test_actas_the_end_of_a_pass_leaves_are_caught_up_first_in_the_next(health, actas_ok, capsys, monkeypatch):
     """Las actas que el final de una pasada deja a medias (el último grupo: el segundo freno de la federación
-    o el plazo) ya no esperan a la lectura siguiente del grupo, días después: la pasada siguiente las
+    o el plazo) no esperan a la lectura siguiente del grupo, días después: la pasada siguiente las
     recupera (new_actas, catch_up), con los goleadores del grupo, tras los prioritarios que tocan y antes que
     el turno (como mucho CATCHUP_ACTAS). Aquí AL1, el último grupo de la pasada 0, con 12 actas: el plazo
     corta tras la 11.ª; en una pasada siguiente en la que AL1 no va entre los CATCHUP_SKIP primeros grupos
@@ -805,12 +796,12 @@ def test_an_acta_that_fails_is_read_once_per_pass(health, monkeypatch):
 def test_a_failed_acta_is_retried_at_the_pace_of_age_not_in_every_pass(health, monkeypatch):
     """Un acta que ya falló se reintenta solo si la última comprobación correcta publicada de su grupo es de
     hace un rato (retry_actas): sus MAX_ACTA_TRIES intentos son para dar tiempo a la federación a rellenarla.
-    Con una pasada cada 2 h, un prioritario caliente se lee en todas, y un acta suya que tardaba se quedaba sin
-    intentos en ~6-8 h (en la simulación de cuatro semanas, una de AL27); con el cron cada 6 h, ~18 h. Desde
-    el 17/10/2026, en dos tramos: la que falló una vez, desde 2 h 45 (ACTA_RETRY_SOON: en las ventanas de
-    partidos, con una pasada cada hora, un prioritario frío se lee en su pasada cada ~3 h, y con las 4 h de
-    antes no se reintentaba en toda la ventana); las que fallaron más, desde 4 h (ACTA_RETRY_AFTER), como
-    antes. Una nueva, siempre; y la que no se reintenta no deja el grupo «a medias»."""
+    Con una pasada cada 2 h, un prioritario caliente se lee en todas, y un acta suya que tardaba se quedaría
+    sin intentos en ~6-8 h (en la simulación de cuatro semanas, una de AL27); con el cron cada 6 h, ~18 h.
+    Por eso hay dos tramos: la que falló una vez, desde 2 h 45 (ACTA_RETRY_SOON: en las ventanas de
+    partidos, con una pasada cada hora, un prioritario frío se lee en su pasada cada ~3 h, y con un solo
+    plazo de 4 h no se reintentaría en toda la ventana); las que fallaron más, desde 4 h (ACTA_RETRY_AFTER).
+    Una nueva, siempre; y la que no se reintenta no deja el grupo «a medias»."""
     def apply(conn, mid, code, acta, log=print):
         if code == 7001:
             return False
@@ -869,8 +860,8 @@ def test_without_priority_groups_the_passes_are_as_before(health, actas_ok, monk
 def test_venues_and_team_cards_are_read_once_a_day_after_the_priority_groups(health):
     """El directorio de campos (si falta uno de la temporada) y las fichas de los equipos que no la tienen,
     con la página de competiciones, una vez al día (extras_turn) tras los prioritarios que tocan: si el
-    segundo freno o el plazo cortan la pasada, se leen igual. Hasta el 16/10/2026 iban en la segunda pasada
-    de cada pasada, que el freno casi nunca dejaba empezar. (En las demás pasadas, solo si sobra pasada.)"""
+    segundo freno o el plazo cortan la pasada, se leen igual. (En las demás pasadas, solo si sobra
+    pasada.)"""
     conn = season()
     conn.execute("UPDATE matches SET venue='CAMPO NUEVO' WHERE group_id=8")                 # AL1
     for position, name in enumerate(["Arucas", "Tablero"], 1):                               # FF1, sin fichas
@@ -895,9 +886,8 @@ def test_venues_and_team_cards_are_read_once_a_day_after_the_priority_groups(hea
 
 def test_a_closed_group_is_refreshed_once_every_four_passes_and_the_rest_carry_their_check(health):
     """Todo cerrado: cada pasada lee solo los cerrados a los que les toca (closed_turn); los demás
-    descansan con su última comprobación. En cada época de CLOSED_PASSES pasadas (12 con una cada 2 h,
-    desde el 16/10/2026; antes 4 cada 6 h: 24 h), todos una vez, sin estado: igual si ninguna pasada sube
-    data-health.json."""
+    descansan con su última comprobación. En cada época de CLOSED_PASSES pasadas (12 con una cada 2 h:
+    24 h), todos una vez, sin estado: igual si ninguna pasada sube data-health.json."""
     conn = season(played="2026-09-19")
     base = report({code: checked(24) for code in ALL})
     visited, period = [], U.CLOSED_PASSES

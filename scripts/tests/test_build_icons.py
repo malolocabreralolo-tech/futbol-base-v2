@@ -1,4 +1,4 @@
-"""Plan B1, tarea 13: iconos de la PWA (spec §5.5).
+"""Iconos de la PWA.
 
 Tamaño y modo se comprueban leyendo la cabecera PNG a mano, sin Pillow: el bot
 (update.yml) y tests.yml solo instalan pytest y pyyaml. Las comprobaciones de
@@ -39,7 +39,7 @@ def test_icon_size_and_mode(name, side):
 
 @pytest.mark.parametrize("name", sorted(EXPECTED))
 def test_icon_is_light(name):
-    # Se precachean en el service worker (B4): nada de PNG pesados.
+    # Se precachean en el service worker: nada de PNG pesados.
     assert (ICONS / name).stat().st_size < 20_000
 
 

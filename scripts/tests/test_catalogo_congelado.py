@@ -1,9 +1,9 @@
 """Las pruebas no leen el catálogo de la federación que actualiza discover-fiflp.yml
 (scripts/fiflp_comps_catalog.json), sino una copia congelada (fixtures/fiflp_comps_catalog.json).
 
-El 13/11/2026 el workflow apuntó tres competiciones nuevas y siete pruebas que leían el catálogo
-vivo se pusieron en rojo: el bot (update.yml) ejecuta las suites antes de publicar, así que una
-competición nueva en la federación lo habría dejado sin publicar datos hasta activarla.
+Si leyeran el catálogo vivo, una competición nueva en la federación pondría pruebas en rojo: el bot
+(update.yml) ejecuta las suites antes de publicar, así que se quedaría sin publicar datos hasta
+activarla.
 """
 import json
 import os

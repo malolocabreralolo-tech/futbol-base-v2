@@ -1,14 +1,13 @@
-"""Menos páginas por grupo (update_fiflp, 15/10/2026).
+"""Menos páginas por grupo (update_fiflp).
 
-La federación sirve ~15 páginas por IP y después frena ~5 min (medido el 15/10/2026: fiflp_carga): cada
-página es ~1/15 del cupo. Un grupo costaba la clasificación, el calendario y las jornadas de la ventana de
-21 días atrás y 14 adelante (~5: ~7 páginas). Ahora la ventana es de 10 atrás y 8 adelante (BACK_DAYS,
-AHEAD_DAYS): la última jornada jugada y la próxima, 2-3 jornadas (~4-5 páginas), sin perder lo que
-importa: los resultados que faltan (PENDING_DAYS, aplazados incluidos, también una jornada entera que
-la federación pasa a fuera de la ventana), las jornadas que la base no tiene, las de entre semana y la
-primera pasada completa de un grupo recién activado. Lo que sí deja de hacerse: releer una jornada
-COMPLETA de hace 11-21 días (una corrección tan tardía ya no se ve en la jornada; el acta, que manda, sí
-se lee).
+La federación sirve ~15 páginas por IP y después frena ~5 min (fiflp_carga): cada página es ~1/15 del
+cupo. Un grupo cuesta la clasificación, el calendario y las jornadas de la ventana de 10 días atrás y 8
+adelante (BACK_DAYS, AHEAD_DAYS): la última jornada jugada y la próxima, 2-3 jornadas (~4-5 páginas),
+sin perder lo que importa: los resultados que faltan (PENDING_DAYS, aplazados incluidos, también una
+jornada entera que la federación pasa a fuera de la ventana), las jornadas que la base no tiene, las de
+entre semana y la primera pasada completa de un grupo recién activado. Lo que no se hace: releer una
+jornada COMPLETA de hace 11-21 días (una corrección tan tardía ya no se ve en la jornada; el acta, que
+manda, sí se lee).
 
 Y el calendario (NFG_CmpJornada sin CodJornada): ¿trae ya los partidos de la jornada seleccionada en su
 desplegable? Sin red no se puede asegurar (no hay ninguna guardada, y leer como una jornada los partidos
@@ -125,8 +124,8 @@ def test_a_whole_round_moved_two_weeks_on_is_read_once_with_its_new_date():
     sigue teniendo en su fecha vieja, ya pasada y sin resultados, y el desplegable da la nueva, fuera de la
     ventana (AHEAD_DAYS, 8). Se lee por su fecha GUARDADA (un partido sin resultado de hace menos de
     PENDING_DAYS), una vez: write_round les pone la nueva a sus partidos (la de la jornada, si no traen la suya)
-    y ya no se vuelve a leer hasta que entre en la ventana. Sin esto, la web la enseñaba hasta el 23/10 como
-    jugada el 17 y sin resultado (con la ventana de antes, 14 días, solo si caía a 9-14 días vista)."""
+    y ya no se vuelve a leer hasta que entre en la ventana. Sin esto, la web la enseñaría hasta el 23/10 como
+    jugada el 17 y sin resultado."""
     today = date(2026, 10, 20)
     options = [{"value": "4", "text": "4 - 10-10-2026"}, {"value": "5", "text": "5 - 31-10-2026"},
                {"value": "6", "text": "6 - 24-10-2026"}]
@@ -265,9 +264,8 @@ def test_the_calendar_round_is_measured_without_asking_anything_more(scrape, cap
     assert urls == plain and check == {"different": 1} and list(got) == ["Jornada 4", "Jornada 5"]
     assert ("    calendario: seleccionada la jornada 4, pero sus partidos no son los de su página (son los de la "
             "jornada 5)") in capsys.readouterr().out
-    # Una seleccionada que no se lee en esta pasada, o ninguna: hasta el 16/10/2026, nada que comparar (y en
-    # las pasadas reales, 1107-1110, nunca salió nada: la seleccionada sería la primera opción). Ahora se
-    # compara con todas las leídas: el calendario enseña los de la jornada 4 («other»).
+    # Una seleccionada que no se lee en esta pasada, o ninguna: se compara con todas las leídas, y el
+    # calendario enseña los de la jornada 4 («other»).
     for selected, line in (({"value": "20", "text": "20 - 30-01-2027"}, "y la seleccionada es la jornada 20"),
                            (None, ", sin jornada seleccionada")):
         check = {}

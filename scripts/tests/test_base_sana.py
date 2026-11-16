@@ -1,4 +1,4 @@
-"""La comprobación de la base antes de subirla (scripts/base_sana.py, fase 4): integridad, referencias, el WAL
+"""La comprobación de la base antes de subirla (scripts/base_sana.py): integridad, referencias, el WAL
 volcado al fichero principal y el tamaño. Bases de mentira, creadas en cada prueba; nunca la del repositorio."""
 import hashlib
 import json

@@ -1,7 +1,7 @@
-"""Los prioritarios solo cuando toca, y cada grupo completo (update_fiflp, 16/10/2026).
+"""Los prioritarios solo cuando toca, y cada grupo completo (update_fiflp).
 
-Con el cron cada 6 h, los seis o siete grupos de Las Mesas Huracán se leían en cada pasada: ~33 de las ~45
-páginas que daba la federación por pasada (pasadas 1107-1110). Con pasadas cada 2 h, un prioritario se lee:
+Leer en cada pasada los seis o siete grupos de Las Mesas Huracán se llevaría ~33 de las ~45 páginas que da
+la federación por pasada. Con pasadas cada 2 h, un prioritario se lee:
   - en su pasada (priority_slot: una de cada tres, repartidos), o si en la pasada siguiente su última
     comprobación correcta (data-health.json) ya tendría más de PRIORITY_MAX_AGE (6 h; FIFLP_PRIORITY_MAX_H),
     o no la tiene (stale);
@@ -114,9 +114,9 @@ def base(matches):
 def test_a_priority_group_is_hot_while_a_match_of_its_teams_has_just_been_played(match, why):
     """Un partido de sus equipos prioritarios de los dos últimos días (hora de Canarias, la de la base),
     empezado hace más de una hora: sin resultado, o con él y con su acta por leer (con código, sin importar y
-    sin intentar: como pending_actas). Solo con la base: nada de estado nuevo ni de páginas. Cambiado el
-    16/10/2026 (corrector): «sin-codigo» era «acta», pero un resultado sin código de acta no tiene acta que
-    leer (uno de mesa, «de-mesa», nunca la tiene: AL20 en la base real, caliente ~3 días seguidos)."""
+    sin intentar: como pending_actas). Solo con la base: nada de estado nuevo ni de páginas. Un resultado
+    sin código de acta no tiene acta que leer (uno de mesa, «de-mesa», nunca la tiene): no puede mantener
+    caliente a un grupo, como AL20 en la base real, ~3 días seguidos."""
     assert U.hot_reason(base([match]), 1, KEYS, NOW) == why
 
 
@@ -147,11 +147,10 @@ def test_a_hot_group_cools_down_once_read_well_past_its_match(match, last, why):
 
 
 def test_an_administrative_result_does_not_keep_a_priority_group_hot_for_days():
-    """Lo de la base real del 16/10/2026: AL20 (prioritario) con un 3-0 a un retirado del 11/10, sin hora y sin
-    código de acta, y sus pasadas cada 2 h del 11 al 15/10 (cada una lee lo que toca y publica su hora).
-    Antes, caliente («acta») en 36 pasadas seguidas (todas hasta el 13/10 22:23 UTC) y leído en 36 de las 36
-    primeras; ahora ninguna, y leído una de cada tres pasadas, como los demás prioritarios. Igual con un
-    aplazado que conserva su fecha (sin resultado): caliente unas 12 h, no tres días."""
+    """Lo de la base real: AL20 (prioritario) con un 3-0 a un retirado del 11/10, sin hora y sin código de
+    acta, y sus pasadas cada 2 h del 11 al 15/10 (cada una lee lo que toca y publica su hora). Nunca
+    caliente («acta») ni leído en cada pasada: leído una de cada tres pasadas, como los demás prioritarios.
+    Igual con un aplazado que conserva su fecha (sin resultado): caliente unas 12 h, no tres días."""
     for score, most in (((3, 0), 0), (None, 7)):
         conn = base([("2026-10-11", None, "Las Mesas Hu.", "Moya", score, None, False, 0)])
         conn.execute("UPDATE groups SET url='https://www.fiflp.com/x?CodTemporada=22&CodCompeticion=9&CodGrupo=1'")

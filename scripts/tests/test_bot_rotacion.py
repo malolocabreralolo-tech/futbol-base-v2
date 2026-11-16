@@ -4,7 +4,7 @@ La temporada de 2026-27 con todo lo previsto: los 33 grupos de octubre (FF1-24, 
 de alevín (AL1-32) y los 16 de la Segunda Fase de benjamín (A1-D4), 81 grupos. Las Mesas Huracán juega
 en PG2, FF5, B2 y en cuatro grupos alevín: siete grupos prioritarios. Cada página de la federación le
 cuesta al bot ~3 s (fiflp_carga; reloj falso), un grupo abierto son 7 (clasificación, calendario y cinco
-jornadas) más sus goleadores y sus actas (desde el 16/10/2026, cada grupo se lee completo antes del
+jornadas) más sus goleadores y sus actas (cada grupo se lee completo antes del
 siguiente) y uno cerrado 2. La rotación no tiene estado (run_number): se prueba con y sin commits entre
 pasadas (sin commits, cada pasada arranca de la misma base y del mismo data-health.json, como cuando
 update.yml no sube nada porque no ha cambiado ningún dato publicado). En 24 pasadas (seis días con el cron
@@ -23,10 +23,10 @@ cada 6 h):
     época a otra: al menos una vez en cada seis seguidas, y en cada ocho (lo pedido) aunque se pierda
     una pasada al día;
   - ninguna página se pide pasado el plazo, y cada prioritario se lee completo antes del siguiente.
-EL MODELO de estas simulaciones es el de cuando se calibraron (octubre de 2026) y se fija aquí: un plazo
+EL MODELO de estas simulaciones queda fijo aquí, el de la calibración de la rotación: un plazo
 de 25 min (FIFLP_BUDGET_MIN), la ventana de jornadas de 21 días atrás y 14 adelante (7 páginas por grupo
 abierto) y el cron cada 6 h (update_fiflp.PASS_EVERY, con los cerrados y las competiciones una vez cada
-cuatro pasadas: CLOSED_PASSES, EXTRAS_PASSES). Desde el 16/10/2026 el bot hace pasadas CORTAS cada 2 h
+cuatro pasadas: CLOSED_PASSES, EXTRAS_PASSES). El bot de ahora hace pasadas CORTAS cada 2 h
 (16 min, una espera del freno, 10 días atrás y 8 adelante) y lo que manda es el cupo de la federación (~15
 páginas por IP y un bloqueo que escala dentro de la pasada: fiflp_carga), que no es un coste fijo por
 página: una pasada, en test_bot_freno.py; muchas, con la temporada llena, al final de este
@@ -49,12 +49,12 @@ from migrate_actas_schema import migrate  # noqa: E402
 import update_fiflp as U  # noqa: E402
 
 # Una jornada servida sin nada nuevo: solo el descanso. Una vacía que la base tiene con partidos es un error
-# desde el 14/11/2026 (update_fiflp.JornadaVacia, fase 2B de v2): estas pasadas no van de eso.
+# (update_fiflp.JornadaVacia): estas pasadas no van de eso.
 BYE_ROUND = [{"home": "DESCANSA", "away": "DESCANSA", "hs": None, "as": None, "date": "", "time": "", "venue": ""}]
 TODAY = date(2026, 10, 14)
 NOW = datetime(2026, 10, 14, 0, 20, tzinfo=timezone.utc)
 PAGE = 3.0                       # segundos por página (carga, espera y pausa)
-BUDGET = 25 * 60                 # el plazo del modelo (el del bot hasta el 15/10/2026; ahora, 33 min)
+BUDGET = 25 * 60                 # el plazo del modelo (distinto del plazo del bot de ahora)
 PASSES = 24
 # Las Mesas Huracán (y sus filiales): siete grupos prioritarios.
 MINE = {"PG2": "Las Mesas Hu.", "FF5": "Las Mesas Hu.", "B2": "Las Mesas Hu.", "AL3": "Las Mesas Hu. A",
@@ -209,12 +209,12 @@ def simulate(tmp_path, monkeypatch, commits, closed=(), numbers=None, page=PAGE,
     # El modelo de cuando se calibró (docstring del módulo): 25 min de plazo, 6 de reserva y la ventana de
     # 21 días atrás y 14 adelante. Con los de ahora (33, 8, 10 y 8) todo cabe con más holgura.
     monkeypatch.setenv("FIFLP_BUDGET_MIN", str(BUDGET // 60))
-    # La reserva ya no es la de una segunda pasada (eran 6 de 25 min): desde el 16/10/2026 cada grupo se lee
-    # completo (calendario, goleadores y actas) y en los últimos RESERVE_SECONDS (2 min) no empieza ninguno.
+    # La reserva no es la de una segunda pasada: cada grupo se lee completo (calendario, goleadores y actas) y
+    # en los últimos RESERVE_SECONDS (2 min) no empieza ninguno.
     monkeypatch.delenv("FIFLP_RESERVE_MIN", raising=False)
     monkeypatch.setattr(U, "BACK_DAYS", 21)
     monkeypatch.setattr(U, "AHEAD_DAYS", 14)
-    # Y el cron de entonces, cada 6 h (desde el 16/10/2026, cada 2 h: PASS_EVERY), con un cerrado y las
+    # Y el cron del modelo, cada 6 h (el bot de ahora, cada 2 h: PASS_EVERY), con un cerrado y las
     # competiciones una vez cada cuatro pasadas (CLOSED_PASSES, EXTRAS_PASSES: 24 h, como ahora con doce).
     monkeypatch.setattr(U, "PASS_EVERY", timedelta(hours=6))
     monkeypatch.setattr(U, "CLOSED_PASSES", 4)
@@ -347,9 +347,8 @@ def test_with_slow_pages_the_turns_still_fit(tmp_path, monkeypatch, commits, pag
     unos 27 grupos por pasada: los prioritarios y el turno de cada nivel, que es lo que hace falta para
     leerlos todos (y sus goleadores) en cuatro pasadas seguidas. Lo que se pierde es el margen. Es el
     límite: a 6,5 s ya no caben (test_slower_pages_cut_a_different_part_of_the_turn_each_day). Con commits
-    (un acta nueva en un cuarto de los grupos en cada pasada), desde el 16/10/2026 el límite es 5,5 s: cada
-    grupo se lee completo, y esos cuestan dos páginas más en la misma pasada (su acta y sus goleadores;
-    antes, en la segunda pasada, que el plazo cortaba)."""
+    (un acta nueva en un cuarto de los grupos en cada pasada), el límite es 5,5 s: cada
+    grupo se lee completo, y esos cuestan dos páginas más en la misma pasada (su acta y sus goleadores)."""
     passes, everyone = simulate(tmp_path, monkeypatch, commits, page=page)
     check(passes, everyone, page=page)
     assert all(len(p["first"]) < 40 for p in passes)
@@ -402,18 +401,16 @@ def test_a_pass_lost_every_day_does_not_starve_the_closed_groups_of_its_hour(tmp
 @pytest.mark.parametrize("page", [PAGE, 7.0], ids=["3s", "7s"])
 def test_each_priority_group_is_read_complete_before_the_next_and_nothing_starts_past_the_deadline(
         tmp_path, monkeypatch, page):
-    """Cada grupo, completo antes del siguiente (desde el 16/10/2026): las actas y los goleadores de cada
-    prioritario van justo tras su calendario y antes que el calendario del siguiente grupo. Hasta entonces
-    iban tras TODOS los calendarios de los prioritarios, a cuenta de la reserva de la segunda pasada, y no le
-    quitaban nada a los demás; ahora la segunda pasada no existe (el segundo freno de la federación la dejaba
-    sin hacer) y esas actas las pagan los demás grupos, que leen menos en esa pasada: lo que se gana es que
-    ningún grupo leído se queda sin sus actas ni sus goleadores. Con la temporada llena, a 3 s y a 7 s por
-    página y un fin de semana con 8 actas de más en cada uno de los siete prioritarios (70 actas: más que
-    las 60 de una pasada, MAX_ACTAS_PER_RUN), ninguna página empieza pasado el plazo y, en la pasada del día
-    (extras_turn), la página de competiciones se lee tras los prioritarios."""
+    """Cada grupo, completo antes del siguiente: las actas y los goleadores de cada prioritario van justo tras
+    su calendario y antes que el calendario del siguiente grupo. Esas actas las pagan los demás grupos, que
+    leen menos en esa pasada: lo que se gana es que ningún grupo leído se queda sin sus actas ni sus
+    goleadores. Con la temporada llena, a 3 s y a 7 s por página y un fin de semana con 8 actas de más en
+    cada uno de los siete prioritarios (70 actas: más que las 60 de una pasada, MAX_ACTAS_PER_RUN), ninguna
+    página empieza pasado el plazo y, en la pasada del día (extras_turn), la página de competiciones se
+    lee tras los prioritarios."""
     number = next(n for n in range(1000, 1004) if U.daily_turn("competiciones y directorio", n, 4))
     mine = {gid: code for gid, (code, _) in enumerate(season_groups(), 1) if code in MINE}
-    # La relectura de los originales (fase 2C) va al final de la pasada, tras todos los grupos: con ella, las
+    # La relectura de los originales va al final de la pasada, tras todos los grupos: con ella, las
     # actas de la base simulada, importadas sin original, también saldrían aquí. Primero, sin ella; abajo, con.
     monkeypatch.setattr(U, "RELECTURA_POR_PASADA", 0)
     for actas in (0, 8):
@@ -448,10 +445,10 @@ def test_each_priority_group_is_read_complete_before_the_next_and_nothing_starts
     assert 0 < len(actas) <= 20 and actas[0] > last_group
 
 
-# ── Con el cupo de la federación (15/10/2026) ──────────────────────────────────
+# ── Con el cupo de la federación ──────────────────────────────────
 
 class Cupo:
-    """La federación MEDIDA el 15/10/2026 (freno-fiflp.yml; test_bot_freno.Quota): sirve `per_ip`
+    """La federación MEDIDA (freno-fiflp.yml; test_bot_freno.Quota): sirve `per_ip`
     documentos y después vacías durante `block` s desde la primera vacía (los sondeos no lo alargan); al
     pasar, otro cupo. Cada carga, `cost` s del reloj. Apunta cuándo empieza cada petición y las que sirve."""
 
@@ -517,18 +514,18 @@ def level(code):
 @pytest.mark.parametrize("commits, rounds, days", [(True, 2, 7), (True, 3, 7), (False, 2, 2), (False, 3, 2)],
                          ids=["con-commits-4pag", "con-commits-5pag", "sin-commits-4pag", "sin-commits-5pag"])
 def test_with_the_measured_quota_every_group_is_read_within_days(tmp_path, monkeypatch, commits, rounds, days):
-    """Con el cupo medido (~15 páginas por IP y ~5 min de bloqueo: fiflp_carga) y el bot de ahora (desde el
-    16/10/2026: una pasada cada 2 h que espera solo el primer freno, BRAKE_PAUSES, y acaba en el segundo;
-    16 min de plazo; cada grupo completo; los prioritarios cuando toca), cada pasada son ~30 páginas: los
-    prioritarios de su turno (cada uno, una de cada tres pasadas: 6 h) y unos pocos grupos más (4 o 5
-    páginas por grupo, más sus goleadores y sus actas). Hasta el 15/10/2026, con la cuota de alevín DELANTE
-    del turno de prebenjamín y de benjamín, esos pocos eran siempre alevín y los 46 grupos no prioritarios
-    de benjamín y prebenjamín no se leían NUNCA; con el turno intercalado (plan_groups, interleave) y la
-    fase de cada nivel (pass_phase), cada nivel lee su parte y todo grupo se lee en una semana. Con commits
-    (data-health.json publicado: la hora de los prioritarios se publica siempre), cada prioritario se lee
-    al menos cada 6 h y no en todas. Sin commits (cada pasada arranca del mismo data-health.json, de hace
-    6 h y cada vez más viejo), los prioritarios tocan en todas: lo seguro, aunque cueste el resto. Ningún
-    error, ninguna página pasado el plazo y una sola espera del freno por pasada."""
+    """Con el cupo medido (~15 páginas por IP y ~5 min de bloqueo: fiflp_carga) y el bot de ahora (una
+    pasada cada 2 h que espera solo el primer freno, BRAKE_PAUSES, y acaba en el segundo; 16 min de plazo;
+    cada grupo completo; los prioritarios cuando toca), cada pasada son ~30 páginas: los prioritarios de su
+    turno (cada uno, una de cada tres pasadas: 6 h) y unos pocos grupos más (4 o 5 páginas por grupo, más
+    sus goleadores y sus actas). Con la cuota de alevín DELANTE del turno de prebenjamín y de benjamín,
+    esos pocos serían siempre alevín y los 46 grupos no prioritarios de benjamín y prebenjamín no se
+    leerían NUNCA; con el turno intercalado (plan_groups, interleave) y la fase de cada nivel (pass_phase),
+    cada nivel lee su parte y todo grupo se lee en una semana. Con commits (data-health.json publicado: la
+    hora de los prioritarios se publica siempre), cada prioritario se lee al menos cada 6 h y no en todas.
+    Sin commits (cada pasada arranca del mismo data-health.json, de hace 6 h y cada vez más viejo), los
+    prioritarios tocan en todas: lo seguro, aunque cueste el resto. Ningún error, ninguna página pasado el
+    plazo y una sola espera del freno por pasada."""
     import fiflp_carga as C
     import source_health
     (tmp_path / "index.html").write_text('<script src="./data-seasons.js?v=20261014a"></script>')
@@ -595,6 +592,6 @@ def test_with_the_measured_quota_every_group_is_read_within_days(tmp_path, monke
         assert never == [], (len(never), never)
         assert {level(c) for c, n in reads.items() if n and c not in MINE} == {"alevín", "prebenjamín", "benjamín"}
     else:
-        # Sin publicar data-health.json (commits que fallan), todos los prioritarios tocan en todas, como antes
-        # del 16/10/2026, y el cupo no da para los siete: los primeros (por nivel y código), en todas.
+        # Sin publicar data-health.json (commits que fallan), todos los prioritarios tocan en todas y el cupo no da
+        # para los siete: los primeros (por nivel y código), en todas.
         assert all(len(mine[c]) == passes for c in ("PG2", "B2", "FF5")), mine

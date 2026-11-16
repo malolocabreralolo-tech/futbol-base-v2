@@ -7,7 +7,7 @@
 // ese guard DEVUELVE null EN SILENCIO si la variable no existe: una sección
 // entera se queda vacía sin un solo error en consola.
 //
-// Pasó de verdad (28/06/2026): `fetch_maspalomas_cup.py` emitía
+// Pasó de verdad: `fetch_maspalomas_cup.py` emitía
 // `MASPALOMAS_CUP_2026` mientras state.js leía `MASPALOMAS_CUP_BENJAMIN` /
 // `MASPALOMAS_CUP_PREBENJAMIN`. El fichero publicado estaba bien porque se
 // había editado a mano, pero cualquier re-ejecución del scraper habría dejado

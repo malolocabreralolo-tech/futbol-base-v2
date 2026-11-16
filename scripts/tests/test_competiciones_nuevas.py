@@ -1,14 +1,13 @@
-"""Competiciones nuevas de la federación: el bot las ve solo y las apunta (octubre de 2026).
+"""Competiciones nuevas de la federación: el bot las ve solo y las apunta.
 
-La Segunda Fase de benjamín llega a mediados de noviembre y «LIGA BENJAMIN F-7 DE FUERTEVENTURA 1ª
-FASE» (54977017) ya se había escapado: nada miraba el desplegable de competiciones. Ahora, en cada
-pasada, update_fiflp.check_competitions lee ese desplegable de la temporada en curso (el mismo JS que
-discover_fiflp_comps.py), se queda con benjamín, prebenjamín y alevín de Gran Canaria (sin fútbol sala
-ni alevín de Lanzarote y Fuerteventura), quita las que la temporada ya tiene y las ignoradas, y lo
-apunta en data-health.json (newCompetitions), que enseña «Datos y fuentes». Sin aviso fuera de la web:
-la issue por competición (avisar_competiciones.py) se quitó el 13/11/2026. Sin red: el catálogo de
-2026-27 congelado en fixtures/ (el vivo lo cambia discover-fiflp.yml y estas pruebas corren en el bot
-antes de publicar).
+Sin esto, la Segunda Fase de benjamín y «LIGA BENJAMIN F-7 DE FUERTEVENTURA 1ª FASE» (54977017) se
+escaparían: nada miraría el desplegable de competiciones. En cada pasada, update_fiflp.check_competitions
+lee ese desplegable de la temporada en curso (el mismo JS que discover_fiflp_comps.py), se queda con
+benjamín, prebenjamín y alevín de Gran Canaria (sin fútbol sala ni alevín de Lanzarote y Fuerteventura),
+quita las que la temporada ya tiene y las ignoradas, y lo apunta en data-health.json (newCompetitions),
+que enseña «Datos y fuentes». Sin aviso fuera de la web: no hay issue por competición. Sin red: el
+catálogo de 2026-27 congelado en fixtures/ (el vivo lo cambia discover-fiflp.yml y estas pruebas corren
+en el bot antes de publicar).
 """
 from datetime import date, datetime, timedelta, timezone
 import json

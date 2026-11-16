@@ -1,5 +1,5 @@
-"""Plan B4, Tarea 4: las miniaturas de los escudos (spec §5.4; decisiones 9, 51 y 56). Plan B5, Tarea 1: el
-sello de escudos/ en la línea 2 de sw.js, el nombre de la caché de los escudos (decisión 1 de B5).
+"""Las miniaturas de los escudos y el sello de escudos/ en la línea 2 de sw.js (CRESTS_CACHE, la caché de
+los escudos).
 
 Sin Pillow, salvo dos (el CI y el bot solo instalan pytest y pyyaml): las cabeceras de los PNG (IHDR) y
 de los JPEG (SOF, y el giro de su EXIF) se leen a mano, y `build_crests.py --check` compara los nombres y
@@ -194,7 +194,7 @@ def test_check_runs_without_pillow():
 def test_sw_js_carries_the_seal_of_escudos():
     # La línea 2 de sw.js (CRESTS_CACHE, la caché de los escudos del SW) lleva el sello de escudos/ tal como
     # está: con el de antes, los móviles seguirían con la caché de escudos anterior y un escudo cambiado no
-    # llegaría nunca (decisión 1 de B5). Lo arregla python3 scripts/build_crests.py.
+    # llegaría nunca. Lo arregla python3 scripts/build_crests.py.
     assert build_crests.read_seal((ROOT / "sw.js").read_text(encoding="utf-8")) == build_crests.seal(ROOT)
 
 
@@ -241,7 +241,7 @@ def _sealed_site(tmp_path, seal="00000000"):
 
 
 def test_the_seal_is_the_sha1_of_the_list_of_every_file_of_escudos_with_its_sha1(tmp_path):
-    # Decisión 1 de B5: las 8 primeras cifras hex del sha1 de la lista ordenada de «<ruta>:<sha1 del fichero>»
+    # El sello: las 8 primeras cifras hex del sha1 de la lista ordenada de «<ruta>:<sha1 del fichero>»
     # de todo escudos/, originales y miniaturas. Los ocultos (un .DS_Store) no cuentan: la app nunca los pide,
     # y en el CI no estarían.
     site = _sealed_site(tmp_path)

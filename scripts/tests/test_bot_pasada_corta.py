@@ -1,36 +1,35 @@
-"""Pasadas cortas y más frecuentes del bot de la federación: una semana simulada, sin red (16/10/2026).
+"""Pasadas cortas y más frecuentes del bot de la federación: una semana simulada, sin red.
 
-Lo medido en las pasadas reales 1107-1110 (15-16/10/2026): la federación sirve ~15 documentos por IP y
-luego bloquea, y el bloqueo ESCALA dentro de una pasada: el 1.º dura ~300 s, el 2.º ~900 s y el 3.º más
-que el plazo. Cada ejecución de GitHub tiene una IP nueva y vuelve a empezar con 5 min. Con el cron cada
-6 h y 33 min de plazo, cada pasada daba ~45 páginas útiles, ~33 de ellas para los seis grupos de Las
-Mesas, y solo ~3 grupos más, sin sus actas ni sus goleadores.
+Lo medido en pasadas reales: la federación sirve ~15 documentos por IP y luego bloquea, y el bloqueo ESCALA
+dentro de una pasada: el 1.º dura ~300 s, el 2.º ~900 s y el 3.º más que el plazo. Cada ejecución de GitHub
+tiene una IP nueva y vuelve a empezar con 5 min. Con pasadas largas y espaciadas (cron cada 6 h y 33 min de
+plazo), cada pasada daba ~45 páginas útiles, ~33 de ellas para los seis grupos de Las Mesas, y solo ~3
+grupos más, sin sus actas ni sus goleadores.
 
-Lo decidido: pasadas CORTAS y MÁS FRECUENTES, una cada vez (sin IPs en paralelo): cada pasada espera solo
-el primer freno (fiflp_carga.BRAKE_PAUSES = 1) y acaba en el segundo, con el cron cada 2 h (desde el
-17/10/2026, el reloj: abajo); los prioritarios, solo cuando toca (más de 6 h desde su última comprobación,
-o un partido suyo recién jugado sin resultado o con su acta por leer, durante 12 h:
-update_fiflp.plan_groups); y cada grupo, completo (calendario, goleadores y actas pendientes) antes del
-siguiente.
+Por eso, pasadas CORTAS y MÁS FRECUENTES, una cada vez (sin IPs en paralelo): cada pasada espera solo el
+primer freno (fiflp_carga.BRAKE_PAUSES = 1) y acaba en el segundo, con el reloj cada 2 h (abajo); los
+prioritarios, solo cuando toca (más de 6 h desde su última comprobación, o un partido suyo recién jugado
+sin resultado o con su acta por leer, durante 12 h: update_fiflp.plan_groups); y cada grupo, completo
+(calendario, goleadores y actas pendientes) antes del siguiente.
 
 La simulación: la temporada llena de test_bot_rotacion (81 grupos, los siete de Las Mesas Huracán), cada
 grupo con seis equipos y una jornada por semana (tres partidos, el sábado o el domingo), una semana de
-pasadas desde el jueves 15/10/2026 00:23 UTC (una cada 2 h; con el código de antes, cada 6 h) y, para la
-información completa de cada grupo (c), tres (LONG_DAYS: es un máximo, y una sola lo truncaba). La
-federación publica cada resultado entre 1,5 y 7,5 h después del saque y el acta, a la vez o unas horas
-más tarde (antes, el acta no se puede leer: «se reintentará»); sirve 15 páginas por IP y frena 300, 900
-y 2700 s, y cada pasada empieza con el cupo entero (IP nueva). La base de partida es la de ahora: la
-jornada anterior a medias (actas pendientes, 28 grupos con «error» heredado del 14/10 y sin sus
-resultados) y ocho grupos de la Segunda Fase recién activados (primera pasada completa). Entre pasadas,
-la base y data-health.json pasan tal cual (data-health.json solo si se reescribe, como en update.yml).
+pasadas desde el jueves 15/10/2026 00:23 UTC (una cada 2 h) y, para la información completa de cada
+grupo (c), tres (LONG_DAYS: es un máximo, y una sola lo truncaba). La federación publica cada resultado
+entre 1,5 y 7,5 h después del saque y el acta, a la vez o unas horas más tarde (antes, el acta no se puede
+leer: «se reintentará»); sirve 15 páginas por IP y frena 300, 900 y 2700 s, y cada pasada empieza con el
+cupo entero (IP nueva). La base de partida: la jornada anterior a medias (actas pendientes, 28 grupos con
+«error» heredado del 14/10 y sin sus resultados) y ocho grupos de la Segunda Fase recién activados
+(primera pasada completa). Entre pasadas, la base y data-health.json pasan tal cual (data-health.json solo
+si se reescribe, como en update.yml).
 
-`simulate` sirve también para el código de antes (con sus módulos en sys.path): así se midieron los
+`simulate` sirve también para una versión anterior del bot (con sus módulos en sys.path): así se miden los
 números de «antes» de docs/federacion.md («Lo que da una pasada»).
 
-Desde el 17/10/2026 las pasadas las lanza el reloj (reloj.yml, reloj_pasadas.due): cada 2 h, y cada hora en
-las ventanas de partidos (viernes de 18 a 24 y sábado y domingo de 10 a 24, hora de Canarias). (f) simula la
-misma semana a las horas que daría el reloj con GitHub perdiendo más de la mitad de sus ticks y retrasando los
-demás hasta 1 h (clock_times): lo de las pruebas (a)-(e) se sigue cumpliendo con pasadas cada hora.
+Las pasadas las lanza el reloj (reloj.yml, reloj_pasadas.due): cada 2 h, y cada hora en las ventanas de
+partidos (viernes de 18 a 24 y sábado y domingo de 10 a 24, hora de Canarias). (f) simula la misma semana a
+las horas que daría el reloj con GitHub perdiendo más de la mitad de sus ticks y retrasando los demás
+hasta 1 h (clock_times): lo de las pruebas (a)-(e) se sigue cumpliendo con pasadas cada hora.
 """
 from datetime import date, datetime, timedelta, timezone
 import json
@@ -50,13 +49,13 @@ import fiflp_carga as C  # noqa: E402
 import reloj_pasadas as R  # noqa: E402
 import update_fiflp as U  # noqa: E402
 
-START = datetime(2026, 10, 15, 0, 23, tzinfo=timezone.utc)      # un jueves, a la hora del cron nuevo
+START = datetime(2026, 10, 15, 0, 23, tzinfo=timezone.utc)      # un jueves, a la hora del cron
 CANARIAS = timedelta(hours=1)          # la hora de Canarias en octubre (WEST, UTC+1, hasta el 25/10)
 DAYS = 7
 # La información completa de cada grupo (c), con tres semanas: lo más vieja que llega a estar es un máximo, y
-# en una sola semana salía truncado (un grupo sin ninguna lectura en ella daba «6,9 días», el tope de la
-# ventana; el hueco de verdad pasa de la semana: corrector del 16/10/2026). Con 21 días ninguno queda sin
-# leer completo y el máximo ya no crece con la ventana (14 días, lo mismo).
+# en una sola semana saldría truncado (un grupo sin ninguna lectura en ella daría «6,9 días», el tope de la
+# ventana; el hueco de verdad pasa de la semana). Con 21 días ninguno queda sin leer completo y el máximo
+# ya no crece con la ventana (14 días, lo mismo).
 LONG_DAYS = 21
 BLOCKS = (300, 900, 2700)              # los bloqueos de una pasada (1107-1110), con IP nueva en cada una
 BASE = "https://www.fiflp.com/pnfg/NPcd"
@@ -505,7 +504,7 @@ def summary(passes, season, conn):
     }
 
 
-# El reloj (reloj.yml, 17/10/2026): un tick a las :07, :22, :37 y :52 que GitHub pierde con CLOCK_LOSS de
+# El reloj (reloj.yml): un tick a las :07, :22, :37 y :52 que GitHub pierde con CLOCK_LOSS de
 # probabilidad (del cron de update.yml llegaron 5 de 13 en ~26 h) y retrasa 0-CLOCK_DELAY min si llega; cada
 # tick, en fila (la concurrency del reloj), lanza una pasada si toca (reloj_pasadas.due), que está sin acabar
 # CLOCK_JOB min y empieza a pedir páginas a la federación CLOCK_SETUP después de crearse.
@@ -639,8 +638,8 @@ def test_how_long_each_open_group_takes_to_be_read_complete(three_weeks):
     """(c) Calendario, goleadores y actas: lo más vieja que llega a estar la información completa de cada grupo
     abierto (complete_gaps; desde la base a medias del principio, con los 28 «error» y la Segunda Fase recién
     activada), en TRES semanas (LONG_DAYS): es un máximo, y con una sola salía truncado (un grupo sin ninguna
-    lectura en la semana daba 6,9 días, el tope de la ventana; de verdad pasa 7,8 días sin leerse: corrector
-    del 16/10/2026). Por eso, además, ningún grupo sin leer completo en la ventana, y el máximo no es de uno
+    lectura en la semana daba 6,9 días, el tope de la ventana; de verdad pasa 7,8 días sin leerse).
+    Por eso, además, ningún grupo sin leer completo en la ventana, y el máximo no es de uno
     cuyo hueco sigue abierto al final (open_complete_gaps: una cota, no una medida). El objetivo era ≤ 3 días
     para todos; con el cupo (~30 páginas por pasada, ~360 al día) no se llega con la rotación sin estado: los
     prioritarios se llevan ~165 páginas al día (cada 6 h y, calientes, en cada pasada) y quedan ~25 lecturas
@@ -687,7 +686,7 @@ def test_the_clock_without_losses_is_one_pass_an_hour_in_the_windows_and_every_t
 
 
 def test_with_the_clock_one_pass_an_hour_on_match_days_and_nothing_breaks(clock_week):
-    """(f) Con el reloj (17/10/2026) y GitHub perdiendo más de la mitad de los ticks y retrasando los demás hasta
+    """(f) Con el reloj y GitHub perdiendo más de la mitad de los ticks y retrasando los demás hasta
     1 h: ~80 pasadas en la semana, ~25 en las 34 h de ventanas (con el cron de antes, 5-7 de ~33). Y nada se
     rompe con pasadas cada hora: ninguna espera el bloqueo de 900 s ni pide páginas pasado el plazo, ningún
     freno deja un error, los 28 heredados se limpian, cada resultado de Las Mesas se lee en la primera pasada
@@ -715,12 +714,12 @@ def test_with_the_clock_one_pass_an_hour_on_match_days_and_nothing_breaks(clock_
 
 
 def test_with_a_perfect_clock_the_actas_of_las_mesas_do_not_wait_for_the_end_of_the_window(perfect_clock_week):
-    """(f) Cuanto mejor entregue GitHub los ticks, antes, no después (corrector del 17/10/2026): con el reloj
-    perfecto, en las ventanas un prioritario ya frío se lee en su pasada cada ~3 h, y con un solo plazo de 4 h
-    (ACTA_RETRY_AFTER) un acta suya que falló no se reintentaba en toda la ventana: la de PG2 de la jornada 3
-    (la federación la completa 3 h después del resultado, el sábado) esperaba 12,4 h, hasta la madrugada del
-    domingo. Con el 2.º intento desde 2 h 45 (ACTA_RETRY_SOON), ninguna tarda más de 8 h (la de B2, que la
-    federación completa 9 h después del resultado, ~7 h), todas se importan y ninguna se queda sin intentos."""
+    """(f) Cuanto mejor entregue GitHub los ticks, antes, no después: con el reloj perfecto, en las ventanas un
+    prioritario ya frío se lee en su pasada cada ~3 h, y con un solo plazo de 4 h (ACTA_RETRY_AFTER) un acta
+    suya que falló no se reintentaría en toda la ventana: la de PG2 de la jornada 3 (la federación la
+    completa 3 h después del resultado, el sábado) esperaría 12,4 h, hasta la madrugada del domingo. Con el
+    2.º intento desde 2 h 45 (ACTA_RETRY_SOON), ninguna tarda más de 8 h (la de B2, que la federación
+    completa 9 h después del resultado, ~7 h), todas se importan y ninguna se queda sin intentos."""
     passes, season, conn = perfect_clock_week
     hours = mine_acta_hours(passes, season)
     assert len(hours) == len(MINE) and all(h is not None for _, _, h in hours), hours

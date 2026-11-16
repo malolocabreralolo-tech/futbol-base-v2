@@ -267,7 +267,7 @@ class TestGeneratedFiles:
                             )
 
 
-# ─── Plan A §9.1: hora y campo en temporadas pasadas ────────────────────────
+# ─── Hora y campo en temporadas pasadas ────────────────────────
 
 # Suelo de filas históricas con hora y campo. En futbolbase.db, el 23/09/2026,
 # hay 5.618 (2021-22: 90, 2022-23: 641, 2023-24: 2.147, 2024-25: 2.740); el
