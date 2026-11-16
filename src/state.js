@@ -535,8 +535,12 @@ export async function loadAlevinSeasons(datasets, names, portalSeason, loaders =
 // llega (sin conexión, por ejemplo). Un único vuelo: las llamadas simultáneas comparten la
 // petición. Una respuesta vale HEALTH_TTL_MS: el aviso de estado de la portada no puede leer la de
 // hace horas. Si la sirvió la copia del service worker, o si un refresco falla y había una anterior,
-// el objeto lleva fromCache: true; un fallo no se memoriza y la siguiente llamada reintenta.
+// el objeto lleva fromCache: true y vale solo HEALTH_TTL_COPIA_MS: el SW da la copia mientras la red
+// no contesta a tiempo, y la web tiene que enterarse pronto de que volvió. Un fallo no se memoriza y
+// la siguiente llamada reintenta.
 export const HEALTH_TTL_MS = 600000;
+export const HEALTH_TTL_COPIA_MS = 30000;
+const ttlDe = (health) => (health && health.fromCache ? HEALTH_TTL_COPIA_MS : HEALTH_TTL_MS);
 let _health = null;
 let _healthAt = 0;
 let _healthPromise = null;
@@ -554,17 +558,17 @@ async function loadHealth(now) {
   }
 }
 export async function ensureHealth({ now = Date.now } = {}) {
-  if (_health && now() - _healthAt <= HEALTH_TTL_MS) return _health;
+  if (_health && now() - _healthAt <= ttlDe(_health)) return _health;
   if (!_healthPromise) _healthPromise = loadHealth(now).finally(() => { _healthPromise = null; });
   return _healthPromise;
 }
 
 // Lo que ponen en `needs` las pantallas que leen data-health: una promesa que deja la salud (o null)
 // en datasets.health y su hora en datasets.healthAt, o null si no hace falta pedirla. Se pide si no
-// se ha pedido nunca o si la última respuesta tiene más de HEALTH_TTL_MS; sin healthAt (una salud
-// puesta a mano), vale la que hay. Nunca rechaza.
+// se ha pedido nunca o si la última respuesta tiene más de HEALTH_TTL_MS (HEALTH_TTL_COPIA_MS si es
+// fromCache); sin healthAt (una salud puesta a mano), vale la que hay. Nunca rechaza.
 export function healthNeeds(datasets, { ensure = ensureHealth, now = Date.now } = {}) {
-  const fresh = datasets.health !== undefined && !(Number.isFinite(datasets.healthAt) && now() - datasets.healthAt > HEALTH_TTL_MS);
+  const fresh = datasets.health !== undefined && !(Number.isFinite(datasets.healthAt) && now() - datasets.healthAt > ttlDe(datasets.health));
   if (fresh) return null;
   return ensure().then((health) => {
     datasets.health = health;

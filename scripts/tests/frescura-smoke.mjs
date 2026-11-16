@@ -25,6 +25,8 @@
 //   7. Red que no contesta (ni la página ni data-health.json): la portada con lo guardado en menos de 4 s.
 //   8. En cada contexto, una caché de otra app del origen (futbolbase-v1-prueba), creada al empezar, sigue
 //      intacta al acabar, y todas las demás son futbolbase2-.
+//   9. Página abierta que no recibe el aviso del SW nuevo al activarse (lo descarta un oyente de captura de
+//      la prueba): sigue en su versión; al volver a primer plano pregunta al SW al mando y se pone al día.
 //
 // Una línea por caso, PASS o FAIL; sale con 1 si falla alguno. Sin Chrome, falla: esta prueba no se salta.
 //   npm install --no-save --package-lock=false playwright@1.58.0
@@ -465,6 +467,41 @@ const CASOS = [
     igual(o.errores, [], `${caso.nombre}: errores de JavaScript`);
     await o.page.close();
     return `caso 7: red que no contesta (la página y data-health.json colgadas): la portada con lo guardado en ${o.ms} ms`;
+  }],
+
+  ['caso 9', async (caso) => {
+    // Un oyente de captura, antes que el de la app: con __fb2Descartar, los avisos de versión no le llegan.
+    await caso.context.addInitScript(() => {
+      window.__fb2Descartar = false;
+      window.__fb2Descartados = [];
+      navigator.serviceWorker?.addEventListener('message', (event) => {
+        if (!window.__fb2Descartar || event.data?.type !== 'version') return;
+        window.__fb2Descartados.push(event.data.version);
+        event.stopImmediatePropagation();
+      }, { capture: true });
+    });
+    const o = await instalada(caso, { cerrar: false });
+    const version = publicar(caso, PUNTOS_0 + 1);
+    // El SW nuevo se instala y toma el mando sin que la página vuelva a primer plano: lo pide la prueba.
+    await o.page.evaluate(() => { window.__fb2Descartar = true; });
+    await o.page.evaluate(() => navigator.serviceWorker.getRegistration().then((registration) => registration.update()));
+    await alMando(caso, o.page, version, 'el SW nuevo al mando');
+    await waitForAsync(o.page, (v) => window.__fb2Descartados.includes(v), version, { label: `${caso.nombre}, el aviso de activar, descartado` });
+    o.visto = await mirar(o.page);
+    igual({ ...o.visto, cargas: o.cargas }, { puntos: String(PUNTOS_0), version: V0, aviso: '', alerta: false, marca: 'sin recargar', cargas: 1 },
+      `${caso.nombre}: sin el aviso de activar, la página no debía cambiar`);
+    // Vuelve a primer plano: pregunta al SW al mando, que contesta con su versión.
+    await o.page.evaluate(() => { window.__fb2Descartar = false; });
+    const inicio = Date.now();
+    await o.page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
+    await waitForAsync(o.page, (puntos) => document.querySelector('#contenido tr.is-mine td.st-pts')?.textContent === puntos, String(PUNTOS_0 + 1),
+      { timeout: 10000, interval: 50, label: `${caso.nombre}, el dato nuevo al volver, en menos de 10 s` });
+    const ms = Date.now() - inicio;
+    o.visto = await mirar(o.page);
+    igual({ ...o.visto, cargas: o.cargas, errores: o.errores }, { puntos: String(PUNTOS_0 + 1), version, aviso: '', alerta: false, marca: null, cargas: 2, errores: [] },
+      `${caso.nombre}: al volver, la página no se recargó una vez, sola, a la versión nueva`);
+    await o.page.close();
+    return `caso 9: página que no recibió el aviso de activar del SW de ${version}: sigue en ${V0} hasta volver a primer plano; entonces pregunta, se recarga sola una vez y pinta el dato nuevo en ${ms} ms`;
   }],
 ];
 

@@ -139,8 +139,10 @@ Object.defineProperty(this.__sw, 'reposicion', { get: () => (typeof reposicion !
     listeners[tipo]({ waitUntil: (p) => { promesa = p; } });
     return promesa;
   };
+  // Un postMessage de una página al SW: `source` es quien pregunta (su Client).
+  const mensaje = (data, source) => listeners.message?.({ data, source });
   return {
-    sw: ctx.__sw, caches, red, reloj, temporizadores, mensajes, avisos, servir, evento,
+    sw: ctx.__sw, caches, red, reloj, temporizadores, mensajes, avisos, servir, evento, mensaje,
     reclamado: () => reclamado, asentar: () => Promise.allSettled(pendientes),
     vivos: () => temporizadores.filter((t) => t.vivo),
   };
@@ -427,6 +429,47 @@ test('activar con un cuerpo que no da la huella: no lo guarda, y activate termin
   assert.ok(!caches.claves('futbolbase2-precache').includes(clave('index.html')));
   assert.ok(w.reclamado());
   assert.equal(w.mensajes.length, 1);
+});
+
+test('activar con un cache.keys() que rechaza al reponer: activate termina bien y la reposición no rechaza', async () => {
+  const caches = new CachesFalsas();
+  const fuente = fuenteCon({ precache: MANIFIESTO, opcionales: OPC });
+  await cargar({ caches, fuente, red: red() }).evento('install');
+  // La primera lectura (la limpieza de activar) va bien; la de reponer, no.
+  const precache = await caches.open('futbolbase2-precache');
+  const leer = precache.keys.bind(precache);
+  let lecturas = 0;
+  precache.keys = async () => {
+    lecturas += 1;
+    if (lecturas > 1) throw new Error('keys roto');
+    return leer();
+  };
+  const w = cargar({ caches, fuente, red: red() });
+  await w.evento('activate');
+  assert.ok(w.reclamado());
+  assert.equal(w.mensajes.length, 1);
+  await assert.doesNotReject(w.sw.reposicion);
+  assert.equal(lecturas, 2, 'la reposición llegó a leer las claves');
+  assert.deepEqual(w.red.pedidas, []);
+});
+
+test('a «version?» contesta a quien pregunta con { type: \'version\', version }, la de CACHE_NAME; a lo demás, nada', () => {
+  const w = cargar({ fuente: fuenteCon({ version: '20991231c' }) });
+  const quien = () => {
+    const recibidos = [];
+    return { recibidos, postMessage: (m) => recibidos.push(m) };
+  };
+  const pregunta = quien();
+  w.mensaje({ type: 'version?' }, pregunta);
+  assert.deepEqual(JSON.parse(JSON.stringify(pregunta.recibidos)), [{ type: 'version', version: '20991231c' }]);
+  for (const data of [{ type: 'version' }, { type: 'otro' }, 'version?', null, undefined, {}]) {
+    const otro = quien();
+    w.mensaje(data, otro);
+    assert.deepEqual(otro.recibidos, [], JSON.stringify(data));
+  }
+  // Sin a quién contestar, no lanza; y no escribe a las demás ventanas.
+  assert.doesNotThrow(() => w.mensaje({ type: 'version?' }, null));
+  assert.deepEqual(w.mensajes, []);
 });
 
 test('activar con todo en su sitio: ninguna petición a la red', async () => {

@@ -1,6 +1,7 @@
 // El aviso de estado de la portada: si la última pasada del bot falló, si los datos llevan demasiado
-// sin comprobarse o si la federación ha publicado algo que la web aún no tiene. Puro: la salud, el
-// instante y la zona horaria llegan como argumentos. Las frases no llevan datos de data-health.json.
+// sin comprobarse, si la federación ha publicado algo que la web aún no tiene o si la base se acerca
+// al límite de GitHub. Puro: la salud, el instante y la zona horaria llegan como argumentos. Las
+// frases no llevan textos de data-health.json; solo el tamaño de la base, un entero comprobado.
 import { html } from './html.js';
 
 // En las ventanas del bot hay pasada cada hora; fuera, cada dos (scripts/reloj_pasadas.py).
@@ -34,6 +35,15 @@ const edad = (ms) => {
   return horas >= 48 ? `${Math.floor(horas / 24)}\u00a0días` : `${horas}\u00a0h`;
 };
 
+// El tamaño de la base, que el bot apunta en base.mb solo cuando pasa de 80 MB: GitHub no admite
+// ficheros de más de 100. null si no está o no es un entero entre 1 y 1000.
+export function avisoBase(health) {
+  const base = health && typeof health === 'object' ? health.base : null;
+  const mb = base && typeof base === 'object' ? base.mb : undefined;
+  if (!Number.isInteger(mb) || mb < 1 || mb > 1000) return null;
+  return `La base de datos ocupa ${mb}\u00a0MB de los 100 que admite GitHub.`;
+}
+
 export function estadoDatos(health, now, timeZone) {
   if (!health || typeof health !== 'object') return [];
   const frases = [];
@@ -49,6 +59,8 @@ export function estadoDatos(health, now, timeZone) {
   if (conElementos(health.newCompetitions) || conElementos(health.newGroups) || conElementos(health.activation && health.activation.failed)) {
     frases.push('Hay competiciones o fases publicadas que aún no están cargadas.');
   }
+  const base = avisoBase(health);
+  if (base) frases.push(base);
   return frases;
 }
 

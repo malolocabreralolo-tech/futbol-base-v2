@@ -15,9 +15,9 @@ const PRECACHE_CACHE = 'futbolbase2-precache';
 
 // >>> precache: lo escribe scripts/precache.py
 const PRECACHE = {
-  "index.html": "47260b4b",
+  "index.html": "b3757bf0",
   "dist/acta-fc0638d7.css": "fc0638d7",
-  "dist/app-e91e0c99.js": "e91e0c99",
+  "dist/app-d2e5cce9.js": "d2e5cce9",
   "src/config.js": "34193a4f",
   "manifest.json": "823d3903",
   "fonts/PublicSans-latin.woff2": "fd76a14f",
@@ -318,6 +318,13 @@ async function activar() {
 
 self.addEventListener('activate', event => {
   event.waitUntil(activar());
+});
+
+// La página pregunta la versión al arrancar y al volver: si se perdió el aviso de activar, así se entera.
+// Contesta con el mismo mensaje, para que la página no tenga otro camino.
+self.addEventListener('message', event => {
+  if (event.data?.type !== 'version?') return;
+  event.source?.postMessage({ type: 'version', version: VERSION });
 });
 
 // ─── servir ─────────────────────────────────────────────────────────────────

@@ -164,6 +164,18 @@ test('la última pasada del bot en rojo (runHealth de data-health), en un aviso 
   }
 });
 
+test('el tamaño de la base (base.mb de data-health), en un aviso tras el de la última pasada; sin la clave, nada', () => {
+  const said = 'La base de datos ocupa 83 MB de los 100 que admite GitHub.';
+  const out = render(edited((h) => { h.base = { mb: 83, limite: 100 }; }));
+  assert.match(out, new RegExp(`Último cambio en los datos</dt><dd class="cell-value">23 de septiembre</dd></div></dl></div></section><p class="notice">${said}</p><section class="block"><div class="block-head"><h2 class="block-title">Comprobación por grupo</h2>`));
+  const red = { ok: false, reasons: ['interrumpida'] };
+  assert.match(render(edited((h) => { h.base = { mb: 83 }; h.runHealth = red; })), new RegExp(`<p class="notice">La última pasada del bot no fue bien: interrumpida\\.</p><p class="notice">${said}</p><section class="block">`));
+  for (const base of [undefined, { mb: 'x' }, {}, { mb: 0 }]) {
+    const quiet = render(edited((h) => { if (base === undefined) delete h.base; else h.base = base; }));
+    assert.doesNotMatch(quiet, /La base de datos ocupa/, JSON.stringify(base));
+  }
+});
+
 test('la temporada siguiente, con el texto de la portada en D; sin «pendiente», sin caja', () => {
   const out = render();
   assert.match(out, /<h2 class="block-title">Temporada 2026\/27<\/h2><\/div><div class="box"><dl class="cells cells-2"><div class="cell"><dt class="cell-label">Grupos<\/dt><dd class="cell-value">pendientes en esta web<\/dd><\/div><div class="cell"><dt class="cell-label">Última comprobación<\/dt><dd class="cell-value">23 sept, 22:11<\/dd><\/div><\/dl><p class="box-text">La temporada 2026\/27 aparecerá aquí cuando la federación publique los grupos y se activen en esta web\. Si hay más de un equipo de Las Mesas Hu\., te preguntaremos cuál es el tuyo\.<\/p><\/div><\/section><\/section>$/);

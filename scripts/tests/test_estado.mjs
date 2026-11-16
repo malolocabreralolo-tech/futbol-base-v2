@@ -2,7 +2,7 @@
 // healthNeeds de src/state.js). Las frases no llevan datos: el aviso nunca enseña un nombre.
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
-import { UMBRAL_VENTANA_H, UMBRAL_BASE_H, enVentana, estadoDatos, statusNotice } from '../../src/estado.js';
+import { UMBRAL_VENTANA_H, UMBRAL_BASE_H, enVentana, estadoDatos, statusNotice, avisoBase } from '../../src/estado.js';
 
 const TZ = 'Atlantic/Canary';
 const H = 3600000;
@@ -10,6 +10,7 @@ const MIN = 60000;
 const FALLO = 'La última actualización de los datos falló.';
 const PENDIENTES = 'Hay competiciones o fases publicadas que aún no están cargadas.';
 const viejo = (n) => `Los datos llevan ${n} sin comprobarse.`;
+const BASE_83 = 'La base de datos ocupa 83\u00a0MB de los 100 que admite GitHub.';
 
 // Un sábado a mediodía de Canarias (en ventana) y un miércoles a mediodía (fuera), en invierno (UTC+0).
 const SABADO = new Date('2026-11-14T12:00:00Z');
@@ -86,6 +87,33 @@ test('estadoDatos: sin objeto de salud, nada', () => {
   for (const health of [null, undefined, {}, 'x', 3]) assert.deepEqual(estadoDatos(health, MIERCOLES, TZ), [], String(health));
 });
 
+test('avisoBase: con base.mb entero entre 1 y 1000, la frase exacta; si no, nada', () => {
+  assert.equal(avisoBase({ base: { mb: 83, limite: 100 } }), BASE_83);
+  assert.equal(avisoBase({ base: { mb: 83 } }), BASE_83);
+  assert.equal(avisoBase({ base: { mb: 1 } }), 'La base de datos ocupa 1\u00a0MB de los 100 que admite GitHub.');
+  assert.equal(avisoBase({ base: { mb: 1000 } }), 'La base de datos ocupa 1000\u00a0MB de los 100 que admite GitHub.');
+  // El límite es texto fijo: el que traiga data-health.json no llega a la frase.
+  assert.equal(avisoBase({ base: { mb: 83, limite: '<b>x</b>' } }), BASE_83);
+  for (const base of [{ mb: 'x' }, { mb: '83' }, { mb: 0 }, { mb: -5 }, { mb: 1001 }, { mb: 83.5 }, { mb: NaN }, { mb: Infinity }, { mb: null }, {}, null, 'grande', 83, []]) {
+    assert.equal(avisoBase({ base }), null, JSON.stringify(base));
+  }
+  for (const health of [{}, null, undefined, 'x']) assert.equal(avisoBase(health), null, String(health));
+});
+
+test('estadoDatos: el tamaño de la base, la última frase; sin la clave, como siempre', () => {
+  const base = sana(MIERCOLES);
+  assert.deepEqual(estadoDatos({ ...base, base: { mb: 83, limite: 100 } }, MIERCOLES, TZ), [BASE_83]);
+  assert.deepEqual(estadoDatos({ ...base, base: { mb: 'x' } }, MIERCOLES, TZ), []);
+  assert.deepEqual(estadoDatos({ ...base, base: {} }, MIERCOLES, TZ), []);
+  assert.deepEqual(estadoDatos(base, MIERCOLES, TZ), []);
+  const todas = { ...base, runHealth: { ok: false, reasons: ['x'] }, checkedAt: hace(MIERCOLES, 9 * H), newGroups: [{ id: '1' }], base: { mb: 83 } };
+  assert.deepEqual(estadoDatos(todas, MIERCOLES, TZ), [FALLO, viejo('9\u00a0h'), PENDIENTES, BASE_83]);
+  // Sin conexión también: no depende de cuándo se comprobó.
+  assert.deepEqual(estadoDatos({ ...base, fromCache: true, base: { mb: 83 } }, MIERCOLES, TZ), [BASE_83]);
+  assert.equal(String(statusNotice({ ...base, base: { mb: 83 } }, MIERCOLES, TZ)),
+    `<p class="notice home-status" role="status"><b>${BASE_83}</b> <a class="more" href="#/fuentes">Ver datos y fuentes</a></p>`);
+});
+
 test('statusNotice: el aviso exacto con las frases en negrita y el enlace a Datos y fuentes; nada sin frases', () => {
   const roja = { ...sana(MIERCOLES), runHealth: { ok: false, reasons: ['x'] }, checkedAt: hace(MIERCOLES, 9 * H) };
   assert.equal(String(statusNotice(roja, MIERCOLES, TZ)),
@@ -136,6 +164,29 @@ test('ensureHealth: dos llamadas seguidas, una petición; pasados 10 min 01 s, o
   assert.equal(net.calls, 2, '10 min 01 s después, otra petición');
   assert.equal(c.checkedAt, SALUD.checkedAt);
   assert.equal(c.fromCache, undefined, 'de la red: sin fromCache');
+});
+
+test('ensureHealth: la copia del service worker (fromCache) se recuerda 30 s, no 10 min (HEALTH_TTL_COPIA_MS)', async (t) => {
+  const state = await freshState();
+  const net = fakeNet(t);
+  let clock = 1_000_000;
+  const now = () => clock;
+  assert.equal(state.HEALTH_TTL_COPIA_MS, 30000);
+  net.origin = 'cache';
+  const a = await state.ensureHealth({ now });
+  assert.equal(a.fromCache, true);
+  clock += 30000;
+  assert.equal(await state.ensureHealth({ now }), a, 'a los 30 s justos, la misma');
+  assert.equal(net.calls, 1);
+  clock += 1;
+  net.origin = null;
+  const b = await state.ensureHealth({ now });
+  assert.equal(net.calls, 2, 'pasados los 30 s, otra petición');
+  assert.equal(b.fromCache, undefined, 'la de la red, sin fromCache');
+  // La de la red, otra vez los 10 min de siempre.
+  clock += 5 * MIN;
+  await state.ensureHealth({ now });
+  assert.equal(net.calls, 2);
 });
 
 test('ensureHealth: un solo vuelo también al refrescar', async (t) => {
@@ -195,4 +246,19 @@ test('healthNeeds: pide sin salud; no con la de hace 5 min; sí con la de hace 1
   await state.healthNeeds(failed, { ensure: async () => null, now });
   assert.equal(failed.health, null);
   assert.equal(state.healthNeeds(failed, { ensure, now }), null);
+});
+
+test('healthNeeds: una salud fromCache se vuelve a pedir pasados 30 s; la de la red, a los 10 min', async () => {
+  const state = await freshState();
+  let asked = 0;
+  const ensure = async () => { asked += 1; return SALUD; };
+  const clock = 50 * MIN;
+  const now = () => clock;
+  const copia = { ...SALUD, fromCache: true };
+  assert.equal(state.healthNeeds({ health: copia, healthAt: clock - 30000 }, { ensure, now }), null, 'a los 30 s justos: nada');
+  const vieja = { health: copia, healthAt: clock - 30001 };
+  await state.healthNeeds(vieja, { ensure, now });
+  assert.equal(asked, 1);
+  assert.equal(vieja.health, SALUD);
+  assert.equal(state.healthNeeds({ health: SALUD, healthAt: clock - 9 * MIN }, { ensure, now }), null, 'la de la red, de hace 9 min: nada');
 });

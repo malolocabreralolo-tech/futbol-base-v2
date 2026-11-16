@@ -3,8 +3,9 @@
 // un SW intermedio que se activa cuando la página ya llegó más nueva de la red: no se hace nada). Si
 // nadie la ha tocado desde que se abrió o volvió a primer plano, se recarga (una sola vez por versión,
 // apuntada en la sesión); si no, el aviso de la cabecera, «Hay datos nuevos.» con «Actualizar». Al
-// volver a primer plano pide al navegador que busque un SW nuevo, como mucho una vez por minuto. No
-// toca el navegador al importarse: start le pasa la ventana y el documento.
+// arrancar y al volver a primer plano pregunta la versión al SW al mando, que contesta con ese mismo
+// mensaje; al volver, además, pide al navegador que busque un SW nuevo, como mucho una vez por minuto.
+// No toca el navegador al importarse: start le pasa la ventana y el documento.
 import { safeStorage } from './store.js';
 import { updateNotice } from './shell.js';
 
@@ -61,6 +62,14 @@ export function startUpdates({ win, doc, version, now = () => Date.now() } = {})
       .catch(() => {});
   }
 
+  // Que el SW al mando diga su versión (contesta con el mensaje de activar): el aviso de activar se pierde
+  // si llega antes de que este oyente exista. Un SW que no contesta, o ninguno al mando, no cambia nada.
+  function preguntar() {
+    try {
+      sw.controller?.postMessage({ type: 'version?' });
+    } catch { /* sin SW al que escribir, no hay a quién preguntar */ }
+  }
+
   function alVolver() {
     tocada = false;
     if (pendiente) {
@@ -68,6 +77,7 @@ export function startUpdates({ win, doc, version, now = () => Date.now() } = {})
       pendiente = null;
       ponerseAlDia(nueva);
     }
+    preguntar();
     buscar();
   }
 
@@ -85,6 +95,7 @@ export function startUpdates({ win, doc, version, now = () => Date.now() } = {})
   win.addEventListener('pageshow', onPageshow);
   win.addEventListener('online', buscar);
   doc.addEventListener('click', onClick);
+  preguntar();
 
   return {
     stop() {

@@ -10,6 +10,7 @@ import { errorBox, routeTitle } from './shell.js';
 import { canaryDateTime, dayMonthLong } from './links.js';
 import { seasonLabel } from './model.js';
 import { healthNeeds } from './state.js';
+import { avisoBase } from './estado.js';
 import { nextSeasonBox } from './team-view.js';
 
 // El estado de una comprobación en palabras (source_health.py escribe 'ok', 'rejected' o 'error').
@@ -171,7 +172,10 @@ function render(ctx) {
   const mine = ctx.resolution && ctx.resolution.status === 'ok' ? ctx.resolution.name : (ctx.myTeam && ctx.myTeam.name) || '';
   const upcoming = next && next.status === 'pending' && SEASON_RE.test(String(next.name)) && mine ? nextSeasonBox(ctx, mine, next.name) : '';
   const database = databaseBlock(ctx.datasets && ctx.datasets.cobertura);
-  return html`<section data-screen="fuentes">${screenHead(title, { sub: checkedSeason ? `Temporada ${seasonLabel(checkedSeason)}` : null, back: ctx.backHref })}${state}${runHealthNote(health, ctx.today)}${block('Comprobación por grupo', list, { context: summary(rows) || null })}${sourcesNote(rows)}${missing}${newCompetitionsNote(health.newCompetitions)}${newGroupsNote(health.newGroups)}${activationNote(health.activation)}${upcoming}${database}</section>`;
+  // El tamaño de la base, con las notas de estado: la caja de la base solo está si hay cobertura.
+  const base = avisoBase(health);
+  const baseNote = base ? notice(null, base) : '';
+  return html`<section data-screen="fuentes">${screenHead(title, { sub: checkedSeason ? `Temporada ${seasonLabel(checkedSeason)}` : null, back: ctx.backHref })}${state}${runHealthNote(health, ctx.today)}${baseNote}${block('Comprobación por grupo', list, { context: summary(rows) || null })}${sourcesNote(rows)}${missing}${newCompetitionsNote(health.newCompetitions)}${newGroupsNote(health.newGroups)}${activationNote(health.activation)}${upcoming}${database}</section>`;
 }
 
 export const screen = {

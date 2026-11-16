@@ -1,7 +1,8 @@
 // La página se pone al día sola (src/actualizacion.js): cuando el SW nuevo se activa manda
 // { type: 'version', version } a las ventanas; si no es la de la página, recarga si nadie la ha tocado
-// y, si no, el aviso «Hay datos nuevos.» con «Actualizar». Al volver a primer plano pide al navegador
-// que busque un SW nuevo, como mucho una vez por minuto. Con una ventana y un documento simulados.
+// y, si no, el aviso «Hay datos nuevos.» con «Actualizar». Al arrancar y al volver a primer plano
+// pregunta la versión al SW al mando, que contesta con el mismo mensaje; al volver, pide además al
+// navegador que busque un SW nuevo, como mucho una vez por minuto. Con una ventana y un documento simulados.
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
 import { startUpdates, RELOAD_KEY, UPDATE_EVERY_MS } from '../../src/actualizacion.js';
@@ -24,14 +25,14 @@ function emisor() {
 
 // La ventana, el documento con el hueco del aviso y el SW. session: el sessionStorage (null: ninguno;
 // 'roto': uno que lanza). registration: lo que da getRegistration().
-function pagina({ session = new Map(), sw = true, registration } = {}) {
+function pagina({ session = new Map(), sw = true, registration, controller } = {}) {
   const reloads = [];
   const updates = [];
   const w = emisor();
   const d = emisor();
   const slot = { innerHTML: '' };
   const reg = registration === undefined ? { update: () => { updates.push(clock.t); return Promise.resolve(); } } : registration;
-  const container = sw ? { ...emisor(), getRegistration: () => Promise.resolve(reg) } : undefined;
+  const container = sw ? { ...emisor(), getRegistration: () => Promise.resolve(reg), controller: controller ?? null } : undefined;
   const clock = { t: 0 };
   const broken = { getItem() { throw new Error('bloqueado'); }, setItem() { throw new Error('bloqueado'); }, removeItem() { throw new Error('bloqueado'); } };
   const win = {
@@ -314,6 +315,116 @@ test('sin el hueco del aviso en la página: no lanza', () => {
   p.touch();
   assert.doesNotThrow(() => p.version(NUEVA));
   assert.deepEqual(p.reloads, []);
+});
+
+// El SW al mando, simulado: apunta lo que le pregunta la página y, si tiene `respuesta`, contesta como
+// sw.js (con { type: 'version', version } por el canal de mensajes del contenedor, después).
+function alMando() {
+  const sw = { preguntas: [], respuesta: null, contenedor: null };
+  sw.postMessage = (m) => {
+    sw.preguntas.push(m);
+    if (m?.type === 'version?' && sw.respuesta) {
+      const version = sw.respuesta;
+      queueMicrotask(() => sw.contenedor.fire('message', { data: { type: 'version', version } }));
+    }
+  };
+  return sw;
+}
+function conSw(opciones = {}) {
+  const controller = alMando();
+  const p = pagina({ ...opciones, controller });
+  controller.contenedor = p.win.navigator.serviceWorker;
+  return { p, controller };
+}
+
+test('la página pregunta su versión al SW al mando al arrancar y cada vez que vuelve a primer plano, sin límite', async () => {
+  const { p, controller } = conSw();
+  arrancar(p);
+  assert.deepEqual(controller.preguntas, [{ type: 'version?' }], 'al arrancar');
+  p.hide();
+  assert.equal(controller.preguntas.length, 1, 'al ocultarse, no');
+  p.show();
+  assert.equal(controller.preguntas.length, 2, 'al volver a verse');
+  p.clock.t = 5000;
+  p.hide();
+  p.show();
+  assert.equal(controller.preguntas.length, 3, 'otra vez a los 5 s: sin el límite de update()');
+  p.win.fire('pageshow', { persisted: false });
+  assert.equal(controller.preguntas.length, 3, 'la carga normal no es volver');
+  p.win.fire('pageshow', { persisted: true });
+  assert.equal(controller.preguntas.length, 4, 'desde la caché del navegador, sí');
+  assert.ok(controller.preguntas.every((m) => m.type === 'version?'));
+  await turnos();
+});
+
+test('sin SW al mando, o con uno que no deja escribirle: no pregunta y no lanza', async () => {
+  const p = pagina();
+  assert.doesNotThrow(() => { arrancar(p); p.hide(); p.show(); });
+  const roto = { postMessage: () => { throw new Error('roto'); } };
+  const q = pagina({ controller: roto });
+  assert.doesNotThrow(() => { arrancar(q); q.hide(); q.show(); });
+  await turnos();
+  assert.deepEqual([...p.reloads, ...q.reloads], []);
+  assert.equal(p.slot.innerHTML + q.slot.innerHTML, '');
+});
+
+test('un SW al mando que no contesta (uno anterior, sin oyente de mensajes): nada', async () => {
+  const { p, controller } = conSw();
+  arrancar(p);
+  p.hide();
+  p.show();
+  await turnos();
+  assert.equal(controller.preguntas.length, 2);
+  assert.deepEqual(p.reloads, []);
+  assert.equal(p.slot.innerHTML, '');
+});
+
+test('una versión más nueva contestada a la pregunta hace lo mismo que el aviso de activate', async () => {
+  // Al arrancar, sin tocar: recarga una vez y la apunta.
+  const session = new Map();
+  const a = conSw({ session });
+  a.controller.respuesta = NUEVA;
+  arrancar(a.p);
+  await turnos();
+  assert.equal(a.p.reloads.length, 1);
+  assert.equal(session.get('fb2:recarga'), NUEVA);
+  // La suya o una más vieja: nada.
+  for (const respuesta of [PAGINA, '20261113z']) {
+    const b = conSw();
+    b.controller.respuesta = respuesta;
+    arrancar(b.p);
+    b.p.hide();
+    b.p.show();
+    await turnos();
+    assert.deepEqual(b.p.reloads, [], respuesta);
+    assert.equal(b.p.slot.innerHTML, '', respuesta);
+  }
+  // Al volver, con la de la página al arrancar y la nueva después: recarga («tocada» vuelve a cero al volver).
+  const c = conSw();
+  c.controller.respuesta = PAGINA;
+  arrancar(c.p);
+  await turnos();
+  c.p.touch();
+  c.controller.respuesta = NUEVA;
+  c.p.hide();
+  c.p.show();
+  await turnos();
+  assert.equal(c.p.reloads.length, 1);
+  // Tocada entre la pregunta y la respuesta: el aviso, sin recarga.
+  const d = conSw();
+  d.controller.respuesta = NUEVA;
+  arrancar(d.p);
+  d.p.touch();
+  await turnos();
+  assert.deepEqual(d.p.reloads, []);
+  assert.equal(d.p.slot.innerHTML, AVISO);
+  // Ya apuntada en fb2:recarga: el aviso, sin recarga.
+  const e = conSw({ session: new Map([['fb2:recarga', NUEVA]]) });
+  e.controller.respuesta = NUEVA;
+  arrancar(e.p);
+  await turnos();
+  assert.deepEqual(e.p.reloads, []);
+  assert.equal(e.p.slot.innerHTML, AVISO);
 });
 
 test('stop(): quita todos sus oyentes', async () => {
