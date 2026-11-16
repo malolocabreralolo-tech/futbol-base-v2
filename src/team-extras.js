@@ -1,8 +1,7 @@
-// Lo que la consulta añade a la vista de equipo (spec §4.6; decisiones 12 a 14 de B3), en Mi equipo y
-// en la ficha: la plantilla y la trayectoria, con su comportamiento. La evolución de puntos, que iba
-// delante, la quitó el usuario el 19/10/2026 («no me aporta tanto»); el pronóstico de la clasificación
-// final que pidió en su lugar es una cifra de «La temporada en cifras» (team-view.js) que abre su tabla en
-// la Tabla (screen-tabla.js). Puro salvo los mount y fillSquad; nada toca el DOM al importarse.
+// Lo que la consulta añade a la vista de equipo, en Mi equipo y en la ficha: la plantilla y la
+// trayectoria, con su comportamiento. El pronóstico de la clasificación final es una cifra de «La
+// temporada en cifras» (team-view.js) que abre su tabla en la Tabla (screen-tabla.js). Puro salvo los
+// mount y fillSquad; nada toca el DOM al importarse.
 import { html, join } from './html.js';
 import { block, box, countLabel, empty, notice, score } from './ui.js';
 import {
@@ -16,10 +15,10 @@ import { ensureLineups, ensureSeasonData, lineupsKey, loadAlevinSeasons, loadSea
 const TRAJECTORY_ID = 'trayectoria';
 export const SQUAD_ID = 'plantilla';
 
-// ── Plantilla (decisión 13) ─────────────────────────────────────────────
+// ── Plantilla ───────────────────────────────────────────────────────────
 
 // Los partidos de un jugador, con el marcador desde su equipo, cada uno a su ficha. Lo pinta mount
-// al desplegarlo (spec §5.1: nada oculto generado).
+// al desplegarlo: nada oculto generado de antemano.
 export function playerDetail(lineups, group, team, player, id = null) {
   const items = playerMatches(lineups, { group, team, player, id }).map(({ match, side, goals }) => {
     const home = side === 'home';
@@ -33,7 +32,7 @@ export function playerDetail(lineups, group, team, player, id = null) {
   return html`<ul class="squad-matches">${items}</ul>${href ? html`<p class="squad-more"><a class="more" href="${href}">Ver su trayectoria</a></p>` : ''}`;
 }
 
-// Actas de N de M partidos jugados (spec §7): cuántos partidos del equipo tienen acta que cuenta.
+// Actas de N de M partidos jugados: cuántos partidos del equipo tienen acta que cuenta.
 function squadNote(actas, skipped, played) {
   const incomplete = skipped ? `; ${countLabel(skipped, 'acta más llega incompleta', 'actas más llegan incompletas')} (sin uno de los dos equipos) y no ${skipped === 1 ? 'cuenta' : 'cuentan'}` : '';
   return `Actas de ${actas} de ${countLabel(played, 'partido jugado', 'partidos jugados')}${incomplete}.`;
@@ -43,7 +42,7 @@ function squadNote(actas, skipped, played) {
 // jugador (un botón que despliega sus partidos), PJ, titular y goles, y las tarjetas solo si alguien
 // del grupo tiene alguna. Sin actas del grupo, nada (la mayoría no tiene). Si la carga falló
 // (null), la caja de error con su «Reintentar», que atiende mountTeamExtras (retrySquad: solo este
-// bloque, sin volver arriba; B5, decisión 3); sin pedir (undefined), nada: en la ficha, nunca (needs
+// bloque, sin volver arriba); sin pedir (undefined), nada: en la ficha, nunca (needs
 // las trae); en la portada, el hueco de squadSlot. Siempre una sola sección, #plantilla (con la nota
 // de las actas dentro), para que ese «Reintentar» la pinte en su sitio.
 export function squadBlock(ctx, group, name) {
@@ -87,7 +86,7 @@ const squadSlot = () => html`<section class="block" id="${SQUAD_ID}" data-slot="
 // fichero de actas recibe, sin conexión, el index.html del SW, y saldría una alerta en cada apertura.
 const offlineSquad = () => block('Plantilla', empty('Sin conexión. Si hay actas de sus partidos, la plantilla aparecerá al volver la conexión.'), { id: SQUAD_ID });
 
-// «Reintentar» de la Plantilla (B5, decisión 3): vuelve a pedir las actas de su grupo y pinta el
+// «Reintentar» de la Plantilla: vuelve a pedir las actas de su grupo y pinta el
 // bloque en su sitio (retryBlock, shell.js). Si el grupo resulta no tener actas, lo dice: el bloque no
 // desaparece bajo el dedo de quien pulsó.
 function retrySquad(section, ctx, team, button) {
@@ -97,7 +96,7 @@ function retrySquad(section, ctx, team, button) {
     () => squadBlock(ctx, team.group, team.name) || block('Plantilla', empty('La federación no ha publicado actas de este grupo.'), { id: SQUAD_ID }));
 }
 
-// ── Trayectoria (decisión 14) ───────────────────────────────────────────
+// ── Trayectoria ─────────────────────────────────────────────────────────
 
 // El botón y su panel, vacío hasta que se despliega: la trayectoria carga todo el archivo (unos 3 MB
 // sin comprimir con las nueve temporadas archivadas), así que solo se pide bajo demanda.
@@ -121,9 +120,9 @@ function alevinMissingBox(failed) {
 }
 
 // Carga el archivo que falte (loadSeasons, de state.js) y arma el panel; nunca lanza. Un fallo de la
-// carga o de un dato mal formado es la caja de error del propio panel, con su «Reintentar» (decisión
-// 103 de B2), como las temporadas anteriores de Partido. Pura salvo la carga: se prueba sin navegador.
-// El alevín de todas (contrato común de alevín), para que lo que sale no dependa de lo que se visitó
+// carga o de un dato mal formado es la caja de error del propio panel, con su «Reintentar», como las
+// temporadas anteriores de Partido. Pura salvo la carga: se prueba sin navegador.
+// El alevín de todas, para que lo que sale no dependa de lo que se visitó
 // antes: el de la temporada del portal (data-alevin.js, que el SW guarda al instalarse), como una
 // temporada más; y el de cada pasada (data-season-<S>-alevin.js, que solo existe si la tuvo: un 404 es
 // «sin alevín» y se memoriza). Esos no se guardan hasta usarse, así que sin conexión no llegan: la
@@ -149,9 +148,8 @@ export async function trajectoryContent(ctx, name, load = ensureSeasonData, alev
 
 // ── En las dos pantallas ────────────────────────────────────────────────
 
-// En las dos pantallas y en este orden (decisión 81 de B3; sin la evolución de puntos desde el
-// 19/10/2026). Con lazySquad (la portada), la plantilla no espera a las actas: el hueco que llena
-// fillSquad, o nada si el equipo no ha jugado.
+// En las dos pantallas y en este orden. Con lazySquad (la portada), la plantilla no espera a las actas: el
+// hueco que llena fillSquad, o nada si el equipo no ha jugado.
 export function teamExtras(ctx, group, name, { lazySquad = false } = {}) {
   const squad = !lazySquad ? squadBlock(ctx, group, name)
     : teamFixtures(name, group, ctx.today).played === 0 ? ''
@@ -174,7 +172,7 @@ function togglePlayer(ctx, team, button) {
   const lineups = ctx.datasets.lineups[lineupsKey(team.group.season, team.group.id)];
   const player = teamSquad(lineups, { group: team.group, team: team.name }).rows[Number(button.getAttribute('data-index'))];
   if (!player) return;
-  // Html de html``, que escapa cada dato (spec §5.1).
+  // Html de html``, que escapa cada dato.
   row.insertAdjacentHTML('afterend', String(html`<tr class="squad-detail" id="${id}"><td colspan="${row.children.length}">${playerDetail(lineups, team.group, team.name, player.name, player.id)}</td></tr>`));
   button.setAttribute('aria-expanded', 'true');
   button.setAttribute('aria-controls', id);
@@ -280,7 +278,7 @@ function anchorAfter(slot) {
 // al volver la conexión. Devuelve la limpieza (el router la llama antes del pintado siguiente).
 // `load`, `win` y `when` se inyectan en las pruebas; la ventana es la del documento de la sección.
 //
-// El hueco no tiene el alto de la plantilla (spec §7, con su nota): no se sabe hasta que llegan las
+// El hueco no tiene el alto de la plantilla (con su nota): no se sabe hasta que llegan las
 // actas, y sin ellas se quita. Si el hueco ya quedó por encima de la ventana (se bajó al calendario
 // mientras llegaban), lo que se está mirando no se mueve: la página se desplaza lo mismo que se movió
 // lo primero que se ve tras él (anchorAfter). Es lo que hace el anclaje del desplazamiento de Chrome y

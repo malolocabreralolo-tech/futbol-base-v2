@@ -1,13 +1,13 @@
-// Pantalla Ajustes (spec §4.7 y §4.9; decisión 29 de B3): mi equipo, con su etiqueta y «Cambiar»
-// (#/explorar#buscar), y «Borrar datos de esta app», que confirma en dos pasos y sin diálogo: el
-// botón despliega el aviso con «Borrar» y «Cancelar», y «Borrar» llama a nav.clearData() (decisión 6),
-// que borra el almacén y abre Mi equipo. Sin selector de tema: el tema sigue al sistema (§4.9 manda
-// sobre la maqueta). render(ctx) es puro; el aviso lo pinta mount al desplegar (§5.1: solo lo visible).
+// Pantalla Ajustes: mi equipo, con su etiqueta y «Cambiar» (#/explorar#buscar), y «Borrar datos de
+// esta app», que confirma en dos pasos y sin diálogo: el botón despliega el aviso con «Borrar» y
+// «Cancelar», y «Borrar» llama a nav.clearData(), que borra el almacén y abre Mi equipo. Sin selector
+// de tema: el tema sigue al sistema. render(ctx) es puro; el aviso lo pinta mount al desplegar (solo
+// se genera lo visible).
 import { html } from './html.js';
 import { box, crest, screenHead } from './ui.js';
 import { routeTitle } from './shell.js';
 import { seasonLabel } from './model.js';
-// «Cambiar» abre Explorar con el buscador enfocado: el mismo enlace de Mi equipo (decisión 52 de B2).
+// «Cambiar» abre Explorar con el buscador enfocado: el mismo enlace de Mi equipo.
 import { SEARCH_HREF } from './team-view.js';
 
 const PANEL = 'ajustes-borrar';

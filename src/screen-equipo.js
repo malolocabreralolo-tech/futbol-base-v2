@@ -1,14 +1,12 @@
-// Ficha de un equipo, `#/equipo?s&g&t` (spec §4.6 y §4.8). El mismo esqueleto que Mi equipo: la vista
-// de equipo (team-view.js) con los estados A, B, C o D, el D sin la caja de la temporada siguiente y
-// el calendario completo con su ancla #calendario y su .ics (decisión 15 de B3), y en la columna de
-// consulta los bloques de team-extras.js, compartidos con Mi equipo: la plantilla con el detalle de cada
-// jugador (decisión 13) y la trayectoria del club bajo demanda (decisión 14); la evolución de puntos
-// (decisión 12) se quitó el 19/10/2026, y el pronóstico de la clasificación final es una cifra de «La
-// temporada en cifras» (team-view.js). Además, «Hacer mi equipo» (decisión 11) y «Vistos hace poco»
-// (decisión 5). render(ctx) es pura; mount pone el comportamiento.
+// Ficha de un equipo, `#/equipo?s&g&t`. El mismo esqueleto que Mi equipo: la vista de equipo
+// (team-view.js) con los estados A, B, C o D, el D sin la caja de la temporada siguiente y el
+// calendario completo con su ancla #calendario y su .ics, y en la columna de consulta los bloques de
+// team-extras.js, compartidos con Mi equipo: la plantilla con el detalle de cada jugador y la
+// trayectoria del club bajo demanda; el pronóstico de la clasificación final es una cifra de «La
+// temporada en cifras» (team-view.js). Además, «Hacer mi equipo» y «Vistos hace poco». render(ctx) es
+// pura; mount pone el comportamiento.
 // El router ya garantiza que el grupo existe en la temporada (cargada), que es de liga y que el
-// equipo juega en él (decisión 3 de B3); las dos ramas defensivas de render son para lo que no pasa
-// por el router.
+// equipo juega en él; las dos ramas defensivas de render son para lo que no pasa por el router.
 import { html } from './html.js';
 import { block, empty, notice, screenHead } from './ui.js';
 import { findGroup, seasonLabel } from './model.js';
@@ -32,8 +30,8 @@ function locate(ctx) {
 
 // ── Pantalla ────────────────────────────────────────────────────────────
 
-// Mi equipo en otra fase de la misma temporada (decisión 40): tras «Hacer mi equipo» en FF5, la
-// resolución pasa a A2 (el cambio de fase de §6.3) y la ficha de FF5 deja de ser «mi equipo» para la
+// Mi equipo en otra fase de la misma temporada: tras «Hacer mi equipo» en FF5, la
+// resolución pasa a A2 (el cambio de fase) y la ficha de FF5 deja de ser «mi equipo» para la
 // barra. Ahí no se ofrece otra vez el botón: se dice dónde juega ahora, con el enlace a esa ficha. Es
 // el mismo nombre y la misma categoría que la resolución, en su temporada; si no, null.
 function movedNotice(ctx, group, name, mine) {
@@ -47,7 +45,7 @@ const lost = (ctx, text) => html`<section data-screen="equipo">${screenHead('Equ
 function render(ctx) {
   const params = ctx.params || {};
   const s = params.s || ctx.portal.season;
-  // Sin la temporada (el router no la trajo): la caja de error con «Reintentar», nunca otra (§7).
+  // Sin la temporada (el router no la trajo): la caja de error con «Reintentar», nunca otra.
   if (!ctx.model.season(s)) {
     return html`<section data-screen="equipo">${screenHead('Equipo', { back: ctx.backHref })}${errorBox(`la temporada ${seasonLabel(s)}`)}</section>`;
   }
@@ -55,9 +53,9 @@ function render(ctx) {
   if (!group || group.kind !== 'league') return lost(ctx, `No hay ningún grupo de liga ${params.g || ''} en la temporada ${seasonLabel(s)}.`);
   if (!name) return lost(ctx, `No encontramos a ${params.t || 'ese equipo'} en ${group.label}.`);
   const mine = routeIsMine(ctx.route, ctx.resolution);
-  // «Hacer mi equipo» (decisión 11): solo en la temporada del portal (mi equipo es siempre de la
+  // «Hacer mi equipo»: solo en la temporada del portal (mi equipo es siempre de la
   // actual) y si la ficha no es ya mi equipo, con la misma regla que marca Mi equipo en la barra; ni
-  // en mi equipo en otra fase de la misma temporada, que dice dónde juega ahora (decisión 40).
+  // en mi equipo en otra fase de la misma temporada, que dice dónde juega ahora.
   const moved = movedNotice(ctx, group, name, mine);
   const action = group.season === ctx.portal.season && !mine && !moved ? 'make' : null;
   const view = teamView(ctx, { group, name }, { action, mine, shields: ctx.datasets?.shields || {} });
@@ -68,7 +66,7 @@ function render(ctx) {
 function mount(root, ctx, nav) {
   const team = locate(ctx);
   if (!team.name) return undefined;
-  // «Vistos hace poco» (decisión 5): la ficha visitada va la primera, sin repetidos y como máximo 8.
+  // «Vistos hace poco»: la ficha visitada va la primera, sin repetidos y como máximo 8.
   // app.js la guarda sin volver a pintar; se apunta aunque la sección no se encuentre.
   if (nav && typeof nav.addRecent === 'function') nav.addRecent({ s: team.group.season, g: team.group.id, t: team.name });
   const section = root.matches && root.matches('[data-screen="equipo"]') ? root : root.querySelector('[data-screen="equipo"]');
@@ -94,7 +92,7 @@ export const screen = {
   // data-health.json (la frescura de A, B y C), como la portada (healthNeeds): undefined sin pedir y
   // null si falló. Y las actas del grupo de la ruta (la plantilla): {} con un 404 y null
   // si fallan, que la plantilla dice con su caja de error; un fallo se vuelve a pedir en la visita
-  // siguiente. Nunca rechaza. La temporada de la ruta la carga el router (decisión 2 de B3).
+  // siguiente. Nunca rechaza. La temporada de la ruta la carga el router.
   needs: (params, datasets) => {
     const loads = [];
     const health = healthNeeds(datasets);

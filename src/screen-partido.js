@@ -1,12 +1,12 @@
-// Pantalla Partido (spec §4.5): resultado con los penaltis, los goles de
+// Pantalla Partido: resultado con los penaltis, los goles de
 // timelineFor con su aviso si no cuadran con el marcador, las alineaciones del
 // acta, el cara a cara del grupo con las temporadas anteriores bajo demanda y
 // el contexto de los dos equipos. Sin jugar y de prebenjamín de la temporada en
-// curso, el pronóstico debajo del resultado (pronostico.js, 17/10/2026).
+// curso, el pronóstico debajo del resultado (pronostico.js).
 // render(ctx) es pura y síncrona: no toca el DOM ni el reloj (hoy llega en
 // ctx.today). mount(root, ctx) pone el comportamiento: compartir, desplegar
 // las temporadas anteriores (con su «Reintentar») y el «Reintentar» de los Goles
-// y de las Alineaciones, que los pinta en su sitio (B5, decisión 3). «‹» y el
+// y de las Alineaciones, que los pinta en su sitio. «‹» y el
 // «Reintentar» de la pantalla son del router (data-action="back" y "retry").
 import { html, join } from './html.js';
 import {
@@ -26,7 +26,7 @@ import { forecastMatch, topScores } from './pronostico.js';
 
 const DASH = '–';
 const PREVIOUS_ID = 'partido-anteriores';
-// Los bloques que pueden fallar en el primer pintado, con su «Reintentar» (B5, decisión 3).
+// Los bloques que pueden fallar en el primer pintado, con su «Reintentar».
 const GOALS_ID = 'goles';
 const LINEUPS_ID = 'alineaciones';
 const LOADERS = { ensureMatchDetail, ensureLineups, ensureSeasonData };
@@ -35,12 +35,12 @@ const LOADERS = { ensureMatchDetail, ensureLineups, ensureSeasonData };
 
 const dashed = (pair) => String(pair ?? '').replace('-', DASH);
 
-// Día del calendario (AAAA-MM-DD), con los nombres de links.js (Tarea 7), sin los datos de idioma
+// Día del calendario (AAAA-MM-DD), con los nombres de links.js, sin los datos de idioma
 // del motor: «jue 12 feb» en la casilla de fecha y «12 feb» en el cara a cara.
 const longDate = weekdayDate;
 const shortDate = dayMonth;
 
-// Procedencia de cada cifra, para el aviso de datos contradictorios (spec §7).
+// Procedencia de cada cifra, para el aviso de datos contradictorios.
 const TIMELINE_SOURCE = { futbolaspalmas: 'la cronología de futbolaspalmas', acta: 'el acta de la federación' };
 function scoreSource(group) {
   const url = String(group.url || '');
@@ -49,12 +49,12 @@ function scoreSource(group) {
   return 'el resultado del calendario';
 }
 
-// Acta oficial en la web de la federación (spec §9.2): abre sin sesión.
+// Acta oficial en la web de la federación: abre sin sesión.
 const actaUrl = (cod) => `https://www.fiflp.com/pnfg/NPcd/NFG_CmpPartido?cod_primaria=1000120&CodActa=${cod}&cod_acta=${cod}`;
 
 // ── Localizar el partido de la ruta ──────────────────────────────────────
 
-// (s, g, r, h, a) identifica el partido: findMatch de model.js (Tarea 6), el mismo criterio con
+// (s, g, r, h, a) identifica el partido: findMatch de model.js, el mismo criterio con
 // el que el router lo deja pasar (la ronda por su clave o su número; si ahí no está, el único
 // partido de h contra a del grupo).
 
@@ -68,8 +68,8 @@ function locate(ctx) {
 }
 
 // «‹» sin historial de la app es ctx.backHref, que pone el router con parentOf (router.js): la
-// jornada del partido (spec §4.1) o, en un torneo o una copa, su cuadro (decisión 100). Un solo
-// padre para la pantalla y para la caja de error del router (M2 de la revisión final de B2).
+// jornada del partido o, en un torneo o una copa, su cuadro. Un solo padre para la pantalla y para
+// la caja de error del router.
 
 // El lado de mi equipo en este partido ('home' | 'away'), solo en su grupo resuelto.
 function mineSide(ctx, match) {
@@ -116,7 +116,7 @@ function resultBlock(match, { today, shields, status = null, campos = null, isla
   const marker = played
     ? html`<p class="pt-score"><span class="vh">Resultado: </span>${score(match.hs, match.as)}</p>`
     : html`<p class="pt-score is-pending"><span aria-hidden="true">${DASH}</span><span class="vh">Sin resultado</span></p>`;
-  // Eliminatoria resuelta por penaltis (spec §4.5 y §9.3): quién pasó y la tanda si se conoce.
+  // Eliminatoria resuelta por penaltis: quién pasó y la tanda si se conoce.
   const winner = penaltyWinner(match);
   const penalties = winner
     ? html`<p class="pt-penalties">${winner} pasó por penaltis${match.shootout ? html` <span class="pt-tanda">(${dashed(match.shootout)})</span>` : ''}</p>`
@@ -126,21 +126,20 @@ function resultBlock(match, { today, shields, status = null, campos = null, isla
     { title: 'Resultado', context });
 }
 
-// Pronóstico de un partido sin jugar de prebenjamín de la temporada en curso (17/10/2026; el modelo y
-// sus límites, en pronostico.js): la barra del 1X2 (oddsBar de ui.js) con las tres probabilidades en
+// Pronóstico de un partido sin jugar de prebenjamín de la temporada en curso (el modelo y sus límites,
+// en pronostico.js): la barra del 1X2 (oddsBar de ui.js) con las tres probabilidades en
 // texto (el nombre, recortado con «…» si no cabe; entero en el title y para el lector de pantalla), el
 // resultado más probable (siempre del favorito) con los dos que le siguen sin cambiar de ganador
 // (topScores) y los goles esperados, en casillas apagadas (is-muted: nunca con la letra de un dato real
-// como la fecha o la hora del bloque de arriba; revisión del 17/10/2026). El 1X2 sale de las notas y
+// como la fecha o la hora del bloque de arriba). El 1X2 sale de las notas y
 // los goles, del Poisson: pueden no ir con el favorito (goalsAgree; en el archivo, 155 de los 4.825 que se
 // pronostican, casi todos con el favorito por debajo del 55 %, alguno hasta del 71 %), y entonces los goles
 // esperados no se enseñan, que dirían lo contrario que la barra, y el marcador no es «el más probable»
 // (para el Poisson, nunca entre sus dos primeros): va como «Si gana Valsequillo: 4–3», sin «También
-// probables» (revisión del 17/10/2026). Debajo, en qué se basa: los
-// partidos de esta temporada del grupo y, a 2 o más jornadas vista (`ahead`; todo el calendario, desde el
-// 17/10/2026), una frase más: que el partido se juega dentro de tantas jornadas y que el pronóstico se
-// recalcula con cada resultado nuevo (las palabras del usuario; revisión del 18/10/2026: «cambiará con
-// los resultados de antes» se leía como los ya jugados). Nada si forecastMatch no da
+// probables». Debajo, en qué se basa: los partidos de esta temporada del grupo y, a 2 o más jornadas
+// vista (`ahead`; todo el calendario), una frase más: que el partido se juega dentro de tantas jornadas y
+// que el pronóstico se recalcula con cada resultado nuevo («cambiará con los resultados de antes» se
+// leería como los ya jugados). Nada si forecastMatch no da
 // pronóstico: otra categoría o temporada, una copa, jugado, sin fecha o con la fecha pasada, un retirado,
 // lo que la app da por retirado, anulado o suspendido, menos de 2 jornadas o un equipo que aún no ha
 // jugado.
@@ -173,7 +172,7 @@ const scorerOf = (goal) => {
   return href ? html`<a href="${href}">${goal.name}</a>` : goal.name;
 };
 
-// Cronología en tres columnas (spec §4.5): goleador local | minuto y marcador parcial | goleador visitante.
+// Cronología en tres columnas: goleador local | minuto y marcador parcial | goleador visitante.
 function goalsTable(goals, match, mine) {
   const scorer = (goal, side) => (goal.side !== side ? '' : scorerOf(goal));
   const cls = (base, side) => (mine === side ? `${base} pt-mine` : base);
@@ -232,7 +231,7 @@ function goalsBlock(match, group, ctx) {
   } else {
     body = html`<div class="box">${goalsLists(goals, match, mine)}</div>${notice(null, 'El acta no da el minuto de todos los goles, así que no hay marcador parcial.')}`;
   }
-  // Datos contradictorios (spec §4.5 y §7): las dos cifras y su procedencia.
+  // Datos contradictorios: las dos cifras y su procedencia.
   const warning = mismatch
     ? notice('Los goles no cuadran con el marcador:', `${TIMELINE_SOURCE[source]} suma ${dashed(mismatch.timeline)} y ${scoreSource(group)} es ${dashed(mismatch.score)}.`)
     : '';
@@ -292,7 +291,7 @@ function h2hRow(group, m, { current, today, phase = null }) {
   // Una fila de otra fase lleva la fase delante: «Primera Fase · J3».
   const tag = phase ? `${phase} · ${number}` : number;
   const played = matchState(m, today) === 'jugado';
-  // En móvil, nombres cortos (spec §3.5); el completo lo leen los lectores de pantalla.
+  // En móvil, nombres cortos; el completo lo leen los lectores de pantalla.
   const inner = html`<span class="pt-h2h-when">${m.dateISO ? `${tag}, ${shortDate(m.dateISO)}` : tag}</span><span class="pt-h2h-teams"><span class="pt-full">${m.home} ${DASH} ${m.away}</span><span class="pt-short" aria-hidden="true">${teamShort(m.home)} ${DASH} ${teamShort(m.away)}</span></span><span class="${played ? 'pt-h2h-score' : 'pt-h2h-score is-pending'}">${played ? score(m.hs, m.as) : DASH}</span>`;
   return current
     ? html`<div class="pt-h2h-row is-current" aria-current="true"><span class="vh">Este partido: </span>${inner}</div>`
@@ -307,7 +306,7 @@ export function pastSeasons(seasons, seasonName) {
     .reverse();
 }
 
-// Los grupos de un cara a cara (spec §4.5, «de la misma categoría»; decisión 24 de B3): los de la
+// Los grupos de un cara a cara («de la misma categoría»): los de la
 // temporada en esa categoría, que son sus ligas (la primera y la segunda fase de benjamín) y sus
 // copas de la federación (Copa de Campeones e insulares). Una sola regla para esta temporada y para
 // las anteriores. Nunca un torneo de la Maspalomas, con otros nombres («UD Las Mesas Huracán»): vive
@@ -333,8 +332,8 @@ function h2hBlock(match, group, ctx) {
   return block('Cara a cara', html`<div class="box">${join(rows)}</div>${previous}`, { context: season ? 'esta temporada' : 'en esta competición' });
 }
 
-// Candidato único de un lado, entre los equipos que juegan en el grupo (spec §4.5, «con el nombre
-// normalizado igual»): si varios normalizan como `wantExact`, se prefiere el que coincide con él
+// Candidato único de un lado, entre los equipos que juegan en el grupo («con el nombre normalizado
+// igual»): si varios normalizan como `wantExact`, se prefiere el que coincide con él
 // exactamente; si sigue habiendo varios, o ninguno exacto, null. Sin un candidato limpio el grupo
 // es ambiguo (dos equipos con el mismo nombre normalizado, como «UD Barrial» y «Barrial Atl.») y
 // mejor no enseñar nada que mezclar los partidos de otro equipo.
@@ -349,8 +348,8 @@ function resolveTeam(teams, wantExact) {
   return null;
 }
 
-// Cara a cara de temporadas anteriores (spec §4.5): los grupos de h2hGroups (ligas y
-// copas de la federación de la misma categoría, decisión 24 de B3) en los que ambos
+// Cara a cara de temporadas anteriores: los grupos de h2hGroups (ligas y
+// copas de la federación de la misma categoría) en los que ambos
 // equipos, con el nombre normalizado igual (como el historial de la ficha antigua),
 // se enfrentaron. Nunca de la otra categoría.
 export function previousMeetings(model, names, match, cat) {
@@ -363,7 +362,7 @@ export function previousMeetings(model, names, match, cat) {
       const home = resolveTeam(teams, match.home);
       const away = resolveTeam(teams, match.away);
       if (!home || !away || home === away) continue;
-      // headToHead ya da los dos sentidos en orden cronológico (spec §4.5, «por fecha»); una sola
+      // headToHead ya da los dos sentidos en orden cronológico («por fecha»); una sola
       // llamada con el único par resuelto, nunca la pareja invertida, así que ningún partido sale
       // dos veces. La clave es defensiva: cada partido, una sola vez, por su grupo, jornada, local
       // y visitante.
@@ -381,7 +380,7 @@ export function previousMeetings(model, names, match, cat) {
 }
 
 // Lo que se pinta al desplegar «Ver temporadas anteriores», ya cargadas (o no) en datasets.seasonRaw.
-// En un partido de alevín, también su alevín (datasets.seasonAlevin, contrato común de alevín): sin él,
+// En un partido de alevín, también su alevín (datasets.seasonAlevin): sin él,
 // «No encontramos partidos» sería falso, así que es la caja de error, como una temporada sin cargar.
 export function previousBlock(ctx, match, group) {
   const names = pastSeasons(ctx.datasets.seasons, match.season);
@@ -452,7 +451,7 @@ export function render(ctx) {
   return screenHtml(html`${head}<div class="pt-cols"><div class="pt-main">${main}</div><div class="pt-aside">${side}</div></div>`);
 }
 
-// Cargas perezosas (spec §5.4): la cronología (si la temporada la tiene), las
+// Cargas perezosas: la cronología (si la temporada la tiene), las
 // actas del grupo del partido y, si es pasada, la temporada. Los cargadores devuelven null si
 // fallan. La cronología y las actas son opcionales: el bloque que las necesita
 // pinta la caja de error y el resto se pinta. La temporada es imprescindible:
@@ -499,7 +498,7 @@ async function showPrevious(section, ctx) {
   const panel = section.querySelector(`#${PREVIOUS_ID}`);
   const { group, match } = locate(ctx);
   if (!panel || !match) return;
-  // innerHTML solo recibe Html de html``, que ya escapa cada dato (spec §5.1).
+  // innerHTML solo recibe Html de html``, que ya escapa cada dato.
   panel.setAttribute('aria-busy', 'true');
   panel.innerHTML = String(html`<p class="pt-loading">Cargando temporadas anteriores…</p>`);
   const content = await previousPanelContent(ctx, match, group);
@@ -519,7 +518,7 @@ function togglePrevious(section, ctx, button) {
   if (!open && !panel.hasChildNodes()) showPrevious(section, ctx);
 }
 
-// Compartir (spec §4.2 A) con shareAndAnnounce (links.js): navigator.share con el enlace al
+// Compartir con shareAndAnnounce (links.js): navigator.share con el enlace al
 // partido y, sin share o si falla, copiarlo; se dice en la región de estado (con el enlace, si no
 // se pudo). Es la respuesta de todas las pantallas que comparten.
 function sharePartido(button, section) {
@@ -528,7 +527,7 @@ function sharePartido(button, section) {
     section.querySelector('.share-status'));
 }
 
-// «Reintentar» de los Goles o de las Alineaciones (B5, decisión 3): vuelve a pedir lo que le faltó a
+// «Reintentar» de los Goles o de las Alineaciones: vuelve a pedir lo que le faltó a
 // ese bloque (a los Goles, la cronología y, si tampoco llegaron, las actas; a las Alineaciones, las
 // actas) y pinta solo ese bloque en su sitio (retryBlock, shell.js). El otro, si también falló, sigue
 // con su caja hasta que se pulse la suya.

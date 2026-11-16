@@ -1,13 +1,13 @@
-/* Pronóstico de los partidos sin jugar del prebenjamín de la temporada en curso (17/10/2026).
+/* Pronóstico de los partidos sin jugar del prebenjamín de la temporada en curso.
  *
  * Puro e importable en Node sin DOM, como model.js: recibe el Group de model.js y la temporada del
- * portal por parámetro (nunca config.js, R2-1) y no lee ningún global de datos. Nada en la base ni en
+ * portal por parámetro (nunca config.js) y no lee ningún global de datos. Nada en la base ni en
  * el bot, ni ninguna petición nueva: solo los partidos ya jugados del grupo, los que la web ya carga.
  *
- * El modelo, en dos piezas (elegido el 17/10/2026 con el banco de pruebas, scripts/pronostico_banco.mjs):
+ * El modelo, en dos piezas (elegidas con el banco de pruebas, scripts/pronostico_banco.mjs):
  * - El 1X2 (P(local), P(empate), P(visitante) y el favorito), con las NOTAS DE MASSEY: la «regla de tres»
- *   de los resultados que propuso el usuario (si A le ganó a B y B a C, A tiene que poder con C), hecha
- *   cuenta para todo el grupo a la vez. Cada equipo tiene una nota r, y en cada partido jugado
+ *   de los resultados (si A le ganó a B y B a C, A tiene que poder con C), hecha cuenta para todo el grupo
+ *   a la vez. Cada equipo tiene una nota r, y en cada partido jugado
  *       r_local − r_visitante + campo ≈ ln((goles del local + c) / (goles del visitante + c)),
  *   «cuántas veces más goles mete uno que otro», con c = 3,64 goles de colchón, que recorta las goleadas
  *   sin tirarlas (un 15-0 cuenta 1,6; un 30-0, 2,2; un 5-4, 0,1). Las notas son las que mejor cuadran con
@@ -18,8 +18,8 @@
  *   logística ordenada con banda de empate: P(local) = σ(s·d − t), P(visitante) = σ(−s·d − t) y el empate,
  *   lo que queda; la pendiente s y la banda t bajan cuanto menos se sabe de esa diferencia (su varianza):
  *   con una o dos jornadas, los favoritos se moderan sin inflar el empate.
- * - El resultado más probable y los goles esperados, con el Poisson de ataque y defensa de Maher (el que
- *   daba también el 1X2 hasta el 17/10/2026): cada equipo tiene un ataque A y una defensa D (1 = la media
+ * - El resultado más probable y los goles esperados, con el Poisson de ataque y defensa de Maher: cada
+ *   equipo tiene un ataque A y una defensa D (1 = la media
  *   del grupo; una defensa de 2 encaja el doble), y el local de un partido marca de media
  *   b·H·A_local·D_visitante goles, y el visitante, b·A_visitante·D_local, con b los goles medios del grupo
  *   y H el factor de campo; con k = 1,5 partidos ficticios en la media del grupo (contracción: con un
@@ -28,11 +28,11 @@
  *   por equipo, independientes, y de ahí el marcador más probable DENTRO del desenlace favorito de las
  *   notas: nunca una victoria del que no es el favorito, ni un 1-1 con un favorito claro.
  * Las dos, solo con los partidos jugados del grupo EN ESTA temporada. Nada de temporadas anteriores, ni
- * como entrada ni como previo de un equipo o de un club (decisión del 17/10/2026): las pasadas solo sirven
+ * como entrada ni como previo de un equipo o de un club: las pasadas solo sirven
  * para PROBAR los modelos (scripts/pronostico_banco.mjs, scripts/backtest_pronostico.mjs) y para fijar los
  * parámetros globales de PARAMS.
  *
- * Por qué Massey (el banco, 17/10/2026: los parámetros de cada modelo, fijados solo con las temporadas de
+ * Por qué Massey (el banco: los parámetros de cada modelo, fijados solo con las temporadas de
  * AJUSTE, 2013-14 a 2020-21, y puntuados en las de EVALUACIÓN, 2021-22 a 2025-26, con las que no se ajustó
  * nada, aunque se miraron al diseñar algunas variantes: la cabecera del banco lo detalla; 2.747 partidos de
  * 28 grupos, IC 95 % por bootstrap de temporada-grupo): log-loss del 1X2 0,534 frente a 0,544 del Poisson,
@@ -41,15 +41,14 @@
  * cadenas contados uno a uno, ni el Poisson bayesiano, ni las mezclas de los mejores mejoran a Massey (la
  * tabla, en la cabecera del banco; cada familia, en scripts/pronostico_modelos/).
  *
- * Qué se muestra (con `today`, como en la web): con `full`, que la web pasa desde el 17/10/2026 (el usuario
- * lo pidió «de todo el calendario, de todos los siguientes enfrentamientos»), todo lo que queda del
+ * Qué se muestra (con `today`, como en la web): con `full`, que la web pasa siempre, todo lo que queda del
  * calendario, cada partido con su distancia (roundsAhead: a cuántas jornadas vista); sin él, solo la
  * próxima jornada de cada grupo (horizonOf). Solo con dos jornadas jugadas en el grupo y algún partido de
  * cada uno de los dos equipos. Se recalcula con cada resultado: cada partido sin jugar, con todo lo jugado
  * del grupo hasta ese momento (con datos nuevos, el modelo construye otro Group y las cachés de aquí, que
  * van por él, empiezan de cero).
  *
- * A varias jornadas vista (17/10/2026, el banco con --distancia, en su cabecera; EVALUACIÓN, 2.747
+ * A varias jornadas vista (el banco con --distancia, en su cabecera; EVALUACIÓN, 2.747
  * partidos): la víspera, 80,1 % de acierto y 0,522 de log-loss; a 2 jornadas, 80,1 % y +0,010 [+0,005,
  * +0,016] en los mismos partidos; a 3, 79,4 %; a 4-6, 78,6 %; a 7-12, 78,4 %; a 13 o más, 75,6 % (−4,2
  * puntos y +0,087 [+0,068, +0,115] frente a la víspera). Siempre por delante de la tabla, de forma
@@ -57,8 +56,8 @@
  * punto y medio de lo que gana, con el cero dentro del intervalo): por eso no lleva corrección por
  * distancia. La que se probó (la varianza de las notas, más una deriva por cada jornada de por medio) la
  * deja en 0 el ajuste (scripts/pronostico_modelos/distancia.mjs). Esas son cifras de toda la temporada, casi
- * todas con cuatro jornadas jugadas o más (con ellas, 78,8 %). Con pocas, bastante menos (revisión del
- * 18/10/2026, el día en que los cuatro grupos de 2026-27 llevaban dos): con solo dos jugadas, 72,2 % de
+ * todas con cuatro jornadas jugadas o más (con ellas, 78,8 %). Con pocas, bastante menos: con solo dos
+ * jugadas, 72,2 % de
  * todo lo que queda (73,2 % la próxima jornada, 69,6 % a 4-6 vista, 72,2 % a 13 o más), 7,6 puntos menos
  * que la víspera de cada partido [−10,2, −5,5]; con tres, 74,7 %. Aun así, por delante de la tabla (+2,9
  * puntos [+0,6, +5,1]; log-loss −0,127 [−0,163, −0,086]).
@@ -84,7 +83,7 @@ import { matchState, retiredTeams } from './model.js';
  * - slopeVar: κ, cuánto baja la pendiente con la varianza v de la diferencia, β / √(1 + κ·v): 1,85;
  * - bandVar: κₑ, cuánto se estrecha la banda con ella, θ / √(1 + κₑ·v): 0,925 (con la banda fija, con una
  *   jornada se preveía un 13 % de empates, y hay un 7-8 %).
- * El campo, que el usuario cree que no decide (17/10/2026): tiene razón en que es poco. Mueve P(local) 3,5
+ * El campo es poco: mueve P(local) 3,5
  * puntos de media y cambia el favorito en 131 de los 2.747 partidos de EVALUACIÓN. Pero algo aporta: sin él
  * (reajustado en el ajuste), el log-loss de EVALUACIÓN no cambia (+0,001 [−0,004, +0,005]) y se acierta
  * menos el favorito (−0,9 puntos [−1,7, −0,2]: de esos 131, con campo se aciertan 67 y sin él, 41); en el
@@ -92,7 +91,7 @@ import { matchState, retiredTeams } from './model.js';
  *
  * Los de los goles (el Poisson: el resultado más probable y los goles esperados), fijados con el backtest
  * de las temporadas pasadas de prebenjamín cuando el Poisson daba también el 1X2
- * (scripts/backtest_pronostico.mjs; revisado el 17/10/2026 sin las copias de la importación ni lo que
+ * (scripts/backtest_pronostico.mjs, sin las copias de la importación ni lo que
  * puede ser de mesa: 13 temporadas, 53 grupos, 5.078 partidos, cada uno con solo las jornadas anteriores
  * de su temporada; la tabla, en su salida, con el 1X2 del Poisson):
  * - shrink: k, los partidos ficticios en la media del grupo de cada equipo (ataque y defensa): 1,5. Con
@@ -105,18 +104,17 @@ import { matchState, retiredTeams } from './model.js';
  *   (su mejor r, 40, casi Poisson: 0,5339), ni el tope de goles al calcular A y D (cap; con 15, 0,5338):
  *   a igualdad, la sencilla;
  * - cap: ese tope de goles por equipo y partido (Infinity: sin tope);
- * - soften: por encima de este umbral, los goles esperados se amortiguan, T·(1 + ln(x/T)) (revisión del
- *   17/10/2026): sin ella, con 15-20 esperados se marcaban 13,7 (16,8 de media esperada) y el «resultado
- *   más probable» salía inflado (Guanarteme–Acodetti de 2016-17, 0-24, acabó 2-12; ahora, 0-17). El 1X2 del
+ * - soften: por encima de este umbral, los goles esperados se amortiguan, T·(1 + ln(x/T)): sin ella, con
+ *   15-20 esperados se marcan 13,7 (16,8 de media esperada) y el «resultado más probable» sale inflado
+ *   (un 2-12 de 2016-17 se preveía 0-24; con ella, 0-17). El 1X2 del
  *   Poisson no cambia (0,5343 con cualquiera: las goleadas ya pasan del 99 %); 8 es el de menor error de los
  *   goles esperados (2,195 frente a 2,212 sin ella) y con él cuadran por tramos (de 10 a 12, 10,8 frente a
  *   10,7 reales).
  *
  * Desde cuándo se muestra (con el modelo de la web, el 1X2 de las notas, y SOLO con las cifras de
- * EVALUACIÓN del banco: 126 partidos con una jornada jugada, 126 con dos y 128 con tres; revisión del
- * 17/10/2026, que quitó las de todas las temporadas, que incluyen las de AJUSTE, con las que se fijaron
- * las notas). Es una decisión, no una prueba: con dos jornadas la ventaja aún no es demostrable. La tomó el
- * usuario el 17/10/2026, con estas cifras delante: desde 2 jornadas jugadas, no desde 3.
+ * EVALUACIÓN del banco: 126 partidos con una jornada jugada, 126 con dos y 128 con tres; no las de AJUSTE,
+ * con las que se fijaron las notas). Es una decisión, no una prueba: con dos jornadas la ventaja aún no es
+ * demostrable, y se muestra desde 2 jornadas jugadas, no desde 3.
  * - minRounds: jornadas jugadas del grupo desde las que se muestra: 2. Frente a la tabla (gana el mejor
  *   clasificado), con dos jornadas las notas aciertan más (73,8 % frente a 70,6 %; +3,2 puntos [−6,0,
  *   +11,7]) y dan mejores probabilidades en el 96 % de las remuestras (log-loss −0,121 [−0,245, +0,013];
@@ -130,11 +128,11 @@ import { matchState, retiredTeams } from './model.js';
  *   diferencia): con una jornada, 61,5 % frente a 67,5 % (+6,0 puntos [−2,3, +13,1]); con dos, 72,6 %
  *   frente a 73,8 % (+1,2 [−7,4, +8,5]), con la casilla de 80 % o más algo pasada (89,2 % frente a 84,3 %,
  *   51 partidos, −4,8 [−16,7, +5,1]); en total, 78,4 % frente a 79,5 % (+1,1 [−0,3, +2,4]), y el Poisson
- *   de antes se quedaba corto (75,9 % frente a 79,1 %, +3,1 [+1,6, +4,5]). Con una o dos jornadas, con tan
+ *   se queda corto (75,9 % frente a 79,1 %, +3,1 [+1,6, +4,5]). Con una o dos jornadas, con tan
  *   pocos partidos, ni una cosa ni otra es demostrable;
- * - minPlayed: partidos que tiene que llevar cada uno de los dos equipos: 1 (revisión del 17/10/2026). Sin
- *   ninguno, un equipo es la media del grupo y el pronóstico solo mira al rival (Cardones, que descansó en
- *   la jornada 1 y aún no ha jugado la 2); EVALUACIÓN casi no tiene casos (3) con los que probarlo. Con uno
+ * - minPlayed: partidos que tiene que llevar cada uno de los dos equipos: 1. Sin ninguno, un equipo es la
+ *   media del grupo y el pronóstico solo mira al rival (el que descansó en la jornada 1 y aún no ha jugado
+ *   la 2); EVALUACIÓN casi no tiene casos (3) con los que probarlo. Con uno
  *   (desde dos jornadas, 55 partidos de EVALUACIÓN), las notas no se distinguen de la tabla (log-loss
  *   0,710 frente a 0,669, +0,041 [−0,128, +0,222]; aciertan 70,9 % frente a 74,5 %, −3,6 puntos [−16,4,
  *   +8,5]); en AJUSTE, donde se fijaron, eran mejores (−0,243 [−0,383, −0,132]). */
@@ -152,7 +150,7 @@ const TOLERANCE = 1e-12;
 
 const scored = m => m.hs != null && m.as != null;
 
-/* Resultado que puede ser de mesa (revisión del 17/10/2026): un 3-0 o un 1-0, en cualquier sentido, con
+/* Resultado que puede ser de mesa: un 3-0 o un 1-0, en cualquier sentido, con
  * hora o sin ella, o el de un campo «EXCLUIDO» o «SUSPENDIDO» (el archivo de 2014-15 apunta así los de
  * Cerruda B, que jugó unas jornadas, con dos incomparecencias por 3-0, y luego perdió el resto 15-0 y
  * 0-15). El bot guarda los de mesa de 2026-27 con la hora del partido (los 0-3 de AL20, AL32 y AL9 de
@@ -174,7 +172,7 @@ export function isDeskResult(m) {
   return lo === 0 && (hi === 3 || hi === 1);
 }
 
-/* Las copias de la importación del archivo (revisión del 17/10/2026): en una liga cada equipo juega una
+/* Las copias de la importación del archivo: en una liga cada equipo juega una
  * vez por jornada, y en PGC1 de 2023-24 y PGC4 de 2024-25 hay 28 partidos dos veces en la misma jornada,
  * con el mismo marcador y el mismo rival en el mismo lado: una copia es del filial (R. Amagro At.,
  * Arguineguín B) y la otra se le apunta al primer equipo («R. Amagro At. 0-18 Arucas C» y «Roque Amagro
@@ -208,8 +206,8 @@ export function copiedMatches(group) {
 
 /* Si el grupo admite pronóstico: una liga de prebenjamín de la temporada del portal. `prueba`, que solo
  * usa el backtest, lo abre a las temporadas pasadas y a las liguillas de copa, que le dan más partidos
- * con los que probar el modelo (en un cuadro no hay empate); en la web, las copas, nada (revisión del
- * 17/10/2026: el usuario pidió la próxima jornada de los grupos; «Todos los grupos» tampoco las pinta). */
+ * con los que probar el modelo (en un cuadro no hay empate); en la web, las copas, nada: el pronóstico es
+ * de los grupos de liga, y «Todos los grupos» tampoco las pinta. */
 export function forecastApplies(group, { portalSeason = null, prueba = false } = {}) {
   if (!group || group.cat !== 'prebenjamin') return false;
   if (prueba === true) return group.kind === 'league' || group.kind === 'cup-league';
@@ -217,7 +215,7 @@ export function forecastApplies(group, { portalSeason = null, prueba = false } =
 }
 
 // Si la app da el partido por retirado, anulado o suspendido. La usa también el pronóstico de la
-// clasificación final (src/proyeccion.js, 19/10/2026): esos partidos no se simulan.
+// clasificación final (src/proyeccion.js): esos partidos no se simulan.
 export const offByStatus = (status, m) => {
   if (typeof status !== 'function') return false;
   const s = status(m);
@@ -254,16 +252,16 @@ function factsOf(group) {
 
 const addDays = (iso, n) => new Date(Date.parse(`${iso}T12:00:00Z`) + n * 86400000).toISOString().slice(0, 10);
 
-/* Hasta qué día se pronostica con `today` (revisión del 17/10/2026: el usuario pidió «lo que puede pasar
- * en la siguiente jornada», no todo el calendario): la próxima jornada es la del primer partido pendiente,
+/* Hasta qué día se pronostica con `today` (sin `full`: lo que puede pasar en la siguiente jornada, no todo
+ * el calendario): la próxima jornada es la del primer partido pendiente,
  * por fecha, de las que van detrás de la última con algún resultado (sin retirados ni mesa), y se
  * pronostica lo pendiente hasta seis días después de ese partido. Es decir, la próxima jornada, lo que
  * falta de la que está en curso y lo que caiga entre medias (un aplazado, una jornada entre semana); nada
  * de las de después (con `full`, forecastMatch no corta aquí y da todo el calendario, que el banco mide a
- * varias jornadas vista desde el 17/10/2026; el usuario lo pidió ese día). Por fecha y no por número, una
+ * varias jornadas vista). Por fecha y no por número, una
  * jornada adelantada cuenta como la próxima, y una sin resultados con la fecha ya pasada no atasca nada.
  * Sin nada pendiente detrás de la última con resultados, null: sin límite (los aplazados que queden). Es
- * lo de forecastMatch sin `full`; la web pasa `full` desde el 17/10/2026 (forecastOptions de ui.js) y
+ * lo de forecastMatch sin `full`; la web pasa `full` (forecastOptions de ui.js) y
  * enseña todo el calendario. */
 export function horizonOf(group, today) {
   const facts = factsOf(group);
@@ -288,7 +286,7 @@ export function horizonOf(group, today) {
  * aunque se jueguen antes, no: el pronóstico de una jornada es el mismo para todos sus partidos) y sin
  * retirados, mesa, copias ni estados de fuera. Un aplazado de la jornada 2 que se juega tras la 5 se
  * pronostica con la 1, la 3, la 4 y la 5. La exporta el backtest, para su línea base de la
- * clasificación con los mismos partidos. `before` (AAAA-MM-DD; solo el banco de pruebas, 17/10/2026):
+ * clasificación con los mismos partidos. `before` (AAAA-MM-DD; solo el banco de pruebas):
  * además, solo lo jugado antes de ese día, el pronóstico que se habría hecho ese día con jornadas por
  * medio (roundsAhead); la web no lo pasa: lo que tiene marcador ya se ha jugado. Los partidos salen
  * siempre en el orden del calendario: dos entrenamientos con los mismos partidos son la misma lista (la
@@ -306,8 +304,8 @@ export function trainingFor(group, match, { status = null, before = null } = {})
 
 // Los partidos que pueden entrar en un entrenamiento (trainingFor): con marcador y fecha, sin retirados,
 // copias, mesa ni estados de fuera, en el orden del calendario y cada uno con la clave de su jornada.
-// Una vez por grupo y `status` (17/10/2026: con todo el calendario, trainingFor va en cada partido de
-// cada pantalla, y mirar los estados de cada partido jugado cada vez era lo que más costaba).
+// Una vez por grupo y `status`: con todo el calendario, trainingFor va en cada partido de cada pantalla, y
+// mirar los estados de cada partido jugado cada vez es lo que más cuesta.
 function eligibleOf(group, status) {
   const facts = factsOf(group);
   const st = typeof status === 'function' ? status : null;
@@ -343,7 +341,7 @@ function aheadFrom(group, match, training, today = null) {
   return k;
 }
 
-/* A cuántas jornadas vista se pronostica `match` (17/10/2026, para el pronóstico de todo el calendario):
+/* A cuántas jornadas vista se pronostica `match` (para el pronóstico de todo el calendario):
  * 1 más las jornadas del calendario que se juegan entre lo último que se sabe y el partido. Con `last`, el
  * día del último partido del entrenamiento (trainingFor, con las mismas opciones: status y before), cuenta
  * cada jornada del grupo, salvo la del partido, sin ningún partido en el entrenamiento y con su fecha (la
@@ -356,7 +354,7 @@ function aheadFrom(group, match, training, today = null) {
  * último jugado y sin resultados (un aplazamiento aún sin fecha nueva). Es la distancia del grupo, no la
  * de cada equipo: el que descansa una jornada sigue a la de los demás. La vuelta sigue a la ida sin
  * reiniciar nada, aunque medie un mes sin partidos. null sin nada jugado o si el partido no tiene fecha.
- * Con `today` (AAAA-MM-DD; la web, revisión del 18/10/2026), tampoco cuenta una jornada con la fecha ya
+ * Con `today` (AAAA-MM-DD; la web), tampoco cuenta una jornada con la fecha ya
  * pasada y sin ningún resultado publicado: jugada pero aún sin sus resultados (el bot los trae horas o
  * días después), la siguiente es la próxima que se juega, y decir que está «dentro de 2 jornadas» lo
  * entendería mal cualquiera (lo de esa jornada aún no ha entrado en el cálculo: al llegar, se
@@ -371,12 +369,11 @@ export function roundsAhead(group, match, { status = null, before = null, today 
 
 // Los ajustes ya hechos, por grupo, por `status` y por los partidos del entrenamiento (su sitio en el
 // calendario, en su orden: factsOf) y los parámetros del ajuste: dos partidos con el mismo entrenamiento
-// comparten ajuste, sean de la jornada que sean. Con todo el calendario (17/10/2026), las jornadas que
-// quedan por delante se entrenan con lo mismo, todo lo jugado, y en un grupo de 26 jornadas se ajusta una
-// vez (dos con una jornada a medias: la suya, sin sus propios partidos), no una por jornada. Con esto y
-// con eligibleOf, todo lo que queda de un grupo, en frío y a mitad de temporada (2025-26 el 20/01/2026,
-// en Node, la mediana de 14 pasadas), pasa de 10 ms de media a 4 (de 28 a 11 en el que más). Solo es una
-// caché: el resultado es el mismo (el ajuste es determinista con la misma lista). Cada uno, { goals: el de
+// comparten ajuste, sean de la jornada que sean. Con todo el calendario, las jornadas que quedan por delante
+// se entrenan con lo mismo, todo lo jugado, y en un grupo de 26 jornadas se ajusta una vez (dos con una
+// jornada a medias: la suya, sin sus propios partidos), no una por jornada: con esto y con eligibleOf, todo
+// lo que queda de un grupo a mitad de temporada se calcula en menos de la mitad de tiempo. Solo es una caché:
+// el resultado es el mismo (el ajuste es determinista con la misma lista). Cada uno, { goals: el de
 // fitRatings, notes: el de fitNotes } o null sin partidos.
 const FITS = new WeakMap();
 
@@ -611,7 +608,7 @@ export function likelyScore(meanHome, meanAway, pick, params = PARAMS) {
 
 /* Los marcadores más probables con las dos medias, de más a menos: [{ score: [l, v], p }], `n` como
  * mucho y, con `pick` ('home' | 'draw' | 'away'), solo los de ese desenlace. Es lo que pinta la pantalla
- * Partido (17/10/2026): con el `pick` del pronóstico, el primero es su `score` (a igualdad, el mismo
+ * Partido: con el `pick` del pronóstico, el primero es su `score` (a igualdad, el mismo
  * orden que outcome: menos goles del local y luego del visitante) y los demás, los que le siguen sin
  * cambiar de ganador. p es la probabilidad de ese marcador exacto (la pScore de outcome en el primero). */
 export function topScores(meanHome, meanAway, { n = 3, pick = null, params = PARAMS } = {}) {
@@ -643,10 +640,10 @@ export function topScores(meanHome, meanAway, { n = 3, pick = null, params = PAR
  * de la mitad, con menos de un cuarto de gol de diferencia; ahí el favorito de las notas acierta 74 y el
  * de los goles, 55). Entonces score no es el marcador más probable del Poisson (nunca entre sus dos
  * primeros), sino el más probable SI gana el favorito: la web no enseña los goles esperados y lo rotula así
- * (forecastLine de ui.js y la pantalla Partido; revisión del 17/10/2026). `rounds` las jornadas jugadas con
+ * (forecastLine de ui.js y la pantalla Partido). `rounds` las jornadas jugadas con
  * las que se calcula, `matches` sus partidos (la nota «según los N partidos jugados»), played* los de cada
  * equipo entre ellos y `ahead`, a cuántas jornadas vista (roundsAhead con ese entrenamiento y, sin
- * `before`, con `today`: 1, la próxima jornada; 17/10/2026). null si el grupo no lo admite
+ * `before`, con `today`: 1, la próxima jornada). null si el grupo no lo admite
  * (forecastApplies), si el partido ya tiene marcador, si con `today` no está pendiente (matchState: uno
  * sin fecha o con la fecha pasada y sin resultado no se pronostica) o, sin `full`, va más allá de la
  * próxima jornada (horizonOf), si es de un retirado o la app lo da por retirado, anulado o suspendido, si
@@ -670,13 +667,12 @@ export function forecastMatch(group, match, { portalSeason = null, today = null,
   return memo.get(match);
 }
 
-/* Los pronósticos ya hechos en la web (17/10/2026: con todo el calendario, decenas por pantalla, y la
- * pantalla se vuelve a pintar al volver a ella): por grupo, por `status`, por las opciones y por partido,
- * el de forecastOf o null (otra vez todo lo que queda de los ocho grupos de 2025-26 el 20/01/2026, de 26
- * ms a 0,6). Como FACTS y FITS, va por el objeto del grupo, que no cambia una vez construido: con datos
- * nuevos (un resultado más), el modelo construye otro y se calcula todo otra vez con lo nuevo. El banco y
- * el backtest (sin `today`, con `before` u otros parámetros) no la usan. Solo es una caché: el resultado
- * es el mismo (el mismo objeto, que nadie modifica). */
+/* Los pronósticos ya hechos en la web (con todo el calendario, decenas por pantalla, y la pantalla se vuelve
+ * a pintar al volver a ella): por grupo, por `status`, por las opciones y por partido, el de forecastOf o
+ * null; repintar una pantalla ya calculada no cuesta casi nada. Como FACTS y FITS, va por el objeto del
+ * grupo, que no cambia una vez construido: con datos nuevos (un resultado más), el modelo construye otro y se
+ * calcula todo otra vez con lo nuevo. El banco y el backtest (sin `today`, con `before` u otros parámetros)
+ * no la usan. Solo es una caché: el resultado es el mismo (el mismo objeto, que nadie modifica). */
 const FORECASTS = new WeakMap();
 function forecastMemo(group, status, key) {
   if (!FORECASTS.has(group)) FORECASTS.set(group, new Map());
@@ -741,11 +737,11 @@ function forecastOf(group, match, options) {
   };
 }
 
-/* El 1X2 y los goles esperados de forecastMatch, { pHome, pDraw, pAway, xgHome, xgAway }, sin el
- * marcador más probable ni lo demás: con las mismas opciones, las mismas cifras y null en los mismos
- * casos (19/10/2026, para el pronóstico de la clasificación final, src/proyeccion.js, que los pide de
- * todos los partidos que quedan en un grupo; el marcador recorre la rejilla de goles y era lo que más
- * costaba). Sin la caché de la web: la guarda quien la llama. */
+/* El 1X2 y los goles esperados de forecastMatch, { pHome, pDraw, pAway, xgHome, xgAway }, sin el marcador más
+ * probable ni lo demás: con las mismas opciones, las mismas cifras y null en los mismos casos (para el
+ * pronóstico de la clasificación final, src/proyeccion.js, que los pide de todos los partidos que quedan en
+ * un grupo; el marcador recorre la rejilla de goles y es lo que más cuesta). Sin la caché de la web: la
+ * guarda quien la llama. */
 export function forecastOdds(group, match, { portalSeason = null, today = null, full = false, status = null, before = null, prueba = false, params = PARAMS } = {}) {
   if (!group || typeof group !== 'object' || !match || typeof match !== 'object') return null;
   const core = coreOf(group, match, { portalSeason, today, full, status, before, prueba, params });
@@ -757,9 +753,9 @@ export function forecastRound(group, round, opts = {}) {
   return ((round && round.matches) || []).map(m => forecastMatch(group, m, opts));
 }
 
-/* Si `team` se queda sin ningún pronóstico solo porque aún no ha jugado (PARAMS.minPlayed; revisión del
- * 18/10/2026: el calendario de Unión Viera, en PG2 de 2026-27, salía sin una sola línea y sin decir por
- * qué, y el de los demás del grupo, con todo lo que les queda): el grupo admite pronóstico
+/* Si `team` se queda sin ningún pronóstico solo porque aún no ha jugado (PARAMS.minPlayed; si no, su
+ * calendario saldría sin una sola línea y sin decir por qué, y el de los demás del grupo, con todo lo que
+ * les queda): el grupo admite pronóstico
  * (forecastApplies) y ya lleva las PARAMS.minRounds jornadas jugadas (con lo que cuenta: eligibleOf), el
  * equipo no es un retirado, no tiene ningún partido con resultado (ni uno contra un retirado, que no
  * cuenta pero sí se jugó: ahí «aún no ha jugado» sería falso, y no se dice nada) y le queda alguno

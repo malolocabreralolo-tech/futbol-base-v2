@@ -1,14 +1,14 @@
-// Pantalla Jornada (spec §4.3 y §4.8; maqueta 5-1). render(ctx) es pura: «‹ Jornada N de M ›»
+// Pantalla Jornada. render(ctx) es pura: «‹ Jornada N de M ›»
 // con sus fechas, los partidos por día con el propio primero y resaltado, el aviso de la
 // jornada y la botonera. Bajo la cabecera, la tira de los grupos de su competición (groupStrip), con
 // «Todos» delante, y a su derecha, «Mi grupo» u «Otras ligas». Sin `g` y con `c` y `f`, «Todos los
 // grupos»: la misma jornada en todos los de la competición, un bloque por grupo. mount() añade
-// compartir y el .ics del grupo. En las ligas de prebenjamín de la temporada en curso (17/10/2026), cada
-// partido sin jugar de cualquier jornada (todo el calendario, no solo la próxima: lo pidió el usuario ese
-// mismo día) lleva debajo su pronóstico (pronostico.js; la línea, forecastLine de ui.js, la misma a
-// cualquier distancia) y la jornada, la nota de en qué se basa, que en una jornada de más adelante dice
-// para dentro de cuántas jornadas y que se recalcula (forecastNote); en cualquier otro grupo, en lo
-// jugado y en lo que no está pendiente, forecastRound no da ninguno y no se pinta nada.
+// compartir y el .ics del grupo. En las ligas de prebenjamín de la temporada en curso, cada partido sin jugar
+// de cualquier jornada (todo el calendario, no solo la próxima) lleva debajo su pronóstico (pronostico.js; la
+// línea, forecastLine de ui.js, la misma a cualquier distancia) y la jornada, la nota de en qué se basa, que
+// en una jornada de más adelante dice para dentro de cuántas jornadas y que se recalcula (forecastNote); en
+// cualquier otro grupo, en lo jugado y en lo que no está pendiente, forecastRound no da ninguno y no se pinta
+// nada.
 import { html } from './html.js';
 import {
   screenHead, matchRow, notice, empty, listEs, shareStatus, block, groupStrip, scrollToCurrent, forecastNote, forecastOptions,
@@ -18,7 +18,7 @@ import {
   CAT_NAMES, competitionRound, competitions, defaultRound, findRound, groupSummary, roundNotice, retiredTeams, matchState,
   seasonLabel, siblingGroups,
 } from './model.js';
-// Los días y los meses, escritos en links.js (Tarea 7): sin los datos de idioma del motor.
+// Los días y los meses, escritos en links.js: sin los datos de idioma del motor.
 import { MONTHS, WEEKDAYS, routeHref, matchHref, downloadCalendar, shareAndAnnounce } from './links.js';
 import { jornadaNumber, seasonNeeds } from './state.js';
 import { myGroupIn, myTeamIn } from './myteam.js';
@@ -47,9 +47,8 @@ export function dateRange(from, to) {
   return `del ${a.d} al ${b.d} de ${b.month}`;
 }
 
-// La ronda de `r` (findRound, de la Tarea 6: Round.key y, si no existe, por número, para un enlace
-// escrito a mano con «r=30»; la misma regla que el router), o la de defaultRound (decisión 1 de B1:
-// por fecha). null si el grupo no tiene rondas.
+// La ronda de `r` (findRound: Round.key y, si no existe, por número, para un enlace escrito a mano con
+// «r=30»; la misma regla que el router), o la de defaultRound (por fecha). null si el grupo no tiene rondas.
 function pickRound(group, r, today) {
   return findRound(group, r) || defaultRound(group, today);
 }
@@ -95,7 +94,7 @@ function roundDays(group, round, mine) {
     || (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
 }
 
-// Aviso de la jornada con los textos de §4.3, o null.
+// Aviso de la jornada, o null.
 function noticeText(n) {
   if (!n) return null;
   if (n.kind === 'faltan') {
@@ -106,7 +105,7 @@ function noticeText(n) {
   return { term: 'Sin partido en esta jornada:', text: `${listEs(n.teams, 'y')}${why}` };
 }
 
-// Partidos futuros del grupo para el .ics de «Calendario del grupo» (§4.3): los `pendiente`, sin
+// Partidos futuros del grupo para el .ics de «Calendario del grupo»: los `pendiente`, sin
 // los de retirados, en la forma de buildCalendar (links.js).
 export function groupCalendar(group, today) {
   const vsRetired = againstRetired(retiredTeams(group));
@@ -138,7 +137,7 @@ function headAction(ctx, s, { mine, first, n, group }) {
 }
 
 // «‹» y «›» de la jornada, con id estable: al cambiar de jornada (replaceState), el router devuelve el
-// foco al control pulsado, no al h1 (B11 de la revisión). En un extremo, el apagado conserva el id y el
+// foco al control pulsado, no al h1. En un extremo, el apagado conserva el id y el
 // foco. href: el enlace, o null en un extremo; what: la jornada de al lado («Jornada 29»).
 function roundStep(href, what, glyph, label, id) {
   return href
@@ -213,7 +212,7 @@ function render(ctx) {
   const { params, model, today } = ctx;
   const shields = (ctx.datasets && ctx.datasets.shields) || {};
   const s = params.s || ctx.portal.season;
-  // Sin la temporada (needs no la trajo): la caja de error, nunca otra temporada (§7).
+  // Sin la temporada (needs no la trajo): la caja de error, nunca otra temporada.
   if (!model.season(s)) {
     return html`<section data-screen="jornada">${screenHead('Jornada', { action: otherLeagues(s) })}${errorBox(`la temporada ${seasonLabel(s)}`)}</section>`;
   }

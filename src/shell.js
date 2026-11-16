@@ -1,16 +1,15 @@
-// Marco de la app (spec §4.1, §4.8, §4.10, §7 y §8): cabecera con la marca y la barra,
-// aria-current de la barra, avisos sin conexión y de datos nuevos, esqueletos de carga, caja de error y aviso de
-// redirección. Todo son funciones puras que devuelven Html, salvo updateTabbar, que cambia la
-// barra ya pintada del documento que recibe, y retryBlock, que vuelve a pintar un bloque de la
-// pantalla. La cabecera de cada pantalla es screenHead (ui.js).
-// No toca el navegador al importarse.
+// Marco de la app: cabecera con la marca y la barra, aria-current de la barra, avisos sin conexión y de datos
+// nuevos, esqueletos de carga, caja de error y aviso de redirección. Todo son funciones puras que devuelven
+// Html, salvo updateTabbar, que cambia la barra ya pintada del documento que recibe, y retryBlock, que vuelve
+// a pintar un bloque de la pantalla. La cabecera de cada pantalla es screenHead (ui.js). No toca el navegador
+// al importarse.
 import { html } from './html.js';
 import { tabbar, notice, screenHead, listEs } from './ui.js';
 import { CATEGORIES, CAT_WORDS } from './model.js';
 
 const TAB_HREFS = { miequipo: '#/', jornada: '#/jornada', tabla: '#/tabla', explorar: '#/explorar' };
 
-// Títulos de las rutas de §4.1: el h1 de la caja de error y del <title> del documento.
+// Títulos de las rutas: el h1 de la caja de error y del <title> del documento.
 const TITLES = {
   '': 'Mi equipo', jornada: 'Jornada', tabla: 'Tabla', explorar: 'Explorar', partido: 'Partido',
   equipo: 'Equipo', ligas: 'Ligas', copa: 'Copa', goleadores: 'Goleadores',
@@ -26,7 +25,7 @@ export function routeTitle(screen) {
 
 // La marca y la barra de 4 destinos. En móvil y tableta la barra es fija abajo y la marca no se
 // ve; desde 1024 px, la marca va a la izquierda y los destinos en pestañas, con 1120 px de
-// ancho máximo (spec §4.8). .shell-offline es el hueco del aviso sin conexión (§4.10), que
+// ancho máximo. .shell-offline es el hueco del aviso sin conexión, que
 // rellena app.js, y .shell-update, el de los datos nuevos, que rellena actualizacion.js. index.html
 // lleva esta misma cabecera, con Mi equipo activo.
 export function renderHeader({ active = 'miequipo', current = 'page' } = {}) {
@@ -38,7 +37,7 @@ export function renderHeader({ active = 'miequipo', current = 'page' } = {}) {
 const TAB_OF = { '': 'miequipo', jornada: 'jornada', tabla: 'tabla', explorar: 'explorar' };
 const tabOf = (href) => TAB_OF[(String(href ?? '').match(/^#\/([a-z]*)(?:[?#]|$)/) || [])[1]] ?? null;
 
-// aria-current en la barra ya pintada (spec §4.1): "page" en el destino de la pantalla y "true"
+// aria-current en la barra ya pintada: "page" en el destino de la pantalla y "true"
 // en las secundarias (Partido, Equipo, Ligas…); con active null, en ninguno. hrefs: el enlace de las
 // pestañas que no van a su destino de siempre ({ jornada, tabla }: las del grupo que se mira, de
 // tabTargets en router.js); las demás vuelven al suyo (#/jornada: el grupo de mi equipo).
@@ -55,7 +54,7 @@ export function updateTabbar(active, current, doc, hrefs = {}) {
   }
 }
 
-// ── Aviso sin conexión (spec §4.10) ──────────────────────────────────────
+// ── Aviso sin conexión ───────────────────────────────────────────────────
 
 const isoToDMY = (iso) => {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso ?? ''));
@@ -78,16 +77,16 @@ export function updateNotice() {
   return html`<div class="update-notice">${notice('Hay datos nuevos.', '')}<button class="button is-main" type="button" data-action="actualizar">Actualizar</button></div>`;
 }
 
-// ── Esqueletos de carga (spec §5.4 y §7) ─────────────────────────────────
+// ── Esqueletos de carga ──────────────────────────────────────────────────
 
 // Mismas medidas que la pantalla terminada: la cabecera de pantalla (72 px) y sus primeras
-// cajas. Sin animación (spec §3.4) y sin h1: el h1 llega con el contenido.
+// cajas. Sin animación y sin h1: el h1 llega con el contenido.
 const BODIES = {
   home: html`<div class="block"><span class="sk sk-block-title"></span><div class="box skeleton sk-box-home"></div></div>`,
   jornada: html`<div class="box skeleton sk-box-round"></div><span class="sk sk-day"></span><div class="box skeleton sk-rows-6"></div>`,
   tabla: html`<div class="box skeleton sk-box-seg"></div><div class="block"><span class="sk sk-block-title"></span><div class="box skeleton sk-rows-10"></div></div>`,
   partido: html`<div class="block"><span class="sk sk-block-title"></span><div class="box skeleton sk-box-match"></div></div>`,
-  // Las seis de B3 (B5, decisión 4): lo que va antes de su primer bloque (el buscador de Explorar, el
+  // Estas seis: lo que va antes de su primer bloque (el buscador de Explorar, el
   // selector de categoría de Récords) y ese bloque, con su título y el alto que tiene a 390 px con las
   // fixtures, en lo que se ve tras el esqueleto: Equipo de una temporada pasada («Así terminó»),
   // Explorar («Ligas»), Ligas (su primera categoría), Récords («Totales»), Copa («Campeón») y Goleadores
@@ -111,13 +110,13 @@ export function skeleton(screenId) {
 
 // ── Error y avisos del router ────────────────────────────────────────────
 
-// Spec §7: «No se pudieron cargar los datos de <qué>» con «Reintentar», que el router atiende
+// «No se pudieron cargar los datos de <qué>» con «Reintentar», que el router atiende
 // por data-action="retry". Nunca se cae a datos de otra temporada.
 export function errorBox(what) {
   return html`<div class="box error-box" role="alert"><p class="error-text">No se pudieron cargar los datos de ${what}.</p><div class="buttons"><button class="button is-main" type="button" data-action="retry">Reintentar</button></div></div>`;
 }
 
-// «Reintentar» de un bloque que falló en el primer pintado (B5, decisión 3): la Plantilla de Equipo
+// «Reintentar» de un bloque que falló en el primer pintado: la Plantilla de Equipo
 // y los Goles y las Alineaciones de Partido, que lo atienden en su mount sin pasar por el router (con
 // stopPropagation, como la Trayectoria). Vuelve a pedir lo que le falta (`load`, que nunca rechaza: los
 // cargadores de state.js dan null) y pinta de nuevo el bloque `#id` de `section` en su sitio, con
@@ -137,7 +136,7 @@ export async function retryBlock(section, id, button, load, paint) {
   // por encima de la vista.
   const view = current.ownerDocument?.defaultView || null;
   const y = view ? view.scrollY : null;
-  // Html de html``, que escapa cada dato, como el pintado del router (spec §5.1).
+  // Html de html``, que escapa cada dato, como el pintado del router.
   current.outerHTML = String(paint());
   if (view && view.scrollY !== y) view.scrollTo(view.scrollX, y);
   const fresh = section.querySelector(`#${id}`);
@@ -150,7 +149,7 @@ export async function retryBlock(section, id, button, load, paint) {
 }
 
 // El aviso de Explorar y de Ligas sin categoría cuando no llegaron los datos de alevín (ctx.alevinFailed
-// del router; contrato común de alevín): la pantalla se pinta con las otras categorías y lo dice, sin la
+// del router): la pantalla se pinta con las otras categorías y lo dice, sin la
 // alerta de la caja de error, que es para lo que no se puede pintar. «Reintentar» lo atiende el router
 // (data-action="retry") y vuelve a pedirlo.
 export function alevinFailedBox() {
@@ -163,7 +162,7 @@ export function errorScreen({ screenId, title, what, back = null }) {
   return html`<section data-screen="${screenId}" data-state="error">${screenHead(title, { back })}<div class="block">${errorBox(what)}</div></section>`;
 }
 
-// Aviso de una redirección de §4.1 («Elige tu equipo en Mi equipo»). El router lo pone
+// Aviso de una redirección del router («Elige tu equipo en Mi equipo»). El router lo pone
 // detrás de la cabecera de la pantalla de destino.
 export function routeNotice(text) {
   return html`<p class="notice route-notice" role="status">${text}</p>`;

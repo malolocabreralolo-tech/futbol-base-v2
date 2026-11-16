@@ -1,4 +1,4 @@
-// Componentes del sistema visual «Acta» (spec §3.3). Funciones puras que
+// Componentes del sistema visual «Acta». Funciones puras que
 // devuelven Html: no leen globales ni tocan el DOM al importarse. Las clases
 // que emiten están definidas en acta.css.
 import { html, Html } from './html.js';
@@ -42,9 +42,9 @@ export function crest(name, { size = 16, shields = {}, lazy = true } = {}) {
   return html`<img class="crest crest-${size}" src="${thumb}" data-full="./escudos/${file}" data-name="${name}" alt="" width="${size}" height="${size}"${lazy ? html` loading="lazy"` : ''} decoding="async">`;
 }
 
-// Siguiente paso de la cadena miniatura → original → monograma (spec §5.4)
+// Siguiente paso de la cadena miniatura → original → monograma
 // para un <img class="crest"> que no ha cargado. Lo llama el manejador de
-// errores de B2. Devuelve 'full', 'mono' o null si no es un escudo.
+// errores de imagen de la página. Devuelve 'full', 'mono' o null si no es un escudo.
 export function crestFallback(img) {
   if (!img || img.tagName !== 'IMG' || !img.classList.contains('crest')) return null;
   const full = img.getAttribute('data-full');
@@ -62,8 +62,8 @@ export function crestFallback(img) {
 
 // Bloque con título: su h2, el contexto a la derecha (opcional) y el contenido tal cual (una caja,
 // un vacío, una lista…); id, el de la sección, para un ancla como #calendario. El único de la app,
-// con un solo orden de argumentos (I2 de la revisión final de B2): lo usan las pantallas y box. Sin
-// título (null o ''), el bloque va sin cabecera ni contexto: solo su separación (decisión 10 de B3).
+// con un solo orden de argumentos: lo usan las pantallas y box. Sin título (null o ''), el bloque va
+// sin cabecera ni contexto: solo su separación.
 export function block(title, content, { context = null, id = null } = {}) {
   const anchor = id ? html` id="${id}"` : '';
   if (title == null || title === '') return html`<section class="block"${anchor}>${content}</section>`;
@@ -90,7 +90,7 @@ export function cells(items) {
 
 // La nota de un partido: su estado si no tiene resultado («sin resultado», «sin fecha») o, en una
 // eliminatoria empatada, quién pasó por penaltis y la tanda si se conoce. La usan matchRow y el
-// cuadro de Copa, que le pasa el partido con quién pasó según el cuadro (decisión 22 de B3).
+// cuadro de Copa, que le pasa el partido con quién pasó según el cuadro.
 export function matchNote(match, state) {
   if (state === 'sin resultado' || state === 'sin fecha') return state;
   const who = penaltyWinner(match);
@@ -98,8 +98,8 @@ export function matchNote(match, state) {
   return null;
 }
 
-// note: false, sin la nota, donde la lista ya la dice (los «Sin fecha» de una liguilla de Copa, B5,
-// decisión 5). forecast: el pronóstico del partido (forecastMatch de pronostico.js, 17/10/2026), o null:
+// note: false, sin la nota, donde la lista ya la dice (los «Sin fecha» de una liguilla de Copa).
+// forecast: el pronóstico del partido (forecastMatch de pronostico.js), o null:
 // su línea (forecastLine) va debajo, y solo si el partido no se ha jugado; la casilla del marcador sigue
 // con su «–».
 export function matchRow(match, { mine = false, today, shields, href, note: withNote = true, forecast = null } = {}) {
@@ -115,11 +115,11 @@ export function matchRow(match, { mine = false, today, shields, href, note: with
   return href ? html`<a class="${cls}" href="${href}">${inner}</a>` : html`<div class="${cls}">${inner}</div>`;
 }
 
-// ── Pronóstico (prebenjamín de la temporada en curso; pronostico.js, 17/10/2026) ──
+// ── Pronóstico (prebenjamín de la temporada en curso; pronostico.js) ──
 
 // Las opciones de forecastMatch y forecastRound en la web: la temporada del portal, hoy (solo los
 // partidos `pendiente`), todo el calendario (full: cada partido que queda, no solo los de la próxima
-// jornada; el usuario lo pidió el 17/10/2026) y los estados de la app de futbolaspalmas
+// jornada) y los estados de la app de futbolaspalmas
 // (model.matchStatus, que no usa this: la misma función en cada pintado, y las cachés de pronostico.js
 // van por ella).
 export function forecastOptions(ctx) {
@@ -151,12 +151,12 @@ function favorite(f) {
 // resultado: va debajo del partido, nunca en la casilla del marcador (que sigue con su «–»), en letra
 // pequeña, sin negrita y en --mute (también en la fila propia, que va en tinta), y empieza por
 // «Pronóstico»; el lector de pantalla oye otra frase, que dice que no es un resultado. La usan matchRow
-// (Jornada y, desde el 17/10/2026, el calendario del equipo) y el próximo partido de Mi equipo, cada uno
+// (Jornada y el calendario del equipo) y el próximo partido de Mi equipo, cada uno
 // con su clase (cls); la misma a cualquier distancia (para dentro de cuántas jornadas, solo en la nota de
 // la Jornada y en la pantalla Partido: en las listas sería ruido). f: el de forecastMatch, o
 // null (nada). Si los goles esperados no van con el favorito (goalsAgree false: el 1X2 es de las notas
 // y el marcador, del Poisson), ese marcador no es el más probable (en el archivo, nunca entre los dos
-// primeros del Poisson; revisión del 17/10/2026): la línea, sin marcador, «Pronóstico · Valsequillo 45 %».
+// primeros del Poisson): la línea, sin marcador, «Pronóstico · Valsequillo 45 %».
 export function forecastLine(f, cls = 'match-forecast') {
   if (!f) return '';
   const [l, v] = f.score;
@@ -173,13 +173,13 @@ export function forecastLine(f, cls = 'match-forecast') {
 // La nota de la Jornada (y de «Todos los grupos», `each`) si algún partido lleva pronóstico: de dónde
 // sale, en una frase. forecasts: los de forecastRound, con sus null. Cuenta los partidos jugados con los
 // que se calcula (`matches`), no las jornadas: con la jornada 2 a medias, «las 2 jornadas jugadas» diría
-// que la base ya está completa (revisión del 17/10/2026); si no son los mismos en todos (un aplazado, o
-// cada grupo los suyos), sin número. Con todo el calendario (17/10/2026), en una jornada de más adelante
+// que la base ya está completa; si no son los mismos en todos (un aplazado, o cada grupo los suyos), sin
+// número. Con todo el calendario, en una jornada de más adelante
 // (algún pronóstico a 2 o más jornadas vista, `ahead` de forecastMatch) dice además para dentro de
 // cuántas, si es la misma en todos (con espacios de no separación: «de 6 jornadas», junto), y que se
-// recalcula con cada resultado nuevo, con las palabras del usuario (revisión del 18/10/2026: «cambiará con
-// los resultados de antes» se leía al revés, como si fueran los ya jugados, que ya están dentro, y «a 6
-// jornadas vista» no es lo que diría un padre). También la del calendario del equipo (teamCalendar de
+// recalcula con cada resultado nuevo, en palabras de cualquiera: «cambiará con los resultados de antes» se
+// leería al revés, como si fueran los ya jugados, que ya están dentro, y «a 6 jornadas vista» no es lo que
+// diría un padre. También la del calendario del equipo (teamCalendar de
 // team-view.js), donde cada partido va a su distancia y sale sin número.
 export function forecastNote(forecasts, { each = false } = {}) {
   const shown = forecasts.filter(Boolean);
@@ -194,9 +194,9 @@ export function forecastNote(forecasts, { each = false } = {}) {
 }
 
 // La barra del 1X2 de la pantalla Partido: tres tramos sólidos, el local en tinta, el empate en --mute
-// (el --draw de las fichas, a 1,24:1 sobre el papel, se perdía entre las rayas; revisión del 17/10/2026)
-// y el visitante en --text, cada uno del ancho de su probabilidad, con una raya del color del papel
-// entre ellos; sin discontinuas ni degradados (preferencia del usuario). Es decorativa (aria-hidden): las
+// (el --draw de las fichas, a 1,24:1 sobre el papel, se pierde entre las rayas) y el visitante en
+// --text, cada uno del ancho de su probabilidad, con una raya del color del papel entre ellos; sin
+// discontinuas ni degradados (docs/decisiones.md). Es decorativa (aria-hidden): las
 // cifras van debajo, en texto. Un SVG que se estira al ancho de su caja; los anchos, en milésimas
 // enteras.
 export function oddsBar(pHome, pDraw, pAway) {
@@ -207,7 +207,7 @@ export function oddsBar(pHome, pDraw, pAway) {
   return html`<svg class="odds-bar" viewBox="0 0 1000 10" preserveAspectRatio="none" aria-hidden="true" focusable="false"><rect class="odds-home" x="0" y="0" width="${home}" height="10"></rect><rect class="odds-draw" x="${home}" y="0" width="${draw}" height="10"></rect><rect class="odds-away" x="${home + draw}" y="0" width="${away}" height="10"></rect></svg>`;
 }
 
-// ── Cifras y recuentos, una sola vez (B5, decisión 6) ───────────────────
+// ── Cifras y recuentos, una sola vez ────────────────────────────────────
 
 // «1 grupo», «3 grupos»: la cifra con la palabra en singular o en plural.
 export function countLabel(n, one, many) {
@@ -224,7 +224,7 @@ export function signed(n) {
   return n == null ? '' : n > 0 ? `+${n}` : n < 0 ? `−${-n}` : '0';
 }
 
-// Una cifra con `digits` decimales y coma, sin los datos de idioma del motor (decisión 123 de B2):
+// Una cifra con `digits` decimales y coma, sin los datos de idioma del motor (que cambian de uno a otro):
 // decimal(8.0123, 2) → «8,01».
 export function decimal(n, digits) {
   return n.toFixed(digits).replace('.', ',');
@@ -244,8 +244,8 @@ const COLUMNS = {
     cell: (r) => (r.retired ? html`<span class="st-retired">retirado</span>` : formChips(r.form || [])) },
 };
 
-// Spec §4.4. «todas» es la de escritorio (≥1024 px) y «resumen», la de la
-// clasificación final de la portada en el estado D (spec §4.2: #, Equipo, J, DG y Pts).
+// Las vistas de la clasificación. «todas» es la de escritorio (≥1024 px) y «resumen», la de la
+// clasificación final de la portada en el estado D (#, Equipo, J, DG y Pts).
 const VIEWS = {
   puntos: ['pj', 'g', 'e', 'p', 'dg'],
   resumen: ['pj', 'dg'],
@@ -260,7 +260,7 @@ const abbr = (label, title) => (title ? html`<abbr title="${title}">${label}</ab
 
 // rows: Row[] del modelo; `form` (letras G/E/P) es opcional y solo lo usan
 // las vistas forma y todas. `mine` es el nombre exacto del equipo resaltado, y `mineText`, lo que
-// dice su texto oculto: «mi equipo» o, en la ficha de otro equipo, «este equipo» (B3).
+// dice su texto oculto: «mi equipo» o, en la ficha de otro equipo, «este equipo».
 export function standingsTable(rows, { view = 'puntos', mine, mineText = 'mi equipo', shields, hrefFor, caption } = {}) {
   const keys = VIEWS[view] || VIEWS.puntos;
   const head = html`<tr><th scope="col" class="st-pos">${abbr('#', 'Posición')}</th><th scope="col" class="st-team">Equipo</th>${keys.map((k) =>
@@ -280,7 +280,7 @@ export function standingsTable(rows, { view = 'puntos', mine, mineText = 'mi equ
 // ── Forma, selector, aviso y vacío ──────────────────────────────────────
 
 const FORM_CLASS = { G: 'form-g', E: 'form-e', P: 'form-p' };
-// El texto oculto de cada letra (recomendación 4 de B1): el lector de pantalla dice «ganado,
+// El texto oculto de cada letra: el lector de pantalla dice «ganado,
 // empatado, perdido» en lugar de «G E P»; la letra se ve, pero no se lee dos veces.
 const FORM_WORD = { G: 'ganado', E: 'empatado', P: 'perdido' };
 
@@ -292,7 +292,7 @@ export function formChips(letters) {
 }
 
 // idPrefix (opcional): un id estable por opción, «<prefijo>-<valor>». Al cambiar de vista con
-// replaceState, el router devuelve el foco al segmento pulsado (B11 de la revisión de B2).
+// replaceState, el router devuelve el foco al segmento pulsado.
 export function segmented(options, active, hrefFor, { idPrefix = null } = {}) {
   const id = (value) => (idPrefix ? html` id="${idPrefix}-${value}"` : '');
   return html`<div class="segmented">${options.map(({ value, label }) => (value === active
@@ -310,14 +310,14 @@ export function empty(text) {
 
 // ── Compartir y procedencia ─────────────────────────────────────────────
 
-// La región de estado de «Compartir» (spec §4.2 A), la misma en todas las pantallas: la rellena
+// La región de estado de «Compartir», la misma en todas las pantallas: la rellena
 // shareAndAnnounce (links.js) con «Enlace copiado.» o, si no se pudo copiar, con el enlace para
-// copiarlo a mano. Visible y nunca display: none, o dejaría de anunciarse (decisión 111).
+// copiarlo a mano. Visible y nunca display: none, o dejaría de anunciarse.
 export function shareStatus() {
   return html`<p class="share-status" role="status"></p>`;
 }
 
-// La procedencia de una clasificación en una frase, desde sourceInfo (model.js, spec §4.4):
+// La procedencia de una clasificación en una frase, desde sourceInfo (model.js):
 // «Clasificación oficial de futbolaspalmas.com», «Clasificación calculada con los resultados de …»
 // o «Clasificación de … con los puntos corregidos»; sin fuente, sin «de …». Texto, no Html: Mi
 // equipo le añade la comprobación y Tabla, su advertencia y el enlace a la fuente.
@@ -344,7 +344,7 @@ const TABS = [
 ];
 
 // active: destino marcado. current: 'page' si la pantalla es ese destino;
-// 'true' en las pantallas secundarias (spec §4.1).
+// 'true' en las pantallas secundarias.
 export function tabbar(active, { current = 'page' } = {}) {
   if (active != null && !TABS.some((t) => t.id === active)) throw new RangeError(`Destino de la barra no válido: ${active}`);
   if (current !== 'page' && current !== 'true') throw new RangeError(`aria-current no válido: ${current}`);
@@ -359,7 +359,7 @@ export function tabbar(active, { current = 'page' } = {}) {
 // ── Cabecera de pantalla ────────────────────────────────────────────────
 
 // «‹» (volver): el router lo atiende con history.back() si la entrada anterior es de la app y,
-// si no, sigue el enlace al padre (spec §4.1).
+// si no, sigue el enlace al padre.
 export function backLink(href) {
   return html`<a class="back" href="${href}" data-action="back" aria-label="Volver">‹</a>`;
 }
@@ -443,19 +443,19 @@ export function scrollToCurrent(strip) {
   }
 }
 
-// ── Buscador, selector de temporada y filas de enlace (Plan B3, Tarea 6) ──
+// ── Buscador, selector de temporada y filas de enlace ──
 
 const SEARCH_ICON = svg(html`<circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/>`);
 
-// Buscador (spec §4.7; decisión 17 de B3): un <input type="search"> con su etiqueta, dentro de un
+// Buscador: un <input type="search"> con su etiqueta, dentro de un
 // <form role="search">. Filtrar al escribir es cosa del mount de cada pantalla, que además detiene
 // el envío del formulario (Intro no recarga la página). El id es estable: #buscar es el ancla de
-// «Cambiar» (§4.2 A). La letra del campo mide 16 px o más: iOS no amplía la página al enfocarlo.
+// «Cambiar» de la portada. La letra del campo mide 16 px o más: iOS no amplía la página al enfocarlo.
 export function searchBox({ id, value = '', label, placeholder = label }) {
   return html`<form class="search" role="search"><label class="vh" for="${id}">${label}</label><span class="search-icon" aria-hidden="true">${SEARCH_ICON}</span><input class="search-input" id="${id}" type="search" value="${value}" placeholder="${placeholder}" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search"></form>`;
 }
 
-// Selector de temporada (spec §4.7; decisión 16 de B3): la acción de la cabecera, «2025/26 ▾», es un
+// Selector de temporada: la acción de la cabecera, «2025/26 ▾», es un
 // botón con aria-expanded que despliega un enlace por temporada, de la más reciente a la más antigua
 // (el orden de SEASONS). Lo abre y lo cierra el mount de la pantalla. seasons: [{ name }]; active: la
 // temporada que se ve; hrefFor(name) → el enlace de cada una; id: el del botón, y «<id>-lista», el de
@@ -465,7 +465,7 @@ export function seasonPicker(seasons, active, hrefFor, { id }) {
   return html`<div class="season-picker"><button class="screen-action season-toggle" id="${id}" type="button" aria-expanded="false" aria-controls="${id}-lista"><span class="vh">Temporada </span>${seasonLabel(active)}<span class="season-caret" aria-hidden="true"></span></button><ul class="season-menu" id="${id}-lista" hidden>${items}</ul></div>`;
 }
 
-// Fila de una lista de enlaces (Explorar y Ligas; maqueta 5-4): el título, con su detalle debajo si
+// Fila de una lista de enlaces (Explorar y Ligas): el título, con su detalle debajo si
 // lo hay, y el contexto a la derecha en --mute («4 grupos», «junio»). Toda la fila es el enlace, de
 // 44 px o más. cls: una clase más para la fila (a.group-row, el marcador de Ligas).
 export function linkRow(href, title, { context = null, detail = null, cls = null } = {}) {

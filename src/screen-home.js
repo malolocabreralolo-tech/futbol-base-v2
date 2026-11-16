@@ -1,13 +1,12 @@
-// Mi equipo, la portada (spec §4.2, §4.8, §6.4 y §7).
+// Mi equipo, la portada.
 //
-// render(ctx) es puro y síncrono: homeState decide el estado (E, X, D, B, C o A, en ese orden) sobre
-// la resolución de mi equipo, y la vista de equipo lo recibe (teamState, una vez por pintado: B5,
-// decisión 6). E y X son de la portada; D, B, C y A los pinta la vista de equipo
-// (team-view.js, decisión 8 de B3), la misma vista de la ficha, con su consulta completa
-// (team-extras.js) y el calendario con su .ics; aquí, con «Cambiar», la caja de la temporada
-// siguiente y el aviso stale; la plantilla no espera a las actas (fillSquad). El estado va en
-// data-state, que usan las pruebas de navegador. mount(root, ctx, nav) añade el comportamiento. Nada
-// toca el DOM al importarse.
+// render(ctx) es puro y síncrono: homeState decide el estado (E, X, D, B, C o A, en ese orden) sobre la
+// resolución de mi equipo, y la vista de equipo lo recibe (teamState, una vez por pintado). E y X son de la
+// portada; D, B, C y A los pinta la vista de equipo (team-view.js), la misma vista de la ficha, con su
+// consulta completa (team-extras.js) y el calendario con su .ics; aquí, con «Cambiar», la caja de la
+// temporada siguiente y el aviso stale; la plantilla no espera a las actas (fillSquad). El estado va en
+// data-state, que usan las pruebas de navegador. mount(root, ctx, nav) añade el comportamiento. Nada toca el
+// DOM al importarse.
 import { Html, html } from './html.js';
 import { block, box, crest, empty } from './ui.js';
 import { seasonLabel } from './model.js';
@@ -19,7 +18,7 @@ import { SEARCH_HREF, mountTeamView, teamColumns, teamHeader, teamView } from '.
 import { fillSquad, mountTeamExtras, squadPending, teamExtras } from './team-extras.js';
 import { followedBlock } from './screen-jugador.js';
 
-// ── Estado E: elegir equipo (spec §4.2 y §6.3) ──────────────────────────
+// ── Estado E: elegir equipo ─────────────────────────────────────────────
 
 // En E y X, la cabecera va sin «Cambiar»: la caja ya ofrece buscar otro equipo.
 function stateE(ctx, shields) {
@@ -53,7 +52,7 @@ export const screen = {
   // de estado): healthNeeds lo pide si no está o si la respuesta tiene más de 10 minutos, y lo deja
   // en datasets.health, que es undefined mientras no se ha pedido y null si falló; con null, las
   // visitas siguientes pintan en el acto hasta el siguiente intento. Nunca rechaza: sin él, la
-  // portada se pinta igual (§7).
+  // portada se pinta igual.
   needs: (params, datasets) => {
     const load = healthNeeds(datasets);
     return load ? [load] : [];

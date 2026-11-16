@@ -1,10 +1,9 @@
-// Pantalla Explorar (spec §4.7; maqueta 5-4): el selector de temporada, el buscador de equipos,
-// «Vistos hace poco», las ligas por categoría, las copas y los torneos, y «Más». Es un destino
-// principal. render(ctx) es pura y pinta los resultados de la `q` de la dirección (un enlace directo,
-// Atrás o una recarga); mount filtra al escribir con la misma función (searchView), repinta solo la
-// lista y apunta la búsqueda con nav.update, sin volver a pintar la pantalla: el cursor no salta y
-// Atrás no recorre cada letra (decisión 4 de B3). La temporada de la ruta la carga el router
-// (decisión 2); el foco del ancla #buscar lo pone el router, nunca mount.
+// Pantalla Explorar: el selector de temporada, el buscador de equipos, «Vistos hace poco», las ligas por
+// categoría, las copas y los torneos, y «Más». Es un destino principal. render(ctx) es pura y pinta los
+// resultados de la `q` de la dirección (un enlace directo, Atrás o una recarga); mount filtra al escribir con
+// la misma función (searchView), repinta solo la lista y apunta la búsqueda con nav.update, sin volver a
+// pintar la pantalla: el cursor no salta y Atrás no recorre cada letra. La temporada de la ruta la carga el
+// router; el foco del ancla #buscar lo pone el router, nunca mount.
 import { html } from './html.js';
 import { screenHead, block, countLabel, crest, empty, notice, searchBox, seasonPicker, linkRow, listEs } from './ui.js';
 import { alevinFailedBox, errorBox } from './shell.js';
@@ -22,7 +21,7 @@ const seasonOf = ctx => (ctx.params && ctx.params.s) || ctx.portal.season;
 
 function resultRow(entry, { cup, shields }) {
   const { name, group } = entry;
-  // Liga: la ficha del equipo. Copa o torneo: su cuadro o su liguilla (decisión 17 de B3).
+  // Liga: la ficha del equipo. Copa o torneo: su cuadro o su liguilla.
   const href = cup ? routeHref('copa', { s: group.season, g: group.id }) : teamHref(group.season, group.id, name);
   return html`<li><a class="search-result" href="${href}">${crest(name, { size: 32, shields })}<span class="search-result-text"><span class="search-result-name">${name}</span><span class="search-result-label">${group.label}</span></span></a></li>`;
 }
@@ -56,7 +55,7 @@ export function searchView(ctx, q) {
 // ── Vistos hace poco ────────────────────────────────────────────────────
 
 /* Una ficha vista (ctx.recent: [{ s, g, t }], la más reciente primero). Su grupo sale del modelo si
- * su temporada está cargada, o de los torneos (los MC* de la migración v1, B1:8012): así se sabe su
+ * su temporada está cargada, o de los torneos (los MC* que trae la importación de v1): así se sabe su
  * categoría y si es de liga. Un grupo que no es de liga abre su cuadro o su liguilla (#/copa). Con la
  * temporada sin cargar, abre la ficha igual (el router carga la temporada y valida el grupo) y enseña la
  * temporada en lugar de la categoría, que no se sabe sin cargarla. */
@@ -79,7 +78,7 @@ function recentBlock(ctx) {
 
 // ── Ligas, copas y torneos ──────────────────────────────────────────────
 
-// Ligas (decisión 18 de B3): por categoría, una fila por competición con su recuento de grupos, que abre
+// Ligas: por categoría, una fila por competición con su recuento de grupos, que abre
 // #/ligas?s&c&f. El contexto del bloque es el total de grupos de liga de la temporada.
 function leaguesBlock(ctx, s) {
   const leagues = competitions(ctx.model, s).filter(c => c.kind === 'liga');
@@ -97,7 +96,7 @@ function monthsOf(groups) {
   return names.length ? listEs(names) : null;
 }
 
-/* Copas y torneos (decisiones 18 y 19 de B3): una fila por competición, con las dos categorías juntas,
+/* Copas y torneos: una fila por competición, con las dos categorías juntas,
  * que abre #/ligas?s&f sin `c` (Ligas lista las dos). La Copa de Campeones enseña sus campeones; un
  * torneo, sus meses; una copa insular, sus grupos. Sin copas en la temporada, el bloque no sale. */
 function cupsBlock(ctx, s) {
@@ -124,14 +123,14 @@ function cupsBlock(ctx, s) {
 
 // ── Más ─────────────────────────────────────────────────────────────────
 
-// «comprobado hoy» o «comprobado el 23 sept», de data-health.json (spec §7: nunca «ahora»).
+// «comprobado hoy» o «comprobado el 23 sept», de data-health.json (nunca «ahora»).
 function checkedText(health, today) {
   const at = canaryDateTime(health && health.checkedAt);
   if (!at) return null;
   return at.day === today ? 'comprobado hoy' : `comprobado el ${dayMonth(at.day)}`;
 }
 
-// Más (spec §4.7): Temporadas anteriores, Récords, Goleadores, Datos y fuentes y Ajustes. Récords y
+// Más: Temporadas anteriores, Récords, Goleadores, Datos y fuentes y Ajustes. Récords y
 // Goleadores llevan la temporada elegida.
 function moreBlock(ctx, s) {
   const seasons = (ctx.datasets && ctx.datasets.seasons) || [];
@@ -155,8 +154,8 @@ function render(ctx) {
     sub: `Temporada ${seasonLabel(s)}`,
     action: seasonPicker(seasons, s, name => routeHref('explorar', { s: name }), { id: PICKER_ID }),
   });
-  // La temporada de la ruta la carga el router (decisión 2 de B3); si aun así no está, la caja de
-  // error con «Reintentar», nunca otra temporada (§7).
+  // La temporada de la ruta la carga el router; si aun así no está, la caja de
+  // error con «Reintentar», nunca otra temporada.
   if (!ctx.model.season(s)) return html`<section data-screen="explorar">${head}${errorBox(`la temporada ${seasonLabel(s)}`)}</section>`;
   const { list, status } = searchView(ctx, ctx.params.q);
   // Sin los datos de alevín (el router no los pudo cargar): lo demás, con su aviso y «Reintentar».
@@ -203,8 +202,8 @@ function mount(root, ctx, nav) {
 
 export const screen = {
   id: 'explorar',
-  // Todo sale de los datos inmediatos y de la temporada de la ruta, que carga el router (decisión 2 de
-  // B3). data-health.json solo pone la fecha de «Datos y fuentes»: se pide como en la portada
+  // Todo sale de los datos inmediatos y de la temporada de la ruta, que carga el router.
+  // data-health.json solo pone la fecha de «Datos y fuentes»: se pide como en la portada
   // (healthNeeds) y nunca rechaza; sin él, la fila va sin fecha.
   needs: (params, datasets) => {
     const load = healthNeeds(datasets);

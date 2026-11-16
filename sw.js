@@ -15,7 +15,7 @@ const PRECACHE_CACHE = 'futbolbase2-precache';
 
 // >>> precache: lo escribe scripts/precache.py
 const PRECACHE = {
-  "index.html": "b3757bf0",
+  "index.html": "b75b6f3d",
   "dist/acta-fc0638d7.css": "fc0638d7",
   "dist/app-d2e5cce9.js": "d2e5cce9",
   "src/config.js": "34193a4f",

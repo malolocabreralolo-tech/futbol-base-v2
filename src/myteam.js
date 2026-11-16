@@ -1,4 +1,4 @@
-// Identidad de club y «mi equipo» a través de temporadas y fases (spec §6).
+// Identidad de club y «mi equipo» a través de temporadas y fases.
 // Módulo puro: recibe los datos por parámetro y no lee ningún global de datos.
 import { normalizeForTeamsMapping, shieldFile } from './state.js';
 import { CATEGORIES, matchState, retiredTeams, groupFinished, teamFixtures, phaseLevel, topPhase } from './model.js';
@@ -6,7 +6,7 @@ import { CATEGORIES, matchState, retiredTeams, groupFinished, teamFixtures, phas
 // Nombres de torneos y de la federación que no se pueden unir por escudo ni por clave base.
 // Además del de la Maspalomas, los de 2025-26 que cambian de la Primera Fase a la siguiente
 // (FF20 → C3, FF21 → A3, FF21 → C4, FV11 → FO y FV14 → FP): sin ellos, esas familias se
-// quedaban en su grupo de la Primera Fase ya terminado (decisión 20).
+// quedarían en su grupo de la Primera Fase ya terminado.
 export const TEAM_ALIASES = {
   'UD Las Mesas Huracán': 'Las Mesas Hu.',
   'Loz Vélez': 'Los Vélez',
@@ -76,7 +76,7 @@ export function buildClubIndex(names, shields = {}, aliases = TEAM_ALIASES) {
       if (!a || !b) return false;
       if (a === b) return true;
       // Atajo: una clave compartida (el mismo escudo, la misma clave base o el mismo alias) es
-      // una arista de §6.1, y se compara en crudo, sin exigir que la clave esté en el grafo. Es
+      // una arista del grafo de clubes, y se compara en crudo, sin exigir que la clave esté en el grafo. Es
       // seguro en los usos reales porque un lado es siempre un nombre del universo (un equipo de
       // los grupos o torneos con los que se construyó el índice): esa clave ya está unida a él,
       // así que el grafo daría lo mismo.
@@ -98,7 +98,7 @@ export function sameClub(index, a, b) {
   return index.same(a, b);
 }
 
-// ---- Resolución de mi equipo (spec §6.3) ----
+// ---- Resolución de mi equipo ----
 
 const allMatches = group => group.rounds.flatMap(round => round.matches);
 
@@ -109,7 +109,7 @@ function teamsOf(group) {
   return [...teams];
 }
 
-// Partidos que cuentan (spec §4.2): los que no son contra un retirado.
+// Partidos que cuentan: los que no son contra un retirado.
 function countedMatches(group) {
   const retired = retiredTeams(group);
   return allMatches(group).filter(match => !retired.has(match.home) && !retired.has(match.away));
@@ -125,7 +125,7 @@ const firstDate = groups => groups.flatMap(allMatches).map(match => match.dateIS
 const utcDay = iso => Date.UTC(Number(iso.slice(0, 4)), Number(iso.slice(5, 7)) - 1, Number(iso.slice(8, 10)));
 const daysBetween = (fromISO, toISO) => Math.round((utcDay(toISO) - utcDay(fromISO)) / 86400000);
 // Días que la fase posterior tiene que llevar en marcha para que haya marca `stale`: mientras
-// se publica grupo a grupo, un club sin ningún grupo publicado aún no está atascado (decisión 20).
+// se publica grupo a grupo, un club sin ningún grupo publicado aún no está atascado.
 const STALE_AFTER_DAYS = 7;
 // Los equipos del club de `name` en esos grupos, uno por grupo y nombre: [{group, name}], en el
 // orden de los grupos y, dentro de cada uno, en el de teamsOf.
@@ -135,7 +135,7 @@ const clubTeams = (groups, name, index) => groups.flatMap(group => teamsOf(group
 // Candidatos del club en cada categoría: grupos de liga de la fase más reciente, que es la
 // más alta de las que tienen partidos pendientes o, si no hay ninguna, la más alta de todas
 // (con dos fases a la vez, el mismo equipo no sale dos veces). Uno por grupo y nombre: el
-// mismo nombre en dos grupos de esa fase son dos candidatos (decisión 11).
+// mismo nombre en dos grupos de esa fase son dos candidatos.
 function clubCandidates(season, cats, name, index, todayISO) {
   const candidates = [];
   for (const cat of cats) {
@@ -152,22 +152,22 @@ const ask = entries => ({ status: 'ask', candidates: entries.map(({ group, name 
 
 // Paso 0 con el grupo guardado ya sin partidos pendientes. Cuentan los equipos del club en
 // los grupos de liga de la categoría: los de la fase guardada y los de la fase posterior
-// (nivel mayor, decisión 10), terminados o no (decisión 12).
+// (nivel mayor), terminados o no.
 // - Con menos equipos del club en la fase posterior que en la guardada, esa fase aún no
-//   está publicada entera para él: se espera, sin cambiar ni preguntar (decisión 16). Los
+//   está publicada entera para él: se espera, sin cambiar ni preguntar. Los
 //   retirados de la fase guardada no cuentan: nunca aparecen en la posterior.
 // - El mismo nombre en un solo grupo posterior es un cambio de fase, en silencio; en
-//   varios, se pregunta por esos grupos (decisión 11).
+//   varios, se pregunta por esos grupos.
 // - Si el nombre está en dos grupos de la fase guardada, son dos equipos distintos: se
-//   pregunta con los equipos del club en la fase posterior (decisión 17), como cuando solo
+//   pregunta con los equipos del club en la fase posterior, como cuando solo
 //   hay otros equipos del club (la filial que cambia de nombre).
 // - Sin equipos del club en la fase posterior, sigue el grupo guardado.
 // Siempre que sigue el grupo guardado, lleva `stale: true` si la fase posterior de su categoría
 // e isla tiene grupos con partidos pendientes, ningún equipo del club y al menos 7 días en marcha
 // (su primer partido con fecha es de hace 7 días o más): lo probable es que el equipo siga en ella
 // con un nombre que el índice no une. Antes de esa semana, la fase se puede estar publicando grupo
-// a grupo. No cambia ni pregunta: B2 lo avisa y updatedMyTeam no lo guarda (decisión 20). Si el
-// club tiene algún equipo en esa fase, aunque menos, se espera sin marca (decisión 16).
+// a grupo. No cambia ni pregunta: la portada lo avisa y updatedMyTeam no lo guarda. Si el
+// club tiene algún equipo en esa fase, aunque menos, se espera sin marca.
 function laterPhase(groups, saved, myTeam, index, todayISO) {
   const posterior = groups.filter(group => phaseLevel(group) > phaseLevel(saved));
   const clubLater = clubTeams(posterior, myTeam.name, index);
@@ -181,9 +181,9 @@ function laterPhase(groups, saved, myTeam, index, todayISO) {
       && island.some(group => hasPending(group, todayISO));
     return stale ? { ...ok(saved, myTeam.name), stale: true } : ok(saved, myTeam.name);
   };
-  // Fase posterior sin publicar entera para el club: se espera, sin preguntar ni mover (decisión 16).
+  // Fase posterior sin publicar entera para el club: se espera, sin preguntar ni mover.
   if (later.length < before.filter(({ group, name }) => !retiredTeams(group).has(name)).length) return stay();
-  // El mismo nombre en dos grupos de la fase guardada: dos equipos distintos, nunca en silencio (decisión 17).
+  // El mismo nombre en dos grupos de la fase guardada: dos equipos distintos, nunca en silencio.
   const twins = before.filter(entry => entry.name === myTeam.name).length > 1;
   const same = later.filter(entry => entry.name === myTeam.name);
   if (same.length === 1 && !twins) return ok(same[0].group, myTeam.name);
@@ -192,7 +192,7 @@ function laterPhase(groups, saved, myTeam, index, todayISO) {
 }
 
 // Pasos 1 y 2: sin candidatos, ausente; uno solo con el mismo nombre y la misma categoría,
-// se usa sin preguntar (decisión 13); en cualquier otro caso, se pregunta.
+// se usa sin preguntar; en cualquier otro caso, se pregunta.
 function choose(candidates, myTeam) {
   if (!candidates.length) return { status: 'absent' };
   const [only] = candidates;
@@ -213,14 +213,14 @@ export function resolveMyTeam(myTeam, season, index, todayISO) {
     return choose(clubCandidates(season, [myTeam.cat], myTeam.name, index, todayISO), myTeam);
   }
   // Paso 1: cambio de temporada; se busca en las tres categorías, primero en la suya (el paso natural de
-  // benjamín a alevín, critic.md: por eso el router espera al alevín en un cambio de temporada).
+  // benjamín a alevín: por eso el router espera al alevín en un cambio de temporada).
   const cats = [myTeam.cat, ...CATEGORIES.filter(cat => cat !== myTeam.cat)];
   return choose(clubCandidates(season, cats, myTeam.name, index, todayISO), myTeam);
 }
 
-// Lo que B2 guarda tras resolver (decisión 12): el myTeam nuevo, {name, season, cat, groupId},
+// Lo que se guarda tras resolver: el myTeam nuevo, {name, season, cat, groupId},
 // si una resolución `ok` cambia algo; null si no cambia nada o si la resolución no es `ok`.
-// `stale` no se guarda ni cuenta como cambio (decisión 20).
+// `stale` no se guarda ni cuenta como cambio.
 export function updatedMyTeam(myTeam, resolution) {
   if (!resolution || resolution.status !== 'ok') return null;
   const next = { name: resolution.name, season: resolution.group.season, cat: resolution.cat, groupId: resolution.group.id };
@@ -228,21 +228,21 @@ export function updatedMyTeam(myTeam, resolution) {
   return same ? null : next;
 }
 
-// Lo que app.js guarda al arrancar (decisión 12 de B1): el myTeam de updatedMyTeam, solo si el cambio
+// Lo que app.js guarda al arrancar: el myTeam de updatedMyTeam, solo si el cambio
 // es de la misma temporada (el cambio de fase del paso 0, FF5 → A2). Un cambio de temporada (paso 1)
 // nunca se guarda solo: se vuelve a resolver en cada carga hasta que la familia lo confirma (la
 // respuesta a E o «Hacer mi equipo»). Así, con 2026/27 publicada por partes, un único candidato en
-// silencio el primer día no impide la pregunta cuando llegan los demás (A2 de la revisión de B2).
+// silencio el primer día no impide la pregunta cuando llegan los demás.
 export function myTeamToSave(myTeam, resolution) {
   const next = updatedMyTeam(myTeam, resolution);
   return next && myTeam && next.season === myTeam.season ? next : null;
 }
 
-// ---- Mi equipo en los torneos: Verano (spec §6.4) y Copa (spec §4.7) ----
+// ---- Mi equipo en los torneos: Verano y Copa ----
 
-// El nombre de mi equipo en un grupo de torneo o de copa (decisión 23 de B3), o null: el equipo del
-// grupo, en su categoría, que es de su club (§6.1, con los alias: «UD Las Mesas Huracán» en la
-// Maspalomas) y lleva su misma letra de filial (decisión 19 de B1): el de «Arucas» es Arucas CF A,
+// El nombre de mi equipo en un grupo de torneo o de copa, o null: el equipo del grupo, en su
+// categoría, que es de su club (con los alias: «UD Las Mesas Huracán» en la Maspalomas) y lleva
+// su misma letra de filial: el de «Arucas» es Arucas CF A,
 // nunca B, C ni D. Si no hay ninguno con esa letra, o hay dos, null: mejor sin resalte que con el
 // de otro equipo. myTeam: { name, cat }, el resuelto o el guardado. La usan summerCups y Copa.
 export function cupTeamOf(group, myTeam, index) {
@@ -266,9 +266,9 @@ export function summerCups(cups, myTeam, index) {
   return out;
 }
 
-// ---- Estado de un equipo y de la portada (spec §4.2 y §4.6) ----
+// ---- Estado de un equipo y de la portada ----
 
-// Estado de un equipo en su grupo, en el orden D, B, C, A (decisión 9 de B3): lo comparten la
+// Estado de un equipo en su grupo, en el orden D, B, C, A: lo comparten la
 // portada, tras E y X, y la ficha de Equipo, que así no necesita una resolución de mi equipo falsa.
 // Solo cuentan los partidos que no son contra retirados. A y C salen de teamFixtures, como el
 // próximo partido que se enseña: A si el equipo tiene próximo partido; C si ya ha jugado y no lo
@@ -294,11 +294,11 @@ export function showNextSeasonBox({ group, health, portalSeason }) {
   return !health || health.nextSeason?.status === 'pending';
 }
 
-/* Nombre de mi equipo en `group` para el resalte propio (spec §3.3), o null. En el grupo
+/* Nombre de mi equipo en `group` para el resalte propio, o null. En el grupo
  * resuelto, el de la resolución. En otro grupo de la misma temporada y la misma fase, nunca: el
- * mismo nombre es otro equipo (Santa Brígida en B1 y B2; decisión 17 de B1). En los demás (otra
+ * mismo nombre es otro equipo (Santa Brígida en los grupos B1 y B2). En los demás (otra
  * fase u otra temporada), el nombre tal cual si el grupo es de su categoría y lo trae, como el
- * grupo por defecto de §4.1. Un equipo del mismo nombre en la otra categoría nunca se resalta. */
+ * grupo por defecto de la ruta. Un equipo del mismo nombre en la otra categoría nunca se resalta. */
 export function myTeamIn(group, myTeam, resolution) {
   if (!group) return null;
   const ok = resolution && resolution.status === 'ok' && resolution.group ? resolution : null;
@@ -329,7 +329,7 @@ export function myGroupIn(season, myTeam, resolution, first = []) {
 }
 
 // ¿Es de mi equipo este partido o esta ficha? Mismo grupo y temporada que el resuelto, y su nombre. La
-// usan la barra (router.js) y la ficha de Equipo; vivía en router.js (B5, decisión 6).
+// usan la barra (router.js) y la ficha de Equipo.
 export function routeIsMine(route, resolution) {
   if (resolution?.status !== 'ok' || !resolution.group) return false;
   const params = route?.params || {};
@@ -339,12 +339,12 @@ export function routeIsMine(route, resolution) {
   return false;
 }
 
-// ---- Trayectoria (spec §4.6 y §6.1; decisión 14 de B3) ----
+// ---- Trayectoria ----
 
-// El club de `name` (el índice de clubes de todo lo cargado, §6.1) en cada temporada de `seasons` que
+// El club de `name` (el índice de clubes de todo lo cargado) en cada temporada de `seasons` que
 // esté cargada, en ese orden (la más reciente primero): una fila por temporada, categoría y nombre
 // exacto, en el grupo de liga de la fase más alta en que juega (topPhase, la regla de la resolución).
-// Dos grupos de la misma fase con el mismo nombre son dos equipos (decisión 17 de B1): dos filas.
+// Dos grupos de la misma fase con el mismo nombre son dos equipos: dos filas.
 // [{ season, cat, name, group, pos, pts }], con pos y pts de su fila de la clasificación, o null.
 export function teamTrajectory(model, name, index, seasons) {
   const out = [];
@@ -368,7 +368,7 @@ export function teamTrajectory(model, name, index, seasons) {
   return out;
 }
 
-// ---- Categoría por defecto de Goleadores y Récords (decisiones 25 y 26 de B3) ----
+// ---- Categoría por defecto de Goleadores y Récords ----
 
 // La de mi equipo resuelto o, sin él (E o X), la del equipo por defecto (PORTAL.defaultTeam); si
 // tampoco es una categoría de la app (CATEGORIES, alevín incluido), benjamín. Una sola regla para las

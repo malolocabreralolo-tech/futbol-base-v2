@@ -1,5 +1,4 @@
-// Qué pantalla pinta cada ruta de §4.1 (el router las recibe de app.js): cada una, la suya. La
-// provisional de B2 (decisión 6 de B2) se fue con la última pantalla de B3 (decisión 7 de B3).
+// Qué pantalla pinta cada ruta (el router las recibe de app.js): cada una, la suya.
 import { SCREENS } from './links.js';
 import { screen as home } from './screen-home.js';
 import { screen as jornada } from './screen-jornada.js';

@@ -1,9 +1,9 @@
-// Pantalla Tabla (spec §4.4 y §4.8; maqueta 5-2). render(ctx) es pura: el selector de vistas
+// Pantalla Tabla. render(ctx) es pura: el selector de vistas
 // (cinco en móvil; Todas, Casa y Fuera en escritorio), la clasificación con la fila propia,
 // la forma, casa y fuera con su cobertura, los goleadores del grupo y la procedencia. Bajo la
 // cabecera, la tira de los grupos de su competición (groupStrip), y a su derecha, «Mi grupo» o
 // «Otras ligas». Una sola tabla: por debajo de 1024 px el CSS deja las columnas de la vista.
-// Desde el 19/10/2026, una vista más, fuera del selector: la del pronóstico de la clasificación final
+// Una vista más, fuera del selector: la del pronóstico de la clasificación final
 // (v=pronostico, projectionView), donde lo hay.
 import { html } from './html.js';
 import {
@@ -19,15 +19,15 @@ import { projectStandings, projectionApplies } from './proyeccion.js';
 
 const NARROW = [['puntos', 'Puntos'], ['goles', 'Goles'], ['forma', 'Forma'], ['casa', 'Casa'], ['fuera', 'Fuera']]
   .map(([value, label]) => ({ value, label }));
-// Escritorio: todas las columnas y, además, Casa y Fuera (decisión 15 de B1).
+// Escritorio: todas las columnas y, además, Casa y Fuera.
 const WIDE = [['todas', 'Todas'], ['casa', 'Casa'], ['fuera', 'Fuera']].map(([value, label]) => ({ value, label }));
-// La del pronóstico de la clasificación final (19/10/2026) no está en ningún selector: a 390 px ya hay
-// cinco, y el usuario pidió en su día menos opciones. Se llega desde «Pronóstico final» de «La temporada
+// La del pronóstico de la clasificación final no está en ningún selector: a 390 px ya hay
+// cinco, y más opciones estorbarían. Se llega desde «Pronóstico final» de «La temporada
 // en cifras» (team-view.js) y desde el enlace de debajo de la clasificación.
 export const PROJECTION_VIEW = 'pronostico';
 const VIEWS = ['puntos', 'goles', 'forma', 'casa', 'fuera', 'todas', PROJECTION_VIEW];
 
-// Cobertura de Casa y Fuera (spec §7), que salen del calendario: los partidos con resultado
+// Cobertura de Casa y Fuera, que salen del calendario: los partidos con resultado
 // entre equipos activos frente a los que cuenta la clasificación oficial. null si cuadran.
 // `exact`: la única diferencia son los partidos de los retirados. Un retirado de la tabla cuenta
 // cada partido en su fila y en la del rival (la suma de J entre dos); uno que la tabla ya no lista
@@ -158,7 +158,7 @@ const SOURCE_TAIL = {
 // la temporada del portal: la federación la publica por puntos por partido (PG2 de 2026-27).
 const REORDERED_TAIL = ', ordenada por puntos: la federación ordena este grupo por puntos por partido.';
 
-// Procedencia (sourceInfo de model.js, que devuelve datos: decisión 3 del esqueleto).
+// Procedencia (sourceInfo de model.js, que devuelve datos, no HTML).
 function sourceLine(group, historical) {
   const info = sourceInfo(group, historical);
   const reordered = group.reordered && !historical && info.kind === 'oficial';
@@ -167,7 +167,7 @@ function sourceLine(group, historical) {
   return html`<p class="notice source-line">${say}${archive}${info.url ? html` <a class="source-link" href="${info.url}" target="_blank" rel="noopener noreferrer">Ver fuente</a>` : ''}</p>`;
 }
 
-// ── Pronóstico de la clasificación final (19/10/2026) ───────────────────
+// ── Pronóstico de la clasificación final ────────────────────────────────
 
 // La tabla prevista del grupo (v=pronostico), con `t`, la de ese equipo resaltada (desde su ficha); sin
 // él, la de mi equipo. El router quita la vista donde no hay pronóstico y `t` si no va con ella.
@@ -183,14 +183,13 @@ const thousands = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 /* La vista del pronóstico de la clasificación final: la tabla final proyectada de toda la liga
  * (projectStandings de proyeccion.js, con las opciones de la web), con las clases de la clasificación
  * (standings): el puesto pronosticado, el equipo (su escudo y su nombre, el mismo de la clasificación, con
- * el enlace a su ficha; revisión del 19/10/2026: con el nombre corto, «AD Huracán» pasaba a «Huracán» al
- * cambiar de vista), los puntos
- * previstos y el abanico («Entre»: los puestos en que acaba 8 de cada 10 veces, comprobado con las
+ * el enlace a su ficha: con el nombre corto, «AD Huracán» pasaría a «Huracán» al cambiar de vista), los
+ * puntos previstos y el abanico («Entre»: los puestos en que acaba 8 de cada 10 veces, comprobado con las
  * temporadas pasadas; la cabecera de proyeccion.js), con una fila resaltada, como la propia en la
  * clasificación: la de `t` si está en la tabla (se llega desde su ficha: «este equipo»; o «mi equipo», si
  * lo es) y si no, la de mi equipo. Debajo, de dónde sale; arriba, el enlace de vuelta a la clasificación,
- * en el sitio del selector de vistas, que esta vista no lleva. Era el bloque de la ficha y de Mi equipo
- * hasta que el usuario lo pidió así: «esa tabla no me la pongas en cada uno de los equipos». */
+ * en el sitio del selector de vistas, que esta vista no lleva. La tabla vive solo aquí, no en cada ficha:
+ * allí va la cifra (projectionFigure de team-view.js). */
 function projectionView(p, { group, s, mine, team, shields }) {
   const marked = team && p.rows.some(r => r.team === team) ? team : mine;
   const mineText = marked && marked === mine ? 'mi equipo' : 'este equipo';
@@ -224,7 +223,7 @@ function render(ctx) {
   const shields = (ctx.datasets && ctx.datasets.shields) || {};
   const s = params.s || ctx.portal.season;
   const others = { href: routeHref('ligas', { s, to: 'tabla' }), label: 'Otras ligas' };
-  // Sin la temporada (needs no la trajo): la caja de error, nunca otra temporada (§7).
+  // Sin la temporada (needs no la trajo): la caja de error, nunca otra temporada.
   if (!model.season(s)) {
     return html`<section data-screen="tabla">${screenHead('Tabla', { action: others })}${errorBox(`la temporada ${seasonLabel(s)}`)}</section>`;
   }

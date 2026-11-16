@@ -1,4 +1,4 @@
-// Vista de equipo (spec §4.2, §4.6 y §4.8; decisión 8 de B3): los estados A, B, C y D de un equipo
+// Vista de equipo: los estados A, B, C y D de un equipo
 // en su grupo, por `{ group, name }`, con el calendario completo y su .ics. La comparten Mi equipo
 // (screen-home.js, que pone la resolución de mi equipo, E y X) y la ficha de Equipo
 // (screen-equipo.js), que le añaden a la consulta los bloques de team-extras.js. No es una pantalla:
@@ -23,8 +23,8 @@ import { projectionHref, zonesText } from './screen-tabla.js';
 import { PARAMS, awaitsFirstMatch, forecastMatch } from './pronostico.js';
 import { projectStandings } from './proyeccion.js';
 
-// Fechas y horas siempre en Canarias (spec §8). Las fechas de partido son días de calendario
-// ('AAAA-MM-DD') y se escriben con los nombres de links.js, sin los datos de idioma del motor (B9);
+// Fechas y horas siempre en Canarias. Las fechas de partido son días de calendario
+// ('AAAA-MM-DD') y se escriben con los nombres de links.js, sin los datos de idioma del motor;
 // la hora de una comprobación (un instante), con checkedPhrase y checkedCell, también de links.js.
 
 // '2026-10-04' → 'dom 4 oct'
@@ -36,7 +36,7 @@ export const SEARCH_HREF = `${routeHref('explorar')}#buscar`;
 
 // ── Cabecera y columnas ─────────────────────────────────────────────────
 
-// La acción de la cabecera: «Cambiar» (Mi equipo) o «Hacer mi equipo» (Equipo, decisión 11).
+// La acción de la cabecera: «Cambiar» (Mi equipo) o «Hacer mi equipo» (Equipo).
 const ACTIONS = {
   change: { href: SEARCH_HREF, label: 'Cambiar' },
   make: html`<button type="button" class="screen-action team-make" data-action="hacer-mi-equipo">Hacer mi equipo</button>`,
@@ -50,7 +50,7 @@ export function teamHeader(name, subtitle, { shields = {}, action = null, back =
   });
 }
 
-// Lo principal y lo de consulta; en escritorio, dos columnas (spec §4.8). `rest`, lo largo (el
+// Lo principal y lo de consulta; en escritorio, dos columnas. `rest`, lo largo (el
 // calendario completo, en Mi equipo y en la ficha): en móvil va al final, detrás de la consulta, y en
 // escritorio debajo de lo principal, en la columna izquierda (.has-rest en acta.css). Sin `rest`, el
 // marcado de siempre.
@@ -70,7 +70,7 @@ function lastPlayedRound(group) {
 // Local o visitante, con escudo grande, en el próximo y en el último partido.
 const side = (team, label, shields) => html`<span class="fixture-team">${crest(team, { size: 46, shields, lazy: false })}<span class="fixture-side">${label}</span><span class="fixture-name">${team}</span></span>`;
 
-// Decisión 20 de B1: el grupo guardado terminó y el club no aparece en la fase siguiente, que ya
+// El aviso `stale`: el grupo guardado terminó y el club no aparece en la fase siguiente, que ya
 // lleva una semana en marcha (estados C y D de Mi equipo).
 const staleNotice = stale => (stale
   ? notice('¿Sigue tu equipo en la Segunda Fase?', html`<a class="more" href="${SEARCH_HREF}">Búscalo en Explorar</a>`)
@@ -78,8 +78,8 @@ const staleNotice = stale => (stale
 
 // ── Próximo partido (A y B) y último partido (C) ────────────────────────
 
-// forecast: el pronóstico del partido (forecastMatch, solo en prebenjamín de la temporada en curso;
-// 17/10/2026), o null: su línea discreta (forecastLine de ui.js), bajo los dos.
+// forecast: el pronóstico del partido (forecastMatch, solo en prebenjamín de la temporada en curso), o
+// null: su línea discreta (forecastLine de ui.js), bajo los dos.
 function nextBlock(m, group, today, shields, campos = null, forecast = null) {
   const round = roundOf(group, m);
   const when = cells([
@@ -94,7 +94,7 @@ function nextBlock(m, group, today, shields, campos = null, forecast = null) {
   return html`${box(html`${when}${teams}${venue}${buttons}`, { title: 'Próximo partido', context: countdownLabel(m.dateISO, today) })}${shareStatus()}`;
 }
 
-// Sin próximo partido, por qué (B1, «Para B2»): sin fecha, sin resultado o todo jugado.
+// Sin próximo partido, por qué: sin fecha, sin resultado o todo jugado.
 function noNextText(fx, { finished }) {
   if (fx.undated > 0) return 'Próximo partido sin fecha publicada';
   if (fx.remaining > 0) return 'Resultado pendiente de publicar';
@@ -155,7 +155,7 @@ export function missingResults(name, group, today) {
     && !retired.has(m.home) && !retired.has(m.away) && matchState(m, today) === 'sin resultado').length;
 }
 
-// Nota de cobertura (spec §7) de las cifras calculadas con el calendario:
+// Nota de cobertura de las cifras calculadas con el calendario:
 // - con retirados, «26 partidos en el calendario y 2 contra CD Batán (retirado)»;
 // - si falta algo más (partidos `sin resultado`), «N de M partidos con resultado»;
 // - si no cuadra por otra causa, «Calculado con N partidos del calendario».
@@ -184,9 +184,8 @@ const pointsPhrase = (pts) => {
   return n === 0 ? 'ningún punto' : n === 1 ? 'un punto' : `unos ${n} puntos`;
 };
 
-/* La primera cifra de «La temporada en cifras», donde hay pronóstico de la clasificación final (19/10/2026;
- * el usuario: «la temporada en cifras, ahí me pones pronóstico quinto, mis 55 puntos, y luego si pincho
- * ahí […] ver esa tabla»): «Pronóstico final», el puesto del equipo en la tabla final proyectada
+/* La primera cifra de «La temporada en cifras», donde hay pronóstico de la clasificación final:
+ * «Pronóstico final», el puesto del equipo en la tabla final proyectada
  * (projectStandings de proyeccion.js, con las opciones de la web, las mismas que la tabla prevista: una
  * sola simulación por grupo para las dos), su margen («entre 2.º y 5.º», el «Entre» de esa tabla; nada si
  * es un solo puesto) y los puntos que se esperan. Toda la
@@ -246,7 +245,7 @@ export function teamInfoBlock(ctx, group, name) {
   return box(html`${kit.length ? cells(kit) : ''}${field}`, { title: 'Equipación y campo', context: 'según la federación' });
 }
 
-// «Clasificación oficial de futbolaspalmas.com, comprobada el …» (spec §4.2 y §7): la frase de
+// «Clasificación oficial de futbolaspalmas.com, comprobada el …»: la frase de
 // procedencia de sourcePhrase (ui.js), la misma de la Tabla, con la comprobación del grupo.
 function freshness(ctx, group) {
   const lead = sourcePhrase(sourceInfo(group, false));
@@ -259,8 +258,8 @@ function freshness(ctx, group) {
 
 // ── Estados A, B y C ────────────────────────────────────────────────────
 
-// Sin nada jugado, un único vacío en lugar de Últimos cinco, goleadores y cifras (spec §4.2 B). Sus
-// dos causas (B1, M2): el grupo no ha empezado, o sí, pero el equipo no ha jugado (un retirado, como
+// Sin nada jugado, un único vacío en lugar de Últimos cinco, goleadores y cifras (estado B). Sus
+// dos causas: el grupo no ha empezado, o sí, pero el equipo no ha jugado (un retirado, como
 // CD Batán en PG2).
 function notPlayedText(group, name) {
   const started = group.rounds.some(round => round.matches.some(m => m.hs != null && m.as != null));
@@ -293,10 +292,10 @@ function seasonView(v, state) {
   return { head, main, aside, rest };
 }
 
-// ── Estado D: temporada terminada (spec §4.2 D, §6.4 y maqueta 6-1) ─────
+// ── Estado D: temporada terminada ───────────────────────────────────────
 
 // Sin data-health, la fecha del literal oculto «Última actualización: DD/MM/AAAA» de index.html, sin
-// hora (spec §4.2 D): «23 sept».
+// hora: «23 sept».
 function legacyCell(text) {
   const m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(String(text ?? '').trim());
   return m ? dayMonth(`${m[3]}-${m[2]}-${m[1]}`) : null;
@@ -308,7 +307,7 @@ const nextSeasonOf = season => {
   return m ? `${Number(m[1]) + 1}-${Number(m[2]) + 1}` : '';
 };
 
-// La caja «Temporada 2026/27» de §4.2 D: la pintan Mi equipo en D y Fuentes.
+// La caja «Temporada 2026/27» del estado D: la pintan Mi equipo en D y Fuentes.
 export function nextSeasonBox(ctx, name, next) {
   const health = ctx.health;
   const checked = health && health.checkedAt ? checkedCell(health.checkedAt, ctx.today) : legacyCell(ctx.legacyDate);
@@ -335,7 +334,7 @@ function endedBlock(ctx, group, name) {
   return box(content, { title: `Así terminó ${seasonLabel(group.season)}`, context: group.label });
 }
 
-// «Verano» (spec §6.4 y decisión 19 de B1): los torneos de su categoría, una caja por competición, con
+// «Verano»: los torneos de su categoría, una caja por competición, con
 // la fase de grupos (puesto) y cada partido de cuadro.
 function summerBlocks(ctx, group, name) {
   const cups = ctx.model.cups();
@@ -357,7 +356,7 @@ function summerBlocks(ctx, group, name) {
   });
 }
 
-// Las filas de «Verano» abren el torneo (decisión 67 de B2).
+// Las filas de «Verano» abren el torneo.
 function groupPhaseRow(group, team) {
   const row = group.standings.find(r => r.team === team);
   return html`<li><a class="summer-row" href="${routeHref('copa', { s: group.season, g: group.id })}"><span class="summer-what">Fase de grupos, ${group.name}</span><span class="summer-main">${row ? `${row.pos}.º de ${group.standings.length}` : teamShort(team)}</span><span class="summer-score">${row ? `${row.pts} pts` : ''}</span></a></li>`;
@@ -392,7 +391,7 @@ function finalStandings(group, name, { shields, mine }) {
   }), { title: 'Clasificación final', context: more });
 }
 
-// La caja de la temporada siguiente, solo en Mi equipo (§4.6). Ni en la ficha ni en Mi equipo hay
+// La caja de la temporada siguiente, solo en Mi equipo. Ni en la ficha ni en Mi equipo hay
 // «Ver toda la temporada»: el calendario completo ya está en la página.
 function endedView(v, nextSeason) {
   const { ctx, group, name, shields } = v;
@@ -416,11 +415,11 @@ function endedView(v, nextSeason) {
 // puede añadir los suyos. Opciones:
 // - action: 'change' («Cambiar», Mi equipo), 'make' («Hacer mi equipo», Equipo) o null;
 // - nextSeason: la caja de la temporada siguiente en D (solo Mi equipo);
-// - stale: el aviso de la decisión 20 de B1 en C y D (solo Mi equipo);
+// - stale: el aviso de staleNotice en C y D (solo Mi equipo);
 // - mine: si el equipo es mi equipo (el texto oculto de su fila en la clasificación);
 // - shields: los escudos;
 // - state: el estado, si quien llama ya lo calculó (la portada, con homeState: teamState una sola vez
-//   por pintado, B5, decisión 6); sin él, teamState.
+//   por pintado); sin él, teamState.
 // El «‹» es el del router (ctx.backHref): la portada no lo tiene y la ficha sí.
 export function teamView(ctx, { group, name }, {
   action = null, nextSeason = false, stale = null, mine = false, shields = {}, state = null,
@@ -430,20 +429,18 @@ export function teamView(ctx, { group, name }, {
   return { state: shown, ...(shown === 'D' ? endedView(v, nextSeason) : seasonView(v, shown)) };
 }
 
-// ── Calendario completo del equipo (spec §4.6 y §4.8) ───────────────────
+// ── Calendario completo del equipo ──────────────────────────────────────
 
-// Todos sus partidos del grupo, en orden de jornada y con su estado (spec §5.3). El bloque lleva
+// Todos sus partidos del grupo, en orden de jornada y con su estado. El bloque lleva
 // siempre el ancla #calendario, también sin partidos (un retirado). Con `ics` (las dos pantallas),
-// encima de la lista, «Calendario del equipo (.ics)» con todos sus partidos con fecha (decisión 15 de
-// B3), si los hay. Con `forecast` (las opciones de forecastMatch de la web, forecastOptions de ui.js;
-// 17/10/2026, el usuario pidió el pronóstico de «todos los siguientes enfrentamientos»), cada partido
+// encima de la lista, «Calendario del equipo (.ics)» con todos sus partidos con fecha, si los hay. Con
+// `forecast` (las opciones de forecastMatch de la web, forecastOptions de ui.js), cada partido
 // sin jugar lleva debajo la línea discreta de su pronóstico (matchRow, como en la Jornada) y, bajo la
-// lista, una sola nota de en qué se basa y que se recalcula (forecastNote de ui.js; revisión del
-// 18/10/2026: era la única pantalla con pronósticos de hasta 24 jornadas vista y no lo decía; cada
-// partido, a su distancia, así que sin número: para dentro de cuántas jornadas lo dice la pantalla
-// Partido). Si no lleva ninguno porque el equipo aún no ha jugado, mientras el resto del grupo ya tiene
-// el suyo (awaitsFirstMatch de pronostico.js), una línea que lo dice. Fuera de prebenjamín de la
-// temporada en curso, forecastMatch no da ninguno y la lista es la de siempre.
+// lista, una sola nota de en qué se basa y que se recalcula (forecastNote de ui.js), porque aquí hay
+// pronósticos de hasta 24 jornadas vista; sin número, porque cada partido va a su distancia (para dentro
+// de cuántas jornadas lo dice la pantalla Partido). Si no lleva ninguno porque el equipo aún no ha jugado,
+// mientras el resto del grupo ya tiene el suyo (awaitsFirstMatch de pronostico.js), una línea que lo dice.
+// Fuera de prebenjamín de la temporada en curso, forecastMatch no da ninguno y la lista es la de siempre.
 export function teamCalendar(team, group, { today, shields = {}, ics = false, forecast = null } = {}) {
   const items = group.rounds.flatMap(round => round.matches.filter(m => m.home === team || m.away === team).map(m => ({ round, m })));
   if (!items.length) return block('Calendario', empty('Sin partidos en el calendario de este grupo'), { id: 'calendario' });
@@ -489,7 +486,7 @@ export function mountTeamView(section, ctx, { group, name }) {
     if (!target || !section.contains(target)) return;
     const action = target.getAttribute('data-action');
     if (action === 'calendario-equipo') {
-      // El enlace del .ics es el de la ficha, con su temporada (decisiones 28 y 101 de B2).
+      // El enlace del .ics es el de la ficha, con su temporada (no cambia al activar la siguiente).
       const url = new URL(teamHref(group.season, group.id, name), location.href.split(/[?#]/)[0]).href;
       downloadCalendar(teamCalendarEvents(name, group), { season: group.season, group: group.id, name, url });
       return;

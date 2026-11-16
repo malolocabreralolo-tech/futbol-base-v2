@@ -1,4 +1,4 @@
-// Plantillas con escapado automático (spec §5.1).
+// Plantillas con escapado automático.
 // html`…` escapa toda interpolación salvo los fragmentos Html que ella misma
 // produce (y los arrays de ellos). Así, un nombre de equipo con comillas o
 // «<» nunca rompe el marcado ni inyecta nada.

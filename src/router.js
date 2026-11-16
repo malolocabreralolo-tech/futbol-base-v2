@@ -1,6 +1,5 @@
-// Router del rediseño (spec §4.1, §5.1, §7 y §8). La ruta vive en el hash
-// (#/<pantalla>?<parámetros>) y es la fuente de verdad de lo que se ve.
-// - Funciones puras: resolveParams (valores por defecto y redirecciones de §4.1),
+// Router. La ruta vive en el hash (#/<pantalla>?<parámetros>) y es la fuente de verdad de lo que se ve.
+// - Funciones puras: resolveParams (valores por defecto y redirecciones),
 //   historyMode (pushState o replaceState), parentOf («‹») y activeTab (barra, con routeIsMine de
 //   myteam.js).
 // - startRouter, la parte con DOM: hashchange y popstate, enlaces antiguos, token de
@@ -24,11 +23,11 @@ const TABS = new Set(Object.values(PRIMARY));
 const NO_PARAMS = new Set(['', 'temporadas', 'fuentes', 'ajustes']);
 // Las vistas de Tabla. Las de la antigua Evolución del grupo (evolucion y posiciones) se quitan, sin
 // aviso, como cualquier otra que no existe: los enlaces viejos abren la vista por defecto. La del
-// pronóstico de la clasificación final (pronostico, 19/10/2026; PROJECTION_VIEW de screen-tabla.js), solo
-// donde lo hay (projectionParams).
+// pronóstico de la clasificación final (pronostico; PROJECTION_VIEW de screen-tabla.js), solo donde lo
+// hay (projectionParams).
 const PROJECTION_VIEW = 'pronostico';
 const VIEWS = ['puntos', 'goles', 'forma', 'casa', 'fuera', 'todas', PROJECTION_VIEW];
-// Lo que se cambia sin crear entrada en el historial (§4.1): jornada, vista de Tabla y búsqueda; y el
+// Lo que se cambia sin crear entrada en el historial: jornada, vista de Tabla y búsqueda; y el
 // grupo en Jornada y en Tabla (la tira de grupos y «Mi grupo»), también de un grupo a «Todos» y de
 // vuelta (c y f), que se recorre como las jornadas: Atrás no repasa cada grupo visto, sino que vuelve a
 // donde se estaba antes de recorrerlos, y el foco se queda en la ficha pulsada (mismo id). En Tabla, `t`
@@ -37,14 +36,13 @@ const REPLACE_ONLY = { jornada: ['r', 'g', 'c', 'f'], tabla: ['v', 'g', 't'], ex
 // Pantallas que se abren desde Explorar: su «‹» sin historial lleva a #/explorar.
 const UNDER_EXPLORE = new Set(['equipo', 'copa', 'goleadores', 'ligas', 'temporadas', 'records', 'fuentes', 'ajustes', 'jugador']);
 const MAX_REDIRECTS = 5;
-// El último destino principal, en la sesión (app.js lo borra con «Borrar datos», decisión 6 de B3).
+// El último destino principal, en la sesión (app.js lo borra con «Borrar datos»).
 export const SESSION_KEY = 'fb2:destino';
 // Un ancla que es uno de estos controles se lleva el foco en lugar del h1 (#/explorar#buscar).
 const FORM_CONTROLS = new Set(['INPUT', 'SELECT', 'TEXTAREA', 'BUTTON']);
-// Parámetros de valor cerrado (§4.1): el que no está en su lista se quita, sin aviso, como una vista
-// de Tabla que no existe (decisión 3 de B3). `i` y `to` son de la Tarea 1 de B3: con una isla
-// desconocida Ligas saldría vacía, y con otro `to` sus grupos enlazarían a otra pantalla. Las categorías,
-// las de la app (alevín incluido, contrato común de alevín).
+// Parámetros de valor cerrado: el que no está en su lista se quita, sin aviso, como una vista de Tabla
+// que no existe. Con una isla (`i`) desconocida Ligas saldría vacía, y con otro `to` sus grupos
+// enlazarían a otra pantalla. Las categorías, las de la app (alevín incluido).
 const CLOSED = {
   ligas: { c: CATEGORIES, i: ['grancanaria', 'lanzarote', 'fuerteventura'], to: ['tabla', 'jornada'] },
   goleadores: { c: CATEGORIES },
@@ -64,7 +62,7 @@ function identity(ctx) {
   return r?.status === 'ok' ? { name: r.name, cat: r.cat } : { name: ctx.myTeam?.name || '', cat: ctx.myTeam?.cat || '' };
 }
 
-// ── Alevín (contrato común de alevín; r3.md §6.4 y critic.md) ────────────
+// ── Alevín ──────────────────────────────────────────────────────────────
 //
 // El alevín nunca está en la carga inicial: el router lo pide (loadAlevin) antes de pintar una ruta
 // que lo necesita, una vez por navegación. Lo necesita para validarse (resolveParams lo devuelve como
@@ -83,7 +81,7 @@ function alevinMissing(ctx, s) {
 // ¿Espera mi equipo al alevín de la temporada del portal para resolverse? → null | { soft }
 // - Si es de alevín: sin él, X por error (soft: false, la caja de error si no llega).
 // - Si es de otra temporada: el paso 1 de resolveMyTeam busca en las tres categorías, y sin alevín daría
-//   «ok» en silencio y, al cargarlo, la pregunta (opción (a) de critic.md). No es «una vez al año»: un
+//   «ok» en silencio y, al cargarlo, la pregunta. No es «una vez al año»: un
 //   cambio de temporada nunca se guarda solo (myTeamToSave), así que, mientras la familia no lo confirme,
 //   se espera en cada carga en frío de toda la temporada (con el SW, data-alevin.js sale del precache,
 //   donde va como opcional). Por eso es soft: si no llega (ctx.alevinTried, la temporada ya pedida en esta
@@ -105,7 +103,7 @@ const SCORER_SCREENS = new Set(['goleadores', 'records']);
  * - la portada, y la categoría por defecto de Goleadores y Récords, si mi equipo lo espera (mineWaits);
  * - `c=alevin` (o, en Goleadores y Récords, alevín como categoría por defecto), de la temporada `s`;
  * - Explorar y Ligas sin `c`, que enseñan las tres categorías (soft).
- * La portada de un equipo de benjamín o prebenjamín nunca lo pide (presupuesto de 3 s, r3.md §2). */
+ * La portada de un equipo de benjamín o prebenjamín nunca lo pide: tiene que abrir en 3 s. */
 export function needsAlevin(route, ctx) {
   const screen = route?.screen ?? '';
   const params = route?.params || {};
@@ -124,7 +122,7 @@ export function needsAlevin(route, ctx) {
 // (puede ser un grupo alevín de un enlace compartido o de «Vistos hace poco»); si ya está, `lost`.
 const missingGroup = (params, ctx, lost) => (alevinMissing(ctx, params.s) ? { params, alevin: params.s } : lost());
 
-// ── Valores por defecto y redirecciones (§4.1) ───────────────────────────
+// ── Valores por defecto y redirecciones ─────────────────────────────────
 //
 // resolveParams(route, ctx) → { params, pending?, alevin?, soft? } | { redirect: { screen, params, notice } }
 //   ctx: { portal: { season }, model, resolution, myTeam, datasets: { seasons, alevin, seasonAlevin },
@@ -152,8 +150,8 @@ export function resolveParams(route, ctx) {
   if (screen === 'jornada' || screen === 'tabla') return leagueParams(screen, raw, params, ctx);
   if (screen === 'partido') return matchParams(raw, params, ctx);
   if (screen === 'equipo') return teamParams(raw, params, ctx);
-  // Explorar, Ligas, Copa, Goleadores y Récords (decisión 2 de B3): con una temporada pasada sin
-  // cargar, pendientes. La carga el router (I4(a) de B2): ninguna pantalla pide la de su ruta.
+  // Explorar, Ligas, Copa, Goleadores y Récords: con una temporada pasada sin cargar, pendientes. La
+  // carga el router: ninguna pantalla pide la de su ruta.
   if (!ctx.model.season(params.s)) return { params, pending: true };
   if (screen === 'copa') return cupParams(params, ctx);
   if (screen === 'goleadores') return scorersParams(raw, params, ctx);
@@ -207,7 +205,7 @@ function leagueParams(screen, raw, params, ctx) {
   return { params: { ...params, g: group.id } };
 }
 
-// La vista del pronóstico de la clasificación final (19/10/2026): solo en un grupo con pronóstico
+// La vista del pronóstico de la clasificación final: solo en un grupo con pronóstico
 // (projectionApplies de proyeccion.js, la misma de la pantalla y una vez por grupo, sin pronosticar ni
 // simular nada: las simulaciones, solo al pintar la vista); si no, se quita con su `t`, sin aviso, como una
 // vista que no existe. `t`, el equipo resaltado, solo si está en la tabla prevista, que es la de la
@@ -273,13 +271,12 @@ function sameNamedMatches(group, round, { h, a }) {
 }
 
 // Equipo: `g` y `t` son obligatorios; sin ellos, el equipo se busca en Explorar (como un enlace
-// antiguo). Con la temporada cargada (decisión 3 de B3): un grupo que no es de liga (un torneo MC* o
-// una copa de la federación, sin ficha de equipo) abre su Copa, sin aviso, como «Vistos hace poco» y
-// los enlaces antiguos a torneos (B1:8012). Un equipo que no juega en el grupo con ese nombre exacto:
-// si un solo equipo del grupo tiene su nombre normalizado, es otra grafía del mismo («Las Mesas Hu»,
-// sin punto), y la ruta pasa a su nombre canónico, sin aviso y con el resto de sus parámetros
-// (decisión 32); si no hay ninguno, o hay varios, se busca en Explorar, con aviso (B1:7998: el `g`
-// de un enlace antiguo puede no ser el de su equipo).
+// antiguo). Con la temporada cargada: un grupo que no es de liga (un torneo MC* o una copa de la
+// federación, sin ficha de equipo) abre su Copa, sin aviso, como «Vistos hace poco» y los enlaces
+// antiguos a torneos. Un equipo que no juega en el grupo con ese nombre exacto: si un solo equipo del
+// grupo tiene su nombre normalizado, es otra grafía del mismo («Las Mesas Hu», sin punto), y la ruta
+// pasa a su nombre canónico, sin aviso y con el resto de sus parámetros; si no hay ninguno, o hay
+// varios, se busca en Explorar, con aviso (el `g` de un enlace antiguo puede no ser el de su equipo).
 function teamParams(raw, params, ctx) {
   const s = params.s === ctx.portal.season ? '' : params.s;
   if (!params.g || !params.t) return redirect('explorar', { s, q: params.t });
@@ -308,7 +305,7 @@ function sameNamed(group, name) {
   return [...teams].filter((team) => typeof team === 'string' && team !== '' && normalizeTeamName(team) === key);
 }
 
-// Copa (decisión 3 de B3): el grupo es una copa de la federación o un torneo. Uno de liga abre su
+// Copa: el grupo es una copa de la federación o un torneo. Uno de liga abre su
 // Tabla, sin aviso; uno que no existe, Ligas de esa temporada con el aviso de la Tabla; sin grupo,
 // Ligas sin aviso (ningún enlace de la app lo da: una dirección escrita a mano).
 function cupParams(params, ctx) {
@@ -322,7 +319,7 @@ function cupParams(params, ctx) {
   return { params };
 }
 
-// Goleadores (decisión 3 de B3): un grupo que no existe se quita, con aviso: la global de su
+// Goleadores: un grupo que no existe se quita, con aviso: la global de su
 // categoría (la `c` del enlace o, sin ella, la que la pantalla pone por defecto).
 function scorersParams(raw, params, ctx) {
   if (!params.g || findGroup(ctx.model, params.s, params.g)) return { params };
@@ -342,10 +339,9 @@ export function historyMode(from, to) {
   return changed.every((k) => allowed.includes(k)) ? 'replace' : 'push';
 }
 
-// Padre de «‹» cuando no hay entrada anterior de la app (spec §4.1): lo que cuelga de Explorar →
-// Explorar; los destinos principales no tienen; y Partido, según su grupo, que se busca en `model`
-// (el del contexto; M2 de la revisión final de B2):
-// - de un grupo que no es de liga (una copa o un torneo MC*, decisión 100) → #/copa?s&g;
+// Padre de «‹» cuando no hay entrada anterior de la app: lo que cuelga de Explorar → Explorar; los
+// destinos principales no tienen; y Partido, según su grupo, que se busca en `model` (el del contexto):
+// - de un grupo que no es de liga (una copa o un torneo MC*) → #/copa?s&g;
 // - de liga → su jornada, con la clave de la ronda del partido (findMatch) o, si el partido no
 //   está en el grupo, sin `r`: la jornada por defecto;
 // - sin modelo, o con el grupo sin encontrar (su temporada sin cargar), la jornada del enlace.
@@ -362,7 +358,7 @@ export function parentOf(route, model = null) {
   return null;
 }
 
-// Destino marcado en la barra (§4.1) → { active, current }: 'page' en los principales y 'true'
+// Destino marcado en la barra → { active, current }: 'page' en los principales y 'true'
 // en las secundarias. Partido lleva el último destino principal de la sesión o, si se entra por
 // enlace directo, Mi equipo si el partido es de mi equipo y Jornada si no.
 export function activeTab(route, lastPrimary, isMine) {
@@ -425,7 +421,7 @@ function withNotice(markup, text) {
 const decode = (text) => { try { return decodeURIComponent(text); } catch { return text; } };
 
 // ¿Es mi equipo el de un enlace antiguo «miequipo»? El mismo nombre, o el mismo club en el mismo
-// grupo, que el guardado o el resuelto (M3 de la revisión de B2).
+// grupo, que el guardado o el resuelto.
 function legacyMine(ctx) {
   const mine = [
     ctx.myTeam && ctx.myTeam.name ? { name: ctx.myTeam.name, groupId: ctx.myTeam.groupId } : null,
@@ -435,7 +431,7 @@ function legacyMine(ctx) {
     || (Boolean(group) && group === m.groupId && sameClub(ctx.model.clubIndex(), team, m.name)));
 }
 
-// screens: { <ruta de §4.1>: { id, needs, render, mount? } }; root: <main id="contenido">;
+// screens: { <pantalla>: { id, needs, render, mount? } }; root: <main id="contenido">;
 // getContext() → { model, myTeam, recent, resolution, today, health, datasets, portal, legacyDate }
 // (los datos de cada pintado; el router añade route, params, lastPrimary y backHref); actions, de
 // app.js: saveMyTeam(myTeam) guarda mi equipo, addRecent(entry) apunta una ficha en «Vistos hace
@@ -485,7 +481,7 @@ export function startRouter({ screens, root, getContext, window: win, actions = 
     try { session?.setItem(SESSION_KEY, tab); } catch { /* sin sesión: solo en memoria */ }
   }
 
-  // Enlace antiguo → ruta nueva, y valores por defecto y redirecciones de §4.1, cada paso con
+  // Enlace antiguo → ruta nueva, y valores por defecto y redirecciones, cada paso con
   // replaceState. Devuelve la ruta resuelta, si falta cargar su temporada (pending) o su alevín (alevin,
   // la temporada) y el primer aviso.
   function settle(base) {
@@ -522,9 +518,9 @@ export function startRouter({ screens, root, getContext, window: win, actions = 
   // vista; un ancla (#/…#calendario) manda al avanzar. Foco: al h1 (tabindex -1), salvo en la
   // carga inicial; al cambiar jornada o vista, vuelve al control pulsado si sigue (mismo id); y si
   // el ancla es un control de formulario (#/explorar#buscar: «Cambiar» abre Explorar con el
-  // buscador enfocado, §4.2 A), al avanzar y al reintentar se lo lleva él, no el h1 (I4(b) de la
-  // revisión final de B2). Al volver (Atrás, Adelante o un hash escrito a mano), el h1: en el
-  // móvil, el campo abriría el teclado sobre los resultados que se querían ver (decisión 165 de B3).
+  // buscador enfocado), al avanzar y al reintentar se lo lleva él, no el h1. Al volver (Atrás,
+  // Adelante o un hash escrito a mano), el h1: en el móvil, el campo abriría el teclado sobre los
+  // resultados que se querían ver.
   function place(mode, target, focusId) {
     const hash = win.location.hash;
     const at = hash.indexOf('#', 1);
@@ -544,7 +540,7 @@ export function startRouter({ screens, root, getContext, window: win, actions = 
 
   // mode: 'initial' | 'push' | 'replace' | 'pop' | 'refresh'. clickedId: el id del enlace pulsado
   // (onClick), para el foco al cambiar de jornada o de vista aunque el clic no active el control
-  // (Safari, B11): activeElement queda como reserva, para el teclado.
+  // (Safari): activeElement queda como reserva, para el teclado.
   function show(mode, carried = null, clickedId = null) {
     const st = entry();
     // Una navegación que empieza dentro de un mount (nesting no vacío) hereda el destino de
@@ -584,13 +580,13 @@ export function startRouter({ screens, root, getContext, window: win, actions = 
       const tab = activeTab(route, lastPrimary, routeIsMine(route, base.resolution));
       updateTabbar(tab.active, tab.current, doc, tabTargets(route, base));
       doc.title = route.screen === '' ? baseTitle : `${routeTitle(route.screen)} · ${baseTitle}`;
-      // La temporada del portal llega a needs desde el contexto, nunca de config.js (R2-1).
+      // La temporada del portal llega a needs desde el contexto, nunca de config.js.
       const portalSeason = base.portal.season;
       // Una temporada pasada sin cargar (pending: resolveParams no pudo validar la ruta) la carga el
-      // router, junto a los needs de la pantalla, pida esta su temporada o no (I4(a) de la revisión
-      // final de B2): pending es justo seasonNeeds(s). Si la carga falla, la caja de error con
-      // «Reintentar», que vuelve a pedirla (ensureSeasonData no memoriza un fallo).
-      // El alevín, igual, a la vez (contrato común de alevín): si falla, la caja de error con
+      // router, junto a los needs de la pantalla, pida esta su temporada o no: pending es justo
+      // seasonNeeds(s). Si la carga falla, la caja de error con «Reintentar», que vuelve a pedirla
+      // (ensureSeasonData no memoriza un fallo).
+      // El alevín, igual, a la vez: si falla, la caja de error con
       // «Reintentar» («No se pudieron cargar los datos de alevín»), salvo en Explorar y Ligas sin `c`
       // (soft), que se pintan sin él y lo dicen (ctx.alevinFailed).
       const want = alevinWant(first, base);
@@ -635,7 +631,7 @@ export function startRouter({ screens, root, getContext, window: win, actions = 
       const left = alevinWant(settled, base);
       const { alevinTried: _tried, ...data } = base;   // alevinTried es del router, no de las pantallas
       const ctx = { ...data, route, params: route.params, lastPrimary, backHref: backHref(route, base.model), alevinFailed: Boolean(left && left.soft) };
-      // Solo se pinta Html de html``, que escapa cada interpolación (spec §5.1).
+      // Solo se pinta Html de html``, que escapa cada interpolación.
       const view = screen.render(ctx);
       if (!(view instanceof Html)) throw new TypeError(`render de ${screen.id} no devolvió Html`);
       paint(withNotice(String(view), notice));
@@ -646,13 +642,13 @@ export function startRouter({ screens, root, getContext, window: win, actions = 
       if (screen.mount) {
         // Si el mount navega (nav.go, nav.replace, saveMyTeam…) de forma síncrona, la navegación
         // anidada corre con el `target`/`focusId` de ESTA (nesting): «arriba al avanzar» no se
-        // pierde por el scrollY de antes de este push (B2, ronda 1, hallazgo 3).
+        // pierde por el scrollY de antes de este push.
         nesting.push({ target, focusId });
         let done;
         try {
           done = screen.mount(root, ctx, navFor(my));
         } catch (err) {
-          // Un mount que lanza deja la pantalla pintada (decisión del controlador, B2 ronda 1): sus
+          // Un mount que lanza deja la pantalla pintada: sus
           // enlaces los atiende igual el router por delegación; la caja de error es solo de needs y render.
           console.error('[router] mount', err);
         } finally {
@@ -673,9 +669,9 @@ export function startRouter({ screens, root, getContext, window: win, actions = 
     } catch (err) {
       if (my !== token) return latest;
       console.error('[router]', err);
-      // Paso 0 de B3: el «‹» de la caja se calcula aparte. Con una temporada mal formada, parentOf
-      // de Partido vuelve a tocarla (findGroup) y lanzaría aquí dentro: idle() rechazaba y se
-      // quedaba el esqueleto, sin «Reintentar». Entonces, el padre sin modelo: la jornada del enlace.
+      // El «‹» de la caja se calcula aparte. Con una temporada mal formada, parentOf de Partido vuelve
+      // a tocarla (findGroup) y lanzaría aquí dentro: idle() rechazaría y se quedaría el esqueleto, sin
+      // «Reintentar». Entonces, el padre sin modelo: la jornada del enlace.
       let back = null;
       try { back = backHref(route, base?.model); } catch { back = backHref(route, null); }
       paint(errorScreen({ screenId: screen?.id || route.screen || 'home', title: routeTitle(route.screen), what: loadWhat(err), back }));
@@ -701,17 +697,16 @@ export function startRouter({ screens, root, getContext, window: win, actions = 
     return show(mode, null, clickedId);
   }
 
-  // «‹»: la entrada anterior si es de la app; si no, el padre (spec §4.1). hist.back() dispara
-  // popstate más tarde, nunca en este turno, así que el pintado real llega por onLocation: se deja
-  // un pendiente y se resuelve desde allí, para que idle() y el propio nav.back() esperen al de la
-  // vuelta, no al de la pantalla que ya estaba pintada (B2, ronda 1, hallazgo 2). Dos nav.back()
+  // «‹»: la entrada anterior si es de la app; si no, el padre. hist.back() dispara popstate más
+  // tarde, nunca en este turno, así que el pintado real llega por onLocation: se deja un pendiente y
+  // se resuelve desde allí, para que idle() y el propio nav.back() esperen al de la vuelta, no al de
+  // la pantalla que ya estaba pintada. Dos nav.back()
   // seguidos, cada uno con su history.back(), encadenan sus pendientes en vez de pisarse, y el
   // primer popstate que atiende onLocation los resuelve todos con su pintado. En un navegador real
   // pueden llegar dos popstate, a entradas distintas (el segundo pinta sin pendiente que resolver);
   // en el navegador falso de las pruebas llegan a la misma entrada y onLocation descarta el segundo.
-  // Sin encadenar, el pendiente del primero se perdía y su promesa se quedaba colgada para siempre
-  // (B2, ronda 2, hallazgo único). El «‹» del DOM también pasa por aquí (B5, decisión 6): idle()
-  // espera su vuelta, como la de nav.back().
+  // Sin encadenar, el pendiente del primero se perdería y su promesa se quedaría colgada para siempre.
+  // El «‹» del DOM también pasa por aquí: idle() espera su vuelta, como la de nav.back().
   function goBack() {
     if ((entry()?.fbIdx ?? 0) > 0) {
       const earlier = pendingBack;
@@ -763,12 +758,11 @@ export function startRouter({ screens, root, getContext, window: win, actions = 
       event.preventDefault();
       navigate(href, null, el.id || null);
     } else if (href.length > 1 && href.startsWith('#')) {
-      // Un ancla interna nunca cambia la ruta (spec §4.1): se previene siempre, exista o no su
-      // destino. Si no, un hash sin ruta («#calendario») lo trataría el navegador y acabaría en
-      // Mi equipo, con una entrada nueva (B2, ronda 1, hallazgo 5). El destino va arriba de la
-      // ventana, como el ancla de una ruta en place(), y se lleva el foco sin desplazar: un focus() a
-      // secas centra lo que no cabe, y en Mi equipo a 390 px el calendario (1.800 px) quedaba con su
-      // título y su .ics por encima de la vista.
+      // Un ancla interna nunca cambia la ruta: se previene siempre, exista o no su destino. Si no, un
+      // hash sin ruta («#calendario») lo trataría el navegador y acabaría en Mi equipo, con una entrada
+      // nueva. El destino va arriba de la ventana, como el ancla de una ruta en place(), y se lleva el
+      // foco sin desplazar: un focus() a secas centra lo que no cabe, y en un móvil el calendario de
+      // Mi equipo, más alto que la pantalla, quedaría con su título y su .ics por encima de la vista.
       event.preventDefault();
       const dest = doc.getElementById(decode(href.slice(1)));
       if (!dest) return;
@@ -779,7 +773,7 @@ export function startRouter({ screens, root, getContext, window: win, actions = 
   }
 
   // La ruta actual con otros parámetros (completos), con replaceState y sin pintar: los buscadores
-  // de Explorar y Goleadores apuntan su `q` al escribir sin perder el cursor (decisión 4 de B3). La
+  // de Explorar y Goleadores apuntan su `q` al escribir sin perder el cursor. La
   // entrada conserva su { fbIdx, fbKey } (y con ellos su desplazamiento guardado y el «‹») y su
   // ancla (#buscar); `current` pasa a ser la ruta nueva, resuelta como en navigate, para que la
   // navegación siguiente compare con ella. No toca el foco ni el desplazamiento. Devuelve false si
@@ -820,12 +814,12 @@ export function startRouter({ screens, root, getContext, window: win, actions = 
       show('refresh');
       return saved;
     },
-    // «Vistos hace poco» (decisión 5 de B3): Equipo apunta su ficha en su mount; lo guarda app.js,
+    // «Vistos hace poco»: Equipo apunta su ficha en su mount; lo guarda app.js,
     // sin volver a pintar. Devuelve si quedó guardado en el almacén (false: solo en memoria).
     addRecent(entry) {
       return actions.addRecent ? actions.addRecent(entry) : false;
     },
-    // «Borrar datos de esta app» (Ajustes, decisión 6 de B3): lo borra app.js y se abre Mi equipo,
+    // «Borrar datos de esta app» (Ajustes): lo borra app.js y se abre Mi equipo,
     // con una entrada nueva.
     clearData() {
       if (actions.clearData) actions.clearData();
@@ -833,9 +827,9 @@ export function startRouter({ screens, root, getContext, window: win, actions = 
     },
   };
 
-  // El nav que recibe cada mount: el de arriba, con su update ligado a esa navegación (B5, decisión
-  // 6). Un update que llega cuando ya empezó otra (el temporizador de una pantalla anterior, que ningún
-  // buscador usa hoy) no reescribe la ruta nueva: devuelve false sin tocar nada.
+  // El nav que recibe cada mount: el de arriba, con su update ligado a esa navegación. Un update que
+  // llega cuando ya empezó otra (el temporizador de una pantalla anterior, que ningún buscador usa hoy)
+  // no reescribe la ruta nueva: devuelve false sin tocar nada.
   const navFor = (my) => ({ ...nav, update: (params) => my === token && update(params) });
 
   if ('scrollRestoration' in hist) hist.scrollRestoration = 'manual';

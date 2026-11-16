@@ -1,9 +1,9 @@
-// Pantalla Goleadores (spec §4.7 y §4.1; decisión 25 de B3): la lista completa de una categoría
+// Pantalla Goleadores: la lista completa de una categoría
 // (todos sus grupos, con los goles de cada jugador sumados por fases) o de un grupo, con el escudo,
 // los goles, los partidos y el equipo, que abre su ficha. `t` deja un equipo (el nombre exacto) y
 // `q` busca en jugador y equipo. render(ctx) es pura y pinta la `q` de la dirección (un enlace, Atrás
 // o una recarga); mount filtra al escribir, repinta solo la lista y apunta la `q` en la dirección con
-// nav.update, sin crear entradas ni mover el cursor (decisión 4). Solo hay goleadores de la temporada
+// nav.update, sin crear entradas ni mover el cursor. Solo hay goleadores de la temporada
 // del portal: las pasadas dicen que no los hay.
 import { html, join } from './html.js';
 import { countLabel, crest, empty, notice, screenHead, searchBox, segmented } from './ui.js';
@@ -12,10 +12,10 @@ import { routeHref, teamHref } from './links.js';
 import { categoryScorers, groupScorers, rankScorers } from './state.js';
 import { defaultCategory } from './myteam.js';
 
-// La lista se pinta por páginas (decisión 159 de B3): con los datos vivos, benjamín pasa de 2.000
-// jugadores, y pintarlos de una vez congelaba el móvil más de 10 s. Sin búsqueda, las 200 primeras y
+// La lista se pinta por páginas: benjamín pasa de 2.000 jugadores, y pintarlos de una vez congela el
+// móvil más de 10 s. Sin búsqueda, las 200 primeras y
 // «Ver 200 más (quedan N)». Con una búsqueda, las 30 primeras y «Ver 100 más». Al escribir, también
-// al borrar la búsqueda, la lista se repinta con 30 como mucho: repintar 200 filas pasaba de 200 ms
+// al borrar la búsqueda, la lista se repinta con 30 como mucho: repintar 200 filas pasa de 200 ms
 // por tecla con la CPU ×4, y una tecla no debe pasar de 100 ms. Para llegar a un jugador de la lista
 // entera, el buscador.
 export const PAGE_ROWS = 200;
@@ -51,7 +51,7 @@ export function filterScorers(rows, { team = '', query = '' } = {}) {
 // La lista de la ruta, entera y con su puesto en ella (rankScorers, el mismo de Récords), que se
 // conserva al filtrar: la de un grupo (groupScorers, null si la fuente no lo publica) o la de la
 // categoría (categoryScorers), y cuántos grupos suma. Cada fila lleva su clave de búsqueda. Una vez
-// por pintado (B5, decisión 6): render y mount reciben el mismo ctx del router, y el mount la toma de
+// por pintado: render y mount reciben el mismo ctx del router, y el mount la toma de
 // aquí; cada tecla filtra esa lista, sin volver a hacerla.
 const lists = new WeakMap();
 function listOf(ctx) {
@@ -63,7 +63,7 @@ function buildList(ctx) {
   const { params, model } = ctx;
   const s = params.s || ctx.portal.season;
   const group = params.g ? findGroup(model, s, params.g) : null;
-  // Sin `c`, la categoría por defecto (decisión 25): la de mi equipo resuelto o la del equipo por defecto.
+  // Sin `c`, la categoría por defecto: la de mi equipo resuelto o la del equipo por defecto.
   const cat = group ? group.cat : params.c || defaultCategory(ctx.resolution, ctx.portal.defaultTeam);
   const gol = model.scorers(s, cat);
   const keyed = (rows) => rows && rows.map((row) => ({ ...row, key: searchKey(`${row.name} ${row.team}`) }));
@@ -149,7 +149,7 @@ function render(ctx) {
 // El buscador filtra la lista al escribir (la misma filterScorers de render, con las claves que listOf
 // calculó una vez), la repinta sola desde el principio, con 30 filas como mucho, también al borrar la
 // búsqueda (el campo no se toca: ni el cursor ni el teclado), y apunta la `q` en la dirección con
-// nav.update, sin una entrada por letra (decisión 4); sin temporizadores, que podrían escribir sobre
+// nav.update, sin una entrada por letra; sin temporizadores, que podrían escribir sobre
 // otra ruta. Una letra que no cambia la búsqueda no repinta nada. «Ver N más» añade la página
 // siguiente al final de la tabla (nunca repinta lo que ya está) y lleva el foco a su primera fila.
 // Las escuchas van en la sección, que se sustituye en cada pintado.

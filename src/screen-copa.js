@@ -1,11 +1,11 @@
-// Pantalla Copa (spec §4.7 y §8; decisiones 22 y 23 de B3): una copa de la federación (Copa de
+// Pantalla Copa: una copa de la federación (Copa de
 // Campeones e insulares) o un torneo (la Maspalomas Cup).
 // - Cuadro (cup-bracket): el campeón arriba y las rondas en columnas, con quién pasó cada partido
 //   (también por penaltis) y el camino de mi equipo resaltado. En móvil, una ronda por pantalla: las
-//   columnas van en un contenedor con desplazamiento horizontal y ajuste, la única excepción de §8,
+//   columnas van en un contenedor con desplazamiento horizontal y ajuste (el único de la app),
 //   con pestañas de ronda que son botones y lo desplazan (mount). Desde 1024 px, todas las columnas.
 // - Liguilla (cup-league): la clasificación, con la fila de mi equipo, y los partidos.
-// render(ctx) es pura. El router garantiza que `g` existe en `s` y no es de liga (decisión 3).
+// render(ctx) es pura. El router garantiza que `g` existe en `s` y no es de liga.
 import { html } from './html.js';
 import { block, box, countLabel, crest, empty, matchNote, matchRow, score, screenHead, standingsTable } from './ui.js';
 import { errorBox } from './shell.js';
@@ -26,11 +26,11 @@ const noMatches = (closed) => empty(closed ? 'La fuente no publicó los partidos
 
 // ── Cuadro ───────────────────────────────────────────────────────────────
 
-// Un partido del cuadro: los dos equipos en dos líneas, con sus goles. Quién pasó (el del cuadro,
-// decisión 22) va en negrita y con «pasó» para los lectores de pantalla. Debajo, la nota de
+// Un partido del cuadro: los dos equipos en dos líneas, con sus goles. Quién pasó (el del cuadro)
+// va en negrita y con «pasó» para los lectores de pantalla. Debajo, la nota de
 // penaltis de matchNote (ui.js) con ese mismo equipo o, si el cuadro contradice al marcador, las
-// dos cosas (spec §7). En un empate sin columna de penaltis ni tanda (la Copa de Campeones), la
-// fuente no dice cómo se decidió: «Pasó X, según el cuadro» (decisión 162). El partido de mi
+// dos cosas. En un empate sin columna de penaltis ni tanda (la Copa de Campeones), la
+// fuente no dice cómo se decidió: «Pasó X, según el cuadro». El partido de mi
 // equipo, con el resalte propio.
 function bracketMatch({ match, advancer, conflict }, me, today, shields) {
   const state = matchState(match, today);
@@ -58,9 +58,9 @@ function finalOf(rounds) {
   return last && last.label === 'Final' && last.matches.length === 1 ? last.matches[0].match : null;
 }
 
-// El campeón, arriba (spec §4.7): quién pasó de la final, con su escudo, y la final debajo. Sin él, por
-// qué: una final empatada de la que la fuente no dice quién ganó (sin columna de penaltis ni tanda), con
-// su marcador, o una final todavía sin resultado (§7, honestidad: B5, decisión 5).
+// El campeón, arriba: quién pasó de la final, con su escudo, y la final debajo. Sin él, por qué: una
+// final empatada de la que la fuente no dice quién ganó (sin columna de penaltis ni tanda), con su
+// marcador, o una final todavía sin resultado: nunca un campeón que la fuente no da.
 function championBlock(rounds, champion, me, today, shields) {
   const final = finalOf(rounds);
   if (!champion) {
@@ -90,7 +90,7 @@ function bracketView(group, me, today, shields, closed) {
 
 // La clasificación de la fuente con la fila de mi equipo, y los partidos en su orden, cada uno con
 // su día (y su jornada, si hay varias). Los que no tienen fecha van juntos al final, bajo un único «Sin
-// fecha», con el título de día de Jornada, y ninguna fila lo repite (B5, decisión 5); cada uno, con su
+// fecha», con el título de día de Jornada, y ninguna fila lo repite; cada uno, con su
 // jornada si hay varias. Sin enlaces a las fichas: la de un equipo de copa es la copa. Una copa con
 // la tabla y sin partidos (groupKind) es una liguilla: la tabla, y el vacío de los partidos.
 function leagueView(group, me, today, shields, closed) {
@@ -116,12 +116,12 @@ function render(ctx) {
   const shields = (ctx.datasets && ctx.datasets.shields) || {};
   const s = params.s || ctx.portal.season;
   const back = ctx.backHref;
-  // Sin la temporada: la caja de error, nunca otra temporada (§7). El router la carga antes (decisión 2).
+  // Sin la temporada: la caja de error, nunca otra temporada. El router la carga antes.
   if (!model.season(s)) {
     return html`<section data-screen="copa">${screenHead('Copa', { back })}${errorBox(`la temporada ${seasonLabel(s)}`)}</section>`;
   }
   const group = findGroup(model, s, params.g);
-  // El router no deja llegar aquí sin una copa (decisión 3): una llamada directa, nunca en blanco.
+  // El router no deja llegar aquí sin una copa: una llamada directa, nunca en blanco.
   if (!group || group.kind === 'league') {
     return html`<section data-screen="copa">${screenHead('Copa', { back })}${empty(`No hay ninguna copa ${params.g || ''} en la temporada ${seasonLabel(s)}.`)}</section>`;
   }
@@ -133,7 +133,7 @@ function render(ctx) {
 }
 
 // Las pestañas: desplazan el contenedor hasta su columna (con suavidad solo si el sistema no pide
-// menos movimiento, spec §3.4) y marcan la ronda a la vista con aria-current, también al deslizar
+// menos movimiento) y marcan la ronda a la vista con aria-current, también al deslizar
 // con el dedo. En móvil, el contenedor toma el alto de la ronda a la vista: sin eso, una final de un
 // partido dejaría debajo el hueco de los dieciseisavos. Un ResizeObserver lo recalcula si la ronda
 // cambia de alto (al llegar la fuente o al girar el móvil), y la limpieza que devuelve mount, que el
@@ -173,7 +173,7 @@ function mount(root) {
 export const screen = {
   id: 'copa',
   // Todo sale de los datos inmediatos (la temporada del portal y los torneos) o de la temporada
-  // pasada, que carga el router (decisión 2).
+  // pasada, que carga el router.
   needs: () => [],
   render,
   mount,

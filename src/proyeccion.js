@@ -1,15 +1,11 @@
-/* Pronóstico de la clasificación final del prebenjamín de la temporada en curso (19/10/2026).
+/* Pronóstico de la clasificación final del prebenjamín de la temporada en curso.
  *
- * Lo pidió el usuario en la ficha del equipo, en el sitio de la evolución de puntos, que quitó («no me
- * aporta tanto»): «en base a la evolución de los resultados, […] una proyección de la clasificación final
- * en la que pueda quedar […] pronóstico tercero, o segundo, o quinto». Tras ver la primera versión (un
- * bloque con la tabla en cada ficha), lo quiso como una cifra: en «La temporada en cifras» de la ficha y
- * de Mi equipo, «Pronóstico final: 4.º entre 2.º y 6.º unos 45 puntos» (projectionFigure de
- * team-view.js, con projectStandings), que abre la tabla prevista en un solo sitio, la Tabla del grupo (v=pronostico,
- * projectionView de screen-tabla.js, con projectStandings; el router quita esa vista donde
- * projectionApplies da false). Puro e importable en Node sin DOM, como pronostico.js: recibe el Group de
- * model.js y la temporada del portal por parámetro y no lee ningún global de datos. Nada en la base ni en
- * el bot, ni ninguna petición nueva.
+ * Es una cifra en «La temporada en cifras» de la ficha y de Mi equipo, «Pronóstico final: 4.º entre 2.º y 6.º
+ * unos 45 puntos» (projectionFigure de team-view.js, con projectStandings), que abre la tabla prevista en un
+ * solo sitio, la Tabla del grupo (v=pronostico, projectionView de screen-tabla.js, con projectStandings; el
+ * router quita esa vista donde projectionApplies da false). Puro e importable en Node sin DOM, como
+ * pronostico.js: recibe el Group de model.js y la temporada del portal por parámetro y no lee ningún global
+ * de datos. Nada en la base ni en el bot, ni ninguna petición nueva.
  *
  * EL MÉTODO (projection): una simulación de Monte Carlo del resto de la liga con el pronóstico de cada
  * partido que ya enseña la web.
@@ -43,7 +39,7 @@
  * pronóstico de los suyos (el del que aún no ha jugado, la media del grupo, sí entra en la tabla de los
  * demás).
  *
- * EL BACKTEST (scripts/backtest_proyeccion.mjs, 19/10/2026; el examen, en su cabecera): cada grupo de
+ * EL BACKTEST (scripts/backtest_proyeccion.mjs; el examen, en su cabecera): cada grupo de
  * liga de prebenjamín de las temporadas pasadas, tras 2, 4 y 6 jornadas y a mitad de temporada, con SOLO
  * lo jugado hasta el corte (la clasificación de ese momento, con el calendario), frente a la clasificación
  * final real; la referencia ingenua, el puesto en la tabla de ese momento. Error medio absoluto del puesto
@@ -62,13 +58,12 @@
  * demostrable salvo en total (+5,7 [+1,4, +10,5]). A mitad de temporada, la tabla ya dice casi lo mismo:
  * −0,06 de MAE, con el cero dentro del intervalo; NO le gana de forma demostrable. En AJUSTE (2013-14 a
  * 2020-21, 21 grupos, 968 casos), más ventaja: −0,56 [−0,77, −0,38] tras 2, −0,65 tras 4 y tras 6, y −0,07
- * [−0,16, +0,02] a mitad. Hoy, PG2 de 2026-27 lleva dos jornadas: el caso de «tras 2» (en EVALUACIÓN, de
- * cada 10 equipos, el puesto exacto en 2-3 y a ±1 en 6).
+ * [−0,16, +0,02] a mitad. Tras 2 jornadas, de cada 10 equipos, el puesto exacto en 2-3 y a ±1 en 6.
  *
  * EL ABANICO, calibrado. Con las simulaciones tal cual, el modelo se pasa de seguro: da a cada partido su
  * 1X2 como si las notas fueran exactas, y con pocas jornadas no lo son (la incertidumbre de la nota de un
  * equipo pesa en todos sus partidos a la vez y la simulación la trata como suerte suelta). Los puestos en
- * que acaba en 8 de cada 10 simulaciones solo recogían el real en el 72,5 % de los casos de EVALUACIÓN, y
+ * que acaba en 8 de cada 10 simulaciones solo recogen el real en el 72,5 % de los casos de EVALUACIÓN, y
  * tras 2 jornadas en el 62,0 %. Por eso el abanico reúne más simulaciones cuanto menos se ha jugado: la
  * masa max(0,80, 1 − κ·jornadas jugadas) (fanMass), con κ = 0,02 fijada SOLO con AJUSTE (la de la
  * proporción más cercana al 80 % con todos los cortes juntos, 79,9 %; `--calibrar`): con 2 jornadas, el
@@ -77,37 +72,22 @@
  * 4,8, 3,4, 2,8 y 2,2 puestos de anchura media. Por eso la web dice «8 de cada 10 veces» (comprobado con
  * las temporadas pasadas) y no «en 8 de cada 10 simulaciones», que con pocas jornadas no sería verdad.
  *
- * Cuántas simulaciones (SIM.sims, 2.000) y lo que tarda (revisión del 19/10/2026, medido EN FRÍO: las
- * primeras cifras de esta cabecera eran con el motor ya caliente). En este portátil (Intel i7-1165G7 con
- * la CPU en modo de ahorro: más lento que un móvil de hoy), con PG1 de 2026-27, el grupo más grande de
- * prebenjamín (13 equipos, 144 partidos por jugar), en Chrome, en una página nueva que entra por #/ajustes
- * (sin nada pronosticado antes), tres de cada, con la CPU tal cual y frenada 4× (como un móvil lento):
- *   projectionApplies (si lo hay)                   4-5 ms     16-17 ms a 4×
- *   el puesto y los puntos, después (prepare)       21-24 ms   56-71 ms
- *   projectStandings, después (las simulaciones)    31-34 ms   88-93 ms
- *   projectStandings, todo de una vez               53-61 ms   156-170 ms
- * (lo de prepare es, casi todo, el pronóstico de los 144 partidos y su ajuste). La cifra de la ficha y de
- * Mi equipo también simula, que lleva el margen: una vez por grupo y día, en la caché que comparte con la
- * tabla prevista (la web, abajo). Cuando solo simulaba la tabla prevista, el
- * primer pintado (mediana de 5, dos tandas, frente a una copia de origin/main, a 1×): la Tabla de PG1,
- * igual que sin el pronóstico (−3 y −5 ms; cuando simulaba al pintar, 66-77 ms más); Mi equipo con Las
- * Mesas Hu. (PG2), 21-24 ms más (cuando simulaba, 36-57 ms); a 4×, el ruido entre tandas (±150 ms) tapa
- * la diferencia. Después, nada: va en la caché. En Node, simulate de PG1 entera (tablas de marcadores
- * incluidas), unos 60 ms la primera vez en un proceso nuevo y, después (mediana de 60 vueltas), 8,5 ms con
- * 1.000 simulaciones, 15 con 2.000, 35 con 5.000 y 66 con 10.000; con el generador en una función aparte,
- * unos 21 ms con 2.000 (simulate). Con 2.000, la probabilidad de cada puesto lleva un error de un punto,
- * más o menos, y el abanico sale como con 10.000 (en el backtest, dentro el 80,8 % frente al 80,7 %, y
+ * Cuántas simulaciones (SIM.sims, 2.000). Con 2.000, la probabilidad de cada puesto lleva un error de un
+ * punto, más o menos, y el abanico sale como con 10.000 (en el backtest, dentro el 80,8 % frente al 80,7 %, y
  * 3,28 puestos de anchura media frente a 3,29); el puesto pronosticado y los puntos no dependen de cuántas
- * (se calculan sin sortear). Se quedan las 2.000: más no cambiaría ni el puesto ni los puntos, y la tabla
- * prevista tardaría más en abrirse.
+ * (se calculan sin sortear). Más no cambiaría ni el puesto ni los puntos, y la tabla prevista tardaría más en
+ * abrirse: en el grupo más grande de prebenjamín (13 equipos; a principio de temporada, unos 140 partidos por
+ * jugar), en frío y con la CPU frenada como un móvil lento, la primera tabla prevista ya pasa de 150 ms (casi
+ * la mitad, el pronóstico de los partidos y su ajuste; el tiempo de las simulaciones crece con su número). La
+ * cifra de la ficha y de Mi equipo también simula, que lleva el margen: una vez por grupo y día, en la caché
+ * que comparte con la tabla prevista (la web, abajo); después, nada.
  *
- * La tabla y el calendario, de acuerdo: la clasificación de partida es la oficial, y lo que queda, lo que
- * no tiene marcador en el calendario. Si un día la una lleva un resultado que el otro aún no trae (la
- * federación publica la clasificación y los resultados por separado), ese partido se contaría dos veces o
- * ninguna: la web no pronostica hasta que cuadren (startMatchesCalendar, que desde la revisión del
- * 19/10/2026 también mira los goles de lo que la federación puede contar o no; en 2026-27, hoy cuadran los
- * cuatro grupos). Un partido sin jugar en un campo «EXCLUIDO» o «SUSPENDIDO» se simula, como la web lo
- * pronostica: si el excluido ya no está en la tabla, no (no es de dos equipos de la tabla). Ni el
+ * La tabla y el calendario, de acuerdo: la clasificación de partida es la oficial, y lo que queda, lo que no
+ * tiene marcador en el calendario. Si un día la una lleva un resultado que el otro aún no trae (la federación
+ * publica la clasificación y los resultados por separado), ese partido se contaría dos veces o ninguna: la
+ * web no pronostica hasta que cuadren (startMatchesCalendar, que también mira los goles de lo que la
+ * federación puede contar o no). Un partido sin jugar en un campo «EXCLUIDO» o «SUSPENDIDO» se simula, como
+ * la web lo pronostica: si el excluido ya no está en la tabla, no (no es de dos equipos de la tabla). Ni el
  * enfrentamiento directo ni otros desempates de la federación: tras puntos, diferencia y goles, a suertes. */
 import { retiredTeams } from './model.js';
 import { PARAMS, copiedMatches, forecastApplies, forecastOdds, offByStatus, trainingFor } from './pronostico.js';
@@ -172,8 +152,8 @@ const STEPS = 128;
  * los del que pierde), y la casilla s de la tabla, el marcador en que lo acumulado pasa de (s + ½)/STEPS:
  * cada marcador sale con su probabilidad, a medio paso (0,2 %) de error, y uno de menos de medio paso,
  * casi nunca (para desempatar, da igual: la media de goles por partido no se mueve ni una centésima). Sin
- * recorrer la rejilla de goles entera (19/10/2026: con ella, unos 40.000 marcadores en un grupo de 13,
- * prepararla y sortear en ella costaba más que las simulaciones). Sorteado el desenlace con el 1X2 de las
+ * recorrer la rejilla de goles entera (con ella, unos 40.000 marcadores en un grupo de 13, prepararla y
+ * sortear en ella cuesta más que las simulaciones). Sorteado el desenlace con el 1X2 de las
  * notas, el marcador sale de los suyos: si el 1X2 no va con los goles esperados, una victoria corta del
  * que marca menos, nunca un marcador que contradiga el desenlace. Todas seguidas, cell[(3k + r)·STEPS + s]
  * (k, el partido; r: 0, gana el local; 1, empate; 2, gana el visitante; local · 256 + visitante); sin
@@ -215,8 +195,8 @@ function scoreTables(fixtures) {
   return cell;
 }
 
-/* Lo que se espera al final, sin sortear nada (19/10/2026: aparte de las simulaciones, que la cifra de la
- * ficha no necesita): de cada equipo, en el orden de start ([{ pts, gf, gc }]), sus puntos, su diferencia
+/* Lo que se espera al final, sin sortear nada (aparte de las simulaciones, que la cifra de la ficha no
+ * necesita): de cada equipo, en el orden de start ([{ pts, gf, gc }]), sus puntos, su diferencia
  * y sus goles a favor de start más, de cada partido de fixtures, 3·P(gana) + P(empate) y los goles medios
  * de su tabla de marcadores (cell, de scoreTables) en cada desenlace por su probabilidad: lo mismo a lo que
  * tiende la media de las simulaciones, sin su ruido. { pts, dg, gf }. */
@@ -274,9 +254,8 @@ function placeCounts(start, fixtures, cell, { sims, seed }) {
   // mulberry32 (el generador del banco de pruebas), escrito en cada sitio en que se sortea y con su estado
   // en una variable de esta función, en 32 bits con signo (los mismos bits, y los mismos números, que
   // con >>> 0). En una función aparte que lo cambiara, el estado viviría fuera, y cada sorteo crearía un
-  // número en memoria. Medido el 19/10/2026 en Node (simulate entera, 2.000 simulaciones de PG1, la mediana
-  // de 100 vueltas tras 20 de calentamiento): unos 14 ms así frente a unos 21 ms con la función, un tercio
-  // menos; la primera vez, en un proceso nuevo, 59-68 ms con los dos (ver la cabecera).
+  // número en memoria: así, las 2.000 simulaciones del grupo más grande tardan un tercio menos que con la
+  // función.
   let state = seed | 0, z = 0;
   for (let s = 0; s < sims; s += 1) {
     pts.set(basePts); gd.set(baseGd); gf.set(baseGf);
@@ -376,8 +355,8 @@ function remaining(group, { start, played = scored, portalSeason = null, status 
   return matches.length ? { rounds, index, matches } : null;
 }
 
-/* Lo que no sortea nada (19/10/2026: la cifra de la ficha, que solo lleva el puesto y los puntos, no
- * espera a las simulaciones): el pronóstico de cada partido que queda (remaining), el de la web
+/* Lo que no sortea nada (la cifra de la ficha, que solo lleva el puesto y los puntos, no espera a las
+ * simulaciones): el pronóstico de cada partido que queda (remaining), el de la web
  * (forecastOdds con todo el calendario) o, si la web no enseña ninguno, el mismo modelo sin los mínimos
  * (LOOSE) y con todo lo jugado; sus tablas de marcadores; lo que se espera (expectations); y la tabla final
  * proyectada, por puntos esperados (y diferencia y goles esperados para desempatar): cada puesto, de un
@@ -451,15 +430,14 @@ export function standingsStart(group) {
  * contar o no: los que jugó contra un retirado (con marcador en el calendario o contra uno que el
  * calendario ni trae, tantos como veces se enfrentan dos equipos del calendario, ida y vuelta incluidas:
  * Batán en PG2 de 2025-26) y lo anulado con marcador. Si cuenta alguno de esos, tiene que ser con su
- * marcador (revisión del 19/10/2026): los goles a favor y en contra de la fila, los de los suyos más los de
- * tantos de esos como le sobran (explains). Si no, lo que sobra puede ser un partido que la tabla ya cuenta
- * y el calendario aún no trae, y se contaría dos veces: en la tabla y en la simulación. En el archivo y en
- * 2026-27, de 314 filas que cuentan alguno de esos, 312 cuadran así (las otras dos, Unión Viera en PGC3 de
- * 2016-17 y Unión Carrizal en GC4 de benjamín de 2017-18, con un marcador que no es el del calendario: sin
- * pronóstico, el lado seguro). Contra un retirado que el calendario no trae no se sabe el marcador, y ahí
- * solo se cuentan los partidos. Si no cuadra (la tabla de la federación va por delante o por detrás del
- * calendario, hasta la pasada siguiente del bot), un partido se contaría dos veces o ninguna, y la web no
- * pronostica (19/10/2026). Una fila sin pj no se comprueba. */
+ * marcador: los goles a favor y en contra de la fila, los de los suyos más los de tantos de esos como le
+ * sobran (explains). Si no, lo que sobra puede ser un partido que la tabla ya cuenta y el calendario aún no
+ * trae, y se contaría dos veces: en la tabla y en la simulación. En el archivo y en 2026-27, de 314 filas que
+ * cuentan alguno de esos, 312 cuadran así (las otras dos, una de 2016-17 y otra de benjamín de 2017-18, con
+ * un marcador que no es el del calendario: sin pronóstico, el lado seguro). Contra un retirado que el
+ * calendario no trae no se sabe el marcador, y ahí solo se cuentan los partidos. Si no cuadra (la tabla de la
+ * federación va por delante o por detrás del calendario, hasta la pasada siguiente del bot), un partido se
+ * contaría dos veces o ninguna, y la web no pronostica. Una fila sin pj no se comprueba. */
 const SUBSETS = 16;
 export function startMatchesCalendar(group, { status = null } = {}) {
   const retired = retiredTeams(group);

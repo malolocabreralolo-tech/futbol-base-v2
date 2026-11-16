@@ -1,7 +1,7 @@
-// Pantalla Temporadas (spec §4.1 y §4.7; decisión 27 de B3), el archivo: una fila por temporada de
+// Pantalla Temporadas, el archivo: una fila por temporada de
 // SEASONS, de la más reciente a la más antigua, con «actual» en la del portal. Cada fila abre
 // Explorar de esa temporada y lleva un enlace secundario a sus Récords. render(ctx) es pura y no
-// carga nada: la temporada que se abra la carga el router (decisión 2 de B3).
+// carga nada: la temporada que se abra la carga el router.
 import { html } from './html.js';
 import { screenHead } from './ui.js';
 import { routeTitle } from './shell.js';

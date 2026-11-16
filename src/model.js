@@ -1,4 +1,4 @@
-/* Modelo normalizado del rediseño «Acta» (spec §5.3).
+/* Modelo normalizado de la web.
  *
  * Puro e importable en Node sin DOM: recibe los datos por parámetro y nunca
  * lee los globales data-* (BENJAMIN, HISTORY…) ni globalThis/window.
@@ -38,7 +38,7 @@ function dateInKey(key) {
 
 /* fixtureISO con la temporada explícita, salvo en julio: una fecha de julio sin
  * año es del año final de la temporada (los torneos de verano), no del primero
- * como en fixtureISO, que usa la app actual y no cambia (decisión 18). */
+ * como en fixtureISO, que sigue con su regla porque la usan otras partes de la app. */
 function seasonISO(value, season) {
   const iso = fixtureISO(value, season);
   const noYear = /^\d{1,2}[/-]\d{1,2}$/.test(String(value ?? '').trim());
@@ -49,7 +49,7 @@ function seasonISO(value, season) {
 /* Fecha del partido: la de la fila y, si no trae, la de la clave de ronda. Si
  * la clave trae la fecha completa y la fila solo el día y el mes (DD/MM) de ese
  * mismo día, manda el año de la clave: una final del 14-08-2027 en la
- * temporada 2026-2027 no cae en 2026 (decisión 14). */
+ * temporada 2026-2027 no cae en 2026. */
 function rowDateISO(date, roundKey, season) {
   const own = seasonISO(date, season);
   const fromKey = seasonISO(dateInKey(roundKey), season);
@@ -64,7 +64,7 @@ function checkSeason(season, fn) {
   if (!SEASON_RE.test(String(season))) throw new TypeError(`${fn}: temporada no válida (${season})`);
 }
 
-/* Fila por posición, el formato único de §5.3:
+/* Fila por posición, el formato único de los datos:
  *   [fecha, local, visitante, gl, gv, pen, hora, campo, tanda?]
  * Acepta 5 (temporadas antiguas), 6 (cuadros antiguos), 8 (HISTORY y
  * temporadas pasadas) y 9 columnas (cuadros de la Maspalomas). La fila en
@@ -101,10 +101,9 @@ export function inlineRowToMatch(row, { season, groupId, roundKey } = {}) {
   return rowToMatch([date, home, away, hs, as, null, time, venue], { season, groupId, roundKey });
 }
 
-/* Un solo detector de copa (spec §5.3): une isCupGroup (código PCC/BC/MCP/MCB
- * o fase con «copa», «campeon» o «maspalomas») con lo que solo miraba
- * isKnockoutGroup de render.js (código …KO o todas las rondas «Ronda N»), y
- * aplica la regla del embudo de isRoundRobinCup a las rondas ya ordenadas. */
+/* El único detector de copa: copa por el código (PCC/BC/MCP/MCB) o por la fase («copa», «campeon» o
+ * «maspalomas»), cuadro por el código (…KO) o porque todas las rondas son «Ronda N», y la regla del
+ * embudo (isRoundRobinCup) sobre las rondas ya ordenadas. */
 export function groupKind(raw, rounds = []) {
   const id = String((raw && raw.id) || '').toUpperCase();
   const keys = rounds.map(r => r.key);
@@ -120,7 +119,7 @@ export function groupKind(raw, rounds = []) {
   return isRoundRobinCup(jornadas) ? 'cup-league' : 'cup-bracket';
 }
 
-/* Estado de un partido (spec §5.3). dateISO ya salió de seasonISO con la
+/* Estado de un partido. dateISO ya salió de seasonISO con la
  * temporada del grupo. «sin fecha» y «sin resultado» nunca son «pendiente». */
 export function matchState(match, todayISO) {
   if (!ISO_DATE_RE.test(String(todayISO))) throw new TypeError(`matchState: hoy debe ser AAAA-MM-DD (${todayISO})`);
@@ -129,9 +128,9 @@ export function matchState(match, todayISO) {
   return match.dateISO >= todayISO ? 'pendiente' : 'sin resultado';
 }
 
-/* Quién pasó por penaltis una eliminatoria jugada y empatada (spec §4.5 y §9.3): el nombre del
- * equipo, o null. Cada pantalla lo escribe a su manera: el nombre completo o teamShort, con la
- * tanda o sin ella (I2 de la revisión final de B2: antes, tres copias de la condición). */
+/* Quién pasó por penaltis una eliminatoria jugada y empatada: el nombre del equipo, o null. Una sola
+ * condición para todas las pantallas; cada una lo escribe a su manera (el nombre completo o teamShort,
+ * con la tanda o sin ella). */
 export function penaltyWinner(match) {
   if (match.hs == null || match.as == null || match.hs !== match.as) return null;
   return match.advancer === 'home' ? match.home : match.advancer === 'away' ? match.away : null;
@@ -214,8 +213,8 @@ export function buildGroup(raw, { season, cat, current = false, history = null }
   // Quién pasó: solo en los cuadros, y solo lo que dice la fuente: el marcador o, en un empate, la
   // columna pen (rowToMatch la deja en advancer). Un empate sin ella se queda sin nadie: lo dice el
   // propio cuadro, «según el cuadro» (bracket y Copa), y ni Partido ni la nota de un partido hablan
-  // de unos penaltis que la fuente no da (decisión 162 de B3). Hasta B3 se deducía aquí de las
-  // rondas siguientes (matchAdvancer), y Partido lo daba por penaltis.
+  // de unos penaltis que la fuente no da. No se deduce de las rondas siguientes: un empate pasaría por
+  // penaltis sin que la fuente lo diga.
   for (const round of rounds) {
     for (const m of round.matches) {
       m.advancer = kind !== 'cup-bracket' || m.hs == null || m.as == null ? null
@@ -251,11 +250,10 @@ export function buildGroup(raw, { season, cat, current = false, history = null }
   return group;
 }
 
-/* Temporada de la FIFLP (ligas y copas de las tres categorías). `history`
- * (HISTORY) solo alimenta la temporada actual: los códigos se repiten entre
- * temporadas (BCA1 existe en 2024-25 y en 2025-26), pero nunca entre las
- * categorías de una temporada (los de alevín llevan el prefijo AL, contrato
- * común de alevín), así que una sola tabla de jornadas sirve para las tres. */
+/* Temporada de la FIFLP (ligas y copas de las tres categorías). `history` (HISTORY) solo alimenta la
+ * temporada actual: los códigos se repiten entre temporadas (BCA1 existe en 2024-25 y en 2025-26), pero nunca
+ * entre las categorías de una temporada (los de alevín llevan el prefijo AL), así que una sola tabla de
+ * jornadas sirve para las tres. */
 export function buildSeason({ name, current = false, benjamin = [], prebenjamin = [], alevin = [], history = null } = {}) {
   const opts = cat => ({ season: name, cat, current: !!current, history: current ? history : null });
   return {
@@ -283,7 +281,7 @@ export function buildCups({ season, benjamin = [], prebenjamin = [], alevin = []
   };
 }
 
-/* ── Competición y etiqueta de grupo (spec §5.3 y §4.7) ────────────────────
+/* ── Competición y etiqueta de grupo ──────────────────────────────────────
  *
  * competitionKey(raw, season) → { cat, island, division, phase, cup, key, label }
  *   division: 'preferente' | 'primera' | 'unica' | null
@@ -302,10 +300,10 @@ export function buildCups({ season, benjamin = [], prebenjamin = [], alevin = []
  * una temporada, que ninguna fase cae en 'otra-…'. */
 
 const ISLAND_NAMES = { grancanaria: 'Gran Canaria', lanzarote: 'Lanzarote', fuerteventura: 'Fuerteventura' };
-// Las categorías de la app en su orden y sus nombres, una sola vez (B5, decisión 6): el de títulos y
-// etiquetas («Benjamín»), el de dentro de una frase («benjamín») y el corto de «Vistos hace poco»
-// («benj.»). Los usan el modelo y las pantallas. Alevín (solo Gran Canaria, fútbol 7) va al final: no
-// cambia ningún orden ni ningún respaldo de las otras dos (contrato común de alevín, punto 1).
+// Las categorías de la app en su orden y sus nombres, una sola vez: el de títulos y etiquetas
+// («Benjamín»), el de dentro de una frase («benjamín») y el corto de «Vistos hace poco» («benj.»). Los
+// usan el modelo y las pantallas. Alevín (solo Gran Canaria, fútbol 7) va al final: así no cambia ningún
+// orden ni ningún respaldo de las otras dos.
 export const CATEGORIES = ['benjamin', 'prebenjamin', 'alevin'];
 export const CAT_NAMES = { benjamin: 'Benjamín', prebenjamin: 'Prebenjamín', alevin: 'Alevín' };
 export const CAT_WORDS = { benjamin: 'benjamín', prebenjamin: 'prebenjamín', alevin: 'alevín' };
@@ -343,7 +341,7 @@ const PHASE_TABLE = [
   // Torneos de cierre y de clausura de temporada («Torneo Cierre Prebenjamín», «Clausura Benjamín»).
   [/^(?:torneo|clausura)\b/, (m, raw) => ({ cup: 'torneo', cupKey: `torneo-${slugOf(raw.phase)}`, name: String(raw.phase).trim() })],
   // «Eliminatorias» de benjamín (EL1…), prebenjamín (PEL1…) y alevín (ALEL1…), las que reparten los
-  // puestos de la fase siguiente (contrato común de alevín, punto 3): una copa, como isCupGroup.
+  // puestos de la fase siguiente: una copa, como isCupGroup.
   [/^eliminatorias\b/, () => ({ cup: 'eliminatorias', cupKey: 'eliminatorias', name: 'Eliminatorias' })],
   // «Copa Cabildo Preferente Lanzarote» y «Copa Cabildo Primera Lanzarote» (2023-24)
   [/^copa cabildo (preferente|primera)\b/, m => ({
@@ -354,7 +352,7 @@ const PHASE_TABLE = [
   // «Copa Fuerteventura» (2022-23 y 2023-24) y cualquier otra copa insular
   [/^copa\b/, (m, raw) => ({ cup: 'insular', cupKey: 'copa', name: String(raw.phase).trim() })],
   // «Segunda Fase A GC»…«E GC» (2024-25), «Segunda Fase A»…«C» (2025-26) y la «F» que la federación
-  // publica desde 2026-27 (critic.md, punto 7): cualquier letra es su propia fase.
+  // publica desde 2026-27: cualquier letra es su propia fase.
   [/^segunda fase ([a-z])\b/, m => ({ phase: `segunda-${m[1]}`, name: `Segunda Fase ${m[1].toUpperCase()}` })],
   // «Segunda Fase GC» (2023-24: 14 grupos sin letra)
   [/^segunda fase\b/, () => ({ phase: 'segunda-fase', name: 'Segunda Fase' })],
@@ -441,7 +439,7 @@ export function groupLabel(group) {
   return base + islandSuffix(c, c.name, base);
 }
 
-// ─── Análisis de grupo (spec §4.2, §4.3, §4.4, §4.7, §5.3 y §7) ─────────────
+// ─── Análisis de grupo ─────────────────────────────────────────────────────
 
 function playedMatch(m) {
   return m.hs != null && m.as != null;
@@ -506,7 +504,7 @@ function recordOf(results) {
  * verdad (la final de una Copa de Campeones); cinco seguidas sin marcar, no. */
 const ADMIN_LOSSES = 5;
 
-/* Única definición de retirado (spec §5.3). Es retirado:
+/* Única definición de retirado. Es retirado:
  * 1. el de la tabla que no está en el calendario, con J > 0 y sin ganar ni empatar (CD Batán en PG2 de
  *    2025-26, de la tabla del portal), o con J = 0 en un grupo terminado;
  * 2. el del calendario que no está en la tabla (la federación lo quita de su clasificación) y que no ha
@@ -561,7 +559,7 @@ function liveMatch(retired) {
   return m => !retired.has(m.home) && !retired.has(m.away);
 }
 
-/* Estado D (§4.2): ningún partido pendiente (sin contar los de retirados) y,
+/* Grupo terminado: ningún partido pendiente (sin contar los de retirados) y,
  * además, temporada distinta de la del portal o a partir del 1 de junio del
  * año final. */
 export function groupFinished(group, todayISO, portalSeason) {
@@ -571,7 +569,7 @@ export function groupFinished(group, todayISO, portalSeason) {
   return todayISO >= `${String(group.season).split('-')[1]}-06-01`;
 }
 
-/* §4.3: la jornada del primer partido pendiente por fecha (a igual fecha, la
+/* La jornada por defecto: la del primer partido pendiente por fecha (a igual fecha, la
  * primera jornada), para que un aplazado no devuelva una jornada vieja; si no
  * hay pendientes, la última con resultados; si tampoco, la primera. */
 export function defaultRound(group, todayISO) {
@@ -619,7 +617,7 @@ function usualMatchesPerRound(group, live) {
   return best;
 }
 
-/* Aviso de jornada (§4.3). Los partidos contra retirados no cuentan y los
+/* Aviso de jornada. Los partidos contra retirados no cuentan y los
  * retirados nunca figuran como ausentes. */
 export function roundNotice(group, round) {
   const retired = retiredTeams(group);
@@ -635,7 +633,7 @@ export function roundNotice(group, round) {
   return null;
 }
 
-/* Cobertura (§7) de las cifras calculadas con el calendario frente al PJ de
+/* Cobertura de las cifras calculadas con el calendario frente al PJ de
  * la clasificación. `calendar` son los partidos del equipo sin retirados,
  * también los que aún no se han jugado; `withResult`, los que tienen marcador;
  * `vsRetired`, los partidos contra retirados: los del calendario más, si algún
@@ -666,7 +664,7 @@ export function coverageNote(team, group) {
   return { played: row.pj, calendar: calendar.length, vsRetired: faced.length + extra, retired: names, withResult };
 }
 
-/* Vistas Casa y Fuera de la Tabla (§4.4), desde el calendario. Mismos equipos
+/* Vistas Casa y Fuera de la Tabla, desde el calendario. Mismos equipos
  * que la clasificación oficial (o los del calendario si llega vacía), con
  * `retired` marcado. Orden: retirados al final; luego puntos, diferencia,
  * goles a favor y puesto oficial. Otra condición que 'casa' o 'fuera' lanza
@@ -715,7 +713,7 @@ export function formStreak(results) {
   return losses >= 2 ? { kind: 'derrotas', n: losses } : null;
 }
 
-/* «La temporada en cifras» y «Así terminó» (§4.2). Puesto, puntos, balance y
+/* «La temporada en cifras» y «Así terminó». Puesto, puntos, balance y
  * goles, de la clasificación; el resto, del calendario sin retirados. best,
  * worst y last tienen la forma de lastResults, o null. */
 export function seasonSummary(team, group) {
@@ -751,7 +749,7 @@ export function seasonSummary(team, group) {
   };
 }
 
-/* Forma (§4.2 «Últimos cinco», vista Forma de la Tabla y «Contexto» del
+/* Forma («Últimos cinco» de la portada, vista Forma de la Tabla y «Contexto» del
  * partido): los `n` últimos resultados de liga del equipo en el grupo, del
  * más antiguo al más reciente, con el criterio de teamResults. En un grupo
  * que no es de liga, ninguno. */
@@ -761,7 +759,7 @@ export function lastResults(team, group, n = 5) {
   return results.slice(Math.max(0, results.length - n));
 }
 
-/* Partidos de un equipo en el grupo, sin los que son contra retirados (§4.2):
+/* Partidos de un equipo en el grupo, sin los que son contra retirados:
  * `next`, el primer `pendiente` por fecha (a igual fecha, por jornada), que es
  * el «Próximo partido» de la portada; `last`, el último jugado; y cuántos hay
  * jugados (`played`), sin fecha (`undated`) y todavía sin resultado
@@ -785,15 +783,15 @@ export function teamFixtures(team, group, todayISO) {
   return { next, last, played, undated, remaining };
 }
 
-/* Cara a cara (§4.5): los partidos entre `a` y `b` en ese grupo, en los dos
+/* Cara a cara: los partidos entre `a` y `b` en ese grupo, en los dos
  * sentidos y por fecha. Solo del grupo: nunca mezcla otra fase ni otra
- * categoría (caso 7 de §11). */
+ * categoría. */
 export function headToHead(group, a, b) {
   return chronologicalMatches(group)
     .filter(m => (m.home === a && m.away === b) || (m.home === b && m.away === a));
 }
 
-/* Récords (§4.7): la mejor racha de victorias y la mejor invicta de cada
+/* Récords: la mejor racha de victorias y la mejor invicta de cada
  * equipo en cada grupo de liga de la categoría, en orden de fecha. Una
  * entrada por equipo y grupo, de mayor a menor; a igual racha, por nombre y
  * grupo. */
@@ -823,7 +821,7 @@ export function bestStreaks(season, cat) {
   return { wins: wins.sort(order), unbeaten: unbeaten.sort(order) };
 }
 
-// ─── Nombres (spec §3.5) y cronología (spec §4.5 y §5.3) ─────────────────────
+// ─── Nombres y cronología ─────────────────────────────────────────────────────
 
 /* «Apellidos, Nombre» → «Nombre Apellidos». Si el texto llega entero en
  * MAYÚSCULAS (actas), cada palabra pasa a mayúscula inicial, también «De» y
@@ -901,7 +899,7 @@ function scorerName(raw, type) {
   return mark && !name.includes(mark) ? `${name} ${mark}` : name;
 }
 
-/* Goles de un partido (§4.5): la cronología de futbolaspalmas si hay una
+/* Goles de un partido: la cronología de futbolaspalmas si hay una
  * entrada inequívoca; si no, los goles del acta (sin marcador parcial si le
  * falta algún minuto); si no, null. Cada gol del acta lleva en `id` la clave de
  * la ficha de su autor, si la tiene. mismatch compara los goles de cada lado
@@ -943,18 +941,18 @@ export function timelineFor(match, matchDetail, lineups) {
   return { source, goals, mismatch };
 }
 
-/* ── Registro de datos y modelo (Plan B2, contrato del esqueleto) ──────────
+/* ── Registro de datos y modelo ───────────────────────────────────────────
  *
  * datasets = { ...readGlobals(), seasonRaw: {}, matchDetail: null, lineups: {}, health: undefined,
  * alevin: undefined, seasonAlevin: {} }: los globales inmediatos y lo que traen los cargadores
  * perezosos de state.js (health: undefined sin pedir y null si falló). El modelo los lee al pedirlos,
- * así que una temporada pasada aparece en cuanto se guarda en seasonRaw. El alevín (contrato común de
- * alevín) va aparte, porque nunca está en la carga inicial: el de la temporada del portal en `alevin`
+ * así que una temporada pasada aparece en cuanto se guarda en seasonRaw. El alevín va aparte, porque
+ * nunca está en la carga inicial: el de la temporada del portal en `alevin`
  * (alevinData de state.js: { groups, stats, history, gol, estados, equipos }; undefined sin pedir) y el
  * de cada temporada pasada en seasonAlevin[S] (el SEASON_<S>_ALEVIN de data-season-<S>-alevin.js, o {}
  * si esa temporada no tiene); la temporada se reconstruye en cuanto llega. */
 
-// La Maspalomas Cup es de 2025/26 y lo sigue siendo después de activar 2026/27 («Para B2»).
+// La Maspalomas Cup es de 2025/26 y lo sigue siendo después de activar 2026/27.
 const CUPS_SEASON = '2025-2026';
 
 // Todos los nombres de equipo de temporadas y torneos ya construidos: clasificación y partidos.
@@ -985,7 +983,7 @@ export function createModel(datasets, { portalSeason, buildClubIndex = null } = 
     return value && typeof value === 'object' ? value : null;
   };
   // Cada Season memorizada va con el alevín con el que se construyó: si llega otro (o el primero), se
-  // reconstruye (r3.md §3: si no, alevín no salía hasta recargar la página).
+  // reconstruye: si no, alevín no saldría hasta recargar la página.
   const seasons = new Map();
   let cups = null;
   let index = null;
@@ -1016,14 +1014,14 @@ export function createModel(datasets, { portalSeason, buildClubIndex = null } = 
       const built = model.season(season);
       return (built && built.groups.find(group => group.id === id)) || null;
     },
-    // Torneos de 2025-26 (capa aparte, spec §5.3), memorizados en cuanto hay datos; null si no hay.
+    // Torneos de 2025-26 (capa aparte), memorizados en cuanto hay datos; null si no hay.
     cups() {
       if (!cups && (data.cupBenjamin || data.cupPrebenjamin)) {
         cups = buildCups({ season: CUPS_SEASON, benjamin: data.cupBenjamin, prebenjamin: data.cupPrebenjamin });
       }
       return cups;
     },
-    // Índice de clubes (spec §6.1) sobre los nombres de las temporadas cargadas y los torneos,
+    // Índice de clubes sobre los nombres de las temporadas cargadas y los torneos,
     // con los escudos. Se rehace cuando se carga otra temporada, llegan los torneos o llega el alevín
     // de una temporada ya construida (que la reconstruye): cada colección se compara por identidad.
     clubIndex() {
@@ -1102,7 +1100,7 @@ export function createModel(datasets, { portalSeason, buildClubIndex = null } = 
   return model;
 }
 
-/* Procedencia de la clasificación (spec §4.4; decisión 3 de B2): datos, no HTML.
+/* Procedencia de la clasificación: datos, no HTML.
  *   kind:   'oficial' (la de la fuente tal cual), 'calculada' (reconstruida con los resultados) o
  *           'corregida' (con los puntos corregidos), según standingsKind;
  *   source: el dominio de la fuente («futbolaspalmas.com»), o null sin URL;
@@ -1125,7 +1123,7 @@ export function roundOf(group, match) {
   return (group.rounds || []).find((round) => round.key === match.roundKey) || null;
 }
 
-// La ronda `r` de un grupo (§4.1): la de esa clave (Round.key) o, si no hay, la del mismo número
+// La ronda `r` de un grupo: la de esa clave (Round.key) o, si no hay, la del mismo número
 // («30» o «Jornada 30» en un enlace escrito a mano o antiguo; las claves '1'…'14' de PFV2). null si
 // no hay ninguna. La usan el router (una jornada que la pantalla sabe leer no se quita) y Jornada.
 export function findRound(group, r) {
@@ -1148,11 +1146,10 @@ export function findMatch(group, { r, h, a } = {}) {
   return all.length === 1 ? all[0] : null;
 }
 
-// El grupo de una ruta (spec §4.1): de la temporada (ligas y copas de la federación) o, si no está
-// ahí, de los torneos (Cups de esa temporada, como la Maspalomas Cup). null si la temporada no está
-// cargada o si no hay ningún grupo con ese id en ninguno de los dos sitios. Una sola regla para el
-// router (qué rutas acepta) y la pantalla Partido (qué grupo pinta): antes eran dos copias literales
-// que podían divergir.
+// El grupo de una ruta: de la temporada (ligas y copas de la federación) o, si no está ahí, de los
+// torneos (Cups de esa temporada, como la Maspalomas Cup). null si la temporada no está cargada o si no
+// hay ningún grupo con ese id en ninguno de los dos sitios. Una sola regla para el router (qué rutas
+// acepta) y la pantalla Partido (qué grupo pinta), para que no puedan divergir.
 export function findGroup(model, season, id) {
   const group = model.group(season, id);
   if (group) return group;
@@ -1160,7 +1157,7 @@ export function findGroup(model, season, id) {
   return cups && cups.season === season ? cups.groups.find((g) => g.id === id) || null : null;
 }
 
-/* El acta de la federación de un partido (spec §4.5, «Alineaciones»): la
+/* El acta de la federación de un partido («Alineaciones»): la
  * entrada de LINEUPS_<S> con el mismo criterio que timelineFor, la única cuya
  * (s, gr) es la del partido. null si no hay marcador, si no hay entrada o si
  * la entrada es de otro partido con la misma clave. */
@@ -1169,7 +1166,7 @@ export function actaFor(match, lineups) {
   return entryForMatch(lineups[`${match.home}|${match.away}|${match.hs}-${match.as}`], match);
 }
 
-/* ── Ficha de Equipo: plantilla (spec §4.6; decisión 13 de B3) ── */
+/* ── Ficha de Equipo: plantilla ── */
 
 // Las actas de los partidos del equipo en el grupo, en orden de fecha: la entrada de su (s, gr)
 // (actaFor, también dentro de las {dup}). Un acta con un lado vacío no cuenta para nadie: las 10
@@ -1248,7 +1245,7 @@ export function teamStaff(lineups, { group, team }) {
 }
 
 /* Plantilla de un equipo en su grupo, desde las actas de la federación (LINEUPS_<S>), nunca desde
- * PLAYERS_<S> (§4.6): { rows, actas, skipped, groupActas }.
+ * PLAYERS_<S>: { rows, actas, skipped, groupActas }.
  * - rows: [{ name, dorsal, ap, st, g, y, rd }] (partidos, de titular, goles y tarjetas), por goles,
  *   partidos y nombre. El dorsal es el más repetido en sus actas y, si empatan, el de la más reciente;
  *   en A1, 42 jugadores llevan más de uno.
@@ -1281,7 +1278,7 @@ export function teamSquad(lineups, { group, team }) {
 
 /* Los partidos de un jugador del equipo en el grupo, en orden de fecha, desde las mismas actas que
  * la plantilla: [{ match, side, goals }], con `match` el partido del modelo (su marcador y su enlace)
- * y `side` el lado de su equipo, para dar el marcador desde su equipo (§4.6). Con `id` (la clave de su
+ * y `side` el lado de su equipo, para dar el marcador desde su equipo. Con `id` (la clave de su
  * ficha), los de esa ficha; sin ella, los de su nombre. */
 export function playerMatches(lineups, { group, team, player, id = null }) {
   const his = id != null ? (x => x.id != null && String(x.id) === String(id)) : (x => x.n === player);
@@ -1292,15 +1289,15 @@ export function playerMatches(lineups, { group, team, player, id = null }) {
 }
 
 /* ¿Hay alguna tarjeta en las actas de la temporada? La columna de tarjetas de la plantilla solo sale
- * entonces (§4.6); hoy la fuente no las recoge y no hay ninguna. */
+ * entonces; hoy la fuente no las recoge y no hay ninguna. */
 export function anyCards(lineups) {
   return Object.values(lineups || {}).some(entry => (entry && entry.dup ? entry.list || [] : [entry])
     .some(acta => acta && [...(acta.home || []), ...(acta.away || [])].some(p => (p.y | 0) + (p.rd | 0) > 0)));
 }
 
-/* ── Explorar y Ligas (Plan B3, Tareas 6 y 7; spec §4.7) ──────────────────
+/* ── Explorar y Ligas ─────────────────────────────────────────────────────
  *
- * phaseLevel(group) → 1 | 2                 el nivel de su fase («la fase más alta», decisión 17)
+ * phaseLevel(group) → 1 | 2                 el nivel de su fase («la fase más alta»)
  * topPhase(entries) → entries               de unos { group, … }, los de la fase más alta
  * searchKey(text) → texto plegado            lo que compara el buscador
  * searchTeams(model, season, query) → { leagues: [{ name, cat, group }], cups: [{ name, cat, group }] }
@@ -1316,7 +1313,7 @@ export function anyCards(lineups) {
  * Memorizado por identidad del objeto Group: el valor sale solo del propio grupo (su fase, vía
  * competitionKey), y el WeakMap no retiene los grupos que ya no se usan. */
 // Las fases de la Segunda Fase, sin letra y con cada letra en su orden ('segunda-a'…'segunda-z'): las
-// que salen de la regla de PHASE_TABLE, la F de 2026-27 incluida (critic.md, punto 7).
+// que salen de la regla de PHASE_TABLE, la F de 2026-27 incluida.
 const SECOND_PHASES = ['segunda-fase', ...[...'abcdefghijklmnopqrstuvwxyz'].map(letter => `segunda-${letter}`)];
 const PHASE_LEVEL = {
   ...Object.fromEntries(SECOND_PHASES.map(phase => [phase, 2])),
@@ -1329,7 +1326,7 @@ export function phaseLevel(group) {
 }
 
 /* De una lista de { group, … }, los de la fase más alta (phaseLevel): la regla de los candidatos de mi
- * equipo y de su trayectoria (myteam.js), y del buscador de Explorar (decisión 37). */
+ * equipo y de su trayectoria (myteam.js), y del buscador de Explorar. */
 export function topPhase(entries) {
   const top = Math.max(...entries.map(entry => phaseLevel(entry.group)));
   return entries.filter(entry => phaseLevel(entry.group) === top);
@@ -1394,7 +1391,7 @@ function teamList(collection) {
   return teamLists.get(collection);
 }
 
-/* Buscador de Explorar (spec §4.7; decisión 17 de B3). Busca `query` por nombre normalizado, desde 2
+/* Buscador de Explorar. Busca `query` por nombre normalizado, desde 2
  * letras, en los grupos de las dos categorías de la temporada y, si son de esa temporada, en los
  * torneos (model.cups()). Un nombre casa si contiene la búsqueda plegada (searchKey) o, sin las
  * siglas del club, la búsqueda sin ellas (normalizeTeamName: «ud las mesas» encuentra «Las Mesas Hu.»).
@@ -1403,7 +1400,7 @@ function teamList(collection) {
  *   B1 y B2), y salen los dos. Abren #/equipo.
  * - cups: los grupos que no son de liga (Copa de Campeones, copas insulares y torneos), uno por nombre y
  *   grupo. Abren #/copa.
- * Orden (decisión 166 de B3): primero los nombres que empiezan por la búsqueda, después los que tienen
+ * Orden: primero los nombres que empiezan por la búsqueda, después los que tienen
  * una palabra que empieza por ella y después el resto (searchKey: «la» pone «Las Mesas Hu.» antes que
  * «UD Las Mesas Huracán», y los dos antes que «Atalaya B»); dentro, por nombre; a igual nombre, de
  * benjamín a prebenjamín, y después en el orden de los grupos. */
@@ -1428,7 +1425,7 @@ export function searchTeams(model, season, query) {
   return { leagues: out(leagues), cups: out(hits.filter(hit => hit.group.kind !== 'league')) };
 }
 
-/* Competiciones de una temporada (spec §4.7; decisión 18 de B3): una entrada por categoría y clave
+/* Competiciones de una temporada: una entrada por categoría y clave
  * (Group.compKey), con su nombre (el label de competitionKey), si es liga o copa y sus grupos. Entran
  * los grupos de la temporada y, si son de esa temporada, los torneos.
  * - kind: 'copa' en la Copa de Campeones, las copas insulares y los torneos (competitionKey.cup); si
@@ -1466,12 +1463,12 @@ export function competitions(model, season, { cat = null, island = null } = {}) 
     }));
 }
 
-/* Un grupo en una línea (Ligas y la Copa de Campeones de Explorar; decisión 20 de B3):
+/* Un grupo en una línea (Ligas y la Copa de Campeones de Explorar):
  * - label: su nombre dentro de la competición («Grupo 2», «Fase A», «Copa Oro», «Liga Oro»);
  * - teams: los equipos de su clasificación o, sin ella (los cuadros de la Maspalomas), los del calendario;
  * - round: la etiqueta de la ronda en curso que marca la fuente («Jornada 22», «Final»), o null;
  * - leader: el 1.º de la clasificación, en ligas y liguillas, si ya ha jugado; si no, null;
- * - champion: en un cuadro, el de bracket (decisión 22): quien pasó de su final; si no, null. Una sola
+ * - champion: en un cuadro, el de bracket: quien pasó de su final; si no, null. Una sola
  *   regla para Copa, Ligas y Explorar. */
 export function groupSummary(group) {
   const rounds = group.rounds || [];
@@ -1521,10 +1518,10 @@ export function competitionRound(groups, todayISO, mineId = null) {
   return best;
 }
 
-/* «Comparar grupos» de Ligas (spec §4.7 y §4.11; decisión 21 de B3), la comparativa de prebenjamín de
- * la app anterior para cualquier competición: la clasificación oficial de sus grupos de liga en una
- * sola tabla, por puntos por partido (pts / pj; 0 sin partidos) y, a igualdad, por puntos, diferencia
- * de goles y nombre. Los retirados, al final. Los grupos que no son de liga no entran.
+/* «Comparar grupos» de Ligas, la comparativa de prebenjamín para cualquier competición: la clasificación
+ * oficial de sus grupos de liga en una sola tabla, por puntos por partido (pts / pj; 0 sin partidos) y, a
+ * igualdad, por puntos, diferencia de goles y nombre. Los retirados, al final. Los grupos que no son de liga
+ * no entran.
  * → [{ team, groupId, groupLabel, pj, pts, ppj, dg, retired }], con groupLabel el de groupSummary. */
 export function compareGroups(groups) {
   const rows = (groups || []).filter(group => group.kind === 'league').flatMap(group => {
@@ -1538,14 +1535,14 @@ export function compareGroups(groups) {
   return rows.sort((a, b) => (a.retired - b.retired) || (b.ppj - a.ppj) || (b.pts - a.pts) || (b.dg - a.dg) || byName(a.team, b.team));
 }
 
-// ─── Copa: el cuadro (spec §4.7; decisión 22 de B3) ─────────────────────────
+// ─── Copa: el cuadro ──────────────────────────────────────────────────────
 
 /* El cuadro de una copa o de un torneo: sus rondas, con quién pasó cada partido, y el campeón.
  * Quién pasó sale del propio cuadro cuando lo dice: el único de los dos que juega la ronda
  * siguiente. Si no lo dice (la última ronda, o una siguiente en la que no está ninguno), sale de
  * Match.advancer: el marcador o la columna de penaltis. Si el cuadro contradice
  * al marcador (sigue el que perdió), `conflict`: en 2024-25 BCC1 pasa dos veces, y la pantalla dice
- * las dos cosas (spec §7). El campeón es quien pasó de la final (la última ronda, «Final», con un
+ * las dos cosas. El campeón es quien pasó de la final (la última ronda, «Final», con un
  * solo partido), o null si aún no tiene resultado. null si el grupo no es un cuadro.
  *   → { rounds: [{ key, label, dateFrom, matches: [{ match, advancer, conflict }] }], champion } */
 export function bracket(group) {
@@ -1571,7 +1568,7 @@ export function bracket(group) {
   return { rounds, champion: final && final.advancer ? final.match[final.advancer] : null };
 }
 
-/* ── Récords de una temporada (spec §4.7; decisión 26 de B3) ──────────────
+/* ── Récords de una temporada ────────────────────────────────────────────
  * Con el modelo y nunca con data-stats.js: solo el modelo tiene las temporadas pasadas y aplica los
  * mínimos. Cuentan los grupos de liga de la categoría (sin copas ni torneos, que no son la temporada
  * de liga), y de ellos, los partidos con marcador. `season` es un Season del modelo.

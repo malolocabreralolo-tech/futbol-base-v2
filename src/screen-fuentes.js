@@ -1,8 +1,8 @@
-// Pantalla Datos y fuentes (spec §4.7, §4.2 D y §7; decisión 28 de B3). render(ctx) es pura: la
+// Pantalla Datos y fuentes. render(ctx) es pura: la
 // última comprobación y el último cambio de data-health.json; una fila por grupo comprobado, con la
 // etiqueta del modelo, su estado en palabras, su mensaje y el enlace a su fuente; los grupos de la
 // temporada sin página web comprobada, en una línea; y la temporada siguiente, con la caja de la
-// portada (nextSeasonBox). Sin data-health, la caja de error de §7 (errorBox, B5, decisión 6), con
+// portada (nextSeasonBox). Sin data-health, la caja de error (errorBox), con
 // el «Reintentar» del router.
 import { html } from './html.js';
 import { block, box, cells, countLabel, empty, listEs, notice, screenHead } from './ui.js';
@@ -167,7 +167,7 @@ function render(ctx) {
   const list = rows.length ? html`<ul class="box fu-list">${rows.map(checkRow)}</ul>` : empty('Todavía no hay ningún grupo comprobado.');
   const n = unchecked.length;
   const missing = n ? notice(null, `${countLabel(n, 'grupo', 'grupos')} sin página web comprobada; sus datos vienen de la federación: ${unchecked.map((group) => group.label).join('; ')}.`) : '';
-  // La temporada siguiente, con el texto de la portada en D (§4.2 D) y el nombre de mi equipo.
+  // La temporada siguiente, con el texto de la portada en D y el nombre de mi equipo.
   const next = health.nextSeason;
   const mine = ctx.resolution && ctx.resolution.status === 'ok' ? ctx.resolution.name : (ctx.myTeam && ctx.myTeam.name) || '';
   const upcoming = next && next.status === 'pending' && SEASON_RE.test(String(next.name)) && mine ? nextSeasonBox(ctx, mine, next.name) : '';

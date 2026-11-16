@@ -1,9 +1,8 @@
-// Pantalla Récords (spec §4.7 y §4.11; decisión 26 de B3). render(ctx) es pura: los récords de una
+// Pantalla Récords. render(ctx) es pura: los récords de una
 // temporada y una categoría, calculados con el modelo (seasonRecords, model.js) y nunca con
 // data-stats.js, y en la temporada del portal los 30 máximos goleadores de la categoría
 // (categoryScorers, state.js) con «ver todos». Cada récord enlaza a su partido o a la ficha de su
-// equipo. Una temporada pasada la carga el router antes de pintar (decisión 2 de B3): needs no pide
-// nada.
+// equipo. Una temporada pasada la carga el router antes de pintar: needs no pide nada.
 import { html } from './html.js';
 import { block, box, cells, crest, decimal, empty, score, screenHead, segmented } from './ui.js';
 import { errorBox } from './shell.js';
@@ -18,7 +17,7 @@ const CATS = CATEGORIES.map((value) => ({ value, label: CAT_NAMES[value] }));
 export const TOP_SCORERS = 30;
 const TOP_RANK = 3;
 
-// Miles con punto, sin los datos de idioma del motor (decisión 123 de B2): 3253 → «3.253».
+// Miles con punto, sin los datos de idioma del motor: 3253 → «3.253».
 const thousands = (n) => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
 
 // Una fila de récord: qué es (opcional), el equipo o el partido, la cifra y el detalle. Enlaza siempre.
@@ -67,7 +66,7 @@ function rankingBlock(title, context, rows, env, { figure, detail = () => null, 
 }
 
 // Los 30 primeros de la categoría, sumando las fases de cada jugador (categoryScorers), con «ver
-// todos». El puesto es el de la lista entera de Goleadores (rankScorers, decisión 144).
+// todos». El puesto es el de la lista entera de Goleadores (rankScorers).
 function scorersBlock(ctx, c, env) {
   const title = 'Máximos goleadores';
   const { s } = env;
@@ -82,12 +81,12 @@ function scorersBlock(ctx, c, env) {
 function render(ctx) {
   const { params, model } = ctx;
   const s = params.s || ctx.portal.season;
-  // `c` por defecto (decisión 26): la de Goleadores (defaultCategory, myteam.js), la categoría de mi
+  // `c` por defecto: la de Goleadores (defaultCategory, myteam.js), la categoría de mi
   // equipo resuelto o, si no la hay (E o X), la del equipo por defecto.
   const c = CATS.some((cat) => cat.value === params.c) ? params.c : defaultCategory(ctx.resolution, ctx.portal.defaultTeam);
   const head = screenHead('Récords', { sub: `Temporada ${seasonLabel(s)}`, back: ctx.backHref, action: { href: routeHref('temporadas'), label: 'Otra temporada' } });
   const season = model.season(s);
-  // Sin la temporada (el router la carga antes de pintar): la caja de error, nunca otra temporada (§7).
+  // Sin la temporada (el router la carga antes de pintar): la caja de error, nunca otra temporada.
   if (!season) return html`<section data-screen="records">${head}${errorBox(`la temporada ${seasonLabel(s)}`)}</section>`;
   const picker = html`<nav class="rc-cats" aria-label="Categoría">${segmented(CATS, c, (value) => routeHref('records', { s, c: value }), { idPrefix: 'categoria' })}</nav>`;
   const records = seasonRecords(season, c);

@@ -21,12 +21,12 @@ export const IMPORTED_KEY = 'fb2:importado';
 // Las de v1, en el mismo origen: solo las lee importFromV1, una vez.
 export const V1_STORE_KEY = 'futbol-base:v2';            // solo lectura
 export const V1_FOLLOWED_KEY = 'futbol-base:jugadores';  // solo lectura
-export const LEGACY_KEY = 'futbol-base:favorites:v1';    // solo lectura, como hasta ahora
+export const LEGACY_KEY = 'futbol-base:favorites:v1';    // solo lectura
 export const MAX_RECENT = 8;
 
 // Las categorías de la app anterior (favorites.js, v1), que nunca tuvo alevín; las de la v2 son las de
-// la app (CATEGORIES de model.js, alevín incluido: si no, un equipo alevín guardado se descartaba en
-// silencio y volvía el equipo por defecto en cada carga, r3.md §3).
+// la app (CATEGORIES de model.js, alevín incluido: si no, un equipo alevín guardado se descartaría en
+// silencio y volvería el equipo por defecto en cada carga).
 const V1_CATS = ['benjamin', 'prebenjamin'];
 const isText = value => typeof value === 'string' && value !== '';
 const isObject = value => value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -94,7 +94,7 @@ function cleanRecent(list) {
 
 // v1 = { teams: [{name, cat, groupId}], selected: 'cat|groupId|normalizeTeamName(name)' }.
 // La temporada es el literal de la única con favoritos v1, nunca la del portal:
-// si el portal ya está en otra, resolveMyTeam aplica el paso 1 (spec §6.3).
+// si el portal ya está en otra, resolveMyTeam aplica el paso 1 (cambio de temporada).
 // Un grupo de torneo (MC*) se devuelve tal cual: los torneos no están en la
 // temporada (van en Cups), así que resolveMyTeam no encuentra el grupo y aplica
 // el paso 2 (o el 1, si la temporada ya cambió).

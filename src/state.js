@@ -1,13 +1,13 @@
-// Carga de datos y funciones de dominio heredadas (spec §5.2). Desde el corte de B2 no guarda
-// estado de interfaz (S y FEATURED), no pinta HTML y no toca el DOM al importarse: la URL es la
-// fuente de verdad, myteam.js y store.js guardan mi equipo y ui.js pinta los escudos.
+// Carga de datos y funciones de dominio. No guarda estado de interfaz, no pinta HTML y no toca el DOM
+// al importarse: la URL es la fuente de verdad, myteam.js y store.js guardan mi equipo y ui.js pinta
+// los escudos.
 import { isPlayerKey } from './links.js';
 
 /* Goleadores de un grupo, de GOL_BENJ o GOL_PREBENJ ([{ id, g, s: [[jugador, equipo, goles,
  * partidos]] }], lo que da model.scorers; cada entrada lleva el código del grupo en `id`):
  * [{ name, team, goals, games }], de más a menos goles y, a igualdad, con menos partidos. null si
- * la fuente no trae el grupo. Lo usan Tabla y, con teamScorers, Mi equipo (I2 de la revisión final
- * de B2: antes, cada una con su copia del orden). */
+ * la fuente no trae el grupo. Lo usan Tabla y, con teamScorers, Mi equipo: un solo orden para las
+ * dos. */
 export function groupScorers(gol, groupId) {
   const entry = (Array.isArray(gol) ? gol : []).find(item => item && item.id === groupId);
   if (!entry) return null;
@@ -18,14 +18,14 @@ export function groupScorers(gol, groupId) {
 
 /* Goleadores de un equipo en su grupo: los de groupScorers con su nombre exacto (los de los
  * goleadores son los de la clasificación), [{ name, goals, games }]. `team` es { cat, groupId,
- * name }, como myTeam. Antes featuredScorersFrom, que leía FEATURED (decisión 2 de B2). */
+ * name }, como myTeam. */
 export function teamScorers(gol, team) {
   if (!team) return [];
   return (groupScorers(gol, team.groupId) || []).filter(s => s.team === team.name)
     .map(({ name, goals, games }) => ({ name, goals, games }));
 }
 
-/* Goleadores de una categoría entera (spec §4.7; decisión 25 de B3), de GOL_BENJ o GOL_PREBENJ (lo
+/* Goleadores de una categoría entera, de GOL_BENJ o GOL_PREBENJ (lo
  * que da model.scorers): una fila por jugador y equipo, con los nombres exactos, que suma los goles y
  * los partidos de todos sus grupos, que son sus fases (la Primera y la Segunda Fase de benjamín). Dos
  * homónimos de equipos distintos van por separado. [{ name, team, goals, games, groupId, groups }],
@@ -52,7 +52,7 @@ export function categoryScorers(gol) {
 
 /* El puesto de cada fila de una lista de goleadores ya ordenada (la de categoryScorers o la de
  * groupScorers): con los mismos goles y partidos, el mismo puesto (1, 2, 2, 4). Una sola regla para
- * Goleadores y para los 30 primeros de Récords (decisión 144 de B3). */
+ * Goleadores y para los 30 primeros de Récords. */
 export function rankScorers(rows) {
   const out = [];
   rows.forEach((row, i) => {
@@ -89,8 +89,8 @@ export function sortJornadaKeys(keys) {
 /* A cup / knockout group (vs a regular league group). By code prefix
  * (PCC or BC) or phase ("Copa"/"Campeón", y las finales, semifinales y torneos
  * de cierre o clausura de la federación, que se juegan aparte de su liga, y
- * las «Eliminatorias» de benjamín, prebenjamín y alevín: contrato común de
- * alevín, punto 3). */
+ * las «Eliminatorias» de benjamín, prebenjamín y alevín, que reparten los
+ * puestos de la fase siguiente). */
 export function isCupGroup(g) {
   const id = ((g && g.id) || '').toUpperCase();
   if (id.startsWith('PCC') || id.startsWith('BC')) return true;
@@ -160,7 +160,7 @@ export function normalizeTeamName(s) {
   return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/['".,\u2018\u2019\u201c\u201d]/g, '').replace(/\b(CF|UD|CD|AD|SD|AFC|SC|CP|CE|CEF|SSD|ATLETICO|ATL)\b/gi, '').toLowerCase().trim().replace(/\s+/g, ' ');
 }
 
-// Fichero de escudo de un equipo (spec §5.2, sustituye a teamBadge): la clave exacta de `shields`
+// Fichero de escudo de un equipo: la clave exacta de `shields`
 // o, si no está, la primera clave con el mismo nombre normalizado; null si no hay. Nunca por
 // subcadena: «UD Las Mesas Huracán» se llevaría el escudo de AD Huracán. Es la única búsqueda de
 // escudos de la app: la usan crest (ui.js) y buildClubIndex (myteam.js), que no deben divergir.
@@ -180,9 +180,9 @@ export function shieldFile(name, shields) {
   return index.get(normalizeTeamName(String(name))) || null;
 }
 
-// Globales inmediatos de los data-*.js (spec §5.4): identificador desnudo con typeof, nunca a
+// Globales inmediatos de los data-*.js: identificador desnudo con typeof, nunca a
 // través del objeto global, y null si el fichero no ha llegado. Es la puerta de los datos de la
-// app nueva: el resto de módulos los recibe por parámetro (datasets).
+// app: el resto de módulos los recibe por parámetro (datasets).
 export function readGlobals() {
   return {
     benjamin: typeof BENJAMIN !== 'undefined' ? BENJAMIN : null,
@@ -204,7 +204,7 @@ export function readGlobals() {
   };
 }
 
-// Versión de los datos (spec §5.4): la ?v= del <script> de data-seasons.js, que index.html
+// Versión de los datos: la ?v= del <script> de data-seasons.js, que index.html
 // siempre carga; '' sin documento o sin ese <script>. La llevan todas las peticiones perezosas.
 export function dataVersion() {
   if (typeof document === 'undefined') return '';
@@ -218,7 +218,7 @@ function dataQuery() {
   return version ? `?v=${version}` : '';
 }
 
-// Nada espera para siempre (§7): si una petición perezosa no termina, cuerpo incluido, en
+// Nada espera para siempre: si una petición perezosa no termina, cuerpo incluido, en
 // LAZY_TIMEOUT_MS, se aborta y la carga falla como con un error de red. Lo opcional pinta su
 // caja de error en el bloque; lo necesario, en la pantalla, siempre con «Reintentar».
 export const LAZY_TIMEOUT_MS = 15000;
@@ -302,25 +302,21 @@ export async function ensureSeasonData(seasonName) {
 }
 
 /* ──────────────────────────────────────────────────────────────────────
- * Las actas de un grupo: lazy-loader for data-lineups-<S>-<grupo>.js (una
+ * Las actas de un grupo: carga perezosa de data-lineups-<S>-<grupo>.js (una
  * temporada entera con todas sus actas pesa ~10 MB; la ficha de un equipo o un
- * partido solo necesita las de su grupo). data-players-<S>.js is no longer
- * read: the plantilla comes from LINEUPS (spec §4.6).
- * Same shape as ensureMatchDetail. Parse data file text with a regex
- * and JSON.parse the const value — never read via the global object.
- * (Lesson 2026-05-18: const top-level declarations don't become
- *  properties of the global object, so text-parsing is the canonical
- *  pattern — see systematic-debugging root cause 2026-05-18.)
- * Returns null on missing file or parse failure — UI shows empty-state.
+ * partido solo necesita las de su grupo). La plantilla sale de LINEUPS, no de
+ * data-players-<S>.js. Como ensureMatchDetail: el texto del fichero se lee con
+ * una expresión regular y JSON.parse, nunca por el objeto global, porque un
+ * `const` de primer nivel no pasa a ser propiedad del objeto global.
+ * null si falta el fichero o no se puede leer: la pantalla enseña el vacío.
  * ────────────────────────────────────────────────────────────────────── */
 
-/* C1: normalizer for TEAMS_<S> key lookup \u2014 exact mirror of the Python side
- * (shared spec, contract C1): lowercase \u2192 NFKD accent-strip \u2192 strip quotes
- * (straight + curly) and punctuation \u2192 strip club tokens (same list as
- * acta_reconciler._CLUB_SUFFIX) \u2192 collapse whitespace. The trailing filial
- * letter (A/B/C/D) is PRESERVED \u2014 TEAMS_<S> keys keep it so 'UD Atalaya' and
- * 'UD Atalaya B' map to different teams. The existing normalizeTeamName
- * above is for shield matching and has different semantics; do NOT reuse. */
+/* Normalizador de las claves de TEAMS_<S>, copia exacta de normalize_for_teams_mapping de
+ * scripts/generate_js.py (si cambia uno, el otro también): minúsculas, sin tildes (NFKD), sin comillas
+ * (rectas y curvas) ni puntuación, sin las siglas de club (la misma lista que
+ * acta_reconciler._CLUB_SUFFIX) y con los espacios juntados. La letra de filial del final
+ * (A/B/C/D) SE QUEDA: las claves de TEAMS_<S> la llevan, y 'UD Atalaya' y 'UD Atalaya B' son equipos
+ * distintos. normalizeTeamName, más arriba, es la de los escudos y no hace lo mismo: no se reutiliza. */
 const _SP1_CLUB_SUFFIX = /\b(c\s*f|c\s*d|c\s*d\s*f|u\s*d|a\s*d|s\s*d|s\s*c|s\s*a\s*d|e\s*f|c\s*p|c\s*e|club|deportivo|atletico|atletico\s+c\s*f|deportiva|sociedad|union|f\s*c)\b/g;
 export function normalizeForTeamsMapping(s) {
   if (!s) return "";
@@ -409,8 +405,8 @@ export async function ensureJugadores(shard) {
 }
 
 /* ──────────────────────────────────────────────────────────────────────
- * Alevín (contrato común de alevín, puntos 4 y 5; r3.md §6). Nunca va en la
- * carga inicial (presupuesto de 3 s, r3.md §2): data-alevin.js, la temporada
+ * Alevín. Nunca va en la carga inicial (la portada tiene que abrir en 3 s):
+ * data-alevin.js, la temporada
  * del portal, y data-season-<S>-alevin.js, cada temporada pasada que tenga
  * alevín, se piden cuando una pantalla los necesita (needsAlevin de
  * router.js). Como ensureLineups: un vuelo por fichero, el texto leído por
@@ -531,7 +527,7 @@ export async function loadAlevinSeasons(datasets, names, portalSeason, loaders =
   return names.filter((_, i) => !done[i]);
 }
 
-// data-health.json (spec §4.10 y §7): la comprobación de las fuentes, parseada, o null si no
+// data-health.json: la comprobación de las fuentes, parseada, o null si no
 // llega (sin conexión, por ejemplo). Un único vuelo: las llamadas simultáneas comparten la
 // petición. Una respuesta vale HEALTH_TTL_MS: el aviso de estado de la portada no puede leer la de
 // hace horas. Si la sirvió la copia del service worker, o si un refresco falla y había una anterior,
@@ -576,10 +572,10 @@ export function healthNeeds(datasets, { ensure = ensureHealth, now = Date.now } 
   });
 }
 
-/* `needs` de las pantallas que leen una temporada (spec §5.4): [] si es la del portal o ya
+/* `needs` de las pantallas que leen una temporada: [] si es la del portal o ya
  * está en datasets.seasonRaw; si no, una promesa que la guarda allí, o que rechaza con
  * Error(<qué>) para la caja «No se pudieron cargar los datos de <qué>» del router. La temporada del
- * portal la da el router (needs(params, datasets, { portalSeason })), nunca config.js (R2-1). */
+ * portal la da el router (needs(params, datasets, { portalSeason })), nunca config.js. */
 export function seasonNeeds(name, datasets, portalSeason) {
   if (!portalSeason) throw new TypeError('seasonNeeds: falta la temporada del portal');
   if (!name || name === portalSeason || datasets.seasonRaw[name]) return [];

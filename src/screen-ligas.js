@@ -1,14 +1,14 @@
-// Pantalla Ligas (spec §4.7, §4.1 y §4.11; decisiones 19, 20 y 21 de B3). render(ctx) es pura:
+// Pantalla Ligas. render(ctx) es pura:
 // - sin `f`, las competiciones de la categoría `c` (o de las dos), filtradas por isla si llega `i`, que
 //   abren su lista de grupos (#/ligas?s&c&f); con `to` (de «Otras ligas», o de Jornada y Tabla sin mi
 //   equipo), solo las ligas;
-// - con `f`, los grupos de esa competición (de las dos categorías si no llega `c`: la clave se repite,
-//   decisión 19), con su nombre, sus equipos, su ronda y su líder o su campeón. Cada grupo abre la
+// - con `f`, los grupos de esa competición (de las dos categorías si no llega `c`: la clave se repite),
+//   con su nombre, sus equipos, su ronda y su líder o su campeón. Cada grupo abre la
 //   pantalla de `to` o, sin ella, su Tabla o su Copa según su tipo;
 // - en una competición con 2 grupos de liga o más, «Comparar grupos»: un botón con aria-expanded que
 //   mount despliega, con la tabla de compareGroups pintada bajo demanda (sin parámetro en la dirección).
-// La temporada de la ruta la carga el router (decisión 2), que también deja `c`, `i` y `to` válidos o
-// los quita (decisión 3); la barra marca el destino de `to` (activeTab).
+// La temporada de la ruta la carga el router, que también deja `c`, `i` y `to` válidos o
+// los quita; la barra marca el destino de `to` (activeTab).
 import { html } from './html.js';
 import { screenHead, block, countLabel, crest, decimal, empty, notice, linkRow, listEs, signed } from './ui.js';
 import { alevinFailedBox, errorBox } from './shell.js';
@@ -35,7 +35,7 @@ export function ligasView(ctx) {
   return { s, c, i, f, to, list, chosen: f ? all.filter(e => e.key === f) : [], cats: c ? [c] : present.length ? present : CATEGORIES };
 }
 
-// Las competiciones con «Comparar grupos»: 2 grupos de liga o más (decisión 21).
+// Las competiciones con «Comparar grupos»: 2 grupos de liga o más.
 const comparable = entry => entry.groups.filter(g => g.kind === 'league').length >= 2;
 
 // «Benjamín», «Benjamín y prebenjamín»; «de Gran Canaria» si llega la isla.
@@ -61,7 +61,7 @@ function competitionsBlocks(ctx, view) {
 
 // ── Con `f`: los grupos de la competición ────────────────────────────────
 
-/* Una fila por grupo (decisión 20): su nombre; los equipos y el líder o el campeón debajo; la ronda en
+/* Una fila por grupo: su nombre; los equipos y el líder o el campeón debajo; la ronda en
  * curso a la derecha. Abre la pantalla de `to` (un grupo de liga) o, sin ella, su Tabla o su Copa. El
  * grupo resuelto de mi equipo lleva el resalte propio. */
 function groupRow(ctx, group, to) {
@@ -76,7 +76,7 @@ function groupRow(ctx, group, to) {
   return html`<li>${linkRow(routeHref(target, { s, g: group.id }), title, { detail, context: g.round ? g.round.toLowerCase() : null, cls: mine ? 'group-row is-mine' : 'group-row' })}</li>`;
 }
 
-/* La tabla de «Comparar grupos» de una competición (decisión 21), la que mount pinta bajo demanda:
+/* La tabla de «Comparar grupos» de una competición, la que mount pinta bajo demanda:
  * compareGroups con su grupo en una columna («2» por «Grupo 2») y la diferencia de goles, que desempata;
  * cada equipo a su ficha, mi equipo con el resalte propio y los retirados al final, sin puntos por
  * partido. */
@@ -115,8 +115,8 @@ function render(ctx) {
   const view = ligasView(ctx);
   const { s, i, f, chosen } = view;
   const back = ctx.backHref;
-  // La temporada de la ruta la carga el router (decisión 2 de B3); si aun así no está, la caja de
-  // error con «Reintentar», nunca otra temporada (§7).
+  // La temporada de la ruta la carga el router; si aun así no está, la caja de
+  // error con «Reintentar», nunca otra temporada.
   if (!ctx.model.season(s)) {
     return html`<section data-screen="ligas">${screenHead('Ligas', { back })}${errorBox(`la temporada ${seasonLabel(s)}`)}</section>`;
   }
@@ -151,7 +151,7 @@ function mount(root, ctx) {
 
 export const screen = {
   id: 'ligas',
-  // Nada que cargar: los grupos salen de la temporada de la ruta, que carga el router (decisión 2 de B3),
+  // Nada que cargar: los grupos salen de la temporada de la ruta, que carga el router,
   // y de los torneos, que son datos inmediatos.
   needs: () => [],
   render,
