@@ -278,8 +278,8 @@ def test_each_tanda_writes_only_the_files_of_its_lote_with_several_browsers_and_
 
 
 def test_an_alevin_tanda_never_touches_the_usual_files_and_viceversa(fed):
-    """También con un acta de cabecera alevín en una competición de benjamín (antes, la tanda de
-    benjamín la escribía en el raw de alevín y la subía: chocaba con la cadena de alevín)."""
+    """También con un acta de cabecera alevín en una competición de benjamín (la tanda de benjamín no puede
+    escribirla en el raw de alevín ni subirla: chocaría con la cadena de alevín)."""
     fed["run"]("--categorias", "alevin")
     assert set(files(fed["dir"])) == {"fiflp_actas_2025-2026_alevin_raw.json", "fiflp_actas_2025-2026_alevin_index.json",
                                       "fiflp_actas_2025-2026_alevin_status.json"}

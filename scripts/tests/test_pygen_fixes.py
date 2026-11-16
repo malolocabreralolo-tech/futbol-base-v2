@@ -545,8 +545,7 @@ PG2_BY_POINTS = ["Acodetti", "Las Mesas Hu.", "Santa Brígida", "Glaucus", "AD H
 
 
 class TestPointsOrder:
-    """points_order: la web ordena la clasificación por puntos, DF y GF (lo pidió el usuario: «primero
-    se debe ordenar por la cantidad de puntos y luego diferencia de goles y así»). La de prebenjamín
+    """points_order: la web ordena la clasificación por puntos, DF y GF. La de prebenjamín
     (per_game: la federación la ordena por puntos por partido), siempre, también sus empates a puntos
     con distintos pts/J; la de benjamín o alevín, solo si no está por puntos. A igualdad de puntos por
     partido, el orden de la federación."""

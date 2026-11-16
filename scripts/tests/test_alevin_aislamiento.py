@@ -264,7 +264,7 @@ def test_comp_meta_reads_the_name_of_alevin_competitions_also_outside_the_archiv
 
 def test_import_season_creates_the_alevin_group_in_its_category_beside_benjamin(tmp_path):
     """Una temporada no archivada (2025-26) con un grupo alevín en el raw de goleadores: se crea
-    AL1 en ALEVIN, sin tocar FF1 (antes: «competición sin código», o el grupo de benjamín)."""
+    AL1 en ALEVIN, sin tocar FF1."""
     import import_fiflp_grupos as GR
     conn = base(season="2025-2026", current=0)
     (tmp_path / "fiflp_goleadores_2025-2026_raw.json").write_text(

@@ -84,9 +84,9 @@ def raw_group(comp, group, jornadas=1):
 
 def test_the_download_saves_each_group_as_it_ends_and_stops_at_its_deadline(monkeypatch, tmp_path):
     """Una fase nueva son cientos de páginas y la federación frena: activar.yml la baja con plazo
-    (ISLAS_HASTA) y la reanuda en el intento siguiente. El raw se guardaba al acabar cada competición, y un
-    corte a mitad de una grande lo perdía todo de ella; ahora, cada grupo al acabarlo (sin repetirlo ni
-    perder los de antes, con escritura atómica) y, pasado el plazo, para tras guardar el que acaba."""
+    (ISLAS_HASTA) y la reanuda en el intento siguiente. Cada grupo se guarda al acabarlo (sin repetirlo ni
+    perder los de antes, con escritura atómica), así que un corte a mitad de una competición grande no la
+    pierde entera, y pasado el plazo para tras guardar el que acaba."""
     I = islas(monkeypatch, "22")
     path = tmp_path / "fiflp_islas_22_raw.json"
     path.write_text(json.dumps([raw_group("1", "10")]), encoding="utf-8")

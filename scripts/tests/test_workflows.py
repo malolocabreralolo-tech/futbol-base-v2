@@ -1,26 +1,26 @@
 """Regression tests for the GitHub Actions workflows (.github/workflows/).
 
-Guards the CI contracts fixed on 2026-06-11:
+Guards the CI contracts:
 
 1. update.yml runs BOTH test suites BEFORE committing. Bot pushes made with
    the default GITHUB_TOKEN never trigger other workflows (GitHub's
-   anti-recursion), so tests.yml had not run since 2026-05-22 and a red
-   pytest was invisible. Running the suites inside update.yml makes a red
+   anti-recursion), so tests.yml does not run on those pushes and a red
+   pytest would be invisible. Running the suites inside update.yml makes a red
    suite block the data commit and show up as a red run.
 2. tests.yml has a daily schedule + workflow_dispatch as a safety net, and
-   its node job runs the glob `scripts/tests/test_*.mjs` (contract C5) so
+   its node job runs the glob `scripts/tests/test_*.mjs` so
    new suites (e.g. test_sp2_modules.mjs) are picked up automatically.
 3. Every workflow that runs scripts/generate_js.py stages ALL of its
    outputs: `data-*.js` glob (covers data-seasons.js, data-season-*.js,
    data-lineups-*.js, future files), plus index.html, sw.js
-   (CACHE_NAME bump, contracts C3/C4) and futbolbase.db.
-4. (17/10/2026) update.yml no tiene cron: lo lanza el reloj (reloj.yml, con
+   (CACHE_NAME bump) and futbolbase.db.
+4. update.yml no tiene cron: lo lanza el reloj (reloj.yml, con
    scripts/reloj_pasadas.py), cada 15 min, con los permisos justos (también
    en el job) y solo sus disparadores, sin pip, y solo cuando toca
    (test_reloj_pasadas.py prueba la decisión). El guion del paso que decide
    se ejecuta con un gh de mentira: un fallo de gh lo deja en rojo y sin due.
 
-5. (14/11/2026, fase 2B) update.yml publica el diagnóstico (solo
+5. update.yml publica el diagnóstico (solo
    data-health.json) también cuando fallan las pruebas, y pone el job en rojo
    después del commit si la pasada no fue sana (runHealth). El guion del paso
    de diagnóstico se ejecuta en un repositorio de mentira con su remoto.
@@ -406,7 +406,7 @@ MOTIVO_BASE = "la base de datos no pasó la comprobación: los datos de esta pas
 
 
 def test_update_comprueba_la_base_antes_de_las_pruebas():
-    """Fase 4: la base se comprueba (base_sana.py: integridad, referencias, WAL volcado y tamaño) después de la
+    """La base se comprueba (base_sana.py: integridad, referencias, WAL volcado y tamaño) después de la
     lectura y antes de las pruebas y del commit; si falla, ni pruebas ni commit (sin continue-on-error), y el
     diagnóstico lo publica con su motivo."""
     steps, step = _update_step(BASE_SANA)
@@ -426,7 +426,7 @@ def test_update_comprueba_la_base_antes_de_las_pruebas():
 
 
 def test_update_publishes_the_diagnosis_when_the_source_or_the_tests_fail():
-    """Fase 2B (14/11/2026): hasta entonces, con pruebas en rojo no se publicaba nada, tampoco el diagnóstico.
+    """Con pruebas en rojo, el diagnóstico se publica igual.
     Corre si falló el scrape o una de las suites (no si solo falló el push de los datos: un conflicto se
     rehace en la pasada siguiente). Si fallaron las pruebas, parte del data-health.json publicado (el de
     esta pasada da por leído lo que no se publica) y lo marca en rojo; solo sube ese fichero y acaba en
@@ -496,7 +496,7 @@ def _diagnosis_env(step, scrape_outcome, base_outcome):
 
 
 def test_guion_de_diagnostico_con_base_mala(tmp_path):
-    """Foco 1 de la revisión de la fase 4: una pasada cuya base no pasa la comprobación no publica ni datos ni
+    """Una pasada cuya base no pasa la comprobación no publica ni datos ni
     base, y la portada lo dice. Los guiones de verdad de «Base sana» y del diagnóstico, uno tras otro, con
     base_sana.py y source_health.py de verdad (copiados con lo que importan), en un clon de un repositorio de
     mentira con su remoto: la pasada deja la base con una página pisada, un data-x.js y su data-health.json."""
@@ -562,7 +562,7 @@ def test_the_diagnosis_after_failed_tests_publishes_the_published_report_in_red(
 
 
 def test_a_pass_in_red_turns_the_job_red_after_publishing():
-    """Fase 2B: el veredicto de la pasada (runHealth) pone el job en rojo, pero después del commit: los
+    """El veredicto de la pasada (runHealth) pone el job en rojo, pero después del commit: los
     datos de los grupos leídos bien ya están publicados. Solo si todo fue bien hasta ahí (si no, el job ya
     está en rojo)."""
     steps, step = _update_step("Pasada en rojo")
@@ -615,7 +615,7 @@ def test_update_no_abre_issues():
     no se quieren avisos fuera de la web. Las nuevas siguen en newCompetitions de data-health.json, que
     enseña «Datos y fuentes» (update_fiflp.check_competitions)."""
     data = _load("update.yml")
-    # actions: write desde la fase 2D (14/11/2026), solo para lanzar activar.yml (su paso, el único con GH_TOKEN).
+    # actions: write, solo para lanzar activar.yml (su paso, el único con GH_TOKEN).
     assert data["permissions"] == {"contents": "write", "actions": "write"}
     assert "permissions" not in data["jobs"]["update"], "los del job sustituirían a los del workflow"
     for step in _steps(data, "update"):
@@ -698,7 +698,7 @@ def _run_commit_step(tmp_path, actas_bot=True, data_changed=False):
 
 
 def test_update_commits_the_bots_acta_originals_always_and_only_in_the_data_commit(tmp_path):
-    """Fase 2C (14/11/2026): el bot guarda el original de cada acta que lee (scripts/actas_bot_*.jsonl,
+    """El bot guarda el original de cada acta que lee (scripts/actas_bot_*.jsonl,
     actas_bot.py). Se suben siempre, como data-health.json: una relectura de las ya importadas no cambia nada
     publicado (y la base no se sube), pero su original sí. Después de la puerta de la base (no la abren), solo
     en el paso «Commit y push si hay cambios» (el de diagnóstico sube solo data-health.json: arriba), y sin
@@ -767,7 +767,7 @@ def test_tests_yml_paths_cover_known_gaps():
             f"{event} paths must include .github/workflows/update.yml"
         )
         assert ".github/workflows/reloj.yml" in paths, f"{event} paths must include .github/workflows/reloj.yml"
-        # Rediseño «Acta»: desde el corte de B2 la hoja es acta.css; un PR que
+        # La hoja es acta.css; un PR que
         # solo la toque debe correr las pruebas de contraste y de CSS.
         assert "acta.css" in paths, f"{event} paths must include acta.css"
 
@@ -816,7 +816,7 @@ def test_tests_yml_render_smoke_intact():
 
 
 def test_tests_yml_frescura_smoke():
-    """La frescura tras una subida de datos (frescura-smoke.mjs, fase 3, O6) corre en CI, en un job con
+    """La frescura tras una subida de datos (frescura-smoke.mjs) corre en CI, en un job con
     Playwright; publica sobre una copia con python3 (generate_js y precache.py) y sin esbuild."""
     runs = _runs(_load("tests.yml"), "render-smoke")
     assert "npm install --no-save --package-lock=false playwright@1.58.0" in runs
@@ -853,7 +853,7 @@ def test_tests_yml_instala_esbuild_antes_de_las_suites():
 
 def test_tests_yml_pasa_las_pruebas_de_publicacion_sin_esbuild_como_el_bot():
     """El bot (update.yml, activar.yml) pasa pytest sin esbuild y tests.yml, con él: una prueba que solo falla
-    sin esbuild pasaba en verde en CI y paraba al bot (revisión final de la parte II, C1 y M7). Un paso, antes
+    sin esbuild pasaba en verde en CI y paraba al bot. Un paso, antes
     del npm ci de empaquetar, pasa sin esbuild las que dependen de si lo hay: las que importan codigo o
     publicar, y las del precache."""
     steps = _steps(_load("tests.yml"), "pytest")
@@ -980,11 +980,11 @@ def test_tests_yml_paths_cover_fonts_icons_and_crests():
             assert wanted in paths, f"{event} paths must include {wanted}"
 
 
-# La versión mayor más baja de cada acción que corre en Node 24, según sus notas de versión (plan B4,
-# decisiones 12 y 55): checkout v5.0.0 («Update actions checkout to use node 24»), setup-python v6.0.0
+# La versión mayor más baja de cada acción que corre en Node 24, según sus notas de versión:
+# checkout v5.0.0 («Update actions checkout to use node 24»), setup-python v6.0.0
 # («Upgrade to node 24») y setup-node v5.0.0 («Upgrade action to use node24»). Otra acción, u otra
-# versión, se comprueba antes en sus notas y se apunta aquí. En tests.yml y en update.yml, el bot, que
-# empuja data-health.json varias veces al día y ejerce el cambio en horas; los demás workflows, en B5.
+# versión, se comprueba antes en sus notas y se apunta aquí. Rige para los workflows de la lista de abajo
+# (update.yml, el bot, empuja data-health.json varias veces al día y ejerce el cambio en horas).
 NODE24 = {"actions/checkout": "v5", "actions/setup-python": "v6", "actions/setup-node": "v5"}
 
 
@@ -999,7 +999,7 @@ def test_actions_run_on_node24(name):
         assert NODE24.get(action) == version, f"{name}, {ref}: en Node 24 va {action}@{NODE24.get(action, '?')}"
 
 
-# La imagen de los runners, fijada en todos los workflows (plan B4, decisión 55): ubuntu-latest pasa a
+# La imagen de los runners, fijada en todos los workflows: ubuntu-latest pasa a
 # Ubuntu 26 el 19/10/2026, y el bot, con el Python 3.11 de setup-python, podría quedarse sin él. Una
 # imagen nueva se prueba antes y se cambia aquí y en los workflows a la vez.
 def test_every_workflow_pins_its_runner_image():
@@ -1070,7 +1070,7 @@ def test_the_bot_works_on_the_current_main_not_on_the_dispatch_commit():
 
 # ------------------------------------------------------------ activar.yml
 #
-# Fase 2D (14/11/2026): activar.yml activa solo lo que el bot apuntó como nuevo (newCompetitions y newGroups
+# activar.yml activa solo lo que el bot apuntó como nuevo (newCompetitions y newGroups
 # de data-health.json): catálogo, descarga de lo pendiente, activar_auto.py, pruebas y subida. Lo lanza el bot
 # (update.yml, «Lanzar la activación si hay algo nuevo», con source_health.py pendiente) o el dueño a mano;
 # nunca se relanza a sí mismo: intentos cortos que se alternan con las pasadas. Los guiones
@@ -1099,7 +1099,7 @@ def _activar_step(name):
 
 
 def test_activar_is_dispatched_by_the_bot_or_by_hand_and_never_relaunches_itself():
-    """Solo workflow_dispatch sin entradas (lo lanzan el bot y el dueño a mano). Ronda de arreglo 1: nunca se
+    """Solo workflow_dispatch sin entradas (lo lanzan el bot y el dueño a mano). Nunca se
     relanza a sí mismo (ni gh, ni actions: write): GitHub guarda una sola ejecución en espera por grupo de
     concurrencia y relanzarse cancelaría la pasada que espera; el intento siguiente lo lanza la pasada
     siguiente. Nada interpolado en los guiones."""
@@ -1169,8 +1169,8 @@ def test_activar_refreshes_the_catalog_of_the_current_season_only():
 def test_activar_downloads_both_tandas_in_short_attempts():
     """Una fase nueva son cientos de páginas y la federación frena: la descarga tiene plazo (ISLAS_HASTA,
     fetch_fiflp_islas.guardar_por_grupo guarda grupo a grupo y para al pasarlo) por debajo del timeout del
-    paso, con margen para el último grupo, y nunca para el job (continue-on-error). Ronda de arreglo 1:
-    intentos cortos (20 min de descarga, 30 el paso, 75 el job): un intento ocupa update-data poco más que una
+    paso, con margen para el último grupo, y nunca para el job (continue-on-error).
+    Intentos cortos (20 min de descarga, 30 el paso, 75 el job): un intento ocupa update-data poco más que una
     pasada. Las dos tandas de la temporada (benjamín y prebenjamín, alevín) con la misma lista: cada una filtra
     por su categoría."""
     _, job = _activar()
@@ -1288,7 +1288,7 @@ def test_activar_runs_the_suites_only_when_the_web_changed(tmp_path):
 
 
 def test_activar_comprueba_la_base():
-    """Fase 4: la base activada se comprueba (base_sana.py) antes de las suites, cuando se va a subir (cambió lo
+    """La base activada se comprueba (base_sana.py) antes de las suites, cuando se va a subir (cambió lo
     publicado); si no pasa, ni suites ni subida (sin continue-on-error: success() falso) y el mismo camino que
     con las suites en rojo («Publicar el fallo si las pruebas fallan»: la base y lo generado vuelven a lo
     publicado)."""

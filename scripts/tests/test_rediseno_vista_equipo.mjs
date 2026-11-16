@@ -116,7 +116,7 @@ test('la portada pinta, byte a byte, lo que fijan sus huellas en A, B, C, D, E y
     if (status) assert.equal(sha(out.replace(status[0], '')), BEFORE_STATUS[name], `${name}, sin el aviso de estado`);
     assert.doesNotMatch(out, /Evolución de puntos|Pronóstico de la clasificación final|proj-figure/, name);
   }
-  // Lo que fija cada huella de B5, en claro: que el caso es el que dice su nombre.
+  // Lo que fija cada huella, en claro: que el caso es el que dice su nombre.
   const text = (options) => s(home.render(homeCtx(options)));
   const [verano, sinFecha, pendiente, pocos, sinHora] = ['D sin «Verano»', 'C, próximo partido sin fecha publicada',
     'C, resultado pendiente de publicar', 'A con menos de cinco resultados', 'A con la hora por confirmar'].map((name) => text(HOME[name][0]));
