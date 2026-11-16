@@ -1,14 +1,13 @@
 // Playwright's page.waitForFunction does NOT await a predicate that returns a
 // Promise: it runs `const success = predicate(); if (success) fulfill(...)`
 // (playwright-core/lib/server/frames.js), and a Promise is always truthy — so
-// an async condition "passes" at once without being checked. pwa-smoke.mjs
-// waited like that for the new service worker, reloaded while the previous
-// one was still in control, and failed whenever CI lost that race
-// (2026-09-12..22, every other day). Async conditions — caches, service
-// workers, dynamic imports — are polled here through page.evaluate, which
-// does await the result. `label` (B3, «Para B3» punto 21): el escenario, el
-// ancho y el tema, que el mensaje de un tiempo agotado nombra para que un
-// fallo de la CI se lea sin reproducirlo.
+// an async condition "passes" at once without being checked. Waiting like that
+// for the new service worker reloads while the previous one is still in
+// control, and fails whenever CI loses that race. Async conditions — caches,
+// service workers, dynamic imports — are polled here through page.evaluate,
+// which does await the result. `label`: el escenario, el ancho y el tema, que
+// el mensaje de un tiempo agotado nombra para que un fallo de la CI se lea sin
+// reproducirlo.
 export async function waitForAsync(page, predicate, arg, { timeout = 15000, interval = 100, label = null } = {}) {
   const deadline = Date.now() + timeout;
   let lastError = null;
@@ -74,15 +73,14 @@ export async function takeOver(context, probeUrl, cache, label, diagnose = () =>
 
 // Una acción de Playwright (un clic, la espera de un localizador, una navegación) con la etiqueta de su
 // paso (el escenario, el ancho y el tema) delante de su error, como el tiempo agotado de waitForAsync:
-// un fallo de la CI se lee sin reproducirlo (B5, decisión 7). Devuelve lo que devuelve la acción.
+// un fallo de la CI se lee sin reproducirlo. Devuelve lo que devuelve la acción.
 // Reescribir solo error.message no basta: Playwright ya ha formado error.stack para cuando este
 // helper lo recibe, V8 no lo vuelve a formatear al cambiar message, y tanto Node (al imprimir un
 // error no capturado) como util.inspect muestran stack, no message. Por eso stack se reescribe
 // también: si ya contiene el mensaje sin etiqueta (el caso normal), se sustituye ahí mismo; si no, la
 // etiqueta va delante de stack entero. El reemplazo va con una función (no con el string de
 // error.message) porque un selector puede llevar un "$" (p. ej. [href$="…"]), y String.replace lee un
-// "$&" o un "$1" del reemplazo como patrón, no como texto, cuando el reemplazo es un string (revisión
-// final de B5, arreglo 1).
+// "$&" o un "$1" del reemplazo como patrón, no como texto, cuando el reemplazo es un string.
 export async function labeled(label, action) {
   try {
     return await action();

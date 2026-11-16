@@ -1,4 +1,4 @@
-"""Activación sin manos (fase 2D de v2, tarea 2): scripts/activar_auto.py activa, a partir de un raw de la
+"""Activación sin manos: scripts/activar_auto.py activa, a partir de un raw de la
 federación ya descargado, lo que el bot apuntó en data-health.json (newCompetitions enteras y newGroups
 sueltos): manifiesto (fiflp_manifest.build) → verify_sources → add_groups, una transacción por competición,
 generate_js y la sonda de fases (sonda_fases.mjs). Todo o nada por competición: una que no encaja no toca la
@@ -358,7 +358,7 @@ def falla(comp, reason):
 
 
 def test_attempts_cuenta_los_intentos_seguidos_del_mismo_conjunto(tmp_path):
-    """Ronda de arreglo 1: activation.attempts, 1 con otro conjunto de pendientes que el intento anterior y el
+    """activation.attempts: 1 con otro conjunto de pendientes que el intento anterior y el
     anterior + 1 con el mismo (source_health.py pendiente reanuda una descarga incompleta hasta 8)."""
     root = tree(tmp_path, [entry(PLZ, 1)], listed={PLZ[0]: {group_id(PLZ, 1): "GRUPO 1", group_id(PLZ, 2): "GRUPO 2"}},
                 health={"newCompetitions": [new_comp(PLZ)]})
@@ -539,9 +539,9 @@ def test_el_grupo_sin_numero_de_la_federacion_conserva_su_nombre():
         "Grupo 7", "Eliminatoria previa", "Grupo 1", "Grupo 1"]
 
 
-# ── Ronda 1: grupos de eliminatoria dentro de una liga (14/11/2026) ──────────
-# La federación publicó «Eliminatoria de Primeros y Segundos» y «… de Terceros y Cuartos» como grupos de la
-# Fase Previa de benjamín (54976988) y de alevín (54976940): sin número, salían FF1/AL1 («código repetido»).
+# ── Grupos de eliminatoria dentro de una liga ──────────
+# La federación publica «Eliminatoria de Primeros y Segundos» y «… de Terceros y Cuartos» como grupos de la
+# Fase Previa de benjamín (54976988) y de alevín (54976940): sin número, saldrían FF1/AL1 («código repetido»).
 # Convenio: el prefijo y la fase de las eliminatorias de su categoría (EL, PEL, ALEL; «Eliminatorias»),
 # numerados tras los que ya tiene la temporada, por orden de CodGrupo.
 

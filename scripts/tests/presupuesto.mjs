@@ -1,9 +1,9 @@
-// El presupuesto de rendimiento de la spec (§5.4), medido con un guion del repo (decisión 11 del plan
-// B4). No se llama test_*.mjs: ni node --test ni el CI lo ejecutan, porque mide tiempos.
+// El presupuesto de rendimiento de la web, medido con un guion del repo. No se llama
+// test_*.mjs: ni node --test ni el CI lo ejecutan, porque mide tiempos.
 //
 //   node scripts/tests/presupuesto.mjs [--web <url>] [--runs N]
 //
-// El perfil es el de la auditoría de §5.4, el móvil de Lighthouse: «4G lenta» (150 ms de latencia,
+// El perfil es el de Lighthouse en móvil: «4G lenta» (150 ms de latencia,
 // 1.638,4 kbit/s de bajada y 750 kbit/s de subida) y la CPU ×4, por CDP, en frío (sin caché ni SW).
 // - Portada: index.html con los datos del árbol (servido por pages-server.mjs, como GitHub Pages) o
 //   los de la web de --web, a 390×844 y DPR 3. «Portada pintada» es el momento en que

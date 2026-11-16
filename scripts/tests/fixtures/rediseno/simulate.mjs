@@ -50,7 +50,7 @@ export function teamNames(...collections) {
   return [...names];
 }
 
-// El registro de datos de B2 (`datasets` del esqueleto: los nueve globales de readGlobals más
+// El registro de datos (`datasets`: los nueve globales de readGlobals más
 // seasonRaw, matchDetail, lineups y health) a partir de una temporada cruda de las fixtures
 // (current-2025-2026, currentAt o nextSeasonRaw), con los escudos y los torneos congelados.
 // health es undefined, como en app.js: data-health.json sin pedir (null sería «falló»).
@@ -66,7 +66,7 @@ export function datasetsFrom(raw, extra = {}) {
   };
 }
 
-// ─── Fixtures de B3 (decisión 30 del plan B3; las genera build_fixtures_b3.mjs) ───────────────
+// ─── Fixtures ampliadas (las genera build_fixtures_b3.mjs) ───────────────
 // Datos crudos, sin nada de src/: los usan las pruebas de Node (con datasetsFor de screens.mjs) y los
 // mundos de navegador de fixture-site.mjs, que los sirven como data-*.js.
 
@@ -99,7 +99,7 @@ export function withChampions(raw = fixture('current-2025-2026')) {
   return out;
 }
 
-// Los torneos congelados con la forma de data-maspalomas-cup-2026.js: los de B1 (cups-2025-2026:
+// Los torneos congelados con la forma de data-maspalomas-cup-2026.js: los de cups-2025-2026 (
 // MCB16, MCBK2, MCP3 y MCPK1) y, con `extra`, la Copa Plata de benjamín (MCBK1) y la Copa Oro de
 // prebenjamín (MCPK2) de cups-extra-2025-2026, cada categoría por código (en estos seis, el orden de
 // la fuente).
@@ -116,9 +116,9 @@ export function cupsRaw({ extra = false } = {}) {
 // El archivo congelado de una temporada pasada, con la forma de SEASON_<S> ({ name, current: false,
 // benjamin, prebenjamin }): la de datasets.seasonRaw[name] y la de data-season-<S>.js.
 // - '2023-2024': historical-2023-2024 (BC1, CFV1, GC3, GC8, SF1 y SF8; sin prebenjamín);
-// - '2024-2025': historical-2024-2025 de B1 (P1 y PGC2) más historical-2024-2025-b3 (A1, BCC1, C2,
+// - '2024-2025': historical-2024-2025 (P1 y PGC2) más historical-2024-2025-b3 (A1, BCC1, C2,
 //   P3 y P9), por código, que es el orden de data-season-2024-2025.js. pastSeasonRaw() de
-//   screens.mjs sigue dando solo lo de B1.
+//   screens.mjs sigue dando solo lo de historical-2024-2025.
 export function archive(name) {
   if (name === '2023-2024') return fixture('historical-2023-2024');
   if (name !== '2024-2025') throw new Error(`archive: no hay fixture de la temporada ${name}`);
@@ -205,13 +205,13 @@ function standingsOf(teams, rows) {
 }
 
 // Los dos grupos de alevín de las fixtures, AL1 y AL2: Las Mesas Hu. juega en AL1 con el mismo nombre
-// que en PG2 de prebenjamín (el homónimo de la familia, diseño B1), y Las Mesas B en AL2.
+// que en PG2 de prebenjamín (el homónimo de la familia), y Las Mesas B en AL2.
 export const ALEVIN_TEAMS = {
   AL1: ['Las Mesas Hu.', 'AD Huracán', 'Acodetti CF', 'Guayarmina', 'Arucas CF', 'Maspalomas'],
   AL2: ['Las Mesas B', 'CD Cerruda', 'Heidelberg', 'La Garita', 'Gran Canaria', 'CD Ingenio'],
 };
 
-/* data-alevin.js de las fixtures (contrato, punto 4) para la temporada del portal `season`: las seis
+/* data-alevin.js de las fixtures para la temporada del portal `season`: las seis
  * constantes, en su orden y con la forma de las de benjamín. AL1 y AL2, «Primera Fase GC», con sus
  * jornadas los días 26/09, 3, 10, 17 y 24/10 del primer año de la temporada; las del día `today` en
  * adelante, sin marcador (pendientes), y la clasificación, la de lo jugado. ESTADOS_ALEV aplaza el primer

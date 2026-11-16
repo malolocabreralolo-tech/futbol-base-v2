@@ -353,9 +353,9 @@ def _read(fed):
 
 def test_the_alevin_quota_takes_turns_by_the_pass_number_even_without_commits(monkeypatch):
     """La cuota de alevín (FIFLP_ALEVIN_MIN) va tras los prioritarios, intercalada con el turno de benjamín
-    (desde el 15/10/2026; antes, delante de él), y empieza en cada pasada por otro turno: el número de la
+    y empieza en cada pasada por otro turno: el número de la
     pasada (GITHUB_RUN_NUMBER), no nada guardado en la base, que update.yml solo sube si cambia algún
-    data-*.js (con un turno guardado en ella, fiflp_reads, cada pasada sin cambios volvía a leer los mismos
+    data-*.js (con un turno guardado en ella, fiflp_reads, cada pasada sin cambios volvería a leer los mismos
     grupos)."""
     monkeypatch.setattr(U, "flatten", lambda page, selector=None: 0)
     monkeypatch.setenv("FIFLP_ALEVIN_MIN", "2")
@@ -371,9 +371,9 @@ def test_the_alevin_quota_takes_turns_by_the_pass_number_even_without_commits(mo
     # PG2, el grupo del equipo de la portada (src/config.js), siempre el primero; la cuota, 2 alevín
     # desde su turno (5 grupos: turnos [AL1, AL2], [AL3, AL4], [AL5] y []; dentro del turno, el inicio
     # de su época, update_fiflp.spin: 3000-3003 son la época 750, que empieza por el segundo); FF1, el
-    # único de benjamín, en su turno (la pasada 3000) va intercalado con la cuota (tras el primero de ella:
-    # antes del 15/10/2026, tras toda) y en las demás, entre el resto, según la fase de cada nivel en esa
-    # pasada (update_fiflp.pass_phase, desde el 16/10/2026: en la 3001, ahora tras AL2 y no antes).
+    # único de benjamín, en su turno (la pasada 3000) va intercalado con la cuota (tras el primero de ella)
+    # y en las demás, entre el resto, según la fase de cada nivel en esa pasada (update_fiflp.pass_phase:
+    # en la 3001, tras AL2).
     assert reads == [["PG2", "AL2", "FF1", "AL1", "AL4", "AL3", "AL5"],
                      ["PG2", "AL4", "AL3", "AL5", "AL1", "AL2", "FF1"],
                      ["PG2", "AL5", "AL1", "AL2", "FF1", "AL3", "AL4"]]
@@ -395,8 +395,7 @@ def test_a_base_with_the_old_turn_table_still_works_and_it_is_not_used(monkeypat
 
 def test_without_a_run_number_the_turn_comes_from_the_clock():
     """Fuera de GitHub (una pasada a mano), la franja de la hora UTC: cambia de turno de una franja a otra.
-    Desde el 16/10/2026, de 2 h (update_fiflp.PASS_EVERY, la cadencia base del reloj, reloj.yml); antes, de
-    6."""
+    De 2 h (update_fiflp.PASS_EVERY, la cadencia base del reloj, reloj.yml)."""
     from datetime import datetime, timezone
     a = U.run_number({}, datetime(2026, 10, 14, 0, tzinfo=timezone.utc))
     assert U.run_number({}, datetime(2026, 10, 14, 1, 59, tzinfo=timezone.utc)) == a

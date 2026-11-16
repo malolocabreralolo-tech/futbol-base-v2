@@ -1,4 +1,4 @@
-// El navegador falso de las pruebas de Node del rediseño (M1 de la revisión final de B2): uno solo,
+// El navegador falso de las pruebas de Node del rediseño: uno solo,
 // para el router (test_rediseno_router.mjs) y para start() de verdad (test_rediseno_integracion.mjs).
 // Lo justo de un navegador:
 // - el historial, con entradas, estado, pushState, replaceState y back() (popstate y hashchange en
@@ -13,7 +13,7 @@
 //   querySelector encuentra el h1 y esos elementos por su id ('#buscar'), como el mount de Explorar.
 // Cada elemento sabe closest(selector) solo sobre sí mismo, con selectores de etiqueta y de atributo
 // ('a[href],[data-action]', '[data-action="retry"]'), que es lo que usan el router y app.js.
-// Para el mount de una pantalla, fakeSection (Plan B5, Tarea 4): la sección pintada, con la delegación
+// Para el mount de una pantalla, fakeSection: la sección pintada, con la delegación
 // de sus clics y sus bloques por id.
 import { readFileSync } from 'node:fs';
 
@@ -108,7 +108,7 @@ export function fakeBrowser(hash = '#/', { storage = new Map(), deferBack = fals
     },
     // Sin deferBack el índice baja ya y solo se aplaza el evento; con deferBack, como un navegador
     // real, tampoco cambian history.state ni location.hash hasta que la vuelta atrás ocurre (así se
-    // ve la carrera de dos back() seguidos, B2, ronda 2).
+    // ve la carrera de dos back() seguidos).
     back() {
       if (index === 0) return;
       const pop = () => { fire(listeners.window, 'popstate', { state: entries[index].state }); fire(listeners.window, 'hashchange', {}); };
@@ -161,7 +161,7 @@ export function fakeBrowser(hash = '#/', { storage = new Map(), deferBack = fals
   };
 }
 
-// La sección pintada de una pantalla, lo justo para su mount (Plan B5, Tarea 4; el navegador falso de
+// La sección pintada de una pantalla, lo justo para su mount (el navegador falso de
 // arriba no busca por selector ni guarda árboles): la delegación de sus clics, que se para con
 // stopPropagation (lo que se para no sigue hasta el documento, donde escucha el router), y sus bloques
 // por id (blocks: { id: markup }). Un bloque se sustituye con outerHTML, como en un navegador: el que

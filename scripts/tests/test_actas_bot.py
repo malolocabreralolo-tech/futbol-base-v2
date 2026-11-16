@@ -1,10 +1,10 @@
-"""Los originales de las actas que lee el bot (fase 2C, tarea 1: scripts/actas_bot.py).
+"""Los originales de las actas que lee el bot (scripts/actas_bot.py).
 
-El bot leía cada acta de la temporada en curso, la analizaba (fiflp_acta.parse_flat_acta) y la escribía en
-la base, pero no guardaba el dict: sin él, rehacer las apariciones de una temporada pedía volver a leer
-cada acta a la federación. Desde la fase 2C guarda el de cada acta que importa
-(scripts/actas_bot_<temporada>_<categoría>.jsonl, una línea por acta) y relee, poco a poco y dentro del
-cupo de la pasada, las de la temporada que ya están en la base sin original (update_fiflp.releer_originales).
+El bot lee cada acta de la temporada en curso, la analiza (fiflp_acta.parse_flat_acta) y la escribe en
+la base, y guarda el dict de cada acta que importa (scripts/actas_bot_<temporada>_<categoría>.jsonl,
+una línea por acta): sin él, rehacer las apariciones de una temporada pediría volver a leer cada acta
+a la federación. Relee, poco a poco y dentro del cupo de la pasada, las de la temporada que ya están
+en la base sin original (update_fiflp.releer_originales).
 
 Las pruebas escriben en una carpeta temporal (conftest: ACTAS_BOT_DIR), nunca en scripts/.
 """

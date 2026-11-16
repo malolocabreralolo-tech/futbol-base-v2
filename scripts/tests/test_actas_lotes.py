@@ -1,4 +1,4 @@
-"""Las actas de alevín van APARTE (scripts/actas_lotes.py, 14/10/2026).
+"""Las actas de alevín van APARTE (scripts/actas_lotes.py).
 
 Un raw de actas de benjamín y prebenjamín pesa unos 20 MB por temporada; el histórico alevín
 (2019-26) en el mismo raw lo duplicaría, cerca del aviso de GitHub (50 MB por fichero; tope,
@@ -766,8 +766,8 @@ def run_next_tanda(tmp_path, categorias, temporada="21", cola="20,19", tandas="4
 
 @pytest.mark.parametrize("categorias", ["alevines", "benjamin,alevin", "benjamin,prebenjamin,alevín"])
 def test_a_chain_with_categories_it_cannot_download_stops_and_skips_the_queue(tmp_path, categorias):
-    """Antes, unas categorías que no existen tiraban --estado y la cadena tomaba la reserva
-    {"pending": 1}: se relanzaba hasta gastar las tandas (40), fallando en cada una."""
+    """Unas categorías que no existen no pueden tirar --estado: la cadena tomaría la reserva
+    {"pending": 1} y se relanzaría hasta gastar las tandas (40), fallando en cada una."""
     out, calls = run_next_tanda(tmp_path, categorias)
     assert calls == [] and "La cadena para:" in out, out
 

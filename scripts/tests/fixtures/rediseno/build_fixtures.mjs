@@ -1,4 +1,4 @@
-// Congela datos reales para las pruebas del rediseño «Acta» (Plan B1, spec §11).
+// Congela datos reales para las pruebas del rediseño «Acta».
 //
 // Se ejecuta UNA vez, desde la raíz del repo y con 2025-26 como temporada actual:
 //   node scripts/tests/fixtures/rediseno/build_fixtures.mjs
@@ -142,7 +142,7 @@ if (!Object.keys(lineups).length) fail('LINEUPS_2025_2026 no tiene actas de A1')
 
 // Escudos: los de cada nombre de equipo de las fixtures (exacto, normalizado o
 // por inclusión, como teamBadge de state.js) y todos los nombres que comparten
-// fichero con ellos (la arista «mismo escudo» de la identidad de club, §6.1).
+// fichero con ellos (la arista «mismo escudo» de la identidad de club).
 const names = new Set(FAVORITES_V1.teams.map(t => t.name));
 for (const [g, h] of allGroups) {
   for (const row of g.standings || []) names.add(row[1]);

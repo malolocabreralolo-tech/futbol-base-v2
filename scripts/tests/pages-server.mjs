@@ -1,4 +1,4 @@
-// Servidor estático que imita a GitHub Pages (decisión 11 del plan B4), para medir el presupuesto
+// Servidor estático que imita a GitHub Pages, para medir el presupuesto
 // (presupuesto.mjs) con las mismas condiciones que la web publicada:
 // - gzip en los ficheros de texto (HTML, CSS, JavaScript, JSON, SVG y el manifiesto) si el navegador
 //   lo acepta, como GitHub Pages; las imágenes y la fuente, tal cual;

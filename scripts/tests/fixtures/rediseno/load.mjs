@@ -1,5 +1,5 @@
-// Fixtures congeladas del rediseño «Acta» (spec §11). Las generan una sola vez
-// build_fixtures.mjs (las 9 de B1) y build_fixtures_b3.mjs (las 6 de B3) y se
+// Fixtures congeladas del rediseño «Acta». Las generan una sola vez
+// build_fixtures.mjs (9 ficheros) y build_fixtures_b3.mjs (6) y se
 // commitean; phases-archivo.json (las fases de las temporadas archivadas, de
 // 2017-18 a 2020-21) salió una vez de la base de la simulación de su
 // importación. Las pruebas test_rediseno_*.mjs leen solo estos JSON: nunca los

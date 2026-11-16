@@ -1,11 +1,11 @@
-// Mundos de fixtures para las pruebas de navegador (spec §11): la app real (index.html, src/,
+// Mundos de fixtures para las pruebas de navegador: la app real (index.html, src/,
 // acta.css, fuentes y escudos) con los datos de las fixtures congeladas en lugar de los data-*.js
 // vivos y un PORTAL fijo en lugar de src/config.js. Así los smoke y las capturas no cambian cuando
 // el bot publica datos ni al activar 2026/27. El «hoy» se fija con el reloj de Playwright.
 // Lo usan interaction-smoke.mjs, render-smoke.mjs (estado D) y capturas.mjs.
-// Desde B3 (decisión 31) cada mundo solo anuncia en SEASONS las temporadas cuyo archivo sirve, y sirve
-// el que anuncia; y lleva los datos de las fixtures de B3: los goleadores congelados, la Copa de
-// Campeones en los mundos del 23/09/2026, las cuatro copas de la Maspalomas y las actas de A1 y FF1.
+// Cada mundo solo anuncia en SEASONS las temporadas cuyo archivo sirve, y sirve el que anuncia; y lleva
+// los goleadores congelados, la Copa de Campeones en los mundos del 23/09/2026, las cuatro copas de la
+// Maspalomas y las actas de A1 y FF1.
 import { fixture } from './fixtures/rediseno/load.mjs';
 import {
   alevinRaw, archive, cupsRaw, currentAt, dataFile, goleadores, groupLineups, lineupGroups, nextSeasonRaw, pastAlevinRaw, withChampions,
@@ -14,7 +14,7 @@ import {
 export const STORE_KEY = 'fb2:almacen';
 const DEFAULT_TEAM = { cat: 'prebenjamin', groupId: 'PG2', name: 'Las Mesas Hu.' };
 const LAS_MESAS_2526 = { name: 'Las Mesas Hu.', season: '2025-2026', cat: 'prebenjamin', groupId: 'PG2' };
-// SEASONS con cada temporada del portal: files() sirve el archivo de cada temporada pasada (decisión 31).
+// SEASONS con cada temporada del portal: files() sirve el archivo de cada temporada pasada.
 // 2025-26 lleva `detail`, como en el data-seasons.js real: la cronología de las fixtures es suya.
 const SEASONS_2526 = [{ name: '2025-2026', current: true, detail: true }, { name: '2024-2025', current: false }, { name: '2023-2024', current: false }];
 const SEASONS_2627 = [{ name: '2026-2027', current: true }, { name: '2025-2026', current: false, detail: true }, { name: '2024-2025', current: false }];
@@ -29,12 +29,12 @@ function healthOn(today) {
   return JSON.parse(JSON.stringify(health).replaceAll(HEALTH_DAY, eve));
 }
 
-// data-goleadores.js: los goleadores congelados de B3 (gol-2025-2026, Tarea 2), los de fin de temporada
-// de los grupos de las fixtures; a mitad de temporada, scorersAt los reduce a su día. Las filas de PG2
-// son las que este fichero copiaba a mano desde B2; en A2 van las 12 de Las Mesas, y no solo 6.
+// data-goleadores.js: los goleadores congelados (gol-2025-2026), los de fin de temporada de los grupos
+// de las fixtures; a mitad de temporada, scorersAt los reduce a su día. En A2 van las 12 filas de Las
+// Mesas, y no solo 6.
 const GOL = (({ golBenj, golPrebenj }) => ({ benjamin: golBenj, prebenjamin: golPrebenj }))(goleadores());
 
-// La clasificación de un día de temporada (B12 de la revisión adversarial). La de las fixtures es la
+// La clasificación de un día de temporada. La de las fixtures es la
 // final; currentAt quita los marcadores desde `today`, pero no la toca, y a una fecha anterior saldrían
 // 28 partidos jugados en marzo. Aquí se recalcula con los resultados del calendario hasta ese día: 3
 // puntos la victoria y 1 el empate; por puntos, diferencia y goles a favor, y después el orden
@@ -42,7 +42,7 @@ const GOL = (({ golBenj, golPrebenj }) => ({ benjamin: golBenj, prebenjamin: gol
 // cada equipo tiene los que la clasificación final le cuenta de más (dos en PG2, uno por vuelta), y
 // cada uno cuenta cuando el grupo ha jugado su parte de la temporada (el de la ida, tras la jornada
 // 15 de 30). El retirado pierde todos esos. Así, al final sale la clasificación oficial, y a mitad
-// de temporada la nota de cobertura cuadra (spec §7). La jornada de la fuente pasa a ser la última
+// de temporada la nota de cobertura cuadra. La jornada de la fuente pasa a ser la última
 // con algún resultado.
 const FINAL = fixture('current-2025-2026');
 function standingsAt(raw, today) {
@@ -151,7 +151,7 @@ function finishedSeason() {
 const pastSeason = (name) => (name === '2025-2026' ? finishedSeason() : archive(name));
 
 // Los ficheros que sirve un mundo, por su nombre (sin ?v=): el cuerpo y su tipo. SEASONS anuncia las
-// temporadas cuyo archivo se sirve, y solo esas (decisión 31 de B3): Temporadas, la Trayectoria de
+// temporadas cuyo archivo se sirve, y solo esas: Temporadas, la Trayectoria de
 // Equipo o el selector de Explorar nunca llevan a un fichero que da 404.
 function files(w) {
   const raw = w.current();
@@ -186,7 +186,7 @@ function files(w) {
 }
 
 // Lo que sirve el mundo `name`, por fichero: { body, type }. Lo usan useWorld y su prueba
-// (test_rediseno_mundos.mjs, decisión 31 de B3).
+// (test_rediseno_mundos.mjs).
 export function worldFiles(name) {
   const w = WORLDS[name];
   if (!w) throw new Error(`mundo desconocido: ${name}`);

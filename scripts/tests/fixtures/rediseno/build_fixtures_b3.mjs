@@ -1,16 +1,16 @@
-// Congela los datos reales que añade el Plan B3 a las fixtures del rediseño «Acta» (decisión 30).
+// Congela los datos reales que se suman a las fixtures del rediseño «Acta» (goleadores, copas, actas...).
 //
 // Se ejecuta UNA vez, desde la raíz del repo y con 2025-26 como temporada actual:
 //   node scripts/tests/fixtures/rediseno/build_fixtures_b3.mjs
-// Escribe solo los 6 JSON nuevos de B3 y se commitean. Nunca toca los 9 de build_fixtures.mjs
-// (B1): volver a ejecutar aquel los reescribiría con los datos del día, y las pruebas fijan los
-// del 23/09/2026 (health.json cambia a diario). Las pruebas leen solo los JSON (load.mjs).
+// Escribe solo los 6 JSON nuevos y se commitean. Nunca toca los 9 de build_fixtures.mjs: volver a
+// ejecutar aquel los reescribiría con los datos del día, y las pruebas fijan los del 23/09/2026
+// (health.json cambia a diario). Las pruebas leen solo los JSON (load.mjs).
 //
 // Lee los data-*.js con node:vm, como build_fixtures.mjs. Aquel no exporta sus ayudantes y, al
 // importarse, se ejecutaría entero y reescribiría sus 9 JSON: por eso loadDataGlobals y subset se
 // repiten aquí, y su pick pasa a ser inSourceOrder, que respeta el orden de la fuente. Lee además
-// tres JSON de B1 para contrastar (historical-2024-2025, lineups-2025-2026 y phases). Solo escribe
-// en esta carpeta.
+// tres JSON de build_fixtures.mjs para contrastar (historical-2024-2025, lineups-2025-2026 y
+// phases). Solo escribe en esta carpeta.
 import { readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -20,7 +20,7 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, '..', '..', '..', '..');
 
 const SEASON = '2025-2026';
-// Los grupos de current-2025-2026.json (B1): sus goleadores (PFV2 no los publica).
+// Los grupos de current-2025-2026.json: sus goleadores (PFV2 no los publica).
 const CURRENT = { benjamin: ['A1', 'A2', 'B1', 'B2', 'FF5', 'FF9', 'FF13', 'FF15'], prebenjamin: ['PG2', 'PG3', 'PFV2'] };
 // Copa de Campeones 2025-26: los grupos de data-benjamin.js y data-prebenjamin.js y su HISTORY.
 const CHAMPIONS = { benjamin: ['BCA1', 'BCB1', 'BCC1'], prebenjamin: ['PCC1'] };
@@ -35,7 +35,7 @@ const ARCHIVE = {
 const LINEUP_GROUP = 'FF1';
 // Las dos copas de la Maspalomas que no trae cups-2025-2026.json.
 const CUPS_EXTRA = { benjamin: ['MCBK1'], prebenjamin: ['MCPK2'] };
-// Los únicos ficheros que escribe; los 9 de B1 quedan fuera por construcción.
+// Los únicos ficheros que escribe; los 9 de build_fixtures.mjs quedan fuera por construcción.
 const OUTPUTS = ['gol-2025-2026', 'campeones-2025-2026', 'historical-2023-2024', 'historical-2024-2025-b3',
   'lineups-2025-2026-ff1', 'cups-extra-2025-2026'];
 
@@ -145,7 +145,7 @@ for (const spec of Object.values(archives)) {
   }
 }
 
-// 4. Actas de FF1 (por su etiqueta (s, gr)); ninguna clave choca con las de A1 de B1.
+// 4. Actas de FF1 (por su etiqueta (s, gr)); ninguna clave choca con las de A1.
 const a1 = readFixture('lineups-2025-2026');
 const ff1Keys = new Set(Object.values(D.HISTORY[LINEUP_GROUP] || {}).flat().map(matchKey));
 const ff1 = subset(D.LINEUPS_2025_2026, (_key, value) => entriesOf(value).some(e => e.s === SEASON && e.gr === LINEUP_GROUP));

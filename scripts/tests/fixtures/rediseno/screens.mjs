@@ -1,4 +1,4 @@
-// Contexto de pantalla (ctx del esqueleto de B2) con las fixtures congeladas, para probar
+// Contexto de pantalla (ctx) con las fixtures congeladas, para probar
 // render(ctx) en Node. Nunca lee los data-*.js ni src/config.js vivos: la temporada del portal
 // y el equipo por defecto van aquí, fijos.
 import { readFileSync } from 'node:fs';
@@ -17,8 +17,8 @@ export const MY_TEAM = { name: 'Las Mesas Hu.', season: PORTAL_SEASON, cat: 'pre
 // El equipo por defecto con la forma de PORTAL.defaultTeam (config.js), sin temporada.
 export const DEFAULT_TEAM = { cat: 'prebenjamin', groupId: 'PG2', name: 'Las Mesas Hu.' };
 
-// Registro de datos con la forma de readGlobals() más lo perezoso (esqueleto de B2): el de
-// datasetsFrom (Tarea 3) con SEASONS, data-health y lo que se pida (B3, Tarea 2):
+// Registro de datos con la forma de readGlobals() más lo perezoso: el de
+// datasetsFrom con SEASONS, data-health y lo que se pida:
 // - current: el crudo de la temporada actual (la fixture, currentAt(...) o withChampions(...));
 // - golBenj y golPrebenj: los goleadores; los congelados, con ...goleadores() de simulate.mjs;
 // - seasonRaw: las temporadas pasadas ya cargadas, { [name]: archive(name) o pastSeasonRaw() };
@@ -52,7 +52,7 @@ export function pastSeasonRaw() {
   return { name: raw.season, current: false, benjamin: raw.benjamin, prebenjamin: raw.prebenjamin };
 }
 
-// El ctx de una pantalla, el mismo que le da la app (decisión 109; M1 de la revisión final de B2):
+// El ctx de una pantalla, el mismo que le da la app:
 // startContext de app.js, que comparte contextFor con start (el modelo, mi equipo resuelto con
 // resolveMyTeam sobre la temporada del portal, el hoy inyectado, health y legacyDate), desde un
 // almacén con `myTeam` guardado (null: el almacén vacío, que da el equipo por defecto), más lo que
@@ -63,7 +63,7 @@ export function pastSeasonRaw() {
 // - backHref, el «‹» del router: parentOf con el modelo del ctx.
 // portalSeason cambia la temporada del portal (2026/27 simulada) y legacyDate, el literal oculto
 // «Última actualización» de index.html. recent son los vistos hace poco guardados con `myTeam`
-// ([{ s, g, t }], que llegan a ctx.recent; decisión 5 de B3); con myTeam null, el almacén vacío.
+// ([{ s, g, t }], que llegan a ctx.recent); con myTeam null, el almacén vacío.
 export function ctxFor(screen, params, {
   today = '2026-09-24', datasets = datasetsFor(), myTeam = MY_TEAM, recent = [], portalSeason = PORTAL_SEASON,
   legacyDate = null, lastPrimary = null,

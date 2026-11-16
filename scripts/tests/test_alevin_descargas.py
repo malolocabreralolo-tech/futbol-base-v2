@@ -55,7 +55,7 @@ def test_tanda_22al_is_only_the_alevin_fase_previa_of_gran_canaria(monkeypatch):
 
 
 def test_tanda_22_can_fetch_fuerteventura_benjamin_alone(monkeypatch):
-    """La 1.ª Fase benjamín de Fuerteventura (54977017) apareció en el catálogo después del raw del 3/10:
+    """La 1.ª Fase benjamín de Fuerteventura (54977017) puede aparecer en el catálogo después del raw:
     con SCRAPE_IDS se baja sola y se añade al mismo raw (el scraper reanuda por grupo)."""
     I = islas(monkeypatch, "22", ids="54977017")
     assert I.F.OUTPUT_PATH.endswith("scripts/fiflp_islas_22_raw.json")
@@ -75,7 +75,7 @@ def test_an_unknown_tanda_still_stops(monkeypatch):
         islas(monkeypatch, "23al")
 
 
-# ── La descarga de activar.yml: grupo a grupo y con plazo (fase 2D, tarea 3) ──
+# ── La descarga de activar.yml: grupo a grupo y con plazo ──
 
 def raw_group(comp, group, jornadas=1):
     return {"competition_id": comp, "group_id": group, "group_name": f"GRUPO {group}", "standings": [],

@@ -1,15 +1,15 @@
-// PWA smoke (spec §5.5 y §11): el paso de la app anterior al rediseño, con el service worker de verdad.
-// La versión anterior es la app de main 31a15b8 con su sw.js (scripts/tests/fixtures/app-anterior),
+// PWA smoke: el paso de la app anterior al rediseño, con el service worker de verdad.
+// La versión anterior es la app guardada en scripts/tests/fixtures/app-anterior, con su sw.js,
 // con los nombres de caché de v2: hace de una versión anterior de la propia v2, cuyas cachés limpia v2;
-// después se publica el árbol de trabajo con las marcas de versión subidas, como el despliegue de B4 y
-// B5. Las dos versiones reciben los mismos datos y el mismo src/config.js, congelados: los de las
-// fixtures de B1 (23/09/2026), nunca los data-*.js vivos, que cambian con el bot y al activar 2026/27.
+// después se publica el árbol de trabajo con las marcas de versión subidas, como un despliegue.
+// Las dos versiones reciben los mismos datos y el mismo src/config.js, congelados: los de las
+// fixtures (23/09/2026), nunca los data-*.js vivos, que cambian con el bot y al activar 2026/27.
 // El SW anterior sirve los .js de src/ con stale-while-revalidate y los .css con cache-first, los dos
-// ignorando la ?v= (A1 de la revisión):
+// ignorando la ?v=:
 //  - la hoja nueva va en otra URL, la de dist/ (con su huella en el nombre), que su caché no tiene;
-//  - y el módulo, también en dist/: el index.html nuevo no mezcla nada con lo de la caché anterior (desde
-//    la fase 3 ya no limpia cachés al arrancar: el SW nuevo instala por contenido, con huellas).
-// Desde la fase 3, el SW instala por contenido (con huellas) y la página va de la red primero: los
+//  - y el módulo, también en dist/: el index.html nuevo no mezcla nada con lo de la caché anterior (el
+//    SW nuevo no limpia cachés al arrancar: instala por contenido, con huellas).
+// El SW instala por contenido (con huellas) y la página va de la red primero: los
 // servidores de esta prueba vuelven a sellar el sw.js que sirven con las huellas de lo que sirven
 // (resellar). Lo que una subida de datos del bot tiene que dar (la primera apertura con los datos nuevos,
 // una actualización a medias, la página abierta que se pone al día) está en frescura-smoke.mjs.
@@ -19,9 +19,9 @@
 // en la 1.ª falló la actualización en segundo plano de app.js y state.js. Sin conexión entre la 1.ª y
 // la 2.ª, el index.html nuevo no encuentra ni la hoja ni los módulos: el aviso con «Reintentar», que
 // con conexión abre la app nueva. Con el SW nuevo activo, la app nueva funciona sin conexión: la
-// portada, Jornada y el buscador de Explorar (B3), con los datos precacheados.
+// portada, Jornada y el buscador de Explorar, con los datos precacheados.
 // Después, un segundo escenario: un despliegue de código sobre el SW de la propia rama (codeDeploy).
-// En los dos, ni la app nueva ni su SW piden los datos que B4 retiró (decisión 3 de B4). Y un tercero:
+// En los dos, ni la app nueva ni su SW piden los datos retirados. Y un tercero:
 // sin conexión tras una subida de datos del bot, los escudos ya vistos siguen ahí (dataDeploy).
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
@@ -46,7 +46,7 @@ const ANTERIOR = copiaDeLaWeb('pwa-anterior-', { origen: ANTERIOR_DIR, entradas:
 const SITE = WEB.dir;
 const PREVIOUS = ANTERIOR.dir;
 process.on('exit', () => { WEB.limpiar(); ANTERIOR.limpiar(); });
-// La portada del rediseño, en cualquier estado (spec §11), y la de la app anterior.
+// La portada del rediseño, en cualquier estado, y la de la app anterior.
 const HOME = 'section[data-screen="home"][data-state]';
 const OLD_HOME = '.me-hero';
 const read = (dir, file) => {
@@ -76,8 +76,8 @@ const resellar = (sw, contenido) => sw.replace(/^ {2}"([^"]+)": "[0-9a-f]{8}",$/
 // SW nuevo pide a la red, sin query: el navegador la revalida).
 const fresca = (url, req) => url.searchParams.has('v') || url.searchParams.has('h') || /no-cache/.test(req.headers['cache-control'] || '');
 
-// Los datos y la configuración de las dos versiones, congelados (R2-2 de la revisión adversarial): las
-// fixtures de B1, el día de los datos de hoy (23/09/2026), y el config.js de la app anterior (2025/26,
+// Los datos y la configuración de las dos versiones, congelados: las
+// fixtures, el día de los datos de hoy (23/09/2026), y el config.js de la app anterior (2025/26,
 // con Las Mesas en PG2). Lo que las fixtures no traen, vacío: las temporadas archivadas, que el SW
 // anterior precachea todas, las fichas de jugadores, que la app anterior pide para su portada, y las
 // actas de temporada entera de otra temporada, que pedía la app anterior. Las actas de un grupo sin
@@ -105,7 +105,7 @@ const FROZEN = (() => {
     // El alevín (contrato común de alevín, punto 4): perezoso, fuera de index.html; el SW nuevo lo guarda
     // al instalarse (opcional del precache) y Explorar lo enseña sin conexión. La app anterior nunca lo pide.
     'data-alevin.js': { type: 'text/javascript', body: dataFile(alevinRaw({ season: '2025-2026', today: '2026-09-23' })) },
-    // Solo para la app anterior: su index.html los nombra y su SW los precachea (B4 los retiró).
+    // Solo para la app anterior: su index.html los nombra y su SW los precachea (la web nueva ya no los usa).
     'data-matchdetail-keys.js': js([['MATCH_DETAIL_KEYS', {}]]),
     'data-stats.js': js([['STATS', {}]]),
   };
@@ -122,7 +122,7 @@ function frozen(file) {
 // portada pide las de mi equipo tras pintarse (fillSquad), y las de PG2 no existen.
 const NO_LINEUPS = /^data-lineups-\d{4}-\d{4}-[A-Za-z0-9]+\.js$/;
 
-// Los datos que B4 retiró (decisiones 1 y 3 de B4). Solo los pide la app anterior (su index.html los
+// Los datos retirados. Solo los pide la app anterior (su index.html los
 // nombra, su SW los precachea y su portada pide las fichas de jugadores), y el mundo se los sigue
 // sirviendo; la app nueva y su SW, nunca. Cada petición se apunta con su ?v=: las del SW nuevo, y las
 // de la app nueva con él al mando, llevan la versión publicada.
@@ -209,7 +209,7 @@ const proxy = createServer(async (req, res) => {
 await new Promise((resolve) => proxy.listen(0, '127.0.0.1', resolve));
 const base = `http://127.0.0.1:${proxy.address().port}/index.html`;
 
-// ── 2. Despliegue de código sobre el SW de la rama (A1 de la revisión del plan B3; decisión 157) ──
+// ── 2. Despliegue de código sobre el SW de la rama ──
 // La versión «a» es el árbol publicado como 20991231a, instalada y con su SW al mando. Se publica «b»
 // (20991231b) con otro paquete en dist/, como lo dejaría scripts/codigo.py: el módulo marca la página
 // (data-codigo="b"), la hoja lleva una marca (--version-codigo: "b"), los dos con su huella nueva en el
@@ -360,8 +360,8 @@ async function codeDeploy(browser) {
     //    herramienta de pruebas conectada a los SW (Playwright), vuelve a arrancar el de «a» y no activa
     //    «b» (skipWaiting) mientras esa página siga abierta. En CI le pasaba a la página de espera con su
     //    favicon.ico, en 1 de cada 3 pasadas; en local, con la petición lanzada a propósito, 3 de 3, con
-    //    Chrome 150 y con 153. Sin DevTools en los SW no pasa (0 de 30 en la revisión final de la parte
-    //    II): no lo ven los usuarios. Y en cualquier caso cada apertura es entera de una versión (CODIGO).
+    //    Chrome 150 y con 153. Sin DevTools en los SW no pasa (0 de 30): no lo ven los usuarios. Y en
+    //    cualquier caso cada apertura es entera de una versión (CODIGO).
     //  - Así que la carrera se provoca a propósito, con una página que se cierra después, y se espera
     //    como quien abre la app y la cierra: una página nueva en cada vuelta, que se cierra en seguida.
     //  - La página es manifest.json, que el SW sirve de la red sin guardar nada: ninguna revalidación
@@ -407,11 +407,11 @@ async function codeDeploy(browser) {
   }
 }
 
-// ── 3. Sin conexión tras una subida de datos del bot (decisiones 1 y 2 de B5) ───────────────────────
+// ── 3. Sin conexión tras una subida de datos del bot ───────────────────────
 // Cada subida de datos del bot cambia CACHE_NAME, y el SW nuevo, al activarse, borra la caché anterior.
-// Los escudos se guardan según se usan (cache-first, §5.5) y antes iban en esa caché: se iban con ella,
-// y la primera apertura sin red tras cada subida pintaba monogramas. Ahora van en la suya, CRESTS_CACHE,
-// con el sello de escudos/, que solo cambia con un escudo:
+// Los escudos se guardan según se usan (cache-first) y van aparte, en CRESTS_CACHE, con el sello de
+// escudos/, que solo cambia con un escudo: si fueran en la caché de los datos, se irían con ella y la
+// primera apertura sin red tras cada subida pintaría monogramas:
 //  - «a» (el árbol publicado como 20991231a) instalada, y una apertura de la ficha de Unión Viera (A1)
 //    con su SW al mando, que guarda sus escudos;
 //  - se publica «b», solo datos (sube CACHE_NAME; escudos/ igual): su SW toma el mando (takeOver) y
@@ -609,7 +609,7 @@ try {
   failing.clear();
 
   // 3. Sin conexión, con el SW anterior al mando y el index.html nuevo en su caché, que no tiene ni
-  // la hoja ni el paquete nuevos: el aviso con «Reintentar», nunca «Cargando…» sin más (R2-3).
+  // la hoja ni el paquete nuevos: el aviso con «Reintentar», nunca «Cargando…» sin más.
   await context.setOffline(true);
   await page.reload();
   const notice = page.locator('#contenido [role="alert"]');
@@ -671,7 +671,7 @@ try {
   assert.match(await page.locator(HOME).getAttribute('data-state'), /^[ABCD]$/);
   assert.equal(await page.locator('h1').count(), 1);
   // Su plantilla, sin las actas de PG2 (no existen): sin conexión, un vacío tranquilo, nunca la caja de
-  // error (fillSquad, D4 del 04/10/2026).
+  // error (fillSquad).
   await waitForAsync(page, () => !document.querySelector('#contenido [data-slot]'), null, { label: 'sin conexión, la plantilla de la portada' });
   assert.equal(await page.locator('#contenido .error-box').count(), 0, 'la portada sin conexión: sin cajas de error');
   if (await page.locator('#plantilla').count()) {
@@ -682,14 +682,14 @@ try {
   for (const path of ['/fonts/PublicSans-latin.woff2', '/icons/icon-192.png', `/${ORIGEN.app}`, `/${ORIGEN.css}`, '/src/config.js', '/data-alevin.js']) {
     assert.ok(precached.includes(path), `${path} is not precached`);
   }
-  // La cabecera avisa de que no hay conexión (spec §4.10).
+  // La cabecera avisa de que no hay conexión.
   await waitForAsync(page, () => document.querySelector('.shell-offline')?.textContent.startsWith('Sin conexión.'));
   // Jornada, por la barra, también sin conexión: su módulo y los datos inmediatos están en caché.
   await page.locator('.tabbar a.tab[href="#/jornada"]').click();
   await page.locator('#contenido section[data-screen="jornada"]').waitFor();
   assert.equal(await page.locator('#contenido section[data-screen="jornada"][data-state="error"]').count(), 0);
   assert.equal(await page.locator('#contenido h1').textContent(), 'Jornada');
-  // Explorar, por la barra, también sin conexión (B3): el buscador filtra con los datos precacheados.
+  // Explorar, por la barra, también sin conexión: el buscador filtra con los datos precacheados.
   await page.locator('.tabbar a.tab[href="#/explorar"]').click();
   await page.locator('#contenido section[data-screen="explorar"]').waitFor();
   assert.equal(await page.locator('#contenido h1').textContent(), 'Explorar');
@@ -701,7 +701,7 @@ try {
   assert.deepEqual(await page.locator('#contenido h3.link-head').allTextContents(), ['Benjamín', 'Prebenjamín', 'Alevín'], 'Explorar sin conexión, con alevín');
   assert.equal(await page.locator('#contenido .partial-box').count(), 0, 'Explorar sin conexión: alevín, sin aviso');
   assert.deepEqual(errors, []);
-  // Los datos retirados (decisión 3 de B4): la app anterior los pide y el mundo se los da; ni el SW
+  // Los datos retirados: la app anterior los pide y el mundo se los da; ni el SW
   // nuevo ni la app nueva con él al mando piden ninguno (llevarían la versión publicada).
   assert.ok(retiredAsked.some((asked) => asked.endsWith(`?v=${OLD_VERSION}`)), `la app anterior pide sus datos: ${JSON.stringify(retiredAsked)}`);
   assert.deepEqual(retiredAsked.filter((asked) => asked.endsWith(`?v=${PUBLISHED}`)), [], 'la app nueva pide datos retirados');

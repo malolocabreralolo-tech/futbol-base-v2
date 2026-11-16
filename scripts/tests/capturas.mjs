@@ -1,9 +1,9 @@
-// Capturas para el usuario (spec §11, verificación visual antes de publicar): cada pantalla de B2 y
-// los estados A, B, C, D, E y X de la portada, más error, vacío y sin conexión, y las de B3 (la ficha
+// Capturas para el usuario (verificación visual antes de publicar): cada pantalla de la web y
+// los estados A, B, C, D, E y X de la portada, más error, vacío y sin conexión; la ficha
 // en A y en D con su plantilla y su trayectoria abiertas, Explorar con resultados, Ligas con
 // «Comparar grupos» abierto, el cuadro y la liguilla de Copa, Goleadores, Récords, Temporadas, Fuentes
-// y Ajustes), y la portada con la plantilla y la trayectoria abiertas (Guayarmina en A1, desde el
-// 04/10/2026), y las de alevín (mundo L), a 390 px en claro y en oscuro y a 1440 px en claro. Salen de los mundos de fixtures de
+// y Ajustes; la portada con la plantilla y la trayectoria abiertas (Guayarmina en A1); y las
+// de alevín (mundo L), a 390 px en claro y en oscuro y a 1440 px en claro. Salen de los mundos de fixtures de
 // fixture-site.mjs (datos congelados y reloj fijado), así que no dependen del día. Cada captura es la
 // pantalla entera: la ventana crece hasta el alto de la página, con la barra en su sitio.
 // Uso, desde la raíz del repo: OUT=<directorio> node scripts/tests/capturas.mjs
@@ -47,14 +47,14 @@ const SHOTS = [
   ['partido-acta', 'D', PARTIDO_ACTA, ['partido', null]],
   // Error: la temporada 2023-24 no llega (503) → la caja de error de la pantalla, con «Reintentar».
   ['error', 'D', '#/tabla?s=2023-2024', ['tabla', 'error'], { fail: ['data-season-2023-2024.js'] }],
-  // Vacío: un partido sin cronología ni acta (spec §4.5 y caso 7 de §11).
+  // Vacío: un partido sin cronología ni acta.
   ['vacio', 'D', PARTIDO_J30, ['partido', null]],
-  // Sin conexión: el aviso de la cabecera con la fecha de data-health (spec §4.10).
+  // Sin conexión: el aviso de la cabecera con la fecha de data-health.
   ['sin-conexion', 'D', '#/', ['home', 'D'], { offline: true }],
-  // B3: la ficha a mitad de temporada (A) y terminada (D), con la plantilla y la trayectoria abiertas.
+  // La ficha a mitad de temporada (A) y terminada (D), con la plantilla y la trayectoria abiertas.
   ['equipo-A', 'A', GUAYARMINA, ['equipo', 'A'], { act: OPEN_SQUAD_AND_TRAJECTORY }],
   ['equipo-D', 'D', GUAYARMINA, ['equipo', 'D'], { act: OPEN_SQUAD_AND_TRAJECTORY }],
-  // Mi equipo con todo lo de la ficha (04/10/2026): la portada de Guayarmina (A1, con actas) terminada,
+  // Mi equipo con todo lo de la ficha: la portada de Guayarmina (A1, con actas) terminada,
   // con su plantilla y su trayectoria abiertas.
   ['portada-plantilla', 'D', '#/', ['home', 'D'], {
     myTeam: { name: 'Guayarmina', season: '2025-2026', cat: 'benjamin', groupId: 'A1' }, act: OPEN_SQUAD_AND_TRAJECTORY,

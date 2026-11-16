@@ -121,7 +121,7 @@ def test_an_alevin_league_of_the_app_does_not_match_the_ff_group_with_the_same_c
 def test_with_both_groups_each_league_of_the_app_goes_to_its_category():
     from import_fp_app import match_liga
     conn = base(alevin_group=True)
-    # Antes, FF1 y AL1 empataban (mismos equipos) y la liga de benjamín se quedaba sin grupo.
+    # FF1 y AL1 tienen los mismos equipos: cada liga de la app va a su categoría y la de benjamín no se queda sin grupo.
     assert match_liga(conn, 1, liga("Liga Benjamín Gran Canaria Grupo 1")) == 1
     assert match_liga(conn, 1, liga("Liga Alevin Gran Canaria Grupo 5")) == 2
     assert match_liga(conn, 1, liga("Alevin eliminatorias Grupo 1")) == 2

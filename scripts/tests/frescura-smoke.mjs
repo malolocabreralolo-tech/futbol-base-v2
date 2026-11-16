@@ -1,4 +1,4 @@
-// Frescura (fase 3, O6): con el service worker de verdad en un Chrome de verdad, tras una subida de datos la
+// Frescura: con el service worker de verdad en un Chrome de verdad, tras una subida de datos la
 // primera apertura enseña los datos nuevos, una actualización a medias nunca deja la app sin abrir sin
 // conexión y la página abierta se pone al día sola.
 //
@@ -292,7 +292,7 @@ async function instalacionFallida(caso, page, ruta, label) {
 // Con la herramienta de pruebas conectada a los service workers (Playwright se conecta a cada uno), Chrome
 // puede no activar el SW nuevo (aunque llame a skipWaiting) si el anterior está atendiendo peticiones de
 // una página abierta justo cuando el nuevo acaba de instalarse: se queda esperando hasta que esa página se
-// cierra (lo apunta también pwa-smoke.mjs, codeDeploy). Medido en la revisión final de la parte II: 6 de 20
+// cierra (lo apunta también pwa-smoke.mjs, codeDeploy). Medido: 6 de 20
 // pasadas con Playwright, 0 de 30 en Chrome sin DevTools en los SW; no es algo que vean los usuarios. Y si
 // lo activa en mitad de la carga de una página, alguna petición de esa carga puede salir con la copia
 // anterior, que se arregla sola en la apertura siguiente. Para que los casos que miran la página abierta no
@@ -429,7 +429,7 @@ const CASOS = [
     await o.page.locator('#contenido section[data-screen="tabla"]').waitFor();
     const version = publicar(caso, PUNTOS_0 + 1);
     // Vuelve a primer plano y, mientras el SW nuevo se instala (retenido), vuelve a Mi equipo: la ha tocado
-    // desde que volvió (volver pone «tocada» a cero: decisiones de la parte II).
+    // desde que volvió (volver pone «tocada» a cero).
     await conInstalacionRetenida(caso, async () => {
       await o.page.evaluate(() => document.dispatchEvent(new Event('visibilitychange')));
       await esperar(() => caso.red.retenidas.length > 0, { label: `${caso.nombre}: el SW nuevo no empezó a instalarse` });

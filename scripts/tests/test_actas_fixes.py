@@ -107,8 +107,8 @@ def _add_acta_children(conn, mid, team_id, player="PEREZ, JUAN", staff=True):
 # ===========================================================================
 
 def test_reconcile_rejects_single_candidate_with_contradictory_header(tmp_path):
-    """Repro from the review: header date 01/01/1999 and score 99-99 matched a
-    real 2025-11-29 19-0 game just because the names matched uniquely."""
+    """A header date 01/01/1999 and score 99-99 matched a
+    real 2025-11-29 19-0 game must not be matched just because the names matched uniquely."""
     conn = _mk_db(tmp_path)
     _seed_match(conn)  # Unión Viera 19-0 CD Goleta, 2025-11-29
     header = {

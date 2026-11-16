@@ -8,7 +8,7 @@ import { createRequire } from 'node:module';
 import { useWorld } from './fixture-site.mjs';
 
 /**
- * Render smoke test for the futbol-base SPA (rediseño «Acta», spec §11).
+ * Render smoke test for the futbol-base SPA (rediseño «Acta»).
  *
  * `checkRenderedDom(dom, { teamName })` is a pure assertion over the serialized DOM of index.html
  * AFTER its JS ran. Its markers do not depend on the moment of the season, so it does not turn
@@ -22,7 +22,7 @@ import { useWorld } from './fixture-site.mjs';
  * Run directly (`node scripts/tests/render-smoke.mjs`) to exercise the real
  * browser harness; in CI it gates. The real data run with Chrome --dump-dom (node:* only); then
  * the D state runs in the browser over the frozen fixtures (fixture-site.mjs, world D: 23/09/2026,
- * data-health with 2026/27 pending) with the page clock fixed by Playwright (spec §11).
+ * data-health with 2026/27 pending) with the page clock fixed by Playwright.
  */
 
 const ENTITIES = { '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"', '&#39;': "'" };
@@ -130,7 +130,7 @@ function runChrome(bin, args, ms) {
   });
 }
 
-// Estado D en el navegador (spec §11): el mundo D de fixture-site.mjs, con los datos congelados,
+// Estado D en el navegador: el mundo D de fixture-site.mjs, con los datos congelados,
 // data-health con 2026/27 pendiente y el reloj de la página fijado en el 23/09/2026. Devuelve la
 // lista de fallos ([] si todo está bien).
 async function fixtureStateD(chrome, port) {
@@ -153,9 +153,8 @@ async function fixtureStateD(chrome, port) {
     const titles = [...dom.matchAll(/<h2 class="block-title">([^<]*)<\/h2>/g)].map((m) => m[1]);
     const wanted = ['Temporada 2026/27', 'Así terminó 2025/26', 'Verano: Maspalomas Cup 2026', 'Clasificación final',
       'Trayectoria', 'Calendario'];
-    // La evolución de puntos ya no existe (19/10/2026), y con la temporada terminada no hay nada que
-    // pronosticar: ni el bloque del pronóstico de la clasificación final de la primera versión, que ya no
-    // existe, ni su cifra («Pronóstico final», proj-figure), que desde ese día lo sustituye.
+    // Con la temporada terminada no hay nada que pronosticar: ni la evolución de puntos, ni el bloque
+    // del pronóstico de la clasificación final, ni su cifra («Pronóstico final», proj-figure).
     const unwanted = ['Evolución de puntos', 'Pronóstico de la clasificación final'];
     return [
       ...failures,
@@ -200,7 +199,7 @@ async function main() {
       process.exit(0);
     }
 
-    // Con el almacén vacío, la portada es la del equipo por defecto (spec §4.2).
+    // Con el almacén vacío, la portada es la del equipo por defecto.
     const { PORTAL } = await import(pathToFileURL(join(ROOT, 'src', 'config.js')).href);
     const { ok, failures, state } = checkRenderedDom(dom, { teamName: PORTAL.defaultTeam.name });
     if (ok) {

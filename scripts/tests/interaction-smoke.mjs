@@ -8,24 +8,24 @@ import { useWorld, STORE_KEY } from './fixture-site.mjs';
 // node scripts/tests/interaction-smoke.mjs
 // Uses the installed Chrome (or CHROME=/absolute/path), like render-smoke.
 //
-// Escenarios de spec §11 a 320, 390, 768 y 1440 px, en claro y en oscuro (prefers-color-scheme
+// Escenarios a 320, 390, 768 y 1440 px, en claro y en oscuro (prefers-color-scheme
 // emulado), sobre el mundo de fixtures A de fixture-site.mjs: 01/03/2026, Las Mesas Hu. en PG2 a
 // mitad de temporada (la jornada por defecto es la 17, la del primer partido pendiente), con los
 // datos congelados y el reloj fijado.
-// De B2:
+// Navegación:
 // - la barra con 4 destinos y su aria-current, sin tapar el contenido;
 // - jornada anterior y siguiente, sin entradas nuevas en el historial y con el foco en el control
-//   pulsado; al cambiar de pantalla, en el h1 (B11 de la revisión);
+//   pulsado; al cambiar de pantalla, en el h1;
 // - las vistas de Tabla: cinco en móvil y tableta, y Todas, Casa y Fuera en escritorio, con el foco
 //   en el segmento pulsado;
 // - abrir un partido y volver con Atrás; entrar por enlace directo (el 8–1) y volver con «‹»;
 // - traducir un enlace antiguo de WhatsApp, con su temporada y sin entrada nueva;
-// - «Otras ligas» → Ligas → Tabla (B3, Tarea 7): las ligas de su categoría y su isla, los grupos de la
+// - «Otras ligas» → Ligas → Tabla: las ligas de su categoría y su isla, los grupos de la
 //   elegida y la Tabla del grupo, con Tabla marcada en la barra.
-// De la navegación entre grupos (simplificada el 14/10/2026): la tira de grupos sin entrada nueva y con el
+// Navegación entre grupos: la tira de grupos sin entrada nueva y con el
 // foco en la ficha, la barra que conserva el grupo que se mira (y vuelve a la de siempre en el mío),
 // «Todos» y «Mi grupo» sin entradas nuevas, y Atrás, a donde se estaba antes de recorrer grupos.
-// De B3 (Tarea 12):
+// Fichas y pantallas nuevas:
 // - buscar un equipo desde «Cambiar», sin una entrada por letra, abrir su ficha y comprobar que mi
 //   equipo no cambia: la portada sigue siendo la de Las Mesas Hu.;
 // - las pantallas nuevas (la ficha con su plantilla y su trayectoria, «Comparar grupos», Copa,
@@ -33,16 +33,16 @@ import { useWorld, STORE_KEY } from './fixture-site.mjs';
 //   copa se desliza dentro de su caja y la página no;
 // - «Hacer mi equipo» desde la ficha: se guarda en fb2:almacen y, al recargar, la portada es la
 //   del equipo nuevo.
-// Y una vez, en el mundo E (§11, caso 3): la respuesta a la pregunta se guarda y, al recargar, la
+// Y una vez, en el mundo E: la respuesta a la pregunta se guarda y, al recargar, la
 // portada es la de ese equipo, sin preguntar.
-// De B5: una vez, a 390 px, el «Reintentar» de la Plantilla, los Goles y las Alineaciones (un 503 y
-// luego 200): cada bloque se pinta en su sitio, sin volver arriba (decisión 3); y el paso del
-// esqueleto a la ficha de Equipo de una temporada pasada, sin desplazar lo de arriba (decisión 4).
-// Y lo que faltaba (decisión 7): Intro en los buscadores de Explorar y de Goleadores (ni recarga ni
+// Errores y esqueleto: una vez, a 390 px, el «Reintentar» de la Plantilla, los Goles y las Alineaciones (un 503 y
+// luego 200): cada bloque se pinta en su sitio, sin volver arriba; y el paso del
+// esqueleto a la ficha de Equipo de una temporada pasada, sin desplazar lo de arriba.
+// Intro en los buscadores de Explorar y de Goleadores (ni recarga ni
 // cambia la dirección) y la portada en B, C, D, E y X a 320 px.
-// De Mi equipo con todo lo de la ficha (04/10/2026): el calendario completo de la portada a todos los
+// Mi equipo con todo lo de la ficha: el calendario completo de la portada a todos los
 // anchos (al final en móvil, a la izquierda en escritorio) y, una vez a 390 px, su plantilla sin
-// bloquearla, con su «Reintentar» y sin conexión (homeSquad). De la revisión: «calendario completo»
+// bloquearla, con su «Reintentar» y sin conexión (homeSquad). Además: «calendario completo»
 // deja el título y el .ics a la vista, el «Reintentar» de la trayectoria deja el foco en su título y el
 // hueco de la plantilla no mueve el calendario que se mira (squadShift). Cada clic, espera de
 // localizador y navegación lleva su etiqueta (labeled).
@@ -53,13 +53,13 @@ const chrome = findChrome();
 assert.ok(chrome, 'Chrome is required for the interaction smoke test');
 const server = await startServer();
 const base = `http://127.0.0.1:${server.address().port}/index.html`;
-const PAPER = { light: 'rgb(255, 255, 255)', dark: 'rgb(21, 23, 28)' };   // --paper de cada tema (spec §3.1)
+const PAPER = { light: 'rgb(255, 255, 255)', dark: 'rgb(21, 23, 28)' };   // --paper de cada tema
 // PG2, jornada 15 (12/02/2026): AD Huracán 8–1 Las Mesas Hu.
 const DIRECT = '#/partido?s=2025-2026&g=PG2&r=Jornada%2015&h=AD%20Hurac%C3%A1n&a=Las%20Mesas%20Hu.';
 const LEGACY = '#section=jornadas&cat=prebenjamin&season=2025-2026&group=PG2&round=Jornada+15';
 // El id de cada vista de la Tabla, en el selector de móvil y en el de escritorio (B11).
 const VIEW_ID = { Puntos: 'puntos', Goles: 'goles', Forma: 'forma', Casa: 'casa', Fuera: 'fuera', Todas: 'todas' };
-// Columnas visibles de la Tabla en cada vista (spec §4.4).
+// Columnas visibles de la Tabla en cada vista.
 const HEADS = {
   Puntos: '#,Equipo,J,G,E,P,DG,Pts', Goles: '#,Equipo,GF,GC,DG,Pts', Forma: '#,Equipo,J,Últimos 5,Pts',
   Casa: '#,Equipo,J,G,E,P,Pts', Fuera: '#,Equipo,J,G,E,P,Pts', Todas: '#,Equipo,J,G,E,P,GF,GC,DG,Últimos 5,Pts',
@@ -70,7 +70,7 @@ const LAS_MESAS = { name: 'Las Mesas Hu.', season: '2025-2026', cat: 'prebenjami
 const AD_HURACAN = { name: 'AD Huracán', season: '2025-2026', cat: 'prebenjamin', groupId: 'PG2' };
 // Guayarmina, en A1: el único grupo de liga de las fixtures con actas (la plantilla de la portada).
 const GUAYARMINA = { name: 'Guayarmina', season: '2025-2026', cat: 'benjamin', groupId: 'A1' };
-// Las pantallas de B3 que se miden sin desplazamiento horizontal (Explorar, la ficha de AD Huracán y
+// Las pantallas nuevas que se miden sin desplazamiento horizontal (Explorar, la ficha de AD Huracán y
 // Ligas, en sus propios pasos): [ruta, pantalla, lo que se despliega antes: [botón, lo que aparece]].
 const B3_SCREENS = [
   ['#/equipo?s=2025-2026&g=A1&t=Guayarmina', 'equipo', [
@@ -105,7 +105,7 @@ const snapshot = (page) => page.evaluate(() => {
 });
 
 // Espera a que esté pintada la pantalla `screen` (con ese hash y esa jornada, si se dan). `label`: el
-// escenario, el ancho y el tema, para el mensaje si se agota la espera (Para B3, punto 21).
+// escenario, el ancho y el tema, para el mensaje si se agota la espera.
 async function paintedAs(page, screen, { hash = null, round = null, label }) {
   await waitForAsync(page, ([s, h, r]) => {
     const section = document.querySelector('#contenido section[data-screen]');
@@ -144,7 +144,7 @@ async function checkLayout(page, width, label) {
   return m;
 }
 
-// La plantilla de la portada llega después del pintado (fillSquad, D4 del 04/10/2026): antes de medir
+// La plantilla de la portada llega después del pintado (fillSquad): antes de medir
 // la portada, su hueco se resuelve (en PG2, sin actas, un 404 que lo quita).
 const squadSettled = (page, label) => waitForAsync(page, () => !document.querySelector('#contenido [data-slot]'), null,
   { label: `${label}: la plantilla de la portada` });
@@ -196,7 +196,7 @@ async function scenarios(viewport, colorScheme) {
     assert.deepEqual(s.tabs, ['#/ page'], label);
     await squadSettled(page, `${label}, portada`);
     assert.equal((await checkLayout(page, viewport.width, `${label}, portada`)).paper, PAPER[colorScheme], `${label}: fondo del tema`);
-    // El calendario completo (spec §4.8), a todos los anchos y en render: los 26 partidos de Las Mesas
+    // El calendario completo, a todos los anchos y en render: los 26 partidos de Las Mesas
     // con su .ics. En móvil y tableta, al final, debajo de la consulta; en escritorio, a la izquierda.
     const calendar = await page.evaluate(() => {
       const cal = document.querySelector('#contenido .home-rest #calendario');
@@ -269,7 +269,7 @@ async function scenarios(viewport, colorScheme) {
     assert.equal(s.length, tabEntries, `${label}: cambiar de vista usa replaceState`);
     await checkLayout(page, viewport.width, `${label}, tabla`);
 
-    // 5. «Otras ligas» → Ligas → Tabla (§11): en mi grupo, la acción de la cabecera lleva a las ligas de
+    // 5. «Otras ligas» → Ligas → Tabla: en mi grupo, la acción de la cabecera lleva a las ligas de
     // su categoría y su isla, con Tabla como destino (la barra no cambia); la liga, sus grupos; el grupo,
     // su Tabla, y la barra se queda en ese grupo.
     await click(page, '#contenido a.screen-action', label);
@@ -338,7 +338,7 @@ async function scenarios(viewport, colorScheme) {
     await page.close();
 
     // 6. Enlace directo a un partido de mi equipo (el 8–1): Mi equipo marcado, sin desplazamiento
-    // horizontal (Para B3, punto 20), y «‹» a su jornada.
+    // horizontal, y «‹» a su jornada.
     const direct = await open(DIRECT);
     s = await paintedAs(direct, 'partido', { label: `${label}, partido enlazado` });
     const fresh = s.length;
@@ -363,7 +363,7 @@ async function scenarios(viewport, colorScheme) {
   }
 }
 
-// El cuadro de copa (spec §4.7 y §8): en móvil y tableta se desliza dentro de su caja, y la pestaña de la
+// El cuadro de copa: en móvil y tableta se desliza dentro de su caja, y la pestaña de la
 // final lo lleva hasta ella sin mover la página; en escritorio, todas las rondas a la vista.
 async function checkBracket(page, width, label) {
   const state = () => page.evaluate(() => {
@@ -383,7 +383,7 @@ async function checkBracket(page, width, label) {
   assert.ok(after.overflow <= 0 && after.x === 0, `${label}: la página no se desplaza con el cuadro (${JSON.stringify(after)})`);
 }
 
-// Escenarios de B3 de §11, en el mundo A: buscar un equipo, abrir su ficha y comprobar que mi equipo no
+// Escenarios del mundo A: buscar un equipo, abrir su ficha y comprobar que mi equipo no
 // cambia; las pantallas nuevas sin desplazamiento horizontal; y «Hacer mi equipo», guardado y
 // respetado al recargar.
 async function scenariosB3(viewport, colorScheme) {
@@ -404,7 +404,7 @@ async function scenariosB3(viewport, colorScheme) {
     let s = await paintedAs(page, 'home', { label: `${label}, portada` });
 
     // 1. «Cambiar» → Explorar con el foco en el buscador; escribir «hurac» letra a letra filtra la
-    //    lista y apunta la búsqueda en la dirección sin entradas nuevas (decisión 4 de B3).
+    //    lista y apunta la búsqueda en la dirección sin entradas nuevas.
     await click(page, '#contenido a.screen-action', label);
     s = await paintedAs(page, 'explorar', { hash: '#/explorar#buscar', label: `${label}, «Cambiar»` });
     assert.equal(s.focus, 'buscar', `${label}: «Cambiar» deja el foco en el buscador`);
@@ -476,7 +476,7 @@ async function scenariosB3(viewport, colorScheme) {
   }
 }
 
-// «Reintentar» de un bloque en su sitio (B5, decisión 3): con el bloque `id` más abajo del principio, el
+// «Reintentar» de un bloque en su sitio: con el bloque `id` más abajo del principio, el
 // clic en su botón lo pinta sin volver arriba, sin repintar la pantalla (la marca de su sección sigue),
 // sin entradas nuevas en el historial y con el foco en su título. `done`: lo que aparece al terminar.
 async function retryInPlace(page, id, done, label) {
@@ -499,7 +499,7 @@ async function retryInPlace(page, id, done, label) {
   assert.ok(after.focus, `${label}: el foco, en el título del bloque`);
 }
 
-// «Reintentar» de un bloque (B5, decisión 3): la primera petición de las actas y la de la cronología
+// «Reintentar» de un bloque: la primera petición de las actas y la de la cronología
 // fallan (503) y las siguientes llegan (200). La Plantilla de Guayarmina y las Alineaciones y los Goles
 // de Moya–Guayarmina se pintan en su sitio: la página no vuelve arriba, la pantalla no se repinta (la
 // marca de su sección sigue) y el foco va al título del bloque.
@@ -542,7 +542,7 @@ async function retryBlocks() {
   }
 }
 
-// La portada en B, C, D, E y X a 320 px (B3, «Sin prueba todavía»; B5, decisión 7): sin desplazamiento
+// La portada en B, C, D, E y X a 320 px: sin desplazamiento
 // horizontal y sin que la barra tape el final, como la de A en los escenarios de cada ancho.
 async function homeStates() {
   for (const world of ['B', 'C', 'D', 'E', 'X']) {
@@ -566,7 +566,7 @@ async function homeStates() {
   }
 }
 
-// Mi equipo con todo lo de la ficha (04/10/2026, D4): la plantilla no bloquea la portada. Guayarmina
+// Mi equipo con todo lo de la ficha: la plantilla no bloquea la portada. Guayarmina
 // (A1) en el mundo A, con las actas de A1 retenidas en una compuerta: la portada ya está pintada, con
 // el hueco de la plantilla; un 503 pinta su caja de error en su sitio, sin mover el foco; su
 // «Reintentar», la tabla (retryInPlace); el jugador y la trayectoria se despliegan; Jornada y Mi equipo
@@ -685,7 +685,7 @@ async function homeSquad() {
   }
 }
 
-// El hueco de la plantilla de la portada no mueve lo que se mira (spec §7, nota del punto 13): a 390 px,
+// El hueco de la plantilla de la portada no mueve lo que se mira: a 390 px,
 // con las actas retenidas, «calendario completo» y, al llegar, el título del calendario sigue donde
 // estaba, tanto si la plantilla llega (Guayarmina, A1) como si el grupo no tiene actas y el hueco se
 // quita (Las Mesas, PG2, un 404). Con el anclaje del desplazamiento de Chrome y sin él
@@ -739,7 +739,7 @@ async function squadShift() {
   }
 }
 
-// La puntuación de desplazamiento de un paso (la fórmula de la API Layout Instability, spec §5.4): de las
+// La puntuación de desplazamiento de un paso (la fórmula de la API Layout Instability): de las
 // parejas [antes, después] ({ top, left, width, height }) que se mueven, la región de impacto (la unión de
 // sus rectángulos en la ventana) por la distancia (el mayor movimiento), cada una sobre la ventana.
 function shiftScore(pairs, vw, vh) {
@@ -757,7 +757,7 @@ function shiftScore(pairs, vw, vh) {
   return ((covered * width) / (vw * vh)) * (distance / Math.max(vw, vh));
 }
 
-// El esqueleto de Equipo (B5, decisión 4): la ficha de Las Mesas en 2024/25, con la carga de esa
+// El esqueleto de Equipo: la ficha de Las Mesas en 2024/25, con la carga de esa
 // temporada retenida hasta medir el esqueleto. Al llegar la pantalla, lo de arriba no se mueve: la
 // cabecera y el primer bloque empiezan donde empezaban, el bloque tiene casi el mismo alto (±15 %) y la
 // puntuación de desplazamiento del paso (shiftScore de esas dos parejas, más las entradas layout-shift
@@ -807,7 +807,7 @@ async function skeletonShift() {
   }
 }
 
-// Alevín (contrato común de alevín; r3.md §6 y critic.md), en el mundo L (14/10/2026), a 390 px en claro:
+// Alevín (contrato común de alevín), en el mundo L (14/10/2026), a 390 px en claro:
 // - la Tabla de AL1 en frío: el router pide data-alevin.js una sola vez y la pinta, sin aviso;
 // - Explorar por la barra, con su bloque de alevín y sin volver a pedirlo; el buscador encuentra Las
 //   Mesas Hu. de alevín, y su «Hacer mi equipo» se guarda con su categoría: al recargar, la portada es
@@ -921,8 +921,8 @@ async function alevinWidths() {
   }
 }
 
-// Mundo E (§11, caso 3): «Las Mesas Hu. B» guardado en FF13 pregunta; la respuesta se guarda en el
-// almacén y, al recargar, la portada es la de ese equipo, sin preguntar (M6 de la revisión).
+// Mundo E: «Las Mesas Hu. B» guardado en FF13 pregunta; la respuesta se guarda en el
+// almacén y, al recargar, la portada es la de ese equipo, sin preguntar.
 async function answerE() {
   const context = await newContext({ width: 390, height: 844 }, 'light');
   try {
