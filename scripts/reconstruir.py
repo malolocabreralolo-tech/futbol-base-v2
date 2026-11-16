@@ -124,19 +124,20 @@ def _como_el_bot(carpeta, tmp):
     raíz comprobada. Y lo que un importador escribe fuera de la base (los sin partido de las actas, los
     originales del bot), en la carpeta temporal, nunca en scripts/."""
     deshacer = []
-    for mod in _modulos("fiflp_names"):
-        deshacer.append((mod, "FED_NAMES_PATH", mod.FED_NAMES_PATH))
-        mod.FED_NAMES_PATH = str(Path(carpeta) / "fiflp_team_names.json")
-        mod.fed_alias.cache_clear()
-    sin_partido = Path(tmp) / "fiflp_actas_unmatched.json"
-    if (Path(carpeta) / sin_partido.name).exists():
-        shutil.copyfile(Path(carpeta) / sin_partido.name, sin_partido)
-    for mod in _modulos("import_fiflp_actas"):
-        deshacer.append((mod, "UNMATCHED_PATH", mod.UNMATCHED_PATH))
-        mod.UNMATCHED_PATH = str(sin_partido)
     env = os.environ.get("ACTAS_BOT_DIR")
-    os.environ["ACTAS_BOT_DIR"] = str(Path(tmp) / "actas_bot")
     try:
+        # Dentro del try: un fallo a mitad de preparar deshace lo ya parcheado.
+        for mod in _modulos("fiflp_names"):
+            deshacer.append((mod, "FED_NAMES_PATH", mod.FED_NAMES_PATH))
+            mod.FED_NAMES_PATH = str(Path(carpeta) / "fiflp_team_names.json")
+            mod.fed_alias.cache_clear()
+        sin_partido = Path(tmp) / "fiflp_actas_unmatched.json"
+        if (Path(carpeta) / sin_partido.name).exists():
+            shutil.copyfile(Path(carpeta) / sin_partido.name, sin_partido)
+        for mod in _modulos("import_fiflp_actas"):
+            deshacer.append((mod, "UNMATCHED_PATH", mod.UNMATCHED_PATH))
+            mod.UNMATCHED_PATH = str(sin_partido)
+        os.environ["ACTAS_BOT_DIR"] = str(Path(tmp) / "actas_bot")
         yield
     finally:
         for mod, attr, valor in reversed(deshacer):

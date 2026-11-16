@@ -6,6 +6,10 @@ Saves progressively to fiflp_2425_raw.json.
 """
 
 import json, os, re, time, random
+try:
+    from escritura import escribir_atomico
+except ImportError:                       # importado como scripts.fetch_fiflp_2425
+    from scripts.escritura import escribir_atomico
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUTPUT_PATH  = os.path.join(PROJECT_ROOT, "scripts", "fiflp_2425_raw.json")
 BASE = "https://www.fiflp.com/pnfg/NPcd"
@@ -48,8 +52,7 @@ def delay(extra=0):
     time.sleep(random.uniform(2.0, 3.5) + extra)
 
 def save(data):
-    with open(OUTPUT_PATH, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
+    escribir_atomico(OUTPUT_PATH, json.dumps(data, ensure_ascii=False, indent=2))
 
 
 # Dónde dejar qué grupos lista la federación en cada competición ({CodCompeticion: {CodGrupo: nombre}}):
@@ -82,10 +85,7 @@ def save_group_list(comp_id, groups, path=None):
     except (OSError, ValueError):
         listed = {}
     listed[str(comp_id)] = {str(g["value"]): g["text"] for g in groups}
-    tmp = f"{path}.tmp"
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(listed, f, ensure_ascii=False, indent=2, sort_keys=True)
-    os.replace(tmp, path)
+    escribir_atomico(path, json.dumps(listed, ensure_ascii=False, indent=2, sort_keys=True))
 
 def goto(page, url, retries=3):
     """Carga `url` (hasta `retries` intentos) y espera 2,5 s. La usan las tandas (goleadores, detalle,

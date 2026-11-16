@@ -123,15 +123,17 @@ def test_un_dominio_que_escribe_fuera_de_la_copia_no_sale_igual(tmp_path):
 
 def test_sin_red_durante_la_comprobacion(tmp_path):
     """Ningún importador sale a la red mientras se comprueba: un socket o un navegador lanzan, y el dominio
-    que lo intenta no sale igual."""
+    que lo intenta no sale igual. Con un nombre que no resuelve (.invalid) y una IP de documentación: si el
+    corte se rompiera, la prueba falla sin llegar a nadie."""
     with reconstruir.sin_red():
         with pytest.raises(reconstruir.SinRed):
-            socket.create_connection(("www.fiflp.com", 443), timeout=1)
-        with pytest.raises(reconstruir.SinRed):
-            socket.socket().connect(("127.0.0.1", 9))
+            socket.create_connection(("federacion.invalid", 443), timeout=1)
+        with pytest.raises(reconstruir.SinRed), socket.socket() as s:
+            s.settimeout(1)
+            s.connect(("192.0.2.1", 9))
         with pytest.raises(Exception):
             import urllib.request
-            urllib.request.urlopen("https://www.fiflp.com/", timeout=1)
+            urllib.request.urlopen("https://federacion.invalid/", timeout=1)
         # El navegador, también sin Playwright instalado (el job de CI no lo tiene): lo que importe un lector.
         navegador = importlib.import_module("playwright.sync_api")
         with pytest.raises(reconstruir.SinRed):
@@ -142,7 +144,7 @@ def test_sin_red_durante_la_comprobacion(tmp_path):
     sqlite3.connect(db).close()
 
     def rehacer(conn, carpeta):
-        socket.create_connection(("www.fiflp.com", 443), timeout=1)
+        socket.create_connection(("federacion.invalid", 443), timeout=1)
 
     prueba = reconstruir.Dominio("prueba", ("t",), ("scripts/maspalomas_cup_*_raw.json",), True,
                                  borrar=lambda conn: None, rehacer=rehacer, consultas=())

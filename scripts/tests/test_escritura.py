@@ -93,7 +93,7 @@ def test_el_temporal_va_en_la_misma_carpeta_con_su_nombre(tmp_path, monkeypatch)
 # Los módulos que escriben originales, estado o lo publicado (el apartado 3 del mapa de la fase 4).
 MODULOS = ["fetch_fiflp_actas.py", "fetch_fiflp_goleadores.py", "fetch_fiflp_detalle.py", "fetch_fp_app.py",
            "discover_fiflp_comps.py", "import_fiflp_actas.py", "fetch_fiflp_islas.py", "source_health.py",
-           "activar_auto.py", "generate_js.py", "precache.py", "codigo.py"]
+           "activar_auto.py", "generate_js.py", "precache.py", "codigo.py", "fetch_fiflp_2425.py"]
 
 # (fichero, función) que sí escriben a pelo, y por qué. Lo más corta posible.
 PERMITIDAS = {}
