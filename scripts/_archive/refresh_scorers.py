@@ -2,7 +2,7 @@
 """Refresh the scorers table by scraping the goleadores-base.php endpoint
 for every group in the current season. Doesn't touch standings/matches/goals.
 
-Usage: python3 scripts/refresh_scorers.py [--limit N] [--code CODE]
+Usage: python3 scripts/_archive/refresh_scorers.py [--limit N] [--code CODE]
 """
 import argparse
 import os

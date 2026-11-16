@@ -7,7 +7,7 @@ de clasificación de FIFLP (no ofuscada, fiable) para detectar corrupción de
 marcadores. NO publica; solo informa y devuelve exit!=0 si hay algo que abortar.
 
 Uso:
-    python3 scripts/verify_2425_fill.py [baseline.json]
+    python3 scripts/_archive/verify_2425_fill.py [baseline.json]
 """
 import json
 import os

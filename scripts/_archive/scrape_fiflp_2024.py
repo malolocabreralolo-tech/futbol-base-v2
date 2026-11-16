@@ -8,7 +8,7 @@ and groups. Then fetch only the known group URLs.
 
 Uses generous delays (8-15s) and randomized timing to avoid IP blocks.
 
-Usage: python3 scripts/scrape_fiflp_2024.py [--discover-only] [--groups-file FILE]
+Usage: python3 scripts/_archive/scrape_fiflp_2024.py [--discover-only] [--groups-file FILE]
 """
 
 import json

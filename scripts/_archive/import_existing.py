@@ -3,7 +3,7 @@
 One-time import: reads current data-*.js files and populates futbolbase.db.
 
 Usage:
-    python3 scripts/import_existing.py
+    python3 scripts/_archive/import_existing.py
 """
 
 import json

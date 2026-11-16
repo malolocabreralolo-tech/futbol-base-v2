@@ -3,7 +3,7 @@
 fetch_fiflp_history.py — Scrapes historical season data from fiflp.com (FIFLP federation site).
 Uses Playwright for JS-rendered pages.
 
-Usage: python3 scripts/fetch_fiflp_history.py
+Usage: python3 scripts/_archive/fetch_fiflp_history.py
 """
 
 import json

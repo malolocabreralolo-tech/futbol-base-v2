@@ -3,7 +3,7 @@
 fetch_mygol.py — Reconstruye data-benjamin.js, data-prebenjamin.js y data-history.js
 desde la API REST de tusligascanarias.mygol.es (MyGol platform).
 
-Sin dependencias externas. Uso: python3 scripts/fetch_mygol.py
+Sin dependencias externas. Uso: python3 scripts/_archive/fetch_mygol.py
 """
 
 import datetime
