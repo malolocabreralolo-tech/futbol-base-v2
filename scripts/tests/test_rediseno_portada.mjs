@@ -1,6 +1,6 @@
 // Mi equipo, la portada (Plan B2, Tareas 7 y 8; spec §4.2, §4.8, §6.4 y §7), con datos reales
 // congelados y `today` inyectado. render(ctx) se prueba sin DOM. El modelo del contexto es
-// createModel (Tarea 3) sobre las fixtures, con buildClubIndex inyectado.
+// createModel sobre las fixtures, con buildClubIndex inyectado.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -368,7 +368,7 @@ test('E, caso 2b: la pregunta con los candidatos (escudo, nombre y etiqueta de g
   const three = render({ myTeam: { name: 'Las Mesas Hu. B', season: '2024-2025', cat: 'benjamin', groupId: 'P9' }, today: '2026-09-23' });
   assert.deepEqual([...three.matchAll(/<span class="choice-label">(.*?)<\/span>/g)].map(m => m[1]), [
     'Benjamín, Segunda Fase A, Grupo 2', 'Benjamín, Segunda Fase B, Grupo 2', 'Prebenjamín, Grupo 2 de Gran Canaria']);
-  // Un solo candidato con otro nombre también pregunta (decisión 13 de B1): el favorito v1 migrado de un torneo.
+  // Un solo candidato con otro nombre también pregunta: el favorito v1 migrado de un torneo.
   const one = render({ myTeam: { name: 'UD Las Mesas Huracán', season: '2025-2026', cat: 'prebenjamin', groupId: 'MCP3' }, today: '2026-09-23' });
   assert.match(one, /data-state="E"/);
   assert.deepEqual([...one.matchAll(/<span class="choice-name">(.*?)<\/span>/g)].map(m => m[1]), ['Las Mesas Hu.']);
@@ -567,7 +567,7 @@ test('cada semana real de 2025/26, seis equipos: un estado con contenido y sin �
   assert.deepEqual([...seen].sort(), ['A', 'B', 'C', 'D', 'E']);
 });
 
-// ── Hoja de estilos: cada clase existe y las reglas de intención (spec §3 y §8) ──
+// ── Hoja de estilos: cada clase existe y las reglas de intención ──
 
 const CSS = readFileSync(join(ROOT, 'acta.css'), 'utf8');
 function parseCss(src) {
@@ -627,7 +627,7 @@ test('estilos de la portada: pulsables de 44 px y nombres con elipsis', () => {
   assert.doesNotMatch(home, /text-transform|border-radius|box-shadow/);
 });
 
-// ── Estado D, «Verano», clasificación final y escritorio (Tarea 8) ────────
+// ── Estado D, «Verano», clasificación final y escritorio ────────
 
 const DESKTOP = media => media !== null && /min-width:\s*1024px/.test(media);
 

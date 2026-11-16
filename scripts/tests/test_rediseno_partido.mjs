@@ -1,4 +1,4 @@
-// Plan B2, tarea 11: pantalla Partido (spec §4.5, §5.3, §7, §9.2, §9.3 y §11,
+// Pantalla Partido (spec §4.5, §5.3, §7, §9.2, §9.3 y §11,
 // caso 7). Solo fixtures congeladas y hoy inyectado: nunca los data-*.js vivos.
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
@@ -38,7 +38,7 @@ const render = (params, opts) => String(screen.render(ctxOf(params, opts)));
 const text = (out) => String(out).replace(/<[^>]+>/g, ' ').replace(/&#39;/g, "'").replace(/&quot;/g, '"')
   .replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
 
-// La caja de error de shell.js (Tarea 5): su texto y su botón «Reintentar».
+// La caja de error de shell.js: su texto y su botón «Reintentar».
 const failBox = (out, what) => text(out).includes(`No se pudieron cargar los datos de ${what}`)
   && /<button[^>]*data-action="retry"/.test(String(out));
 
@@ -71,7 +71,7 @@ test('PG2, 02/06/2026, Las Mesas Hu. 2–7 AD Huracán: sin cronología, sin act
   assert.equal(out.match(/<h1[\s>]/g).length, 1);
   assert.match(out, /<h1>Partido<span class="vh">: Las Mesas Hu\. – AD Huracán<\/span><\/h1>/);
   assert.match(out, /<p class="screen-sub">Jornada 30 · Prebenjamín, Grupo 2 de Gran Canaria<\/p>/);
-  // «‹» sin historial: la jornada del partido (spec §4.1). La cabecera es screenHead (ui.js).
+  // «‹» sin historial: la jornada del partido. La cabecera es screenHead (ui.js).
   assert.match(out, /^<section data-screen="partido"><header class="screen-head"><a class="back" href="#\/jornada\?s=2025-2026&amp;g=PG2&amp;r=Jornada%2030" data-action="back" aria-label="Volver">‹<\/a>/);
   assert.match(out, /<button type="button" class="screen-action" data-action="share"/);
   assert.equal(text(blockOf(out, 'Resultado')),
@@ -130,7 +130,7 @@ test('A1, Guayarmina 8–4 Santidad: cronología de futbolaspalmas en tres colum
   assert.match(al, /<tr><td class="pt-dorsal">8<\/td><th scope="row" class="pt-player">Hector Contreras Cordero<\/th><td class="pt-pgoals">3<span class="vh"> goles<\/span><\/td><\/tr>/);
   assert.ok(t.includes('Entrenador/a: no consta'));
   assert.ok(t.includes('Árbitro/a: Armiche Jesús Tacoronte Mendoza'));
-  // Acta oficial (spec §9.2): abre sin sesión en un navegador limpio.
+  // Acta oficial: abre sin sesión en un navegador limpio.
   assert.match(al, /<a class="pt-acta" href="https:\/\/www\.fiflp\.com\/pnfg\/NPcd\/NFG_CmpPartido\?cod_primaria=1000120&amp;CodActa=246973&amp;cod_acta=246973" target="_blank" rel="noopener noreferrer">Ver acta oficial/);
   // Entrenador con nombre: «Apellidos, Nombre» pasa a «Nombre Apellidos».
   assert.ok(text(blockOf(render(A1_J3), 'Alineaciones')).includes('Entrenador/a: Jose M Leon Cordero'));
@@ -182,7 +182,7 @@ test('Maspalomas Cup (MCPK1): pasó por penaltis con la tanda; sin acta ni conte
 });
 
 test('«‹» es el ctx.backHref del router (parentOf): la copa en un torneo, la jornada del partido en una liga (M2)', () => {
-  // Un torneo o una copa: su cuadro (decisión 100), el mismo padre que da el router.
+  // Un torneo o una copa: su cuadro, el mismo padre que da el router.
   assert.match(render(MCPK1_CUARTOS), /<a class="back" href="#\/copa\?s=2025-2026&amp;g=MCPK1" data-action="back"/);
   // Partido no calcula otro padre: pinta el que le da el router, sea cual sea.
   const ctx = ctxOf(PG2_J30);
@@ -227,7 +227,7 @@ test('Cronología con nombre y minuto a null y acta sin goles (plan B1, «Para B
   };
   const out = render({ s: '2025-2026', g: 'PG2', r: 'Jornada 15', h: 'AD Huracán', a: 'Las Mesas Hu.' }, { datasets: ds });
   const goles = blockOf(out, 'Goles');
-  // Con el ctx de la app, Las Mesas Hu. (visitante) es mi equipo: su columna va en tinta (decisión 99).
+  // Con el ctx de la app, Las Mesas Hu. (visitante) es mi equipo: su columna va en tinta.
   assert.match(goles, /<tr><td class="pt-g-home"><span class="pt-noname">sin nombre<\/span><\/td><td class="pt-g-mid"><b class="pt-g-score">1–0<\/b><\/td><td class="pt-g-away pt-mine"><\/td><\/tr>/);
   assert.match(goles, /<td class="pt-g-away pt-mine"><span class="pt-noname">sin nombre<\/span><\/td>/);
   assert.ok(text(goles).endsWith('la cronología de futbolaspalmas suma 1–1 y el resultado de futbolaspalmas es 8–1.'));
@@ -312,7 +312,7 @@ test('Temporadas anteriores bajo demanda: misma categoría y el nombre normaliza
   assert.equal(text(none), 'No encontramos partidos entre estos dos equipos en la temporada 2024/25.');
 });
 
-// Grupo crudo mínimo de una temporada pasada, con la forma de las fixtures (§5.3): standings vacío
+// Grupo crudo mínimo de una temporada pasada, con la forma de las fixtures: standings vacío
 // (no lo necesita previousMeetings) y jornadas en línea de 8 columnas.
 const pastRawGroup = (id, jornadas) => ({
   id, name: id, fullName: id, phase: 'Gran Canaria', island: 'grancanaria', standings: [], jornadas,
@@ -545,7 +545,7 @@ test('acta.css: cada clase de la pantalla existe; marcador de 40 px; pulsables d
   for (const [, selector, body] of own) assert.doesNotMatch(body, /border-radius|text-transform:\s*uppercase/, selector.trim());
 });
 
-// ── Plan B5, Tarea 4: «Reintentar» de los Goles y de las Alineaciones, sin perder el sitio (decisión 3) ──
+// ── Plan B5, Tarea 4: «Reintentar» de los Goles y de las Alineaciones, sin perder el sitio ──
 
 const flush = async () => { for (let i = 0; i < 5; i += 1) await new Promise((resolve) => setImmediate(resolve)); };
 // Un fetch que sirve la cronología y las actas de las fixtures, o un 503 mientras `down`.

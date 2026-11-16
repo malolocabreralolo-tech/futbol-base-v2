@@ -1,4 +1,4 @@
-// Plan B3, Tarea 3: la vista de equipo compartida (team-view.js; decisiones 8 a 10 de B3), el estado
+// La vista de equipo compartida (team-view.js; decisiones 8 a 10 de B3), el estado
 // de un equipo (teamState, myteam.js) y lo que la acompaña en ui.js: block sin título, el texto
 // oculto de la fila resaltada y el de formChips (recomendación 4 de B1). La portada es la vista de la
 // ficha con su cabecera: lo fijan sus huellas. Solo fixtures y `today` inyectado; el ctx es el común
@@ -49,7 +49,7 @@ function untimedJ18() {
 }
 
 // sha1 del render de la portada en e82eb86 (antes de team-view.js), con las fixtures de B1 y B3; las
-// cinco últimas, de B5 (decisión 7), del render de 0208d26, el mismo tras la limpieza de la Tarea 3.
+// cinco últimas, de B5, del render de 0208d26, el mismo tras la limpieza de la Tarea 3.
 // 2026-10: los casos A y C, con la fila nueva de «La temporada en cifras» (racha, porterías a cero y
 // partidos sin marcar); B, D, E y X no la pintan y siguen idénticos.
 // 2026-10-04: todos salvo E y X, con lo de la ficha: el calendario completo siempre (#calendario y su
@@ -149,7 +149,7 @@ test('la portada pinta, byte a byte, lo que fijan sus huellas en A, B, C, D, E y
   assert.match(d, /<div class="home-rest"><section class="block" id="calendario">/);
 });
 
-// ── teamState (decisión 9) ──────────────────────────────────────────────
+// ── teamState ──────────────────────────────────────────────
 
 test('teamState: D, B, C o A de cualquier equipo en su grupo, sin resolución; homeState la usa tras E y X', () => {
   const at = (today, raw = currentAt(today)) => buildSeason({ name: '2025-2026', current: true, ...raw });
@@ -173,7 +173,7 @@ test('teamState: D, B, C o A de cualquier equipo en su grupo, sin resolución; h
   assert.equal(homeState({ resolution: { status: 'ok', group, name: 'CD Batán', cat: 'prebenjamin' }, todayISO: '2026-03-01', portalSeason: '2025-2026' }), 'B');
 });
 
-// ── ui.js: block sin título (decisión 10) y el texto oculto de la fila resaltada ──
+// ── ui.js: block sin título y el texto oculto de la fila resaltada ──
 
 test('block(null, …): la sección sin cabecera ni contexto, con su ancla si la lleva', () => {
   assert.equal(s(block(null, empty('Nada'))), '<section class="block"><p class="empty">Nada</p></section>');
@@ -191,7 +191,7 @@ test('standingsTable: la fila resaltada dice «mi equipo» por defecto y, con mi
   assert.doesNotMatch(other, /mi equipo/);
 });
 
-// ── La vista de equipo (decisión 8) ─────────────────────────────────────
+// ── La vista de equipo ─────────────────────────────────────
 
 const equipoCtx = (params, today, raw = currentAt(today), extra = {}) => ctxFor('equipo', params, {
   today, datasets: datasetsFor({ current: raw, ...goleadores() }), ...extra,
@@ -334,7 +334,7 @@ test('cada clase de la vista existe en acta.css, y `rest` va debajo de lo princi
   assert.match(decl('.has-rest > .home-rest', DESKTOP), /grid-row:\s*2/);
 });
 
-// ── Plan B5, Tarea 3: el estado, una vez por pintado de la portada (decisión 6) ──
+// ── El estado, una vez por pintado de la portada ──
 
 test('teamView con `state`: la vista del estado que le dan, sin volver a calcularlo; sin él, teamState', () => {
   const ctx = equipoCtx(HURACAN, '2026-09-23', fixture('current-2025-2026'));

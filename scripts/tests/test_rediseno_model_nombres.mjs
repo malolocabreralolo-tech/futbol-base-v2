@@ -1,4 +1,4 @@
-// Plan B1, Tarea 6: nombres (spec §3.5) y cronología (spec §4.5, §5.3 y caso
+// Nombres y cronología (spec §4.5, §5.3 y caso
 // real 7 de §11) en src/model.js. Solo fixtures congeladas.
 import test from 'node:test';
 import assert from 'node:assert/strict';

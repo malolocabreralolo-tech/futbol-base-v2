@@ -1,4 +1,4 @@
-"""Plan B2, tarea 1: rebase de la rama del rediseño (decisión 8).
+"""Rebase de la rama del rediseño.
 
 El bot comitea en main index.html, sw.js y data-*. Al rebasar la rama, en
 index.html y sw.js se queda la estructura de la rama con las marcas de versión

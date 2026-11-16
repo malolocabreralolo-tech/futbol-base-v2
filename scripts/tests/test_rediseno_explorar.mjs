@@ -1,4 +1,4 @@
-// Plan B3, Tarea 6: pantalla Explorar (spec §4.7 y maqueta 5-4; decisiones 16 a 19 de B3) y lo que
+// Pantalla Explorar (spec §4.7 y maqueta 5-4; decisiones 16 a 19 de B3) y lo que
 // añade al modelo (phaseLevel, searchKey, searchTeams, competitions y groupSummary) y a ui.js
 // (searchBox, seasonPicker y linkRow). render(ctx) es pura: se prueba sobre el HTML que devuelve, con
 // las fixtures congeladas y `today` inyectado. mount, con el router y el navegador falso comunes: al
@@ -422,7 +422,7 @@ test('mount: el botón de la temporada abre y cierra su lista (aria-expanded); E
   fire(toggle, 'click');
   fire(menu, 'keydown', { key: 'Escape' });
   assert.deepEqual([toggle.getAttribute('aria-expanded'), menu.hidden, toggle.focused], ['false', true, 1]);
-  // Una temporada de la lista es una navegación (push) y el router carga la temporada (decisión 2).
+  // Una temporada de la lista es una navegación (push) y el router carga la temporada.
   b.click({ href: '#/explorar?s=2024-2025' });
   await router.idle();
   assert.deepEqual(b.entries(), ['#/explorar', '#/explorar?s=2024-2025']);

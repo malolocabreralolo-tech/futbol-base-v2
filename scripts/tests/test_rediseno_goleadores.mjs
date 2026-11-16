@@ -1,7 +1,7 @@
-// Plan B3, Tarea 9: pantalla Goleadores (spec §4.7 y §4.1; decisión 25 de B3). render(ctx) es pura:
+// Pantalla Goleadores. render(ctx) es pura:
 // se prueba sobre el HTML que devuelve, con los goleadores congelados (gol-2025-2026) y `today`
 // inyectado. También categoryScorers (state.js), el buscador de mount, que apunta la `q` con
-// nav.update (decisión 4), y las páginas de la lista (decisión 159), con una de unos 2.000 jugadores.
+// nav.update, y las páginas de la lista, con una de unos 2.000 jugadores.
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
 import { goleadores, archive } from './fixtures/rediseno/simulate.mjs';
@@ -88,7 +88,7 @@ test('la global de mi categoría (prebenjamín): cabecera, categoría, buscador 
   assert.equal(list[0].href, '#/equipo?s=2025-2026&amp;g=PG3&amp;t=CD%20Cerruda');
   // Con los mismos goles y partidos, el mismo puesto.
   assert.deepEqual(list.slice(14, 17).map((r) => r.row.slice(0, 2)), [[15, 'Hugo Cabrera Castells'], [16, 'Deremyk Benitez Ponce'], [16, 'Victor Omar Trujillo Ruiz']]);
-  // Las 99 que quedan, con un botón que las añade (decisión 159): no despliega nada, sin aria-expanded.
+  // Las 99 que quedan, con un botón que las añade: no despliega nada, sin aria-expanded.
   assert.match(out, /<\/tbody><\/table><\/div><button type="button" class="gol-more" data-action="ver-mas" aria-controls="goleadores-filas">Ver los 99 que quedan<\/button>/);
   assert.doesNotMatch(out, /aria-expanded|<tbody[^>]* hidden/);
   assert.doesNotMatch(out, /Primera y la Segunda Fase/, 'en prebenjamín no hay fases que sumar');
@@ -149,7 +149,7 @@ test('q de la dirección: render pinta la misma búsqueda, con el texto en el bu
   assert.equal(count(none), '0 de 586 jugadores');
   assert.match(none, /<div data-scorers><p class="empty">Ningún jugador ni equipo con «zzz»\.<\/p><\/div>/);
   assert.match(render({ c: 'benjamin', t: 'Las Mesas Hu.', q: 'zzz' }), /<p class="empty">Ningún goleador de Las Mesas Hu\. con «zzz»\.<\/p>/);
-  // Con una búsqueda, las 30 primeras y «Ver 100 más» (decisión 159): «an» da 346 jugadores de benjamín.
+  // Con una búsqueda, las 30 primeras y «Ver 100 más»: «an» da 346 jugadores de benjamín.
   const an = render({ c: 'benjamin', q: 'an' });
   assert.equal(count(an), '346 de 586 jugadores');
   assert.equal(rows(an).length, SEARCH_FIRST);
@@ -298,14 +298,14 @@ test('CSS: el equipo es un enlace de 44 px que no agranda la fila, «Ver N más�
   assert.match(bodyOf('.gol-team'), /min-height:\s*44px/);
   assert.match(bodyOf('.gol-team'), /margin:\s*-12px 0/);
   assert.match(bodyOf('.gol-more'), /min-height:\s*44px/);
-  // Hasta «2140» con los datos vivos: 44 px, no los 24 de la Tabla (decisión 161).
+  // Hasta «2140» con los datos vivos: 44 px, no los 24 de la Tabla.
   assert.match(bodyOf('.gol-table .st-pos'), /width:\s*44px/);
   const out = [render({}), render({ c: 'benjamin', t: 'Las Mesas Hu.' }), render({ g: 'PG2' }), render({ c: 'benjamin', q: 'zzz' })].join('');
   const used = new Set(out.match(/class="[^"]+"/g).flatMap((m) => m.slice(7, -1).split(/\s+/)));
   assert.deepEqual([...used].filter((c) => !rules.classes.has(c)), []);
 });
 
-// ── Plan B5, Tarea 3: la lista de la ruta, una vez por pintado (decisión 6) ──
+// ── La lista de la ruta, una vez por pintado ──
 
 test('la lista de la ruta, una vez por pintado y ninguna por tecla: render y mount comparten la del mismo ctx', () => {
   const base = ctxOf({ c: 'benjamin' });

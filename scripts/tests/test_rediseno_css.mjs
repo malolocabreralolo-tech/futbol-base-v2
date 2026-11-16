@@ -1,4 +1,4 @@
-// Plan B1, tarea 11: intención de acta.css (spec §3.2-§3.4, §4.8 y §8).
+// Intención de acta.css.
 // Comprueba reglas, no píxeles: la verificación visual va aparte, con capturas.
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
@@ -108,7 +108,7 @@ test('foco visible en los enlaces de la tabla: la celda del equipo no recorta el
   assert.doesNotMatch(decl('.st-link'), /overflow/);
 });
 
-// Minor 1 de la revisión final de B3 (§8): a 320 y 390 px el contorno de `a.bm` perdía los lados
+// A 320 y 390 px el contorno de `a.bm` perdía los lados
 // izquierdo y derecho, porque `.bracket` recorta el eje X y cada columna mide el 100 % de la caja.
 test('foco visible en el cuadro: el contorno no se recorta en los lados', () => {
   assert.match(decl('.bracket .bm:focus-visible'), /outline-offset:\s*-4px/);
@@ -205,14 +205,14 @@ test('sin emoji en la hoja de estilos', () => {
   assert.doesNotMatch(SRC, /\p{Extended_Pictographic}/u);
 });
 
-// ── Plan B2, tarea 4: la cabecera de pantalla y la pregunta de la portada ───
+// ── La cabecera de pantalla y la pregunta de la portada ───
 
 test('cabecera de pantalla (screenHead): 72 px con regla de tinta; «‹» y la acción miden 44 px', () => {
   const head = decl('.screen-head');
   assert.match(head, /min-height:\s*72px/);
   assert.match(head, /border-bottom:\s*2px solid var\(--ink\)/);
   assert.match(decl('.screen-head-text'), /min-width:\s*0/, 'sin min-width el nombre empujaría la página a 320 px');
-  // El nombre completo en una línea: si no cabe a 320 px, con elipsis (spec §3.5).
+  // El nombre completo en una línea: si no cabe a 320 px, con elipsis.
   const h1 = decl('.screen-head h1');
   for (const rule of [/white-space:\s*nowrap/, /text-overflow:\s*ellipsis/, /overflow:\s*hidden/]) assert.match(h1, rule);
   assert.match(decl('.screen-sub'), /color:\s*var\(--mute\)/);

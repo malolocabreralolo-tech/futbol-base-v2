@@ -1,4 +1,4 @@
-// Plan B2, tarea 6: el router (spec §4.1, §5.1, §7 y §8). Funciones puras sobre las fixtures
+// El router. Funciones puras sobre las fixtures
 // congeladas y startRouter con un window y un document falsos: token de navegación con promesas
 // controladas, enlaces antiguos, historial, «‹», desplazamiento, foco y Reintentar.
 import { test } from 'node:test';
@@ -252,7 +252,7 @@ test('routeIsMine (myteam.js desde B5): el partido o la ficha de mi equipo, en s
 
 // ── Pantallas registradas ────────────────────────────────────────────────
 
-// Cada ruta de §4.1 tiene la suya (decisión 7 de B3): la provisional de B2 ya no existe.
+// Cada ruta de §4.1 tiene la suya: la provisional de B2 ya no existe.
 test('cada ruta de §4.1 tiene su pantalla, con el id de su ruta; la provisional de B2 ya no existe', () => {
   assert.deepEqual(Object.keys(SCREEN_MAP).sort(), [...SCREENS].sort());
   for (const name of SCREENS) {
@@ -383,8 +383,8 @@ test('enlace antiguo «miequipo» de mi equipo (la URL que escribía la app ante
   // El mismo nombre que el guardado, o el mismo club en el mismo grupo («Las Mesas Hu», sin punto).
   assert.deepEqual(await open('#section=miequipo&cat=prebenjamin&season=2025-2026&group=PG2&team=Las+Mesas+Hu.'), ['#/']);
   assert.deepEqual(await open('#section=miequipo&cat=prebenjamin&season=2025-2026&group=PG2&team=Las+Mesas+Hu'), ['#/']);
-  // Otro equipo, o el mismo club en otro grupo: su ficha, con la temporada del enlace (§4.1). Con otra
-  // grafía del nombre («Las Mesas Hu», sin punto, en A2), la del grupo (decisión 32 de B3).
+  // Otro equipo, o el mismo club en otro grupo: su ficha, con la temporada del enlace. Con otra
+  // grafía del nombre («Las Mesas Hu», sin punto, en A2), la del grupo.
   assert.deepEqual(await open('#section=miequipo&cat=prebenjamin&season=2025-2026&group=PG2&team=AD+Hurac%C3%A1n'),
     ['#/equipo?s=2025-2026&g=PG2&t=AD%20Hurac%C3%A1n']);
   assert.deepEqual(await open('#section=miequipo&cat=benjamin&season=2025-2026&group=A2&team=Las+Mesas+Hu'),
@@ -437,7 +437,7 @@ test('temporada pasada sin cargar que la pantalla no pide: la carga el router y 
   const b = fakeBrowser('#/equipo?s=2024-2025&g=PGC2&t=Las%20Mesas%20Hu.');
   const loaded = [];
   const log = [];
-  // Una pantalla que no pide su temporada en needs, como las de B3 (decisión 2 de B3).
+  // Una pantalla que no pide su temporada en needs, como las de B3.
   const router = startRouter({ screens: { '': screen('home'), equipo: screen('equipo') }, root: b.root, getContext: context({ loaded }), window: b.win, loadSeason: seasonLoader(loaded, { log }) });
   await router.idle();
   assert.deepEqual(log, ['carga 2024-2025'], 'el router pide la temporada pendiente, con la de la ruta');
@@ -485,7 +485,7 @@ test('un ancla que es un control de formulario se lleva el foco al avanzar y al 
   assert.equal(b.doc.getElementById('calendario').scrolled, 1);
   assert.equal(b.h1().focused, 1);
   // Al volver (pop: Atrás, Adelante o un hash escrito a mano) a #/explorar#buscar, el h1: en el
-  // móvil, el foco en el campo abriría el teclado sobre lo que se quería ver (decisión 165 de B3).
+  // móvil, el foco en el campo abriría el teclado sobre lo que se quería ver.
   b.win.history.back();
   await tick();
   await router.idle();
@@ -856,7 +856,7 @@ test('dos nav.back() seguidos: ninguna de las dos promesas se queda colgada (B2,
   assert.equal(b.index(), 0);
   assert.match(b.root.innerHTML, /<h1>home<\/h1>/);
 });
-// ── Plan B3, tarea 1: la temporada pendiente y la validación de las rutas de B3 ──
+// ── La temporada pendiente y la validación de las rutas de B3 ──
 
 // Pantallas falsas de todas las rutas, con su id como h1 (la de '' se llama home).
 const allScreens = (log = []) => Object.fromEntries(SCREENS.map((name) => [name, screen(name || 'home', { log })]));
@@ -1129,7 +1129,7 @@ test('nav.addRecent llama a actions.addRecent sin volver a pintar; nav.clearData
   assert.deepEqual(bare.entries(), ['#/ajustes', '#/']);
 });
 
-// ── Plan B5, Tarea 3: nav.update ligado a su mount y el «‹» del DOM por goBack (decisión 6) ──
+// ── Plan B5, Tarea 3: nav.update ligado a su mount y el «‹» del DOM por goBack ──
 
 test('nav.update de un mount que ya no es el vigente no toca la ruta nueva y devuelve false; el del vigente, sí (B5, decisión 6)', async () => {
   const b = fakeBrowser('#/');

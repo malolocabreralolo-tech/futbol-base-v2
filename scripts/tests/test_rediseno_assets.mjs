@@ -1,4 +1,4 @@
-// Plan B1, tarea 13: tipografía alojada (spec §3.2). Public Sans variable,
+// Tipografía alojada. Public Sans variable,
 // subconjunto latino, servida desde fonts/ con system-ui de respaldo.
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';

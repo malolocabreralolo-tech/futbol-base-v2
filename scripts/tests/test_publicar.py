@@ -1,4 +1,4 @@
-"""Plan B4, tarea 2: la subida de versión de una publicación (spec §5.5; decisión 10 de B4).
+"""La subida de versión de una publicación.
 
 Cada fase del rediseño se publica al terminarla. La publicación empaqueta dist/, sube a la vez las ?v= de
 index.html y CACHE_NAME de sw.js, con la misma cadena, y reescribe el manifiesto del precache, sin tocar

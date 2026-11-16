@@ -1,4 +1,4 @@
-// Plan B1, Tarea 5: análisis de grupo en src/model.js (spec §4.2-§4.4, §4.7,
+// Análisis de grupo en src/model.js (spec §4.2-§4.4, §4.7,
 // §5.3, §7 y casos reales 1, 5 y 6 de §11). Solo fixtures congeladas; `today`
 // siempre inyectado.
 import test from 'node:test';

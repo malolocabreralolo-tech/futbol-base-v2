@@ -1,4 +1,4 @@
-// Plan B3, Tarea 11: la pantalla Ajustes (spec §4.7 y §4.9; decisión 29 de B3). render(ctx) es pura
+// La pantalla Ajustes. render(ctx) es pura
 // y se prueba con ctxFor; mount, con los dobles de la sección que pinta el router (como la pregunta
 // de E en la portada): el botón despliega el aviso, «Cancelar» lo recoge y solo «Borrar» llama a
 // nav.clearData. El borrado de verdad, con start(), está en test_rediseno_integracion.mjs.
@@ -72,7 +72,7 @@ test('mount: dos pasos sin diálogo; «Cancelar» recoge el aviso y devuelve el 
   dom.click('borrar-datos');
   assert.deepEqual([dom.attrs['aria-expanded'], dom.panel.hidden], ['false', true]);
   assert.deepEqual(cleared, []);
-  // 3. Desplegado, «Borrar» llama a nav.clearData (que borra y abre Mi equipo, decisión 6).
+  // 3. Desplegado, «Borrar» llama a nav.clearData (que borra y abre Mi equipo).
   dom.click('borrar-datos');
   dom.click('confirmar-borrado');
   assert.deepEqual(cleared, [1]);

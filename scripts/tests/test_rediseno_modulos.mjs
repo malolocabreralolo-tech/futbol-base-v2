@@ -1,4 +1,4 @@
-// Plan B2, tarea 4: contrato de los módulos de src/ desde el corte (spec §5.1, §5.2 y §10).
+// Contrato de los módulos de src/ desde el corte.
 // Sustituye al contrato de B1 (test_rediseno_b1_contract.mjs), que vigilaba que la app vieja no
 // cargara nada nuevo. Es genérico: vale para todo src/, también para los módulos que lleguen.
 // - Ningún módulo toca el navegador al importarse, sin excepciones: app.js exporta su arranque
@@ -125,7 +125,7 @@ test('los nueve módulos del diseño anterior no vuelven', () => {
   assert.deepEqual(OLD.filter((f) => MODULES.includes(f)), []);
 });
 
-// ── Plan B2, tarea 7: nada de lo que se ve depende de los datos de idioma (B9 de la revisión) ──
+// ── Nada de lo que se ve depende de los datos de idioma ──
 // Los días y los meses van escritos en links.js; los números, con toFixed. Intl solo convierte a la
 // hora de Canarias, con partes numéricas.
 test('ningún módulo formatea con los datos de idioma del motor: ni toLocale*String ni Intl en castellano', () => {
@@ -134,7 +134,7 @@ test('ningún módulo formatea con los datos de idioma del motor: ni toLocale*St
   }
 });
 
-// ── Plan B5, Tarea 3: lo compartido, una sola vez (decisión 6; principio I2 del plan B3) ──
+// ── Lo compartido, una sola vez (decisión 6; principio I2 del plan B3) ──
 // Los nombres de categoría viven en model.js; el plural, el marcador, el signo y los decimales, en
 // ui.js. Ningún otro módulo vuelve a escribirlos.
 test('los nombres de categoría, en model.js; countLabel, score, signed y decimal, en ui.js; ningún otro módulo los repite', async () => {

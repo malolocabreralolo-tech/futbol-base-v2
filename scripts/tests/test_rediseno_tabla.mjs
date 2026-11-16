@@ -1,4 +1,4 @@
-// Plan B2, Tarea 10: pantalla Tabla (spec §4.4, §4.8 y §7; decisiones 3 y 15 de B1). render(ctx)
+// Pantalla Tabla. render(ctx)
 // es pura: se prueba sobre el HTML que devuelve, con las fixtures congeladas y `today` inyectado.
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
@@ -46,7 +46,7 @@ test('PG2 por defecto: cinco vistas en móvil (Puntos), Todas, Casa y Fuera en e
   assert.deepEqual(labels(nav(out, 'wide')), ['Todas', 'Casa', 'Fuera']);
   assert.deepEqual(active(nav(out, 'wide')), ['Todas']);
   // Un id estable por vista y selector: al cambiar de vista (replaceState), el router devuelve el
-  // foco al segmento pulsado, no al h1 (B11 de la revisión).
+  // foco al segmento pulsado, no al h1.
   assert.deepEqual(ids(nav(out, 'narrow')), ['vista-puntos', 'vista-goles', 'vista-forma', 'vista-casa', 'vista-fuera']);
   assert.deepEqual(ids(nav(out, 'wide')), ['vista-ancha-todas', 'vista-ancha-casa', 'vista-ancha-fuera']);
   assert.match(nav(out, 'narrow'), /href="#\/tabla\?s=2025-2026&amp;g=PG2" aria-current="true">Puntos/, 'la vista por defecto va sin v');
@@ -274,7 +274,7 @@ test('CSS: columnas por vista solo por debajo de 1024 px; cada selector en su an
   assert.deepEqual([...used].filter(c => !rules.classes.has(c)), []);
 });
 
-// ── Plan B5, Tarea 7: el contexto de la clasificación con la jornada en curso (B3, «Sin prueba todavía») ──
+// ── El contexto de la clasificación con la jornada en curso (B3, «Sin prueba todavía») ──
 
 test('a mitad de temporada, la clasificación dice hasta qué jornada llega, sin «, final»; sin jornada de la fuente, nada', () => {
   const raw = currentAt('2026-03-01');

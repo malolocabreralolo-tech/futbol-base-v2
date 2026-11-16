@@ -1,4 +1,4 @@
-// Plan B2, tarea 5: el marco de la app (spec §4.1, §4.8, §4.10, §7 y §8). shell.js, su CSS
+// El marco de la app. shell.js, su CSS
 // y la cabecera y el esqueleto de la portada que lleva index.html.
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
@@ -114,7 +114,7 @@ test('routeTitle: un título por ruta de §4.1; routeNotice: aviso anunciado con
   assert.equal(s(routeNotice('Elige tu equipo en Mi equipo')), '<p class="notice route-notice" role="status">Elige tu equipo en Mi equipo</p>');
 });
 
-// ── CSS (spec §3.4, §4.8 y §8) ──────────────────────────────────────────
+// ── CSS ──────────────────────────────────────────
 
 const CSS = read('acta.css');
 // Reglas del CSS como {media, selector, body}; un nivel de @media.
@@ -207,7 +207,7 @@ test('index.html: la cabecera de renderHeader, con la barra dentro, y el esquele
   assert.ok(page.indexOf('<header class="shell-header">') < page.indexOf('<main id="contenido"'));
 });
 
-// ── Plan B5, Tarea 4: «Reintentar» de un bloque, en su sitio (decisión 3) ──
+// ── Plan B5, Tarea 4: «Reintentar» de un bloque, en su sitio ──
 
 test('retryBlock: vuelve a pedir, pinta el bloque en su sitio y lleva el foco a su título; si ya no está, nada', async () => {
   const failed = s(block('Goles', errorBox('la cronología de goles'), { id: 'goles' }));
@@ -230,7 +230,7 @@ test('retryBlock: vuelve a pedir, pinta el bloque en su sitio y lleva el foco a 
   assert.equal(await retryBlock(page.section, 'goles', {}, () => { throw new Error('no debe pedir'); }, () => ''), null);
 });
 
-// ── Plan B5, Tarea 5: el esqueleto propio de las seis pantallas de B3 (decisión 4) ──
+// ── El esqueleto propio de las seis pantallas de B3 ──
 
 // Las cajas de cada una, en orden: lo que va antes de su primer bloque y ese bloque.
 const B3_SKELETONS = {

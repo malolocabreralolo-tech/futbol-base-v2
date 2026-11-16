@@ -1,8 +1,6 @@
-// El pronóstico de la clasificación final en la web (19/10/2026). La primera versión era un bloque con la
-// tabla prevista en la ficha de equipo y en Mi equipo; tras verla, el usuario lo pidió así: «no me pongas el
-// pronóstico en una tipo tabla, sino pónmelo, por ejemplo, la temporada en cifras, ahí me pones pronóstico
-// quinto, mis 55 puntos, y luego si pincho ahí […] ver esa tabla […], pero esa tabla no me la pongas en cada
-// uno de los equipos». Ahora:
+// El pronóstico de la clasificación final en la web: la tabla prevista no va en cada ficha de equipo ni
+// en Mi equipo, sino detrás de una cifra («pronóstico quinto, mis 55 puntos») y de un enlace para verla,
+// en un solo sitio. Así:
 // - en «La temporada en cifras» de la ficha y de Mi equipo, la primera cifra, «Pronóstico final: 4.º entre 2.º
 //   y 6.º unos 45 puntos Ver la tabla prevista ›» (projectionFigure de team-view.js), un enlace a
 // - la tabla prevista, en un solo sitio: la Tabla del grupo, vista v=pronostico (projectionView de

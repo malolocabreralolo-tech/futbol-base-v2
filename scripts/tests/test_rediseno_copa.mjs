@@ -1,4 +1,4 @@
-// Plan B3, Tarea 8: pantalla Copa (spec §4.7 y §8; decisiones 22, 23 y 24 de B3). render(ctx) es
+// Pantalla Copa. render(ctx) es
 // pura: se prueba sobre el HTML que devuelve, con las fixtures congeladas y `today` inyectado.
 // También el cuadro (bracket, model.js), mi equipo en los torneos (cupTeamOf, myteam.js) y el cara
 // a cara de Partido con las copas de la federación.
@@ -16,7 +16,7 @@ const TODAY = '2026-09-23';
 const LAS_MESAS_A2 = { name: 'Las Mesas Hu.', season: PORTAL_SEASON, cat: 'benjamin', groupId: 'A2' };
 const UNION_VIERA_PG2 = { name: 'Unión Viera', season: PORTAL_SEASON, cat: 'prebenjamin', groupId: 'PG2' };
 const AD_HURACAN_PG2 = { name: 'AD Huracán', season: PORTAL_SEASON, cat: 'prebenjamin', groupId: 'PG2' };
-// Todo lo de B3 cargado: la Copa de Campeones de 2025-26, las dos copas más de la Maspalomas y el
+// Todo cargado: la Copa de Campeones de 2025-26, las dos copas más de la Maspalomas y el
 // archivo de 2024-25 y 2023-24.
 const all = () => datasetsFor({ champions: true, cupsExtra: true, seasonRaw: { '2024-2025': archive('2024-2025'), '2023-2024': archive('2023-2024') } });
 
@@ -169,7 +169,7 @@ test('Copa de Campeones 2025-26: un cuadro por fase, un 5–5 que se decide en l
   assert.equal(text(blockOf(bca1, 'Campeón')), 'Campeón final, 6 jun Las Palmas Acodetti 0–1 Las Palmas');
   assert.deepEqual(tabs(bca1).map((t) => t[3]), ['Cuartos', 'Semifinales', 'Final']);
   // Sin hora ni campo en la fuente: sin la línea de hora; y el empate sin columna de penaltis ni tanda,
-  // quién pasó según el cuadro, nunca «por penaltis» (decisión 162).
+  // quién pasó según el cuadro, nunca «por penaltis».
   assert.doesNotMatch(bca1, /bm-when/);
   assert.equal(cells(bca1)[3].text, 'Unión Viera 5 Tamaraceite (pasó) 5 Pasó Tamaraceite, según el cuadro');
   const pcc1 = render({ g: 'PCC1' }, { myTeam: UNION_VIERA_PG2 });
@@ -281,7 +281,7 @@ test('sin campeón, sin partidos, sin la temporada o sin copa: nunca una pantall
   assert.match(render({ g: 'PG2' }), /<h1>Copa<\/h1>.*<p class="empty">No hay ninguna copa PG2 en la temporada 2025\/26\.<\/p>/);
 });
 
-// Elementos mínimos para mount, como en las pruebas de mount de B2: la sección, el contenedor del
+// Elementos mínimos para mount, como en las demás pruebas de mount: la sección, el contenedor del
 // cuadro, sus cuatro pestañas y sus columnas (MCPK1 a 300 px por columna).
 function bracketStub(heights = [420, 410, 210, 110]) {
   const node = (attrs = {}) => ({
@@ -390,7 +390,7 @@ test('CSS: el único desplazamiento horizontal es el del cuadro, con ajuste; en 
   const rules = cssRules();
   const wide = (m) => m !== null && /min-width:\s*1024px/.test(m);
   const bodyOf = (sel, media = (m) => m === null) => rules.filter((r) => media(r.media) && r.selector === sel).map((r) => r.body).join(';');
-  // La página no se desplaza en horizontal (spec §8): solo lo hacen, dentro de su caja, el cuadro y las
+  // La página no se desplaza en horizontal: solo lo hacen, dentro de su caja, el cuadro y las
   // fichas de la tira de grupos (Tabla y Jornada).
   assert.deepEqual(rules.filter((r) => /overflow(-x)?:\s*(auto|scroll)/.test(r.body)).map((r) => r.selector), ['.group-scroll', '.bracket'],
     'la página no se desplaza en horizontal: solo el cuadro y la tira de grupos (spec §8)');
@@ -409,7 +409,7 @@ test('CSS: el único desplazamiento horizontal es el del cuadro, con ajuste; en 
   assert.deepEqual([...used].filter((c) => !rules.classes.has(c)), []);
 });
 
-// ── Plan B5, Tarea 6: dos textos de Copa (decisión 5) ──
+// ── Dos textos de Copa ──
 
 test('una final empatada de la que la fuente no dice quién ganó: el bloque «Campeón» lo dice, con su marcador (§7)', () => {
   // MCBK2, la final de la Copa Oro (2–2): sin la columna de penaltis ni la tanda, como las copas de la federación.

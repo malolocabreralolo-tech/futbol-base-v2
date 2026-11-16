@@ -1,4 +1,4 @@
-// Alevín en la web (contrato común de alevín; r3.md §6 con las correcciones de critic.md): la tercera
+// Alevín en la web (contrato común de alevín): la tercera
 // categoría, de Gran Canaria, en un fichero perezoso (data-alevin.js; data-season-<S>-alevin.js en las
 // temporadas pasadas) que nunca entra en la carga inicial.
 // - model.js: CATEGORIES con alevín al final, la categoría de un grupo sin `cat`, la Copa de Campeones
@@ -465,7 +465,7 @@ test('startContext: el registro de las pruebas, con el alevín ya cargado (vací
   assert.deepEqual(ctx.datasets.alevin, alevinData({}));
 });
 
-// ── Revisión adversarial de la web de alevín ─────────────────────────────
+// ── Casos límite de alevín ─────────────────────────────
 
 const plain = (out) => String(out).replace(/<[^>]+>/g, ' ').replace(/&amp;/g, '&').replace(/\s+/g, ' ').trim();
 const MESAS_MATCH = (group) => group.rounds[0].matches.find((m) => m.home === 'Las Mesas Hu.' || m.away === 'Las Mesas Hu.');

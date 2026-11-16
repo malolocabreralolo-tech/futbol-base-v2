@@ -1,4 +1,4 @@
-// Plan B1, tarea 12: componentes de ui.js (spec §3.3, §3.5 y §8) sobre el HTML
+// Componentes de ui.js sobre el HTML
 // que producen. Los datos son copias literales de datos reales: la tabla final
 // de PG2 2025-26, su jornada 30, la tanda de la Maspalomas Cup y nombres de la
 // federación con comillas.
@@ -364,7 +364,7 @@ test('cada clase que emite ui.js existe en acta.css', () => {
   assert.deepEqual([...used].filter(c => !defined.has(c)), []);
 });
 
-// ── Plan B2, tarea 4: la cabecera de pantalla, común a todas las pantallas ──
+// ── La cabecera de pantalla, común a todas las pantallas ──
 import { screenHead, backLink } from '../../src/ui.js';
 
 test('screenHead: el único h1 con su etiqueta, «‹» y escudo a la izquierda, acción a la derecha; todo escapado', () => {
@@ -394,7 +394,7 @@ test('cada clase que emite screenHead existe en acta.css', () => {
   assert.deepEqual([...used].filter(c => !defined.has(c)), []);
 });
 
-// ── Plan B5, Tarea 3: las cifras y los recuentos de todas las pantallas, una sola vez (decisión 6) ──
+// ── Las cifras y los recuentos de todas las pantallas, una sola vez ──
 
 test('countLabel, score, signed y decimal: una sola definición, la de ui.js', () => {
   assert.equal(countLabel(1, 'grupo', 'grupos'), '1 grupo');

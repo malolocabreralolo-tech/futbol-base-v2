@@ -1,4 +1,4 @@
-// Plan B1, tarea 2: plantillas con escapado automático (spec §5.1 y §11).
+// Plantillas con escapado automático.
 // Toda interpolación se escapa; solo pasan tal cual los fragmentos Html que
 // produce la propia etiqueta html``, y raw() rechaza cualquier otra cosa.
 import { test } from 'node:test';

@@ -1,4 +1,4 @@
-// Pronóstico de la clasificación final de prebenjamín (src/proyeccion.js, 19/10/2026): la simulación del
+// Pronóstico de la clasificación final de prebenjamín (src/proyeccion.js): la simulación del
 // resto de la liga con el pronóstico de cada partido de src/pronostico.js. Grupos sintéticos, construidos
 // con el buildGroup de model.js como los de la temporada del portal (como test_pronostico.mjs), y ligas
 // de juguete para simulate: ni los data-*.js de la web, que cambian cada dos horas, ni config.js.
@@ -141,9 +141,9 @@ test('determinista: con la semilla fija, lo mismo cada vez y con el grupo recons
 
 // Las huellas de simulate en una liga de juguete de cinco equipos (todos contra todos, ida y vuelta: 20
 // partidos), 3.000 simulaciones, con cuatro semillas (la de la web y tres que prueban los 32 bits: 1,
-// 2^32 − 1 y 2^31 + 5). Sacadas el 19/10/2026 con el generador en una función aparte (060700e); con el
-// generador escrito en línea, por velocidad (la cabecera de src/proyeccion.js), las mismas: los mismos
-// números, sorteo a sorteo. También el backtest (scripts/backtest_proyeccion.mjs) dio lo mismo, byte a byte.
+// 2^32 − 1 y 2^31 + 5). Sacadas con el generador en una función aparte; con el generador escrito en
+// línea, por velocidad (la cabecera de src/proyeccion.js), salen las mismas: los mismos números, sorteo
+// a sorteo. También el backtest (scripts/backtest_proyeccion.mjs) dio lo mismo, byte a byte.
 const SIM_PRINTS = {
   1: '1af88e788458404f63c2bdcf088780f2c7148d92',
   19102026: 'bbaac37c5f72be91e4693cf1b39d2e0c96ffe890',
@@ -285,9 +285,9 @@ test('startMatchesCalendar: lo que la federación puede contar o no, si lo cuent
   // No los cuenta: cuadra.
   const without = BASE.map((ms, i) => (i === 0 ? ms.filter(m => !off.has(`${m[1]}|${m[2]}`)) : ms));
   assert.equal(startMatchesCalendar(makeGroup(BASE, { table: without }), { status }), true);
-  // No los cuenta, pero ya cuenta el Zeta–Épsilon de la jornada 4 (1-2), que el calendario aún no trae: Zeta y
-  // Épsilon llevan un partido más que los suyos, como si contara el anulado, pero con otros goles. Antes del
-  // 19/10/2026 cuadraba, y el Zeta–Épsilon se contaba dos veces: en la tabla y en la simulación.
+  // No los cuenta, pero sí el Zeta–Épsilon de la jornada 4 (1-2), que el calendario aún no trae: Zeta y
+  // Épsilon llevan un partido más que los suyos, como si contara el anulado, pero con otros goles. El
+  // Zeta–Épsilon no puede contarse dos veces: en la tabla y en la simulación.
   const ahead = without.map((ms, i) => (i === 3 ? ms.map(m => (m[1] === 'Zeta' ? row(m[0], 'Zeta', 'Épsilon', 1, 2) : m)) : ms));
   const group = makeGroup(BASE, { table: ahead });
   assert.equal(startMatchesCalendar(group, { status }), false);

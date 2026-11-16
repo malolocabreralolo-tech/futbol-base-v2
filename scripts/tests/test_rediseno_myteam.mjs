@@ -1,4 +1,4 @@
-// Identidad de club, resolución de mi equipo y verano (spec §6), con datos reales congelados.
+// Identidad de club, resolución de mi equipo y verano, con datos reales congelados.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { fixture } from './fixtures/rediseno/load.mjs';
@@ -44,7 +44,7 @@ test('TEAM_ALIASES: el alias de la Maspalomas de la spec y los cinco de la Prime
 });
 
 // Nombres reales que cambian de la Primera Fase a la siguiente y que ni el escudo ni la clave base
-// unen: sin su alias, esas familias se quedaban en su grupo de la Primera Fase ya terminado (decisión 20).
+// unen: sin su alias, esas familias se quedaban en su grupo de la Primera Fase ya terminado.
 for (const [first, later, where] of [
   ['Loz Vélez', 'Los Vélez', 'FF20 → C3'],
   ['M. Training B', 'Maspa Training B', 'FF21 → A3'],
@@ -381,7 +381,7 @@ test('decisión 20: con la fase posterior en marcha desde hace 8 días, stale (d
 });
 
 test('decisión 20: con un hermano ya en la fase posterior y el mío aún sin publicar, se espera sin stale', () => {
-  // 27/11/2025 con solo A2 publicado (decisión 16): «Las Mesas Hu.» ya está en A2, todo por jugar,
+  // 27/11/2025 con solo A2 publicado: «Las Mesas Hu.» ya está en A2, todo por jugar,
   // y «Las Mesas B» (B2) aún no.
   const raw = currentAt('2025-11-27');
   raw.benjamin = raw.benjamin.filter(g => ['FF5', 'FF13', 'A2'].includes(g.id));

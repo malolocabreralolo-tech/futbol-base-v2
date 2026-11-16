@@ -1,4 +1,4 @@
-// Plan B2, Tarea 9: pantalla Jornada (spec §4.3, §4.8 y caso 5 de §11). render(ctx) es pura:
+// Pantalla Jornada (spec §4.3, §4.8 y caso 5 de §11). render(ctx) es pura:
 // se prueba sobre el HTML que devuelve, con las fixtures congeladas y `today` inyectado.
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
@@ -62,7 +62,7 @@ test('el día del partido propio va primero aunque sea posterior; «Sin fecha»,
 
 test('anterior y siguiente: enlaces a la jornada vecina con r = Round.key y un id estable; en los extremos, desactivados', () => {
   // El id es el mismo en cada jornada: al cambiar (replaceState), el router devuelve el foco al
-  // control pulsado (B11 de la revisión); en un extremo, el apagado conserva el id y el foco.
+  // control pulsado; en un extremo, el apagado conserva el id y el foco.
   const last = render({ g: 'PG2', r: 'Jornada 30' });
   assert.match(last, /<a class="round-step" id="round-prev" href="#\/jornada\?s=2025-2026&amp;g=PG2&amp;r=Jornada%2029" aria-label="Jornada anterior: Jornada 29">‹<\/a>/);
   assert.match(last, /<span class="round-step is-off" id="round-next" role="link" aria-disabled="true" tabindex="-1" aria-label="Jornada siguiente: no hay">›<\/span>/);
@@ -183,7 +183,7 @@ test('temporada pasada (P1 2024-25): la temporada en la etiqueta, fechas DD/MM, 
 });
 
 test('temporada sin cargar, grupo que no existe o sin calendario: nunca una pantalla en blanco', () => {
-  // needs no trajo 2023-24: la caja de error de shell.js (Tarea 5), con «Reintentar».
+  // needs no trajo 2023-24: la caja de error de shell.js, con «Reintentar».
   const failed = render({ s: '2023-2024', g: 'P1' });
   assert.match(failed, /<h1>Jornada<\/h1>/);
   assert.match(text(failed), /No se pudieron cargar los datos de la temporada 2023\/24/);
@@ -245,7 +245,7 @@ test('needs: [] en la temporada del portal o ya cargada; si no, la carga y la gu
   const datasets = datasetsFor();
   assert.deepEqual(seasonNeeds(PORTAL_SEASON, datasets, PORTAL_SEASON), []);
   assert.throws(() => seasonNeeds('2024-2025', datasets), TypeError, 'sin la temporada del portal, nunca la de config.js');
-  // La temporada del portal llega a screen.needs desde el router (R2-1 de la revisión adversarial).
+  // La temporada del portal llega a screen.needs desde el router.
   assert.deepEqual(screen.needs({ s: PORTAL_SEASON }, datasets, { portalSeason: PORTAL_SEASON }), []);
   assert.deepEqual(screen.needs({ s: '2024-2025' }, { seasonRaw: { '2024-2025': {} } }, { portalSeason: PORTAL_SEASON }), []);
   const saved = { fetch: globalThis.fetch, document: globalThis.document, error: console.error };

@@ -1,8 +1,8 @@
-// Plan B2, tarea 12: integración (spec §4.1, §4.2, §4.10, §5.4 y §6). Rutas y barra completas,
-// mi equipo guardado al arrancar solo con un cambio de fase (A2 de la revisión adversarial) y el
+// Plan B2, tarea 12: integración. Rutas y barra completas,
+// mi equipo guardado al arrancar solo con un cambio de fase y el
 // cableado de app.js: escudos, aviso sin conexión, sesión y «Hacer mi equipo». start() se ejecuta
 // de verdad sobre un navegador falso y un almacén en memoria: el guardado al arrancar, la
-// activación de 2026/27 por partes (§11, caso 3), los datos inmediatos que faltan y los enlaces
+// activación de 2026/27 por partes, los datos inmediatos que faltan y los enlaces
 // que el router deja pasar porque la pantalla los sabe leer.
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
@@ -219,7 +219,7 @@ test('temporada pasada que la pantalla no pide (Equipo): la carga el router y la
   assert.match(page.main.innerHTML, /^<section data-screen="equipo" data-state="D">/);
   assert.match(page.main.innerHTML, /<h1>Las Mesas Hu\.<\/h1><p class="screen-sub">Temporada 2024\/25 terminada<\/p>/);
   assert.doesNotMatch(page.main.innerHTML, /No se pudieron cargar/);
-  // El mount de verdad la apunta en el almacén (decisión 5 de B3), con el equipo por defecto.
+  // El mount de verdad la apunta en el almacén, con el equipo por defecto.
   assert.deepEqual(JSON.parse(storage.get(STORE_KEY)).recent, [{ s: '2024-2025', g: 'PGC2', t: 'Las Mesas Hu.' }]);
   // El enlace de la revisión (A1, que la temporada 2024/25 de las fixtures no tiene): cargada la
   // temporada, el grupo se valida y lleva a Explorar con su aviso, tampoco a la caja de error.
@@ -353,7 +353,7 @@ test('start: el último destino principal, en la sesión de la pestaña; «Hacer
   assert.match(page.main.innerHTML, /<h1>Acodetti<\/h1>/);
   assert.deepEqual(saved(storage), huracan, 'en el almacén, el último que se pudo guardar');
 });
-// ── Plan B3, tarea 1: paso 0 del router, vistos hace poco y «Borrar datos» con start() ──
+// ── Paso 0 del router, vistos hace poco y «Borrar datos» con start() ──
 
 test('paso 0 de B3: una temporada que se lee pero está mal formada da la caja de error con «Reintentar», nunca el esqueleto', async (t) => {
   // El dato roto y la caja de error se registran con console.error: aquí se esperan.

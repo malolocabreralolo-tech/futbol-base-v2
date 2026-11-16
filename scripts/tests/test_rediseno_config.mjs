@@ -1,5 +1,5 @@
 /**
- * Ninguna prueba depende de src/config.js (R2-1 de la revisión adversarial). El día que se active
+ * Ninguna prueba depende de src/config.js. El día que se active
  * 2026/27, activate_season.py cambia la temporada de config.js, y el bot ejecuta estas pruebas antes de
  * comitear: si una leyera config.js, se pararía en rojo en silencio. Aquí se ejecutan todas las demás
  * pruebas de Node con un config.js de 2026/27, con el equipo por defecto en otro grupo, que sirve un

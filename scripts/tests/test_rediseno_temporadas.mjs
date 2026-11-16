@@ -1,4 +1,4 @@
-// Plan B3, Tarea 11: la pantalla Temporadas (spec §4.1 y §4.7; decisión 27 de B3). render(ctx) es
+// La pantalla Temporadas. render(ctx) es
 // pura: se prueba con ctxFor sobre las fixtures, con SEASONS de datasetsFor (las temporadas que se
 // sirven, decisión 31) y la temporada del portal inyectada.
 import { test } from 'node:test';

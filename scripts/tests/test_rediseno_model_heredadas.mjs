@@ -1,5 +1,5 @@
-// Plan B2, tarea 3: la función pura del diseño anterior que sigue en model.js (spec §5.2):
-// sourceInfo, que devuelve datos y no HTML (decisión 3); la pantalla Tabla lo pinta.
+// La función pura del diseño anterior que sigue en model.js:
+// sourceInfo, que devuelve datos y no HTML; la pantalla Tabla lo pinta.
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
 import { fixture } from './fixtures/rediseno/load.mjs';
@@ -15,7 +15,7 @@ test('fase 3, tarea 3: sin las heredadas que solo usaban sus pruebas', () => {
   assert.equal('matchDateISO' in links, false, 'matchDateISO sigue en links.js');
 });
 
-// ─── sourceInfo (decisión 3) ───────────────────────────────────────────────
+// ─── sourceInfo ───────────────────────────────────────────────
 
 const season = buildSeason({ name: '2025-2026', current: true, ...fixture('current-2025-2026') });
 const groupOf = (id) => season.groups.find((group) => group.id === id);

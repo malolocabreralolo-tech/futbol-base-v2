@@ -889,7 +889,7 @@ def test_python_tests_run_without_playwright():
             assert not re.match(r"\s*(?:import|from)\s+playwright\b", line), f"{path.name}:{n}: {line.strip()}"
 
 
-# Lo que se instala con pip va fijado en dos ficheros (fase 4 de v2, tarea 4): con «lo último del día», una
+# Lo que se instala con pip va fijado en dos ficheros: con «lo último del día», una
 # versión nueva de Playwright (y su Chromium) entraba en el bot sin que nadie la probara.
 REQUISITOS = ROOT / "scripts"
 PIP_DESDE_FICHERO = re.compile(r"pip3? install (?:--dry-run )?-r scripts/requirements-(?:tests|bot)\.txt")
@@ -970,7 +970,7 @@ def test_node_fijado_en_el_bot(name, job):
 
 
 def test_tests_yml_paths_cover_fonts_icons_and_crests():
-    """Plan B4 (spec §5.5): un cambio que solo toque la fuente, los iconos o los escudos corre las
+    """Un cambio que solo toque la fuente, los iconos o los escudos corre las
     pruebas que los miran (test_rediseno_assets, test_build_icons, test_build_crests y el precache de
     test_sw_fixes)."""
     trig = _triggers(_load("tests.yml"))
@@ -1073,7 +1073,7 @@ def test_the_bot_works_on_the_current_main_not_on_the_dispatch_commit():
 # Fase 2D (14/11/2026): activar.yml activa solo lo que el bot apuntó como nuevo (newCompetitions y newGroups
 # de data-health.json): catálogo, descarga de lo pendiente, activar_auto.py, pruebas y subida. Lo lanza el bot
 # (update.yml, «Lanzar la activación si hay algo nuevo», con source_health.py pendiente) o el dueño a mano;
-# nunca se relanza a sí mismo (ronda de arreglo 1): intentos cortos que se alternan con las pasadas. Los guiones
+# nunca se relanza a sí mismo: intentos cortos que se alternan con las pasadas. Los guiones
 # de sus pasos se ejecutan con bash en repositorios de mentira con su remoto, con un gh de mentira que apunta
 # lo que se le pide.
 

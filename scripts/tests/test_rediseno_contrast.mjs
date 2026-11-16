@@ -1,5 +1,4 @@
-// Plan B1, tarea 11: tokens de acta.css (spec §3.1) y contraste AA
-// (spec §3.1, §8 y §11). Lee los tokens de los dos temas tal como están en el
+// Tokens de acta.css y contraste AA: lee los tokens de los dos temas tal como están en el
 // CSS: si alguien toca un color, el test recalcula el contraste real.
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
@@ -40,7 +39,7 @@ const rootRule = (media) => rules.find(r => r.selector === ':root' && media(r.me
 const LIGHT = rootRule(m => m === null);
 const DARK = rootRule(m => m !== null && /prefers-color-scheme:\s*dark/.test(m));
 
-// Spec §3.1, literal.
+// Los valores de los tokens, literales.
 const SPEC = {
   light: { paper: '#FFFFFF', text: '#1A1F2B', mute: '#5A6272', ink: '#C0182B', 'on-ink': '#FFFFFF',
     rule: '#E7B9BE', line: '#ECEEF2', mark: '#FBEDEE', win: '#1B7A43', 'on-win': '#FFFFFF',
@@ -61,7 +60,7 @@ const ratio = (a, b) => {
   return (hi + 0.05) / (lo + 0.05);
 };
 
-// Spec §3.1 (texto/fondo), más los pares que usan los componentes: el
+// Texto/fondo, más los pares que usan los componentes: el
 // monograma (--mute sobre --line), las etiquetas dentro de la fila propia
 // (--mute sobre --mark) y las fichas de la tira de grupos (--text y, la de mi
 // grupo, --ink sobre --line).

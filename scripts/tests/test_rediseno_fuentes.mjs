@@ -1,4 +1,4 @@
-// Plan B3, Tarea 11: la pantalla Datos y fuentes (spec §4.7, §4.2 D y §7; decisión 28 de B3).
+// La pantalla Datos y fuentes (spec §4.7, §4.2 D y §7; decisión 28 de B3).
 // render(ctx) es pura: se prueba con ctxFor sobre las fixtures (health.json es el data-health.json
 // del 23/09/2026) y `today` inyectado. needs pide data-health también si ya falló, y el «Reintentar»
 // del router lo vuelve a pedir: se prueba con startRouter, el navegador falso y un fetch simulado.

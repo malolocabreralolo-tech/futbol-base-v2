@@ -1,4 +1,4 @@
-// Almacén «fb2:almacen» y migración desde v1 (Plan B1, Tarea 10; spec §6.5 y §11), y
+// Almacén «fb2:almacen» y migración desde v1, y
 // «Borrar datos de esta app» (Plan B3, Tarea 1: removeItem y clearStore). Lo de v1 entra solo
 // por importFromV1, una vez: el detalle de la importación está en test_importar_v1.mjs.
 // Usa Storage falsos en memoria y la fixture congelada favorites-v1: nunca
@@ -274,7 +274,7 @@ test('addRecent: el mismo equipo en otra temporada es otra entrada; una entrada 
     assert.equal(addRecent(state, bad), state);
   }
 });
-// ── Plan B3, tarea 1: «Borrar datos de esta app» (decisión 6) ─────────────
+// ── Plan B3, tarea 1: «Borrar datos de esta app» ─────────────
 
 test('safeStorage.removeItem: borra la clave y nunca lanza', () => {
   const memory = new MemoryStorage({ a: '1', b: '2' });

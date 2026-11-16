@@ -286,7 +286,7 @@ test('cada clase que emite la ficha existe en acta.css', () => {
   assert.ok(rules.some((r) => r.media === null && r.selector === '.cal-actions'), 'el botón del .ics tiene su hueco');
 });
 
-// ── Plan B3, Tarea 5: plantilla y trayectoria (decisiones 13 y 14; la evolución de puntos, la 12, se quitó
+// ── Plantilla y trayectoria (decisiones 13 y 14; la evolución de puntos, la 12, se quitó
 // el 19/10/2026: en su sitio, el pronóstico de la clasificación final, en test_proyeccion_web.mjs) ──────
 
 const ACTAS = seasonLineups('2025-2026');
@@ -502,7 +502,7 @@ test('estilos de la plantilla y la trayectoria: cada clase existe, lo pulsable m
   assert.doesNotMatch(mine, /border-radius|box-shadow|text-transform/);
 });
 
-// ── Plan B5, Tarea 4: «Reintentar» de la Plantilla, sin perder el sitio (decisión 3) ──
+// ── Plan B5, Tarea 4: «Reintentar» de la Plantilla, sin perder el sitio ──
 
 test('«Reintentar» de la Plantilla: lo atiende la ficha, vuelve a pedir las actas y pinta solo su bloque, con el foco en su título', async (t) => {
   t.mock.method(console, 'warn', () => {});

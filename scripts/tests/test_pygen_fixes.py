@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Regression tests for the 2026-06-11 generate_js.py fixes:
+Regression tests for generate_js.py:
 
-  1. TEAMS_<S> mapping uses a letter-preserving normalizer (contrato C1):
+  1. TEAMS_<S> mapping uses a letter-preserving normalizer:
      'UD Atalaya' -> 'atalaya', 'UD Atalaya B' -> 'atalaya b' (no colisiones).
   2. generate_lineups_js pairs substitutions correctly: one event per change
      with n = saliente y n2 = entrante (mutual pair_id, no self-lookup).
@@ -10,8 +10,8 @@ Regression tests for the 2026-06-11 generate_js.py fixes:
   4. Stale stored standings in the CURRENT season are recomputed from matches
      (3/1/0; pts desc, DF desc, GF desc, name asc); synced ones are kept
      (official tables may carry sanctions); copas/knockouts never recomputed.
-  5. C4: ?v= / footer date / CACHE_NAME only bump if some data-*.js content
-     changed in this run; C3: sw.js CACHE_NAME literal stays regex-matchable.
+  5. ?v= / footer date / CACHE_NAME only bump if some data-*.js content
+     changed in this run; sw.js CACHE_NAME literal stays regex-matchable.
 
 Run: python3 -m pytest scripts/tests/test_pygen_fixes.py -v
 """
@@ -89,7 +89,7 @@ def _parse_const(js, name):
     return json.loads(m.group(1))
 
 
-# ─── Fix 1: TEAMS_<S> letter-preserving normalization (C1) ──────────────────
+# ─── Fix 1: TEAMS_<S> letter-preserving normalization ──────────────────
 
 class TestTeamsMappingNormalization:
     def test_keeps_filial_letter(self):
@@ -220,7 +220,7 @@ class TestScoreRangeGuard:
         assert capsys.readouterr().err == ""
 
 
-# ─── Plan A §9.1: hora y campo en temporadas pasadas ────────────────────────
+# ─── hora y campo en temporadas pasadas ────────────────────────
 
 class TestHistoricalMatchDetails:
     """Las temporadas pasadas salían en filas de 5 columnas aunque la base
@@ -521,7 +521,7 @@ class TestStandingsPointsRepair:
         assert changed is False
 
 
-# ─── La clasificación de la web, por puntos (18/10/2026) ────────────────────
+# ─── La clasificación de la web, por puntos ────────────────────
 
 # PG2 de 2026-27 tal como la publica la federación (jornada 2): por puntos por partido (pts/J), con J
 # desiguales. Santa Brígida (3 puntos en 1 J) salía 2.ª, por encima de Las Mesas Hu. (6 en 2).
@@ -785,10 +785,10 @@ class TestMatchKeySanitize:
 # ─── Fix (2026-06-15): knockout round ordering (cups) ───────────────────────
 
 class TestJornadaSortKey:
-    """Las rondas de cup ("( Cuartos )"/"( Semifinales )"/"( Final )", mismo día)
-    se ordenaban por el primer número (el día) → empate → orden alfabético
-    (Cuartos, Final, Semifinales). El frontend etiqueta por posición → la final
-    (1 partido) salía como semifinal y viceversa. Deben ordenarse por progresión."""
+    """Las rondas de cup ("( Cuartos )"/"( Semifinales )"/"( Final )", mismo día) no pueden ordenarse por el
+    primer número (el día) → empate → orden alfabético (Cuartos, Final, Semifinales): el frontend etiqueta
+    por posición, y la final (1 partido) saldría como semifinal y viceversa. Deben ordenarse por
+    progresión."""
 
     def test_knockout_rounds_order_by_progression(self):
         from scripts.generate_js import _jornada_sort_key
@@ -814,7 +814,7 @@ class TestJornadaSortKey:
             "08-06-2025 ( Ronda 1 )", "09-06-2025 ( Ronda 2 )"]
 
 
-# ─── Fix 5: conditional cache/version bump (C3 + C4) ────────────────────────
+# ─── Fix 5: conditional cache/version bump ────────────────────────
 
 def _synth_site(tmp_path):
     (tmp_path / "index.html").write_text(
@@ -856,7 +856,7 @@ class TestConditionalBump:
         assert f"Última actualización: {date.today().strftime('%d/%m/%Y')}" in idx
         sw = (tmp_path / "sw.js").read_text(encoding="utf-8")
         assert f"futbolbase2-v{today}" in sw, "CACHE_NAME debe llevar el mismo string de versión"
-        # C3: first line keeps the matchable literal
+        # first line keeps the matchable literal
         assert re.search(r"futbolbase2-v[0-9a-z]+", sw.splitlines()[0])
         assert sw.splitlines()[0] == f"const CACHE_NAME = 'futbolbase2-v{today}';"
 
@@ -889,8 +889,7 @@ class TestTeamLookupIsCollisionAware:
     """El portal escribe 'Arucas CF' donde la base tiene 'Arucas'. Si
     get_or_create_team empareja solo por nombre exacto, cada scrape vuelve a
     partir el club en dos: la clasificación con un nombre y el calendario con el
-    otro, la ficha vacía y la clave de TEAMS_ duplicada. Tumbó el auto-update
-    del 27/07/2026."""
+    otro, la ficha vacía y la clave de TEAMS_ duplicada."""
 
     def _conn(self):
         import sqlite3
@@ -939,7 +938,7 @@ def test_the_scraper_repairs_impossible_points_before_writing():
             < src.index("standings_regression(stored_standings("))
 
 
-# ─── Plan A §9.2 (2026-09-23): claves repetidas de MATCH_DETAIL / LINEUPS ───
+# ─── Claves repetidas de MATCH_DETAIL / LINEUPS ───
 
 def _parse_tail_const(js, name):
     """Como _parse_const, pero hasta el ÚLTIMO ';' del fichero: los data-*.js
@@ -1130,7 +1129,7 @@ class TestMatchKeyCollisions:
         assert len(ff15["g"]) == 12 and ff15["g"][-1][2] == "1-11"
 
 
-# ─── Fase 3, tarea 3: data-seasons.js marca las temporadas con cronología ────
+# ─── data-seasons.js marca las temporadas con cronología ────
 
 class TestSeasonsDetail:
     """La web solo pide data-matchdetail.js para las temporadas que tienen alguna entrada en él:
@@ -1188,9 +1187,9 @@ class TestSeasonsDetail:
         assert '"name":"2025-2026","current":false,"detail":true' in lean
 
 
-# ─── B4 (decisión 1): las salidas del generador, sin los datos retirados ─────
+# ─── Las salidas del generador, sin los datos retirados ─────
 
-# Lo que B4 retiró: nadie lo lee (el ⚽ de las listas se fue con la app anterior, Récords sale del
+# Lo retirado: nadie lo lee (el ⚽ de las listas se fue con la app anterior, Récords sale del
 # modelo y la plantilla, de las actas), y el generador ya no lo escribe.
 _RETIRED = re.compile(r"^data-(matchdetail-keys|stats|players-\d{4}-\d{4})\.js$")
 
@@ -1198,7 +1197,7 @@ _RETIRED = re.compile(r"^data-(matchdetail-keys|stats|players-\d{4}-\d{4})\.js$"
 class TestGeneratorOutputs:
     """generate_js.main() con una base sintética en una raíz temporal, como la activación de temporada
     (activate_season.apply_manifest): escribe exactamente sus salidas, ninguna retirada, y otra pasada
-    con la misma base no cambia ni un byte, ni la versión ni el pie (C4). Nunca los data-*.js vivos."""
+    con la misma base no cambia ni un byte, ni la versión ni el pie. Nunca los data-*.js vivos."""
 
     def _site(self, tmp_path):
         db = tmp_path / "fb.db"
@@ -1251,7 +1250,7 @@ class TestGeneratorOutputs:
             "data-lineups-2024-2025-PG2.js", "data-lineups-2025-2026-A1.js", "data-matchdetail.js",
             "data-prebenjamin.js", "data-season-2024-2025.js", "data-seasons.js",
         ]
-        # Otra pasada con la misma base: ni un byte distinto, y sin subir la versión ni el pie (C4).
+        # Otra pasada con la misma base: ni un byte distinto, y sin subir la versión ni el pie.
         index = (site / "index.html").read_text(encoding="utf-8")
         snapshot = generate_js.snapshot_data_files(str(site))
         generate_js.main()

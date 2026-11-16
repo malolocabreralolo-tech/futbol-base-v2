@@ -1,4 +1,4 @@
-// Plan B4, tarea 3: el manifiesto y los iconos de la PWA (spec §5.5; decisión 7 de B4) y sus <link> en
+// El manifiesto y los iconos de la PWA y sus <link> en
 // index.html. Los iconos son los PNG de icons/ (scripts/build_icons.py); sus píxeles salen de la cabecera
 // PNG, sin dependencias. La app instalada de v2 es otra que la de v1, al lado: su identidad (id) es la
 // de su ruta, /futbol-base-v2/. Solo lee index.html, manifest.json e icons/: nunca los data-*.js vivos.

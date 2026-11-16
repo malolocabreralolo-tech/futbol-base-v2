@@ -1,8 +1,8 @@
-// El pronóstico en la web (17/10/2026): la línea discreta bajo cada partido sin jugar de la Jornada (y de
+// El pronóstico en la web: la línea discreta bajo cada partido sin jugar de la Jornada (y de
 // «Todos los grupos») con su nota, el bloque «Pronóstico» de la pantalla Partido, la línea del próximo
-// partido de Mi equipo y, desde el mismo día, la de cada partido sin jugar del calendario del equipo; solo
-// en prebenjamín de la temporada del portal, y de todo el calendario, no solo de la próxima jornada (lo
-// pidió el usuario: «de todos los siguientes enfrentamientos», recalculado con cada resultado). render(ctx)
+// partido de Mi equipo y la de cada partido sin jugar del calendario del equipo; solo
+// en prebenjamín de la temporada del portal, y de todo el calendario, no solo de la próxima jornada
+// («de todos los siguientes enfrentamientos», recalculado con cada resultado). render(ctx)
 // es pura: se prueba sobre el HTML, con las fixtures congeladas (la temporada del portal es 2025-26) y
 // `today` inyectado, como las demás pantallas. El modelo (src/pronostico.js) tiene sus pruebas en
 // test_pronostico.mjs; aquí, lo que se pinta y dónde no se pinta nada: benjamín, alevín, lo jugado, lo de
@@ -72,7 +72,7 @@ test('forecastLine: «Pronóstico 6–2 · Moya 83 %» a la vista y, para el lec
   assert.equal(s(forecastLine(null)), '');
   assert.match(s(forecastLine(GUESS, 'fixture-forecast')), /^<span class="fixture-forecast">/);
   // Si los goles no van con el favorito (goalsAgree false), ese marcador no es el más probable: sin él, ni a
-  // la vista ni para el lector de pantalla (revisión del 17/10/2026). Con true, o sin el campo, como siempre.
+  // la vista ni para el lector de pantalla. Con true, o sin el campo, como siempre.
   const split = { ...GUESS, pAway: 0.45, pHome: 0.42, pDraw: 0.13, pick: 'away', score: [3, 4], goalsAgree: false };
   assert.equal(s(forecastLine(split)), '<span class="match-forecast"><span aria-hidden="true">Pronóstico · Atalaya 45\u00a0%</span><span class="vh">Pronóstico, no es un resultado: favorito, Atalaya, con un 45\u00a0%.</span></span>');
   assert.doesNotMatch(text(forecastLine(split)), /3–4|3 a 4|más probable/);
@@ -114,7 +114,7 @@ test('forecastNote, en una jornada de más adelante: para dentro de cuántas jor
   // «de 6 jornadas», con espacios de no separación: nunca la «de» o el número al final de una línea y lo
   // demás en la otra.
   assert.match(s(forecastNote([far])), / para dentro de\u00a06\u00a0jornadas,/);
-  // Ni «los resultados de antes» (se leía como los ya jugados) ni «jornadas vista» (revisión del 18/10/2026).
+  // Ni «los resultados de antes» (se leía como los ya jugados) ni «jornadas vista».
   for (const note of [forecastNote([far]), forecastNote([far, { ...far, ahead: 7 }]), forecastNote([far], { each: true })]) {
     assert.doesNotMatch(text(note), /de antes|vista|cambiará/);
   }
@@ -249,7 +249,7 @@ test('se recalcula con cada resultado: con la 3 ya jugada, la 10 se rehace con 6
 test('una jornada ya jugada pero sin sus resultados publicados no aleja la siguiente: la 4, la próxima que se juega, dice lo de siempre', () => {
   // El 27/10/2025, con los datos del 20 (la 3, del 23 al 26, jugada, pero el bot aún no trae nada suyo):
   // la 3 ya no se pronostica (fecha pasada) y la 4 sale con la nota de la próxima jornada, no «para dentro
-  // de 2» (revisión del 18/10/2026). La 10, a una menos que el 20.
+  // de 2». La 10, a una menos que el 20.
   const lag = at('2025-10-27', currentAt(TODAY));
   const ctx = ctxOf('jornada', { g: 'PG2' }, lag);
   const group = ctx.model.group(PORTAL_SEASON, 'PG2');
@@ -377,7 +377,7 @@ test('Partido y Jornada: si los goles esperados no van con el favorito (el 1X2 e
   // Con un 0-4 de Santa Brígida en el campo del Gran Canaria en la jornada 1, las notas ponen a La Garita de
   // favorita contra Acodetti, y el Poisson les da casi los mismos goles, algo más a Acodetti: un partido
   // igualado, en el que cada modelo inclina la balanza a un lado. El marcador es el más probable SI gana La
-  // Garita, no el más probable del Poisson: se rotula así, sin «También probables» (revisión del 17/10/2026).
+  // Garita, no el más probable del Poisson: se rotula así, sin «También probables».
   const params = { g: 'PG2', r: 'Jornada 3', h: 'La Garita', a: 'Acodetti' };
   const raw = currentAt(TODAY);
   const first = raw.history.PG2['Jornada 1'].find((row) => row[1] === 'Gran Canaria' && row[2] === 'Santa Brígida');
@@ -475,7 +475,7 @@ test('el calendario del equipo (Mi equipo y la ficha): la línea bajo cada parti
     const calRow = pending.find(({ when }) => when.startsWith(`${findRound(group, r).label} ·`)).row;
     assert.equal(calRow.match(/<span class="match-forecast">.*?<\/span><\/span>/)[0], jornadaRow.match(/<span class="match-forecast">.*?<\/span><\/span>/)[0], r);
   }
-  // Bajo la lista, una sola nota (revisión del 18/10/2026: sin ella, nada decía en qué se basan ni que se
+  // Bajo la lista, una sola nota (sin ella, nada diría en qué se basan ni que se
   // recalculan): cada partido va a su distancia, así que sin número de jornadas.
   const calNote = `Pronóstico: estimación según los ${expected(MESAS_J3).matches} partidos jugados en el grupo; se recalcula con cada resultado nuevo. No es un resultado.`;
   assert.deepEqual(notes(cal), [calNote]);
@@ -494,7 +494,7 @@ test('el calendario del equipo (Mi equipo y la ficha): la línea bajo cada parti
 test('el calendario de un equipo que aún no ha jugado: sin líneas y una que dice cuándo saldrán; los demás, como siempre', () => {
   // El 20/10/2025, con los partidos de Veteranos de la 1 y la 2 sin resultado (aplazados): ni él ni sus
   // rivales llevan pronóstico de sus partidos (minPlayed), y su calendario, sin una sola línea, lo dice
-  // (revisión del 18/10/2026: como Unión Viera en 2026-27).
+  // (como Unión Viera en 2026-27).
   const raw = currentAt(TODAY);
   for (const rows of Object.values(raw.history.PG2)) {
     for (const row of rows) if (row[1] === 'Veteranos' || row[2] === 'Veteranos') { row[3] = null; row[4] = null; }

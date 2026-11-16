@@ -1,7 +1,7 @@
-// Pronóstico de prebenjamín (src/pronostico.js, 17/10/2026: el 1X2, de las notas de Massey; el marcador y
+// Pronóstico de prebenjamín (src/pronostico.js: el 1X2, de las notas de Massey; el marcador y
 // los goles esperados, del Poisson, dentro del favorito de las notas). Solo grupos sintéticos, construidos con el
 // buildGroup de model.js como los de la temporada del portal (las jornadas, de la tabla de HISTORY):
-// ni los data-*.js de la web, que cambian cada dos horas, ni config.js (R2-1: la temporada del portal
+// ni los data-*.js de la web, que cambian cada dos horas, ni config.js (la temporada del portal
 // entra por parámetro).
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -102,7 +102,7 @@ test('nunca un 1-1 con un favorito claro: el empate es el marcador más probable
 });
 
 // Liga de cuatro con dos jornadas jugadas: Alfa le gana 6-2 a Beta y Beta, 5-1 a Gamma; Alfa y Gamma no
-// se han visto (la «regla de tres» del usuario, 17/10/2026).
+// se han visto (la «regla de tres»).
 const THREE = [
   [row('2026-10-03', 'Alfa', 'Beta', 6, 2), row('2026-10-03', 'Gamma', 'Delta', 3, 3)],
   [row('2026-10-10', 'Beta', 'Gamma', 5, 1), row('2026-10-10', 'Delta', 'Alfa', 2, 4)],
@@ -200,8 +200,8 @@ test('el marcador, del Poisson y siempre dentro del favorito de las notas; los g
   }
 });
 
-// Liga de cuatro en la que las notas y los goles no van con el mismo favorito en Beta–Delta (revisión del
-// 17/10/2026). Los dos llevan 12 goles a favor y 12 en contra, pero Delta ganó 9-0 y perdió 3-12, y Beta
+// Liga de cuatro en la que las notas y los goles no van con el mismo favorito en Beta–Delta.
+// Los dos llevan 12 goles a favor y 12 en contra, pero Delta ganó 9-0 y perdió 3-12, y Beta
 // perdió 0-9 y ganó 12-3: para las notas («cuántas veces más goles» con colchón), un 9-0 vale más que un
 // 12-3 y Delta es favorito; para los goles del Poisson van casi igual, y el campo es de Beta.
 const SPLIT = [
@@ -532,7 +532,7 @@ test('las goleadas, amortiguadas: por encima de soften, los goles esperados crec
   assert.deepEqual(numbers(forecastMatch(group, mid, OPTS)), numbers(forecastMatch(group, mid, { ...OPTS, params: { ...PARAMS, soften: Infinity } })));
 });
 
-// ── A varias jornadas vista (17/10/2026: el usuario pidió el pronóstico de todo el calendario) ──────────
+// ── A varias jornadas vista (el pronóstico de todo el calendario) ──────────
 
 test('la distancia (roundsAhead): la próxima jornada, 1, y una más por cada jornada sin jugar de por medio', () => {
   const group = makeGroup();
@@ -558,7 +558,7 @@ test('la distancia (roundsAhead): la próxima jornada, 1, y una más por cada jo
 
 test('en la web (con today), una jornada ya jugada sin sus resultados publicados no aleja la siguiente; en el banco, sí', () => {
   // La 3 (17 y 18 de octubre), jugada pero sin nada publicado: el 20, la 4 es la próxima que se juega, a 1
-  // vista, y la 5, a 2 (revisión del 18/10/2026: decía «dentro de 2 jornadas» en la que abre la pantalla).
+  // vista, y la 5, a 2 (no «dentro de 2 jornadas» en la que abre la pantalla).
   const stale = makeGroup(BASE.map((ms, i) => (i === 2 ? ms.map(r => row(r[0], r[1], r[2])) : ms)));
   const m4 = matchOf(stale, 4, 'Alfa'), m5 = matchOf(stale, 5, 'Gamma');
   const web = { ...OPTS, today: '2026-10-20', full: true };

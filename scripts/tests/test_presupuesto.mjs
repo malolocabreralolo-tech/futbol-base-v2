@@ -1,4 +1,4 @@
-// Plan B4, decisión 11: el servidor que imita a GitHub Pages (pages-server.mjs) y las cuentas del
+// El servidor que imita a GitHub Pages (pages-server.mjs) y las cuentas del
 // informe de presupuesto.mjs, sin navegador y sin medir tiempos (el guion mide; estas pruebas, no).
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';

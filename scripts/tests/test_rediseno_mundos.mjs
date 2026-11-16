@@ -1,4 +1,4 @@
-// Plan B3, Tarea 12: los mundos de navegador de fixture-site.mjs (decisión 31 de B3). Cada mundo solo
+// Los mundos de navegador de fixture-site.mjs. Cada mundo solo
 // anuncia en SEASONS las temporadas cuyo archivo sirve, y sirve el que anuncia: Temporadas, la
 // Trayectoria de Equipo o el selector de Explorar nunca llevan a un fichero que da 404. Y sirve los
 // datos de las fixtures de B3: los goleadores congelados, la Copa de Campeones en los mundos del

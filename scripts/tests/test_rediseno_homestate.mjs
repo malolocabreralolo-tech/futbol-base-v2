@@ -1,4 +1,4 @@
-// Estado de la portada (spec §4.2) y caja de la temporada siguiente, con datos reales congelados.
+// Estado de la portada y caja de la temporada siguiente, con datos reales congelados.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { fixture } from './fixtures/rediseno/load.mjs';

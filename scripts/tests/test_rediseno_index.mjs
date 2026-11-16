@@ -1,4 +1,4 @@
-// Plan B2, tarea 4: index.html es el esqueleto del rediseño (spec §5.4 y §10). La cabecera, la
+// Plan B2, tarea 4: index.html es el esqueleto del rediseño. La cabecera, la
 // barra y la primera caja se pintan antes de que lleguen los datos; app.js sustituye la caja. Lo
 // que lee el bot (generate_js.py y source_health.py) se ejecuta de verdad en
 // test_index_bot_contract.py; aquí, la forma. Desde la fase 3, la hoja y el módulo de arranque son los de
@@ -37,7 +37,7 @@ test('datos inmediatos: los siete que lee la portada, con defer y en el orden de
     'data-shields.js', 'data-seasons.js', 'data-maspalomas-cup-2026.js',
   ]);
   // Con defer se ejecutan en el orden del documento cuando termina el análisis, y el módulo en línea,
-  // detrás: los globales ya están cuando arranca app.js (spec §5.4; decisión 4 de B4).
+  // detrás: los globales ya están cuando arranca app.js.
   const deferred = [...INDEX.matchAll(/<script defer src="\.\/([^"?]+)\?v=\d{8}[a-z]?"><\/script>/g)].map((m) => m[1]);
   assert.deepEqual(deferred, scripts, 'los siete, con defer');
   // app.js no se arranca al importarse: index.html importa su paquete de dist/ y llama a start.
@@ -54,7 +54,7 @@ test('si el arranque falla, un aviso con estilos en línea y «Reintentar», que
   const boot = INDEX.match(/<script type="module">[\s\S]*?<\/script>/)[0];
   // Todo el arranque (el import y start) va dentro del try: sin conexión, con una página nueva cuyo paquete
   // todavía no está guardado, la página nunca se queda en «Cargando…». Y el try, en una función asíncrona
-  // que se llama al cerrarla, sin await de nivel superior en el módulo (decisión 5 de B4): antes, solo
+  // que se llama al cerrarla, sin await de nivel superior en el módulo: antes, solo
   // comentarios; después, nada.
   assert.match(boot, /^<script type="module">\s*(?:\/\/[^\n]*\s*)*\(async \(\) => \{\s*try \{\s*const \{ start \} = await import\(/);
   assert.match(boot, /\}\)\(\);\s*<\/script>$/, 'la función asíncrona cierra el módulo');
@@ -96,7 +96,7 @@ test('dist/ es el de las fuentes del árbol: src/*.js sin config.js y acta.css (
   assert.equal(ORIGEN.codigo, hash.digest('hex').slice(0, 8), 'dist/ desfasado: ejecuta python3 scripts/codigo.py');
 });
 
-// B4 (decisiones 1 y 3): data-matchdetail-keys.js, data-stats.js y data-players-<S>.js ya no los lee
+// B4: data-matchdetail-keys.js, data-stats.js y data-players-<S>.js ya no los lee
 // nadie (el ⚽ de las listas se fue con la app anterior, Récords sale del modelo y la plantilla, de las
 // actas) y el generador ya no los escribe (su prueba, en test_pygen_fixes.py). Si volvieran, cada carga
 // en frío los descargaría para nada. Una fusión con main que se quede con los que el bot regeneró
@@ -111,7 +111,7 @@ test('los datos retirados en B4 no vuelven: ni en index.html, ni en sw.js, ni en
   }
 });
 
-// El SW se registra tras el evento load (Plan B4): con los datos en defer, el <script> del registro corre
+// El SW se registra tras el evento load: con los datos en defer, el <script> del registro corre
 // durante el análisis, y en la primera visita su precache (unos 2 MB) competía con los datos y los
 // módulos de la portada. Si load ya pasó, en seguida. El contrato de §10 se conserva: register('./sw.js')
 // y .update(), sin unregister, dentro de if ('serviceWorker' in navigator). Se ejecuta el <script> real

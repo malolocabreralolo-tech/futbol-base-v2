@@ -1,4 +1,4 @@
-// Plan B3, Tarea 7: pantalla Ligas (spec §4.7, §4.1 y §4.11; decisiones 19, 20 y 21 de B3) y
+// Pantalla Ligas y
 // compareGroups (model.js). render(ctx) es pura: se prueba sobre el HTML que devuelve, con las fixtures
 // congeladas y `today` inyectado. mount («Comparar grupos») y la barra, con el router y el navegador
 // falso comunes.
@@ -222,7 +222,7 @@ test('registro: Ligas es la pantalla de #/ligas; y el CSS: solo clases que exist
   const decl = (sel) => rules.filter((r) => r.media === null && r.selector.split(/\s*,\s*/).includes(sel)).map((r) => r.body).join(';');
   assert.match(decl('.button'), /min-height:\s*44px/);
   assert.match(decl('.link-row.is-mine'), /background:\s*var\(--mark\).*box-shadow:\s*inset 3px 0 0 var\(--ink\)/s);
-  // El puesto de la comparación llega a 3 cifras: 34 px, no los 24 de la Tabla (decisión 161).
+  // El puesto de la comparación llega a 3 cifras: 34 px, no los 24 de la Tabla.
   assert.match(decl('.compare-table .st-pos'), /width:\s*34px/);
   const ctx = ctxWith({ c: 'prebenjamin', f: 'grancanaria' });
   const html = [render({}, {}, { champions: true, cupsExtra: true }), render({ c: 'prebenjamin', f: 'grancanaria' }),

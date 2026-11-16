@@ -127,7 +127,7 @@ test('C3: CACHE_NAME literal on line 1, bumpable via /futbolbase2-v[0-9a-z]+/', 
     'CACHE_NAME value must match futbolbase2-v[0-9a-z]+');
 });
 
-// La línea 2 es la caché de los escudos (decisión 1 de B5): su nombre lleva el sello de escudos/, que
+// La línea 2 es la caché de los escudos: su nombre lleva el sello de escudos/, que
 // escribe scripts/build_crests.py (test_build_crests.py comprueba que es el de escudos/ tal como está), y
 // la expresión con la que el bot sube la versión (futbolbase2-v[0-9a-z]+) no la alcanza
 // (test_index_bot_contract.py lo ejecuta, con sync_versions.py y publicar.py).
@@ -158,7 +158,7 @@ test('activate solo borra las cachés de esta app de otras versiones, futbolbase
   assert.deepEqual(deleted.sort(), ['futbolbase2-escudos-00000000', 'futbolbase2-v20250101', 'futbolbase2-v20991231z']);
 });
 
-// ─── 5. los escudos, en su propia caché (decisión 1 de B5) ──────────────────
+// ─── 5. los escudos, en su propia caché ──────────────────
 test('classifyRequest: los escudos, originales y miniaturas, con cualquier ?v=, van a su propia caché', () => {
   assert.equal(sw.classifyRequest('/futbol-base/escudos/100x100arucas.png', null), 'escudo');
   assert.equal(sw.classifyRequest('/escudos/100x100arucas.png', 'otra'), 'escudo');

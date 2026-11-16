@@ -1,9 +1,9 @@
-// Banco de pruebas del pronóstico (scripts/pronostico_banco.mjs, 17/10/2026). Con las temporadas pasadas
+// Banco de pruebas del pronóstico (scripts/pronostico_banco.mjs). Con las temporadas pasadas
 // del repositorio (data-season-*.js, que el bot no toca), pero sin fijar sus cifras: el archivo se sigue
 // corrigiendo. Lo que se prueba es el protocolo: las partes del examen, las parejas, que la referencia
 // «actual» es el pronóstico de la web con el mismo entrenamiento, los nulos, la diferencia pareada, la
 // semilla, que ajustar solo ve el ajuste, las comprobaciones del predictor y el CLI con un modelo de fichero.
-// Y, desde el 17/10/2026, que el 1X2 de la web es el de las notas de scripts/pronostico_modelos/massey.mjs
+// Y que el 1X2 de la web es el de las notas de scripts/pronostico_modelos/massey.mjs
 // (el elegido con el banco) y la referencia «poisson», el Poisson de antes (la variante «actual» de
 // scripts/pronostico_modelos/poisson.mjs).
 import test from 'node:test';
@@ -70,7 +70,7 @@ test('la referencia «actual» es el pronóstico de la web con el mismo entrenam
 test('sin las copias de la importación, ninguna liga del banco mezcla dos equipos en uno', () => {
   // PGC1 de 2023-24 y PGC4 de 2024-25 apuntan el filial también al primer equipo (Roque Amagro, 46 partidos
   // con marcador en 26 jornadas), pero cada copia cae en la jornada de su partido de verdad y copiedMatches
-  // la quita (revisión del 17/10/2026). Sin ellas, en cada liga: nadie juega dos veces en una jornada, ni más
+  // la quita. Sin ellas, en cada liga: nadie juega dos veces en una jornada, ni más
   // partidos que jornadas, ni el mismo cruce local–visitante dos veces; y ninguna pareja lleva una copia.
   const groups = new Set(pares('todas').map(p => p.group));
   let leagues = 0;
@@ -216,7 +216,7 @@ test('el CLI con un modelo de fichero: ajustar, examen de evaluación y diferenc
   }
 });
 
-// ── A varias jornadas vista (17/10/2026) ─────────────────────────────────────────────────────────────
+// ── A varias jornadas vista ─────────────────────────────────────────────────────────────
 
 // Una liga de cuatro con seis jornadas semanales, todas jugadas; la 4, la mitad el sábado y la mitad el domingo.
 function ordered() {

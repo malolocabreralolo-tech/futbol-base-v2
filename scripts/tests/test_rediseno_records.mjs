@@ -1,7 +1,7 @@
-// Plan B3, Tarea 10: la pantalla Récords (spec §4.7 y §4.11; decisión 26 de B3). seasonRecords
+// La pantalla Récords. seasonRecords
 // calcula con el modelo sobre las fixtures congeladas (la temporada actual y el archivo de 2024-25 y
 // 2023-24), nunca con data-stats.js; render(ctx) es pura y se prueba con ctxFor, los goleadores
-// congelados y `today` inyectado; y la temporada pasada la carga el router (decisión 2 de B3).
+// congelados y `today` inyectado; y la temporada pasada la carga el router.
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
 import { ctxFor, datasetsFor, cssRules, PORTAL_SEASON, DEFAULT_TEAM } from './fixtures/rediseno/screens.mjs';
