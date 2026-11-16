@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""migrate_compactar.py — Las tablas de las actas en su esquema compacto (idempotente; 10/2026).
+"""migrate_compactar.py — Las tablas de las actas en su esquema compacto (idempotente).
 
 futbolbase.db va en git, que no admite ficheros de más de 100 MB, y con el alevín la base iba hacia ese
-límite. Este paso (la opción «B5» del estudio de almacenamiento) la deja en algo más de la mitad (71,2 →
-37,6 MB el 14/10/2026) sin cambiar nada de lo que se publica: los data-*.js salen iguales, byte a byte,
+límite. Este paso la deja en algo más de la mitad (de unos 71 a unos 38 MB al convertirla) sin cambiar
+nada de lo que se publica: los data-*.js salen iguales, byte a byte,
 salvo el tamaño de la base que enseña Fuentes (COBERTURA.mb, de 70 a 35).
 
   - appearances pasa a WITHOUT ROWID, con la UNIQUE de antes (match_id, team_id, player_id) como clave
@@ -15,7 +15,7 @@ salvo el tamaño de la base que enseña Fuentes (COBERTURA.mb, de 70 a 35).
       · los partidos sin ninguna fila en match_staff_all, con sus cargos en el orden del antiguo
         backfill_staff_all (lo que hacía el bot en cada pasada): salen también en el cuerpo técnico;
       · cada fila suelta que el acta no trae con ese cargo, con ord negativo: sale en la vista y no en el
-        cuerpo técnico que se publica. En la base del 14/10/2026 hay una, el «entrenador» del visitante
+        cuerpo técnico que se publica. En la base convertida había una, el «entrenador» del visitante
         del acta 289289: el lector tomó la línea siguiente a un «…Entrenador:» sin nombre.
     Si aun así a la vista le faltara una fila de la tabla, no se convierte nada (error).
   - match_events: fuera idx_match_events_kind (todas las filas son goles: no filtra) y un índice parcial

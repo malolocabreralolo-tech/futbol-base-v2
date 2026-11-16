@@ -927,7 +927,7 @@ def main():
     # Un fallo para la pasada: lo que escribe actas solo sabe hacerlo en el esquema compacto.
     from migrate_compactar import migrate as migrate_compactar
     migrate_compactar(conn)
-    # Las columnas de las identidades de acta (fase 2C), antes de importar ninguna: el importador no sabe
+    # Las columnas de las identidades de acta, antes de importar ninguna: el importador no sabe
     # escribir un jugador sin id sin ellas. Idempotente; un fallo para la pasada.
     import migrate_identidad
     migrate_identidad.asegurar_esquema(conn)

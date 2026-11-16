@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Rebase de la rama del rediseño (Plan B2, decisión 8).
+"""Rebase de una rama de la web sobre main.
 
 El bot de main (update.yml, y la activación, activar.yml) solo toca
 tres marcas de index.html y sw.js, y siempre a la vez (bump_cache_version de

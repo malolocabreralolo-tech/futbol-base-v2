@@ -48,10 +48,10 @@ CAMPOS_FILE = "fiflp_campos_raw.json"
 DETALLE_VERSION = "4"
 # Temporadas cuyo calendario (jornadas del raw) entra en los grupos sin partidos. Solo las que se han
 # revisado en local y tienen su línea base de score_deviation al día: un marcador mal leído en otra
-# dejaría la prueba en rojo y al bot sin publicar. 2016-19 (revisadas el 7/10/2026): las ligas y
-# copas de Lanzarote y Fuerteventura, sin un partido hasta ahora (2.480 partidos, sin desvío nuevo);
+# dejaría la prueba en rojo y al bot sin publicar. 2016-19: las ligas y
+# copas de Lanzarote y Fuerteventura, que no tenían ningún partido (2.480 partidos, sin desvío nuevo);
 # los de los retirados entran, como en el resto de temporadas. 2019-20, 2020-21, 2021-22, 2024-25 y
-# 2025-26 (revisadas el 8/10/2026): solo lo que falta y lo que cuadra mejor (complete_group); el
+# 2025-26: solo lo que falta y lo que cuadra mejor (complete_group); el
 # desvío de las cerradas, de 295 a 175 goles, sin ningún grupo peor (2025-26, con sus 65 grupos).
 # Alevín (sin portal: el calendario de la federación es el único que hay) entra en todas las temporadas
 # pasadas; sus grupos son claves nuevas de score_deviation, que no pueden empeorar la línea base.

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""migrate_identidad.py — La fase 2C en la base: identidades de acta y fichas (docs/identidad.md).
+"""migrate_identidad.py — Las fichas en la base: identidades de acta y fichas (docs/identidad.md).
 
 Tres fases, cada una en su transacción y todas idempotentes (la segunda vez no cambia nada):
 
@@ -59,7 +59,7 @@ COLUMNAS = (("ficha_id", "INTEGER"), ("union_por", "TEXT"), ("team_id", "INTEGER
             ("ordinal", "INTEGER"), ("clave", "TEXT"))
 INDICES = (
     "CREATE INDEX IF NOT EXISTS idx_players_fiflp ON players(fiflp_id)",
-    # La identidad sin id se busca por equipo, temporada y nombre (el importador, tarea 4).
+    # La identidad sin id se busca por equipo, temporada y nombre (el importador).
     "CREATE INDEX IF NOT EXISTS idx_players_sin_id ON players(team_id, season_id, norm_name) "
     "WHERE team_id IS NOT NULL",
     # prune_players no debe borrar una fila a la que apunta otra.
@@ -70,7 +70,7 @@ INDICES = (
 
 
 def asegurar_esquema(conn) -> bool:
-    """Las columnas e índices de la fase 2C, si faltan, y la clave de las identidades sin id que aún no la
+    """Las columnas e índices de las fichas, si faltan, y la clave de las identidades sin id que aún no la
     tienen. Devuelve si añadió alguna columna. Hace commit."""
     if conn.in_transaction:
         conn.commit()
@@ -1050,7 +1050,7 @@ def _describe(conn, pid):
 
 def uniones_de_club_y_temporada(conn) -> list[int]:
     """Las identidades con union_por 'club' que comparten club y temporada con otra de su ficha: las de la U0
-    de club (ronda 3 de docs/identidad.md). Las demás 'club' son de U1: U1 solo une de uno a uno, así que la
+    de club (docs/identidad.md). Las demás 'club' son de U1: U1 solo une de uno a uno, así que la
     identidad que une es la única de su ficha en ese club y temporada."""
     vistas = _vistas(conn)
     ficha = {pid: f or pid for pid, f in conn.execute("SELECT id, ficha_id FROM players")}

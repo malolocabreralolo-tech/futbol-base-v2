@@ -11,7 +11,7 @@ de la app) recibe el de la federación: se descarga de laspalmas.filesnovanet.es
 trim_shields.py y se guarda en escudos/fed_<nombre>.png; después, las
 miniaturas y el sello de la caché (build_crests.py).
 
-Desde octubre de 2026, además: el escudo de la ficha de cada equipo (team_seasons.crest_url, del
+Además: el escudo de la ficha de cada equipo (team_seasons.crest_url, del
 directorio de equipos que baja detalle-federacion.yml), solo si su nombre oficial casa con el de la
 base (team_score), y un filial sin escudo toma el de su primer equipo ('Victoria B' el de 'Victoria'),
 como los que ya están en data-shields.js, sin bajar nada.

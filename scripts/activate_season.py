@@ -97,7 +97,7 @@ def fiflp_evidence(group, raw, names=None):
     fetch_fiflp_islas.py con la misma forma que dan los parsers de futbolaspalmas:
     rounds {'Jornada N': [[fecha ISO, local, visitante, gl, gv, hora, campo]]} y
     standings [[pos, equipo, pts, J, G, E, P, GF, GC, DF]]. Si el raw trae el código
-    del acta del partido (fiflp_acta, desde octubre de 2026), va como octava columna
+    del acta del partido (fiflp_acta), va como octava columna
     (insert_groups lo guarda: así el bot lee su acta). `names` traduce el
     nombre de FIFLP al que ya usa la base (escudo, histórico, ficha). Antes de la
     primera jornada FIFLP no publica clasificación: sale de los equipos del
@@ -192,7 +192,7 @@ def verify_sources(manifest, fetcher=fetch, fiflp_raw=None, names=None):
 
 def club_id(conn, name):
     """El equipo por su nombre exacto o, si no, el mismo CLUB con otra grafía
-    (la clave del contrato C1, que conserva la letra de filial); si no existe,
+    (la clave de club, que conserva la letra de filial); si no existe,
     se crea. Como db.get_or_create_team, pero sin su commit: la activación
     entera es una sola transacción."""
     from db import _teams_key

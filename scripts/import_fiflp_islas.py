@@ -58,7 +58,7 @@ COMP_META = {
     # solo sirve una fase por isla y el prebenjamin solo de Gran Canaria).
     # 54422886 (Benjamín Lanzarote Fase 2) NO tiene código a propósito: es la
     # misma liga que LZ1-4 de futbolaspalmas y la importamos dos veces como
-    # LZS1-4 (spec 2026-09-23 §9.4). Sin código, main() aborta con
+    # LZS1-4. Sin código, main() aborta con
     # «competiciones sin código asignado» antes de tocar la base; para
     # importar las demás de 21isl, IMPORT_COMPS sin 54422886.
     "54422887": ("FV1", "Fuerteventura Fase 1"),

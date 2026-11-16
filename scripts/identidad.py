@@ -1,4 +1,4 @@
-"""identidad.py — Quién es cada niño: el resolvedor de fichas (fase 2C). Puro: sin base ni red.
+"""identidad.py — Quién es cada niño: el resolvedor de fichas. Puro: sin base ni red.
 
 Una fila de `players` es una IDENTIDAD DE ACTA: lo que el acta dice con certeza (un id de la federación,
 o un nombre sin id en un equipo y una temporada). Una FICHA es el niño: un conjunto de identidades con
@@ -35,7 +35,7 @@ UNIONES = ("equipo", "club", "nombre")
 # Lo que dio la medida de los nombres sin coma (scripts/medir_identidad.py, docs/identidad.md): pares de
 # uno a uno, 100 % ≥ 95 %. Los de coma (completos o de un apellido) se unen en el club siempre.
 UNIR_CORTOS_EN_CLUB = True
-# U0 de club (ronda 3): medida entre jugadores con id, mismo nombre, club y temporada en equipos distintos
+# U0 de club: medida entre jugadores con id, mismo nombre, club y temporada en equipos distintos
 # (scripts/medir_identidad.py): completos 99,4 % y un apellido 100 %, los dos ≥ 95 %.
 U0_CLUB_COMPLETOS = True
 U0_CLUB_UN_APELLIDO = True
@@ -78,7 +78,7 @@ def nombre_con_coma(nombre_normalizado: str) -> bool:
 def club(nombre_equipo: str) -> str:
     """El club de un equipo: su nombre sin la letra de filial. Es baseKey de src/myteam.js (la clave
     con la que la web agrupa los equipos de un club, sin escudos ni alias), sobre la misma
-    normalización C1 que ya tiene Python (generate_js.normalize_for_teams_mapping)."""
+    normalización de club que ya tiene Python (generate_js.normalize_for_teams_mapping)."""
     tokens = [t for t in normalize_for_teams_mapping(nombre_equipo).split(" ") if t and t not in _SIGLAS]
     if len(tokens) > 1 and _LETRA_FILIAL.match(tokens[-1]):
         tokens.pop()

@@ -5,10 +5,10 @@ y los árbitros del acta) and the match_staff view; matches.cod_acta column;
 players.fiflp_id (id del jugador en la federación, estable entre temporadas) and
 matches.venue_code (código del campo en la federación).
 
-Una base nueva nace con el esquema compacto (10/2026, migrate_compactar.py):
+Una base nueva nace con el esquema compacto (migrate_compactar.py):
 appearances WITHOUT ROWID con el orden del acta (ord) y match_staff como vista de
 match_staff_all. Una base de antes se convierte al final de migrate(). Después, las
-columnas de las identidades de acta (migrate_identidad.asegurar_esquema, fase 2C).
+columnas de las identidades de acta (migrate_identidad.asegurar_esquema).
 Safe to run multiple times. Run: python3 scripts/migrate_actas_schema.py [--db PATH]
 """
 import sqlite3
@@ -140,7 +140,7 @@ def migrate(conn, log=print):
     except ImportError:          # importado como scripts.migrate_actas_schema, sin scripts/ en sys.path
         from scripts.migrate_compactar import migrate as compactar
     compactar(conn, log=log)
-    # Las columnas de las identidades de acta (fase 2C): el importador no sabe escribir sin ellas.
+    # Las columnas de las identidades de acta: el importador no sabe escribir sin ellas.
     try:
         from migrate_identidad import asegurar_esquema
     except ImportError:

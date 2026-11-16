@@ -1,7 +1,7 @@
-"""actas_bot.py — Los originales de las actas que lee el bot (desde la fase 2C, 14/11/2026).
+"""actas_bot.py — Los originales de las actas que lee el bot.
 
 El bot (update_fiflp.import_actas) lee cada acta de la temporada en curso, la analiza
-(fiflp_acta.parse_flat_acta) y la escribe en la base. Desde la fase 2C guarda también ese dict, tal
+(fiflp_acta.parse_flat_acta) y la escribe en la base. Guarda también ese dict, tal
 cual, para poder rehacer lo que sale de las actas sin volver a pedirlas a la federación:
 
     scripts/actas_bot_<temporada>_<categoría>.jsonl     p. ej. actas_bot_2026-2027_benjamin.jsonl

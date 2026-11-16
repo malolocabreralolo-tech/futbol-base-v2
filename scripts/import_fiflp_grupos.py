@@ -105,7 +105,7 @@ ARCHIVE_NAMES = {
     'GRAN TARAJAL SOC. TAMAS., U.D. "B"': "Gran Tarajal B",
     "SPORTING ARBOL BONITO, C.F.": "Sporting Árbol Bonito",   # no Real Sporting (San José)
     "VEG. ARBOL BONITO, C.F.": "Veg. Árbol Bonito",
-    # El primer equipo y el «Atlético» del mismo club, que team_key y la clave del contrato C1 no
+    # El primer equipo y el «Atlético» del mismo club, que team_key y la clave de club no
     # distinguen (ATLETICO es ruido): como en la base, 'San Juan' y 'San Juan At.'.
     "SAN JUAN TRES PALMAS, C.D.": "San Juan",
     'SAN JUAN TRES PALMAS, C.D. "A"': "San Juan",

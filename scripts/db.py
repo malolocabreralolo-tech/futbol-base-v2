@@ -186,7 +186,7 @@ def get_or_create_category(conn, name):
     """Return the category id, creating it if needed.
 
     Sin distinguir mayúsculas y, si hay dos filas que solo se diferencian en eso (la 'prebenjamin'
-    que dejó import_history.py hasta octubre de 2026), la del nombre canónico en mayúsculas, que es
+    que dejaba import_history.py), la del nombre canónico en mayúsculas, que es
     la que leen generate_js y los importadores. Una categoría nueva se crea en mayúsculas
     ('alevin' → 'ALEVIN')."""
     row = conn.execute(
@@ -200,7 +200,7 @@ def get_or_create_category(conn, name):
 
 
 def _teams_key(name):
-    """Clave del contrato C1 (TEAMS_<temporada>): identifica al CLUB.
+    """Clave de club (TEAMS_<temporada>; la misma en la web): identifica al CLUB.
 
     Import perezoso: generate_js importa db, así que hacerlo arriba sería un
     ciclo. La normalización conserva la letra de filial, de modo que 'Arucas' y

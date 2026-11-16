@@ -77,7 +77,7 @@ _ABBR = [
 
 
 # Nombres del portal antiguo (ya pasados por portal_name) → el de la base, revisados a mano sobre la
-# lista de equipos nuevos de una importación de prueba (7/10/2026): el mismo club con su nombre largo,
+# lista de equipos nuevos de una importación de prueba: el mismo club con su nombre largo,
 # de patrocinador o con una errata. Lo que no está aquí y no casa solo, entra con su nombre del portal
 # (clubes que ya no existen: Almenara, Labrantes, Black Stars…).
 PORTAL_NAMES = {

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Miniaturas de los escudos (spec §5.4; decisión 9 del plan B4), con Pillow.
+"""Miniaturas de los escudos, con Pillow.
 
 Cada original escudos/<nombre>.<ext> da escudos/s/<nombre>.png, la imagen que la app pide primero
 (crest() de src/ui.js: la miniatura; si falla, el original; si también falla, el monograma):
@@ -10,12 +10,12 @@ Cada original escudos/<nombre>.<ext> da escudos/s/<nombre>.png, la imagen que la
 - con el lado mayor en SIZE px como mucho (32 px CSS con DPR 3), sin ampliar nunca el original;
   LANCZOS, que Pillow aplica con el alfa premultiplicado;
 - con una paleta de COLORS colores y su transparencia (FASTOCTREE): un tercio de los bytes de RGBA,
-  sin diferencia visible a 16, 32 y 46 px CSS (la hoja de contacto de la Tarea 4 del plan B4);
+  sin diferencia visible a 16, 32 y 46 px CSS (comparadas en una hoja de contacto);
 - en PNG optimizado, con un bloque tEXt «escudo» que guarda el sha1 del original y la receta: así
   --check sabe, sin Pillow, si una miniatura falta, sobra o se quedó atrás (un original cambiado
   con el mismo nombre).
 
-Y el sello de escudos/ (decisión 1 del plan B5): las 8 primeras cifras hex del sha1 de la lista ordenada
+Y el sello de escudos/: las 8 primeras cifras hex del sha1 de la lista ordenada
 de «<ruta>:<sha1 del fichero>» de todos sus ficheros, originales y miniaturas (sin los ocultos, que la app
 nunca pide). Va en la línea 2 de sw.js, `const CRESTS_CACHE = 'futbolbase2-escudos-<sello>';`, el nombre
 de la caché de los escudos del SW: una subida de datos del bot no lo cambia, así que los escudos ya vistos

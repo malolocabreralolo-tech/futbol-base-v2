@@ -103,8 +103,8 @@ def comp_meta(name):
             return "PFV", "Fuerteventura"
         return ("FV2", "Fuerteventura Fase 2") if re.search(r"FASE 2|2. FASE", n) else ("FV1", "Fuerteventura Fase 1")
     if pre:
-        # Solo la liga: la copa y el torneo de clausura no tienen convenio aquí (antes salían PG y
-        # chocaban con PG1-4).
+        # Solo la liga: la copa y el torneo de clausura no tienen convenio aquí (saldrían PG y chocarían
+        # con PG1-4).
         if re.search(r"\b(COPA|CAMPEONES|CLAUSURA|CIERRE|TORNEO)\b", n):
             raise ValueError(f"competición sin convenio de código: {name}")
         return "PG", "Gran Canaria"
@@ -125,7 +125,7 @@ def group_number(group_name):
 
 def group_label(group_name):
     """El nombre del grupo en la web: «Grupo N» o, si la federación no lo numera, el suyo («Eliminatoria
-    previa» de la Copa Benjamín, como se activó a mano el 13/11/2026; «Grupo 1» no dice nada de una copa)."""
+    previa» de la Copa Benjamín; «Grupo 1» no dice nada de una copa)."""
     if re.search(r"\d", group_name or ""):
         return f"Grupo {group_number(group_name)}"
     return " ".join((group_name or "").split()) or "Grupo 1"
@@ -180,8 +180,8 @@ COPA_O_ELIMINATORIA = re.compile(r"\bCOPA\b|ELIMINATORIA")
 
 
 def eliminatoria_de_liga(g):
-    """¿Es `g` (un grupo del raw) un grupo de eliminatoria publicado dentro de una liga? (14/11/2026: la Fase
-    Previa de benjamín y la de alevín trajeron «Eliminatoria de Primeros y Segundos» y «… de Terceros y
+    """¿Es `g` (un grupo del raw) un grupo de eliminatoria publicado dentro de una liga? (Como en la Fase
+    Previa de benjamín y la de alevín: «Eliminatoria de Primeros y Segundos» y «… de Terceros y
     Cuartos».) Llevan el código y la fase de las eliminatorias de su categoría (EL, PEL, ALEL; «Eliminatorias»),
     solo en Gran Canaria: en Lanzarote o Fuerteventura, ValueError, como sus competiciones de eliminatorias."""
     comp = fold(g["competition_name"])

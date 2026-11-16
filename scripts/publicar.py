@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""La subida de versión de una publicación del rediseño (spec §5.5; Plan B4, decisión 10).
+"""La subida de versión de una publicación de la web.
 
 Cada fase se publica al terminarla (docs/rediseno-rebase.md). La publicación, en este orden: empaqueta el
 código en dist/ (scripts/codigo.py, que necesita esbuild: npm ci --prefix scripts/empaquetar; sin él, se

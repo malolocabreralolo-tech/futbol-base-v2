@@ -45,7 +45,7 @@ UA   = ("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
 
 SEASON_NAME = {
     # 12-16: temporadas anteriores a la web (2016-17 a 2020-21), solo para descargar sus datos.
-    # 2015-16 (11) no tiene benjamín ni prebenjamín en la federación (sonda del 7/10/2026).
+    # 2015-16 (11) no tiene benjamín ni prebenjamín en la federación (lo dice una sonda).
     "12": "2016-2017",
     "13": "2017-2018",
     "14": "2018-2019",
@@ -210,12 +210,12 @@ def keep_old_on_refresh(old, new):
 
 
 def needs_rescrape(acta):
-    """Las actas leídas antes de octubre de 2026 (acta_parser, sin aplanar)
-    traen la cabecera mal descifrada y sin minutos: se vuelven a leer. Una que
+    """Las actas leídas con acta_parser, sin aplanar, traen la cabecera mal
+    descifrada y sin minutos: se vuelven a leer. Una que
     ya se releyó con el lector aplanado y aun así no se dejó aplanar
     (`rescrape_failed`: la página de algunos partidos no tiene la forma de acta)
-    no se vuelve a pedir: si no, cada tanda la leía otra vez y la cadena no
-    paraba nunca (4/10/2026)."""
+    no se vuelve a pedir: si no, cada tanda la leería otra vez y la cadena no
+    pararía nunca."""
     return isinstance(acta, dict) and "consistent" not in acta and not acta.get("rescrape_failed")
 
 
@@ -590,9 +590,9 @@ def enumerate_actas_cascade(page, season, comp_id, tries=3):
     reintentos: la federación sirve a veces la página sin los desplegables de
     grupo o jornada, y eso no quiere decir que no haya actas.
 
-    Las estrategias antiguas (NFG_LstPartidos, la página de cada equipo) ya no
-    se usan solas: recorrer los equipos llevaba horas por competición y comía
-    el plazo de la tanda (3/10/2026: 11 competiciones de 2024-25 sin enumerar).
+    NFG_LstPartidos y la página de cada equipo no se usan solas: recorrer los
+    equipos lleva horas por competición y come el plazo de la tanda (deja
+    competiciones enteras sin enumerar).
 
     Returns (list_of_target_dicts, strategy_label_str).
     """

@@ -22,7 +22,7 @@ def normalize(name):
     Pipeline (same as JS): NFD accent-strip -> strip quotes (straight+curly),
     dots and commas -> strip club tokens (STRIP) -> lowercase -> collapse
     whitespace. Verified equivalent against the JS side on every team name in
-    data-benjamin/prebenjamin + the 4 season files + SHIELDS keys (2026-06-11).
+    data-benjamin/prebenjamin + the season files + SHIELDS keys.
     """
     # Strip diacritics/accents
     name = unicodedata.normalize('NFD', name)

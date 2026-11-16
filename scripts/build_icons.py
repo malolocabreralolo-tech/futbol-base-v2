@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Genera los iconos de la PWA (spec §5.5) con Pillow.
+"""Genera los iconos de la PWA con Pillow.
 
 Marca: un campo de fútbol en blanco (bandas, línea de medio campo, círculo
 central y las dos áreas) sobre la tinta roja del sistema «Acta» (#C0182B).

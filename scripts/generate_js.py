@@ -12,13 +12,13 @@ Reads futbolbase.db and produces:
   - data-seasons.js and data-season-<S>.js (the past seasons; su alevín, aparte, en
     data-season-<S>-alevin.js: docs/alevin.md)
   - data-lineups-<S>-<grupo>.js (one per group with actas)
-data-shields.js is maintained by hand. Plan B4 (decisión 1) retired
-data-matchdetail-keys.js, data-stats.js and data-players-<S>.js: nobody read
-them (test_pygen_fixes.py::TestGeneratorOutputs keeps them out).
+data-shields.js is maintained by hand. data-matchdetail-keys.js, data-stats.js
+and data-players-<S>.js are not generated: nobody reads them
+(test_pygen_fixes.py::TestGeneratorOutputs keeps them out).
 
 Also bumps the cache version (?v= + footer date in index.html, CACHE_NAME in
-sw.js — contrato C3) but ONLY if the content of some data-*.js actually
-changed in this run (contrato C4), so no-op cron runs produce no diff.
+sw.js, always the same string) but ONLY if the content of some data-*.js
+actually changed in this run, so no-op cron runs produce no diff.
 """
 
 import glob
@@ -84,9 +84,8 @@ def sanitize_score(score, context=""):
 
 
 def normalize_for_teams_mapping(s):
-    """Normalizer for the club key (contrato C1): db.get_or_create_team and, in
-    the browser, src/state.js normalizeForTeamsMapping (until B4 it also keyed
-    TEAMS_<S> in data-players-<S>.js, now retired).
+    """Normalizer for the club key: db.get_or_create_team and, in the browser,
+    src/state.js normalizeForTeamsMapping.
 
     Same pipeline as acta_reconciler.normalize_team_name (lowercase -> NFKD
     accent-strip -> quotes/punctuation removed -> club tokens stripped via the
@@ -95,7 +94,7 @@ def normalize_for_teams_mapping(s):
     'atalaya b' get distinct keys instead of last-wins colliding.
 
     MIRROR: src/state.js normalizeForTeamsMapping must implement exactly the
-    same pipeline — keep both sides in sync (C1).
+    same pipeline — keep both sides in sync.
     """
     if not s:
         return ""
@@ -312,7 +311,7 @@ def _is_league_group(code, phase):
 
 
 # Real-world sanctions seen in the source deduct 3 (occasionally 6) points;
-# the two corruptions found 2026-06-15 were -49 (Valkyrias Bec.: 0 vs 49) and
+# the corruptions seen in the source are of another size, like -49 (Valkyrias Bec.: 0 vs 49) and
 # -12 (Lanzarote B: 7 vs 19). A deviation beyond this tolerance, on a row whose
 # W/D/L is self-consistent, is a mis-scraped points column, not a sanction.
 _SANCTION_TOLERANCE = 6
@@ -398,21 +397,20 @@ def get_effective_standings(conn, group_id, code=None, phase=None):
 
 
 def points_order(rows, per_game=False):
-    """La clasificación por puntos, como la pide el usuario (18/10/2026: «primero se debe ordenar por la
-    cantidad de puntos y luego diferencia de goles y así»). La federación ordena las de prebenjamín
-    (per_game) por puntos por partido (pts/J, 0 sin partidos; su columna pts/pj, parse_standings de
-    fetch_fiflp.py), y con J desiguales eso no es el orden por puntos: en PG2 de 2026-27, Santa Brígida
-    (3 puntos en 1 J) por encima de Las Mesas Hu. (6 en 2) y, aunque los puntos bajen, AD Huracán (3 en
-    1, DF +6) por encima de Glaucus (3 en 2, DF +7). Esas, y cualquiera con una fila con menos puntos
-    que otra de debajo, van por puntos y, a igualdad de puntos con distintos pts/J (J distintas y
-    puntos ≠ 0: ahí la federación ha desempatado por pts/J), por DF y GF; sin los goles de alguna fila
-    (una tabla resumida, las de 10 y 11 celdas), solo por puntos. El orden es estable y, con los mismos
-    puntos por partido (mismas J, o 0 puntos), el de la federación, que desempata por lo que la web no
-    sabe (PG2 de 2025-26: La Garita por encima de RC Victoria, 58 puntos en 28 J los dos y peor DF;
-    puede ser el enfrentamiento directo), y por eso tampoco el nombre. Una de benjamín o alevín ya por
-    puntos no se toca, ni sus empates: la federación las ordena por puntos (AL15 y AL26 de 2026-27, a
-    igualdad de puntos, arriba el de más J y mejor DF); una sin los puntos de alguna fila, tampoco.
-    Devuelve (filas, reordenada), renumeradas y reordenada solo si cambia el orden, sin cambiar `rows`."""
+    """La clasificación por puntos y luego diferencia de goles (docs/decisiones.md). La federación ordena
+    las de prebenjamín (per_game) por puntos por partido (pts/J, 0 sin partidos; su columna pts/pj,
+    parse_standings de fetch_fiflp.py), y con J desiguales eso no es el orden por puntos: en PG2 de 2026-27,
+    Santa Brígida (3 puntos en 1 J) por encima de Las Mesas Hu. (6 en 2) y, aunque los puntos bajen, AD
+    Huracán (3 en 1, DF +6) por encima de Glaucus (3 en 2, DF +7). Esas, y cualquiera con una fila con menos
+    puntos que otra de debajo, van por puntos y, a igualdad de puntos con distintos pts/J (J distintas y
+    puntos ≠ 0: ahí la federación ha desempatado por pts/J), por DF y GF; sin los goles de alguna fila (una
+    tabla resumida, las de 10 y 11 celdas), solo por puntos. El orden es estable y, con los mismos puntos
+    por partido (mismas J, o 0 puntos), el de la federación, que desempata por lo que la web no sabe (PG2 de
+    2025-26: La Garita por encima de RC Victoria, 58 puntos en 28 J los dos y peor DF; puede ser el
+    enfrentamiento directo), y por eso tampoco el nombre. Una de benjamín o alevín ya por puntos no se toca,
+    ni sus empates: la federación las ordena por puntos (AL15 y AL26 de 2026-27, a igualdad de puntos,
+    arriba el de más J y mejor DF); una sin los puntos de alguna fila, tampoco. Devuelve (filas,
+    reordenada), renumeradas y reordenada solo si cambia el orden, sin cambiar `rows`."""
     pts = [r[2] for r in rows]
     if any(p is None for p in pts) or (not per_game and all(a >= b for a, b in zip(pts, pts[1:]))):
         return rows, False
@@ -568,7 +566,7 @@ def generate_history_js(conn):
 
 def generate_alevin_js(conn):
     """data-alevin.js: el alevín de la temporada en curso, con la forma de lo de benjamín y en este
-    orden (contrato de docs/alevin.md §4): ALEVIN y ALEV_STATS (como BENJAMIN y BENJ_STATS),
+    orden (docs/alevin.md §4): ALEVIN y ALEV_STATS (como BENJAMIN y BENJ_STATS),
     HISTORY_ALEV (HISTORY), GOL_ALEV (GOL_BENJ), ESTADOS_ALEV (ESTADOS) y EQUIPOS_ALEV (EQUIPOS, de
     los equipos que juegan en alevín). Siempre, aunque esté vacío: la web lo pide sin saber si hay."""
     js = generate_category_js(conn, ALEVIN, "ALEVIN", "ALEV_STATS")
@@ -594,7 +592,7 @@ def coverage_summary(conn):
         groups, matches, played, actas = conn.execute(
             """SELECT count(DISTINCT g.id), count(m.id), count(m.home_score), count(m.cod_acta)
                FROM groups g LEFT JOIN matches m ON m.group_id = g.id WHERE g.season_id = ?""", (sid,)).fetchone()
-        # Jugadores = fichas (fase 2C): las identidades de acta de un mismo niño cuentan una vez.
+        # Jugadores = fichas: las identidades de acta de un mismo niño cuentan una vez.
         players = conn.execute(
             f"""SELECT count(DISTINCT {ficha}) FROM appearances a JOIN players p ON p.id = a.player_id
                 JOIN matches m ON m.id = a.match_id
@@ -623,8 +621,8 @@ def coverage_summary(conn):
 def _keyed_or_dup(pairs):
     """[(clave, entrada), …] → {clave: entrada}; si dos o más partidos producen
     la misma clave `local|visitante|gl-gv`, {clave: {"dup": True, "list":
-    [entrada, …]}} en el orden recibido. Nunca sobrescribe: antes ganaba el
-    último partido y el otro desaparecía sin aviso (la clave
+    [entrada, …]}} en el orden recibido. Nunca sobrescribe: si no, ganaría el
+    último partido y el otro desaparecería sin aviso (la clave
     'CD Calero|La Garita|1-11' la comparten un partido de FF15 y otro de PG2).
     Una entrada dup no lleva .g/.home: la interfaz actual lee undefined y no
     pinta nada, en vez de los datos de otro partido."""
@@ -908,7 +906,7 @@ def write_lineups(conn, root=None):
     return files
 
 
-# La ficha de cada niño (fase 2C, docs/identidad.md: una o varias identidades de acta con una principal):
+# La ficha de cada niño (docs/identidad.md: una o varias identidades de acta con una principal):
 # 16 ficheros, el de su clave pública (identidad.trozo), para que abrir una ficha no baje todas.
 JUGADORES_SHARDS = 16
 # union_por → el motivo corto de una fila unida en data-jugadores (la ficha lo dice en esa línea).
@@ -924,8 +922,8 @@ def _fichas(conn):
     """Las identidades de acta con su clave pública y su ficha, para publicar:
     {"clave": {player_id: clave de la identidad}, "ficha": {player_id: id de la principal},
      "por": {player_id: union_por}, "publicadas": {id de la principal} (fichas con alguna aparición)}.
-    Sin las columnas de la fase 2C (una base sin migrar), cada fila es su ficha y solo las de fiflp_id
-    tienen clave, como antes. El gol «sin nombre publicado» y las filas sin id ni equipo no tienen.
+    Sin las columnas de las fichas (una base sin migrar: migrate_identidad.py), cada fila es su ficha y
+    solo las de fiflp_id tienen clave. El gol «sin nombre publicado» y las filas sin id ni equipo no tienen.
     Una identidad sin id nunca deja su ficha sin publicar: sin clave guardada y con el equipo o la
     temporada borrados, la de su equipo y temporada más frecuentes en sus apariciones; y si ni así, la
     ficha sale con la clave de otra identidad suya."""
@@ -1377,7 +1375,7 @@ def get_historical_jornadas(conn, group_id, include_details=False):
     Format: {jornada_num: [[date, home, away, hs, as_], ...]}; with
     include_details, the 8 columns of HISTORY:
     [date, home, away, hs, as_, None, time, venue]. Every per-season file
-    uses include_details (Plan A §9.1).
+    uses include_details.
     Only includes jornadas with at least one match.
     """
     rows = conn.execute(
@@ -1495,9 +1493,9 @@ def archive_groups(conn, season_id, season_name, cat_name):
 
 
 def archive_alevin(conn, season_id, season_name):
-    """{name, alevin, gol?, equipos?, campos?} del alevín de una temporada pasada (contrato de
-    docs/alevin.md §5: la clave alevin con la forma de la clave benjamin de data-season-<S>.js), o
-    None si esa temporada no tiene grupos de alevín."""
+    """{name, alevin, gol?, equipos?, campos?} del alevín de una temporada pasada (docs/alevin.md §5:
+    la clave alevin con la forma de la clave benjamin de data-season-<S>.js), o None si esa temporada no
+    tiene grupos de alevín."""
     groups = archive_groups(conn, season_id, season_name, ALEVIN)
     if not groups:
         return None
@@ -1519,8 +1517,8 @@ def generate_per_season_files(seasons_list):
     """Write data-season-YYYY-YYYY.js for each historical season.
 
     The app fetches these lazily via state.js loadSeasonData() — keeping them
-    in sync with data-seasons.js prevents drift bugs (e.g. 2026-05-08 GC1
-    invisible because per-season file lagged behind DB).
+    in sync with data-seasons.js prevents drift bugs (a group invisible
+    because its per-season file lags behind the DB).
     """
     written = []
     for s in seasons_list:
@@ -1547,7 +1545,7 @@ def generate_per_season_files(seasons_list):
 
 
 def snapshot_data_files(root=None):
-    """C4: content hash of every data-*.js under root, used to decide whether
+    """Content hash of every data-*.js under root, used to decide whether
     this run actually changed any published data."""
     root = root or PROJECT_ROOT
     snap = {}
@@ -1587,13 +1585,12 @@ def _next_version(index_content, today=None):
 
 
 def bump_cache_version(root=None, touch_footer=True, version=None):
-    """Bump ?v= (index.html) and CACHE_NAME (sw.js, contrato C3) to the SAME
-    version string and, with touch_footer, the footer date «Última
+    """Bump ?v= (index.html) and CACHE_NAME (sw.js) to the SAME
+    version string (the SW cache rotates with the data) and, with touch_footer, the footer date «Última
     actualización». The bot calls it without arguments, only when data
-    content changed (bump_if_changed, contrato C4): the footer is the date of
+    content changed (bump_if_changed): the footer is the date of
     the data. scripts/publicar.py passes touch_footer=False and its own
-    version (spec §5.5; Plan B4, decisión 10): a release does not move that
-    date. `version` keeps the bot's form, 8 digits and an optional letter
+    version: a release does not move that date. `version` keeps the bot's form, 8 digits and an optional letter
     (ValueError otherwise, and nothing is written)."""
     if version is not None and not re.fullmatch(r"\d{8}[a-z]?", version):
         raise ValueError(f"versión sin la forma del bot (AAAAMMDD y una letra opcional): {version!r}")
@@ -1619,7 +1616,7 @@ def bump_cache_version(root=None, touch_footer=True, version=None):
         escribir_atomico(index_path, new_content)
         print(f"  index.html cache version bumped to ?v={version}")
 
-    # C3: keep sw.js CACHE_NAME (first line, /futbolbase2-v[0-9a-z]+/) in sync
+    # Keep sw.js CACHE_NAME (first line, /futbolbase2-v[0-9a-z]+/) in sync
     # with the same version string so the SW cache rotates with the data.
     sw_path = os.path.join(root, "sw.js")
     if os.path.exists(sw_path):
@@ -1634,7 +1631,7 @@ def bump_cache_version(root=None, touch_footer=True, version=None):
 
 
 def bump_if_changed(before_snapshot, root=None):
-    """C4: compare the data-*.js snapshot taken BEFORE regeneration with the
+    """Compare the data-*.js snapshot taken BEFORE regeneration with the
     current tree; bump ?v=/footer/CACHE_NAME only if some content changed.
     Avoids the daily no-op commit that only touched index.html."""
     after = snapshot_data_files(root)
@@ -1659,7 +1656,7 @@ def main():
 
     print("=== Generating JS data files from SQLite ===\n")
 
-    # C4: hash all data-*.js BEFORE regenerating, to bump versions only if
+    # Hash all data-*.js BEFORE regenerating, to bump versions only if
     # some content actually changes during this run.
     before_snapshot = snapshot_data_files()
 

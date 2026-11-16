@@ -1,4 +1,4 @@
-// Banco de pruebas del pronóstico de prebenjamín (17/10/2026): el mismo examen para cualquier modelo.
+// Banco de pruebas del pronóstico de prebenjamín: el mismo examen para cualquier modelo.
 //
 //   node scripts/pronostico_banco.mjs --modelo <fichero.mjs> [--split evaluacion|ajuste|todas]
 //                                     [--contra actual|web|poisson|local|tabla|<fichero.mjs>|ninguno]
@@ -72,12 +72,12 @@
 //   · logLoss(p, y), brier(p, y) (p: { home, draw, away }), outcomeOf(hs, as), tableOf(matches),
 //     tableLeader(table, match), TRAMOS, tramoDe(jornadas), temporadas, split.
 //
-// LA COMPARACIÓN DEL 17/10/2026 (la que decidió el modelo de la web). El usuario propuso «reglas de tres»
-// (si A le ganó a B y B a C, A tiene que poder con C) y dudaba de que el campo decida. Se probaron cuatro
-// familias, cada una en su fichero de scripts/pronostico_modelos/ (con su resultado en la cabecera),
-// con sus parámetros fijados SOLO en AJUSTE, y las mezclas de las mejores (media de probabilidades con
-// los pesos del ajuste). EVALUACIÓN, 2.747 partidos de 28 grupos, B = 2000, semilla 17102026; «Δ» es la
-// diferencia pareada de log-loss (negativa, mejor) con su IC 95 %:
+// LA COMPARACIÓN QUE DECIDIÓ EL MODELO DE LA WEB: las «reglas de tres» (si A le ganó a B y B a C, A tiene
+// que poder con C) y si el campo decide. Se probaron cuatro familias, cada una en su fichero de
+// scripts/pronostico_modelos/ (con su resultado en la cabecera), con sus parámetros fijados SOLO en AJUSTE,
+// y las mezclas de las mejores (media de probabilidades con los pesos del ajuste). EVALUACIÓN, 2.747
+// partidos de 28 grupos, B = 2000, semilla 17102026; «Δ» es la diferencia pareada de log-loss (negativa,
+// mejor) con su IC 95 %:
 //
 //   modelo                                   log-loss  Brier  acierto  2 jorn.  3 jorn.  Δ Poisson de antes        Δ Massey
 //   Massey (las notas; ELEGIDO)              0,534     0,297  79,5 %   0,658    0,593    −0,010 [−0,016, −0,003]   —
@@ -103,13 +103,13 @@
 // demostrable a la tabla (Massey − tabla: 1 jornada, −0,035 [−0,132, +0,056], mejor en el 76 % de las
 // remuestras y con el mismo acierto, 67,5 %; 2, −0,121 [−0,245, +0,013], mejor en el 96 % y con 3,2 puntos
 // más de acierto [−6,0, +11,7]; desde 3, entre −0,15 y −0,18, todos reales). La web enseña desde dos: es
-// una decisión, no una prueba (el criterio, en minRounds de src/pronostico.js). El campo, que el
-// usuario cree que no decide: es poco (en Massey, el local mete un 6 % más; P(local) se mueve 3,5 puntos de
-// media), y quitarlo no cambia el log-loss (+0,001 [−0,004, +0,005]) pero se acierta menos el favorito
-// (−0,9 puntos [−1,7, −0,2]); en el ajuste, sin él, +0,006 [+0,002, +0,010]: se queda. Cada fila se repite
+// una decisión, no una prueba (el criterio, en minRounds de src/pronostico.js). El campo es poco (en
+// Massey, el local mete un 6 % más; P(local) se mueve 3,5 puntos de media), y quitarlo no cambia el
+// log-loss (+0,001 [−0,004, +0,005]) pero se acierta menos el favorito (−0,9 puntos [−1,7, −0,2]); en el
+// ajuste, sin él, +0,006 [+0,002, +0,010]: se queda. Cada fila se repite
 // con `--modelo scripts/pronostico_modelos/<familia>.mjs --contra poisson` (y `--contra actual`).
 //
-// LO QUE EVALUACIÓN YA NO ES (revisión del 17/10/2026): con ella no se ajustó ningún parámetro, pero sí
+// LO QUE EVALUACIÓN YA NO ES: con ella no se ajustó ningún parámetro, pero sí
 // se miró al diseñar. La variante de Massey con la banda de empate que se estrecha (κₑ) se puntuó en
 // EVALUACIÓN antes de entrar en massey.mjs (el ajuste ya la justificaba: 0,5131 → 0,5117); las mezclas se
 // puntuaron ahí; y los rivales comunes (el parámetro c, y k de 0,5 a 0,1: 0,547 → 0,544) y el Elo se
@@ -120,15 +120,15 @@
 // decisiones (minRounds, variantes nuevas) EVALUACIÓN ya no es una prueba nueva: la siguiente es 2026-27,
 // que nada de esto ha visto (o una validación anidada por temporadas).
 //
-// LAS COPIAS DEL ARCHIVO (revisión del 17/10/2026): en PGC1 de 2023-24 y PGC4 de 2024-25, el filial está
+// LAS COPIAS DEL ARCHIVO: en PGC1 de 2023-24 y PGC4 de 2024-25, el filial está
 // apuntado también al primer equipo (Roque Amagro, 46 partidos en 26 jornadas; Arguineguín, 26 en 22, y 28
 // cruces local–visitante repetidos), pero cada copia cae en la misma jornada que su partido de verdad y
 // copiedMatches de src/pronostico.js la quita: sin copias, en ninguna liga del banco hay un equipo dos
 // veces en una jornada, con más partidos que jornadas o con el mismo cruce dos veces, y ninguna pareja
 // lleva una copia (test_pronostico_banco.mjs lo comprueba). La tabla de arriba no las tiene.
 //
-// A VARIAS JORNADAS VISTA (17/10/2026: el usuario pidió el pronóstico de todo el calendario, que se recalcule
-// con cada resultado). Lo que se mide: cuánto pierde el pronóstico de la web hecho con jornadas por medio.
+// A VARIAS JORNADAS VISTA (la web pronostica todo el calendario y lo recalcula con cada resultado). Lo que
+// se mide: cuánto pierde el pronóstico de la web hecho con jornadas por medio.
 // - La distancia k de un partido es roundsAhead de src/pronostico.js, LA MISMA función que da `ahead` en la
 //   web: 1 más las jornadas del calendario sin ningún resultado en el entrenamiento cuya fecha (la mediana
 //   de las de sus partidos) cae entre el último partido del entrenamiento y el del partido (la próxima
@@ -151,8 +151,8 @@
 //   seguro), con su IC; «Δ k=1», la diferencia pareada con el pronóstico del MISMO partido la víspera (su
 //   pareja de siempre): lo que se pierde por pronosticar antes, sin mezclarlo con qué partidos caen en cada
 //   tramo (los de 13+ son todos de final de temporada); y la diferencia con la tabla y con el local.
-// - Las cifras de siempre no cambian: sin --distancia, el banco y el backtest dan lo mismo que antes (diff
-//   de sus salidas, 17/10/2026), y la fila de k = 1 es la de la web en la tabla de arriba.
+// - Las cifras de siempre no dependen de esto: sin --distancia, el banco y el backtest dan lo mismo, y la
+//   fila de k = 1 es la de la web en la tabla de arriba.
 //
 // EVALUACIÓN, con el modelo de la web (--distancia --modelo web; 2.747 partidos, 35.132 pronósticos, B = 2000,
 // semilla 17102026; «fiab.» y los Δ de acierto, en puntos; los Δ de log-loss, negativos, mejor la web):
@@ -189,7 +189,7 @@
 // propia EVALUACIÓN, 0,01): −0,0005 de log-loss [−0,0027, +0,0017] en total y −0,0014 [−0,0063, +0,0039] a
 // 13+, nada demostrable, el mismo acierto, y en AJUSTE esa misma deriva empeora (+0,0005).
 //
-// LO QUE EVALUACIÓN YA NO ES, A DISTANCIA (17/10/2026): ya se había consultado en el diseño del modelo
+// LO QUE EVALUACIÓN YA NO ES, A DISTANCIA: ya se había consultado en el diseño del modelo
 // (arriba), y aquí sus cifras por distancia se vieron antes de decidir sobre la corrección. La decisión
 // salió de AJUSTE (la deriva 0 y las pendientes por tramo); de EVALUACIÓN, solo la tabla de arriba y la cota.
 // La prueba limpia de cómo se comporta a distancia es 2026-27, que nada de esto ha visto.
@@ -199,16 +199,16 @@
 // llamar a ningún ajustar) y ejecutar(modelo, { split, contra }) hace lo del CLI (ajustar y examen). A
 // distancia, paresDistancia(split), evaluarDistancia(predictor, { split, B, semilla, referencias }) y
 // ejecutarDistancia(modelo, { split, contra }). Las remuestras del bootstrap, resamples(C, B, semilla) y
-// quantile(valores, q) (las usa también scripts/backtest_proyeccion.mjs, 19/10/2026).
+// quantile(valores, q) (las usa también scripts/backtest_proyeccion.mjs).
 //
 // Las referencias (REFERENCIAS; sus frecuencias, medidas SOLO en las temporadas de ajuste):
 // - actual: src/pronostico.js con los PARAMS de la web, desde la primera jornada y con equipos sin
-//   partidos (minRounds 1, minPlayed 0: pronostica todas las parejas, como las tablas del backtest); desde
-//   el 17/10/2026, las notas de Massey;
+//   partidos (minRounds 1, minPlayed 0: pronostica todas las parejas, como las tablas del backtest): las
+//   notas de Massey;
 // - web: src/pronostico.js con PARAMS tal cual (minRounds 2, minPlayed 1): lo que enseña la web; no
 //   pronostica el tramo 1 ni los partidos de un equipo sin partidos (nulos);
-// - poisson: el 1X2 del Poisson de los goles de src/pronostico.js (outcome de sus goles esperados), el de la
-//   web hasta el 17/10/2026, como «actual»: desde la primera jornada;
+// - poisson: el 1X2 del Poisson de los goles de src/pronostico.js (outcome de sus goles esperados), el
+//   modelo anterior de la web, como «actual»: desde la primera jornada;
 // - local: siempre las frecuencias de local, empate y visitante;
 // - tabla: gana el mejor clasificado con el entrenamiento (puntos, diferencia de goles y goles), con las
 //   frecuencias del mejor, el empate y el peor; si van igual, las del local.
@@ -362,7 +362,7 @@ export function pairsOf(seasons, statusOf = () => null) {
   return out;
 }
 
-/* Las parejas a varias jornadas vista (17/10/2026): las de pairsOf y, de cada una, el pronóstico que se
+/* Las parejas a varias jornadas vista: las de pairsOf y, de cada una, el pronóstico que se
  * habría hecho antes, cada día en que cambia lo jugado. Para cada día de su entrenamiento, `corte`, el
  * entrenamiento es el de siempre con solo lo jugado antes de ese día (trainingFor con before) y la
  * distancia, la de la web con él (roundsAhead con before: la MISMA función). De cada distancia se queda
@@ -584,7 +584,7 @@ function pairedOf(n, ll, br, ok, W) {
   };
 }
 
-/* El examen de un predictor a varias jornadas vista (17/10/2026), con las parejas de paresDistancia (o
+/* El examen de un predictor a varias jornadas vista, con las parejas de paresDistancia (o
  * `pairs`): cada partido, una vez por cada distancia a la que se habría pronosticado. Opciones: split, B,
  * semilla y referencias ({ nombre: predictor }; por defecto, la tabla y el local), que reciben el mismo
  * entrenamiento. Devuelve, serializable en JSON:

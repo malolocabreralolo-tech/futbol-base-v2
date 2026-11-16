@@ -489,9 +489,9 @@ def _purge_orphan_cod_actas(conn, raw: dict, also_known=()) -> int:
 
 def flattened(acta) -> bool:
     """Un acta leída aplanada (fiflp_render.FLATTEN_JS + fiflp_acta; trae
-    `consistent`). Las de antes de octubre de 2026 (acta_parser, sin aplanar)
-    traen marcadores y minutos mal descifrados: actas-federacion.yml las vuelve
-    a descargar, y hasta entonces se quedan como estén en la base."""
+    `consistent`). Las leídas con acta_parser, sin aplanar, traen marcadores y
+    minutos mal descifrados: actas-federacion.yml las vuelve a descargar, y
+    hasta entonces se quedan como estén en la base."""
     return isinstance(acta, dict) and "consistent" in acta
 
 

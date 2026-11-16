@@ -3,7 +3,7 @@
 trim_shields.py — Download shield images from futbolaspalmas.com,
 trim transparent borders, and save locally in escudos/ directory.
 Updates data-shields.js to use local paths, and makes the thumbnails of the
-new ones in escudos/s/ with build_crests.py (Plan B4, decisión 52).
+new ones in escudos/s/ with build_crests.py.
 
 Usage: python3 scripts/trim_shields.py
 """
@@ -111,9 +111,9 @@ def main():
         f.write(new_content)
     print(f"→ data-shields.js actualizado con nombres locales ({len(local_shields)} equipos)")
 
-    # Las miniaturas de los escudos nuevos (Plan B4, decisión 52): la app pide primero escudos/s/<nombre>.png,
-    # y sin ella Tests sale en rojo (test_build_crests.py). build_crests.py escribe solo las que faltan, y
-    # el sello nuevo de escudos/ en la línea 2 de sw.js (decisión 1 del plan B5).
+    # Las miniaturas de los escudos nuevos: la app pide primero escudos/s/<nombre>.png, y sin ella Tests
+    # sale en rojo (test_build_crests.py). build_crests.py escribe solo las que faltan, y el sello nuevo de
+    # escudos/ en la línea 2 de sw.js.
     if downloaded:
         sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
         import build_crests

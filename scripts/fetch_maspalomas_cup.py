@@ -161,7 +161,7 @@ def row_full(m, abbreviate_field=False):
 
 
 def row_short(m):
-    """Fila de una ronda dentro de `jornadas` (9 columnas, spec §5.3/§9.3):
+    """Fila de una ronda dentro de `jornadas` (9 columnas, las de rowToMatch de src/model.js):
 
         [día, local, visitante, gl, gv, pen|None, hora, campo corto, tanda|None]
 

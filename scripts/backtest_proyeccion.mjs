@@ -1,4 +1,4 @@
-// Backtest del pronóstico de la clasificación final de prebenjamín (src/proyeccion.js, 19/10/2026).
+// Backtest del pronóstico de la clasificación final de prebenjamín (src/proyeccion.js).
 //
 //   node scripts/backtest_proyeccion.mjs                  las tablas, con SIM de src/proyeccion.js
 //   node scripts/backtest_proyeccion.mjs --calibrar       además, la busca de la masa del abanico (fan) con
@@ -34,8 +34,8 @@
 // independientes). Y el abanico: la parte de los casos en que el puesto real cae dentro (debería ser ~80 %
 // si «8 de cada 10» es verdad), su anchura media y la masa media que reúne en las simulaciones. Con
 // --calibrar, antes, la κ de la masa del abanico (fanMass de src/proyeccion.js) con SOLO AJUSTE; y al final,
-// EVALUACIÓN con la masa fija de 0,80, la de antes de calibrar. Las cifras del 19/10/2026 (2.000
-// simulaciones, unos 4 s), en la cabecera de src/proyeccion.js.
+// EVALUACIÓN con la masa fija de 0,80, sin calibrar. Las cifras (2.000 simulaciones, unos 4 s), en la
+// cabecera de src/proyeccion.js.
 import { writeFileSync } from 'node:fs';
 import { retiredTeams } from '../src/model.js';
 import { PARAMS, copiedMatches, forecastApplies } from '../src/pronostico.js';

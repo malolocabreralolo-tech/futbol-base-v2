@@ -1,4 +1,4 @@
-// Backtest del pronóstico de prebenjamín (src/pronostico.js, 17/10/2026).
+// Backtest del pronóstico de prebenjamín (src/pronostico.js).
 //
 //   node scripts/backtest_pronostico.mjs              la tabla con los PARAMS del módulo
 //   node scripts/backtest_pronostico.mjs --calibrar   además, el ajuste de las notas de Massey (el 1X2, con
@@ -15,7 +15,7 @@
 // retirados ni resultados de mesa (los mismos filtros que el entrenamiento). Aparte, las jornadas ya
 // jugadas de 2026-27, con sus estados de la app de futbolaspalmas (model.matchStatus), como en la web.
 //
-// El modelo, el de la web (17/10/2026): el 1X2, de las notas de Massey; el marcador más probable, del
+// El modelo, el de la web: el 1X2, de las notas de Massey; el marcador más probable, del
 // Poisson de los goles, dentro del favorito de las notas. La comparación entre modelos, con sus temporadas
 // de ajuste y de evaluación separadas, es la del banco (scripts/pronostico_banco.mjs, en su cabecera); aquí,
 // todas las temporadas juntas, como se ve el modelo de la web en el archivo.
@@ -29,7 +29,7 @@
 // data-*.js del repositorio.
 //
 // La carga de las temporadas, los objetivos, el entrenamiento de cada uno (las parejas de pairsOf) y las
-// métricas salen del banco de pruebas, scripts/pronostico_banco.mjs (17/10/2026), el mismo examen para
+// métricas salen del banco de pruebas, scripts/pronostico_banco.mjs, el mismo examen para
 // cualquier modelo; las frecuencias de las líneas base de aquí, del archivo entero, no son las de sus
 // referencias, medidas solo en las temporadas de ajuste.
 import { PARAMS, forecastMatch, outcome } from '../src/pronostico.js';
@@ -130,7 +130,7 @@ function printDraws(rows) {
   console.log(`\nEmpate previsto ${pct(pd)} frente a ${pct(d)} real; goles esperados ${xh.toFixed(2)}-${xa.toFixed(2)} frente a ${gh.toFixed(2)}-${ga.toFixed(2)} reales.`);
 }
 
-// Las notas frente al Poisson de los goles (el 1X2 de la web hasta el 17/10/2026), con los mismos partidos,
+// Las notas frente al Poisson de los goles (el modelo anterior del 1X2 de la web), con los mismos partidos,
 // por jornadas jugadas; y cuántas veces los goles esperados no van con el favorito de las notas
 // (goalsAgree: la pantalla Partido entonces no los enseña).
 function printPoisson(rows) {
@@ -209,7 +209,7 @@ function calibrateNotes() {
   console.log(`\nLos de src/pronostico.js ${same ? 'son' : 'NO son'} los de este ajuste (y los PARAMS de massey.mjs).`);
 }
 
-// El 1X2 del Poisson de los goles (el de la web hasta el 17/10/2026) de un pronóstico: sus probabilidades
+// El 1X2 del Poisson de los goles (el modelo anterior de la web) de un pronóstico: sus probabilidades
 // con los goles esperados de forecastMatch.
 const poissonProbs = (f, params) => probsOf(outcome(f.xgHome, f.xgAway, { ...PARAMS, ...params }));
 
