@@ -1,11 +1,10 @@
-"""Cómo se lanza Chromium para leer la federación (fiflp_render.fiflp_launch_args, 15/10/2026).
+"""Cómo se lanza Chromium para leer la federación (fiflp_render.fiflp_launch_args).
 
-Hasta el 15/10/2026 el bot y las tandas bloqueaban lo ajeno a la federación (publicidad, medición) con
-page.route (fiflp_render.fiflp_only), y una ruta de Playwright DESACTIVA LA CACHÉ HTTP: cada página
-volvía a pedir los ~20 scripts, las hojas, las fuentes y las imágenes de la federación, ~45-52
-peticiones a la red por página (22-24 a www.fiflp.com). Medido por el controlador con Chromium de
-verdad, sin ruta y con estos argumentos: 34 la primera página y 5 las siguientes (3 a www.fiflp.com).
-Desde el 14/10 la federación frena al bot tras unas decenas de páginas: lo que cuenta su freno son,
+Bloquear lo ajeno a la federación (publicidad, medición) con page.route (fiflp_render.fiflp_only)
+DESACTIVA LA CACHÉ HTTP de Playwright: cada página volvería a pedir los ~20 scripts, las hojas, las
+fuentes y las imágenes de la federación, ~45-52 peticiones a la red por página (22-24 a www.fiflp.com).
+Medido con Chromium de verdad, sin ruta y con estos argumentos: 34 la primera página y 5 las siguientes
+(3 a www.fiflp.com). La federación frena al bot tras unas decenas de páginas: lo que cuenta su freno son,
 muy probablemente, las peticiones. Aquí:
   - los argumentos (--host-resolver-rules y --blink-settings), sacados de FIFLP_HOSTS, y que dejan
     pasar justo lo que fiflp_request da por de la federación (también lo de las páginas guardadas);
@@ -14,7 +13,7 @@ muy probablemente, las peticiones. Aquí:
   - con un Chromium de verdad (si no está, se salta) y un servidor en 127.0.0.1: un host ajeno no
     carga (tampoco una IP), las imágenes no se piden, la caché sirve los scripts y las hojas desde la
     segunda página, y los documentos se piden siempre. Los de la federación llevan «Cache-Control:
-    private, max-age=300» (15/10/2026): la misma URL otra vez saldría de la caché (lo documenta una
+    private, max-age=300»: la misma URL otra vez saldría de la caché (lo documenta una
     prueba con page.goto a secas), y fiflp_render.goto la pide a la red (fresh) sin volver a pedir los
     scripts ni las hojas; así, el sondeo de la espera del freno (la misma página) no es la vacía
     guardada, y el «¿sirve otra página?» de fiflp_carga.Federacion._serving pregunta de verdad.
@@ -190,7 +189,7 @@ def test_every_federation_reader_navigates_through_fiflp_render_goto():
 
 HOSTS = ("fiflp.localhost", "filesnovanet.localhost")
 CACHED = "public, max-age=15552000"          # el de los scripts y las hojas de la federación
-PRIVATE = "private, max-age=300"             # el de sus documentos (NFG_*), medido el 15/10/2026
+PRIVATE = "private, max-age=300"             # el de sus documentos (NFG_*)
 EMPTY = "<html><head></head><body></body></html>"      # la página vacía de su freno
 
 DOC = """<!doctype html><html><head>

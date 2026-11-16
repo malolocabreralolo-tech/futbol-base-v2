@@ -1,17 +1,15 @@
 /**
- * Node test runner — FE-STATE fixes regression tests (2026-06-11).
+ * Node test runner — FE-STATE fixes regression tests.
  * Run: node --test scripts/tests/test_festate_fixes.mjs
  *
  * Covers:
  *   1. normalizeTeamName broken punctuation regex (state.js) + shields no-regression
- *   2. C1: normalizeForTeamsMapping conserves trailing filial letter (a/b/c/d)
+ *   2. normalizeForTeamsMapping conserves trailing filial letter (a/b/c/d)
  *   5. 'JNaN' jornada keys: jornadaNumber/sortJornadaKeys
  *   6. typeof guards for BENJAMIN/PREBENJAMIN
  *   8. lazy loaders: failures not cached for the session
- * (3, 4 and 7 — escapeHtml, teamBadge and getTeamForm — left with the B2 cut:
- * html.js, ui.js and model.js cover them in the test_rediseno_*.mjs suites.
- * jornadaLabel, getData, getSeasonError and ensurePlayers left in the final
- * B2 review, M5: nothing in src/, index.html or sw.js used them.)
+ * (3, 4 and 7 — escapeHtml, teamBadge and getTeamForm — are covered by html.js, ui.js and model.js
+ * in the test_rediseno_*.mjs suites.)
  */
 
 import { test } from 'node:test';
@@ -108,10 +106,9 @@ test('shields no-regression: fixed normalize resolves >= names than the broken o
     const obj = loadDataFile(`data-season-${s}.js`, [key])[key];
     collect(obj.benjamin); collect(obj.prebenjamin);
   }
-  // Cota de cordura ("se han cargado datos de verdad"), no del contraste de
-  // abajo. Bajó de 400 a 300 el 26/07/2026: fundir los clubes duplicados
-  // (mismo equipo con dos grafías) redujo los nombres distintos de ~450 a ~390. Y de 300 a 250 el
-  // 05/10/2026: los ~110 con el nombre de la federación pasaron al del portal (fix_nombres_federacion).
+  // Cota de cordura ("se han cargado datos de verdad"), no del contraste de abajo. Los nombres
+  // distintos bajan con cada fusión de clubes duplicados (mismo equipo con dos grafías) y con el paso
+  // de los ~110 que llevaban el nombre de la federación al del portal (fix_nombres_federacion).
   assert.ok(names.size > 250, `expected >250 team names, got ${names.size}`);
 
   const before = makeResolver(normBroken);
@@ -128,7 +125,7 @@ test('shields no-regression: fixed normalize resolves >= names than the broken o
   assert.ok(aCount >= bCount, `after (${aCount}) must be >= before (${bCount})`);
 });
 
-/* ════ 2. C1: normalizeForTeamsMapping conserves filial letter ════ */
+/* ════ 2. normalizeForTeamsMapping conserves filial letter ════ */
 
 test('C1: normalizeForTeamsMapping keeps the trailing team letter', () => {
   assert.equal(state.normalizeForTeamsMapping('UD Atalaya'), 'atalaya');

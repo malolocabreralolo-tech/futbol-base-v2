@@ -151,7 +151,7 @@ test('per-season groups have valid standings + jornadas shape', () => {
           if (J > 0) assert.ok(pts <= J * 3, `${name}/${g.id}/${team}: pts=${pts} > 3*J=${J*3}`);
         }
         // jornadas: object {num: [[date,home,away,hs,as,pen,hora,campo], ...]}
-        // (5 columnas en ficheros generados antes de Plan A §9.1; 8 desde entonces)
+        // (5 columnas en ficheros generados antes de la hora y el campo; 8 con ellos)
         if (g.jornadas) {
           for (const [num, matches] of Object.entries(g.jornadas)) {
             assert.ok(Array.isArray(matches), `${name}/${g.id}/J${num}: matches not array`);
@@ -172,7 +172,7 @@ test('state.js exports a single-flight ensureMatchDetail loader', () => {
   assert.ok(/export async function ensureMatchDetail\s*\(/.test(s),
     'state.js must export async ensureMatchDetail()');
   assert.ok(/_matchDetailPromise/.test(s), 'must single-flight via a cached promise');
-  // Plan B2, tarea 2: las peticiones perezosas pasan por fetchData (la versión y el tiempo límite).
+  // Las peticiones perezosas pasan por fetchData (la versión y el tiempo límite).
   assert.ok(/fetchData\('data-matchdetail\.js'\)/.test(s),
     'must fetch data-matchdetail.js through fetchData');
   assert.ok(!/globalThis|window\.\s*MATCH_DETAIL/.test(s),
@@ -180,7 +180,7 @@ test('state.js exports a single-flight ensureMatchDetail loader', () => {
 });
 
 // wiring: the heavy file is lazy (neither eager, with or without defer, nor precached); its keys file,
-// data-matchdetail-keys.js, went in B4 (decisión 1): the ⚽ badge left with the previous app.
+// data-matchdetail-keys.js, is gone: the ⚽ badge left with the previous app.
 test('index.html + sw.js wired for lazy matchdetail', () => {
   const idx = readFileSync(join(ROOT, 'index.html'), 'utf8');
   const sw = readFileSync(join(ROOT, 'sw.js'), 'utf8');
@@ -190,7 +190,7 @@ test('index.html + sw.js wired for lazy matchdetail', () => {
     'sw.js no precachea data-matchdetail.js: se guarda al usarse');
 });
 
-// ensurePlayers se fue en la revisión final de B2 (M5): la plantilla sale de LINEUPS (spec §4.6).
+// La plantilla sale de LINEUPS; ensurePlayers ya no existe.
 test('state.js exports ensureLineups (SP-2)', () => {
   const src = readFileSync(join(ROOT, 'src', 'state.js'), 'utf8');
   assert.ok(/export\s+async\s+function\s+ensureLineups\b/.test(src),
@@ -207,8 +207,8 @@ test('state.js exports ensureLineups (SP-2)', () => {
 // ─── data-lineups-*.js invariants ──────────────────────────────────────────
 // SP-1 actas data files. Tests only run when at least one season has been
 // scraped + imported + generated (the files exist in the repo). Skipped
-// otherwise so the suite stays green before the first scrape. B4 (decisión 1)
-// retired data-players-*.js: the squad comes from LINEUPS (spec §4.6).
+// otherwise so the suite stays green before the first scrape. There is no data-players-*.js: the squad
+// comes from LINEUPS.
 import { readdirSync } from 'node:fs';
 
 test('actas data files: lineups events reference players in the same match', () => {
@@ -252,7 +252,7 @@ test('source-contract: SP-2 consts not read via globalThis/window in src/', () =
   }
 });
 
-// ─── Plan A §9.2: s/gr (y cod) en MATCH_DETAIL y LINEUPS_<S> ─────────────────
+// ─── s/gr (y cod) en MATCH_DETAIL y LINEUPS_<S> ─────────────────
 // Cada entrada lleva s (temporada) y gr (código de grupo); LINEUPS además cod
 // (matches.cod_acta). Una clave que comparten dos partidos es
 // {dup:true, list:[≥2 entradas]} y no lleva .g/.home: la interfaz actual lee

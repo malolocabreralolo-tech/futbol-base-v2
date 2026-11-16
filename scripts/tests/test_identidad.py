@@ -1,4 +1,4 @@
-"""El resolvedor de fichas (scripts/identidad.py, fase 2C).
+"""El resolvedor de fichas (scripts/identidad.py).
 
 Una identidad de acta es lo que el acta dice con certeza (un id de la federación, o un nombre sin id en
 un equipo y una temporada); una ficha es el niño. Aquí se fijan las reglas de docs/identidad.md con
@@ -112,7 +112,7 @@ def test_compatibles_por_edad_y_solape():
     assert not compatibles([(2024, PRE, "Arucas", None, None, 3)], [v(2024, PRE, "Teror")])
 
 
-# Clave pública y trozo. TABLA_CLAVES es la que copia la prueba de Node de la tarea 5:
+# Clave pública y trozo. TABLA_CLAVES es la que copia la prueba de Node:
 # (fiflp_id, nombre normalizado, equipo, año de inicio, clave, trozo de 16).
 TABLA_CLAVES = [
     (153432, "", "", 0, "153432", 8),
@@ -184,7 +184,7 @@ def test_u0_otro_equipo_u_otra_temporada_no_une():
     assert len(fichas(r)) == 3
 
 
-# U0 de nombres cortos (ronda de arreglo 1): con id, mismo nombre corto, equipo y temporada; las de una
+# U0 de nombres cortos: con id, mismo nombre corto, equipo y temporada; las de una
 # sola aparición en total van a la única asentada del cubo.
 
 def corto_con_id(id_, fiflp, n, anio=2022, equipo="Teror", nombre="LUCAS", nivel=BEN, *mas):
@@ -342,7 +342,7 @@ def test_u1_con_dos_candidatos_en_el_club_no_une():
 
 @pytest.mark.parametrize("cortos", [False, True])
 def test_u1_corto_sin_coma_sin_id_y_con_id_segun_el_interruptor(cortos):
-    # Ronda 2: U1 une una ficha sin id con una con id; para los nombres sin coma manda el interruptor.
+    # U1 une una ficha sin id con una con id; para los nombres sin coma manda el interruptor.
     a = ident(1, "LUCAS", None, v(2025, PRE, "Arucas"))
     b = ident(2, "LUCAS", 300002, v(2026, BEN, "Arucas B"))
     r = resolver([a, b], unir_cortos_en_club=cortos)
@@ -356,7 +356,7 @@ def test_u1_respeta_la_edad():
 
 
 # ---------------------------------------------------------------------------
-# Ronda de arreglo 2: U0 con un apellido y U1 entre una ficha sin id y una con id
+# U0 con un apellido y U1 entre una ficha sin id y una con id
 # ---------------------------------------------------------------------------
 
 @pytest.mark.parametrize("norm, esperado", [
@@ -426,7 +426,7 @@ def test_u1_con_id_dos_fichas_del_nombre_en_el_club_no_une():
 
 
 def test_u1_con_coma_tras_la_u0_de_club():
-    # Con coma, las dos sin id de 2025 (Teror y Teror B) ya son una por la U0 de club (ronda 3), y U1 la une
+    # Con coma, las dos sin id de 2025 (Teror y Teror B) ya son una por la U0 de club, y U1 la une
     # con la de 2024. Con dos con id en el cubo de 2025, nada.
     con = ident(1, "ALVAREZ PENA, JOSE", 300001, v(2024, PRE, "Teror"))
     sin_a = ident(2, "ALVAREZ PENA, JOSE", None, v(2025, PRE, "Teror"))
@@ -495,7 +495,7 @@ def test_ronda_2_barajado_y_punto_fijo(cortos):
 
 
 # ---------------------------------------------------------------------------
-# Ronda de arreglo 3: U0 de club (mismo nombre con coma, mismo club, misma temporada)
+# U0 de club (mismo nombre con coma, mismo club, misma temporada)
 # ---------------------------------------------------------------------------
 
 def otro_lado(id_, norm, fiflp=None):
@@ -734,7 +734,7 @@ def test_review_focus_2_el_nino_sin_id_que_al_ano_siguiente_lo_tiene():
     sin = ident(1, "ALVAREZ PENA, JOSE", None, v(2025, PRE, "Teror B", n=14))
     con = ident(2, "ALVAREZ PENA, JOSE", 300002, v(2026, BEN, "Teror", n=6))
     r = resolver([sin, con], unir_cortos_en_club=False)
-    assert r == {1: (2, "club"), 2: (2, None)}         # el mismo club: U1 (ronda 2) antes que U2
+    assert r == {1: (2, "club"), 2: (2, None)}         # el mismo club: U1 antes que U2
     assert clave_publica(con.fiflp_id, con.norm, "Teror", 2026) == "300002"
     alias = clave_publica(None, sin.norm, "Teror B", 2025)
     assert alias.startswith("n") and alias != "300002"
@@ -756,7 +756,7 @@ def test_review_focus_4_un_corto_en_dos_clubes():
 
 
 # ---------------------------------------------------------------------------
-# Los cinco ejemplos del mapa (D12), con lo que dirá el acta en la fase 2C: la parte con id, una
+# Los cinco ejemplos del mapa, con lo que dirá el acta: la parte con id, una
 # identidad; lo de prebenjamín 2026-27, sin id.
 # ---------------------------------------------------------------------------
 
@@ -949,7 +949,7 @@ def test_la_medida_decide_por_los_pares_de_uno_a_uno():
 
 
 def test_los_cortos_se_unen_en_el_club():
-    # La medida del 14/11/2026 (docs/identidad.md): sin coma, uno a uno, 100 % ≥ 95 %.
+    # La medida de docs/identidad.md: sin coma, uno a uno, 100 % ≥ 95 %.
     assert UNIR_CORTOS_EN_CLUB is True
 
 
@@ -978,7 +978,7 @@ def test_la_medida_de_la_u0_de_club():
 
 
 def test_la_u0_de_club_esta_activa_por_la_medida():
-    # La medida del 14/11/2026 (docs/identidad.md): completos 99,4 %, un apellido 100 %.
+    # La medida de docs/identidad.md: completos 99,4 %, un apellido 100 %.
     assert identidad.U0_CLUB_COMPLETOS is True and identidad.U0_CLUB_UN_APELLIDO is True
 
 

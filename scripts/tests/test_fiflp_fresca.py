@@ -1,4 +1,4 @@
-"""Lo que se repite, a la red (fiflp_render.goto y fresh, 15/10/2026).
+"""Lo que se repite, a la red (fiflp_render.goto y fresh).
 
 La federación da sus documentos (NFG_*) con «Cache-Control: private, max-age=300»: con la caché HTTP
 (fiflp_launch_args, sin ruta), la misma URL otra vez antes de 5 min sale de la caché de disco sin pedirle
@@ -267,8 +267,8 @@ def test_carga_retries_are_fresh_and_the_first_attempt_is_not():
     page = Page(outcome=lambda url, n: outcomes.get(n, "ok"))
     assert _carga(page, group(1)) == (True, [15, 30])
     assert page.fresh_loads(group(1)) == [False, True, True]
-    # La página vacía del freno no se reintenta (15/10/2026): la espera y sus sondeos son de Federacion
-    # (test_federacion_asks_the_brake_probes_fresh). Antes, un reintento tras EMPTY_WAIT, fresco.
+    # La página vacía del freno no se reintenta: la espera y sus sondeos son de Federacion
+    # (test_federacion_asks_the_brake_probes_fresh).
     page = Page(outcome=lambda url, n: "empty" if n == 1 else "ok")
     assert _carga(page, group(2)) == (False, [])
     assert page.fresh_loads(group(2)) == [False]

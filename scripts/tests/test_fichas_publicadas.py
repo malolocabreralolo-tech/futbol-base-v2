@@ -1,4 +1,4 @@
-"""La web publica una ficha por FICHA (fase 2C, tarea 5): data-jugadores-<k>.js con la clave pública de la
+"""La web publica una ficha por FICHA: data-jugadores-<k>.js con la clave pública de la
 principal, alias en el trozo del alias, la marca de cada fila unida y las otras fichas del mismo nombre; las
 alineaciones y los sucesos con la clave de la ficha de cada jugador; la cobertura cuenta fichas.
 

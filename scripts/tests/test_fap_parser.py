@@ -1,8 +1,7 @@
-"""parse_standings de fetch_futbolaspalmas.py — formato HTML 2026-06.
+"""parse_standings de fetch_futbolaspalmas.py — formato HTML actual.
 
-La fuente cambió su markup (~25/4/2026): nombres en .fw-bolderr, puntos en
-.text-warning-emphasis y stats en filas .contenedor__item con divs
-.borderr-start [J,G,E,P,GF,GC,DF] (+ desglose casa/fuera que se ignora).
+La fuente marca los nombres en .fw-bolderr, los puntos en .text-warning-emphasis y las stats en filas
+.contenedor__item con divs .borderr-start [J,G,E,P,GF,GC,DF] (+ desglose casa/fuera que se ignora).
 El formato viejo (fw-bolder / fw-bold bg-* / border-start) queda como fallback.
 Fixture real: clasi_fap_2026-06.html (1prebenjamin1, capturado 2026-06-11).
 """

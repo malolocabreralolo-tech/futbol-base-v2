@@ -1,4 +1,4 @@
-"""Fixer de Lanzarote benjamín 2025-26 (spec 2026-09-23 §9.4).
+"""Fixer de Lanzarote benjamín 2025-26.
 
 LZ1-4 (futbolaspalmas) y LZS1-4 (FIFLP) son la misma competición. El fixer
 conserva LZ, le copia el campo (y la hora si falta) de LZS en los partidos que

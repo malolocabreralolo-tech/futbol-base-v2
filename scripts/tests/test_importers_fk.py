@@ -1,10 +1,9 @@
-"""Regression tests — revisión 2026-06-15 #12.
+"""Los importadores de wayback limpian las tablas hijas antes de borrar los partidos.
 
-import_wayback_2122/2223/2324.py hacían `DELETE FROM matches WHERE group_id=?`
-directo. Con FK ON (db.get_connection lo activa) y filas hijas (goals/appearances/
-match_events/match_staff) referenciando esos matches, ese DELETE CRASHEA. Deben
-limpiar las tablas hijas ANTES, vía el helper compartido db.delete_group_matches
-(patrón ACTA_CHILD_TABLES, ya usado por import_fiflp.py).
+import_wayback_2122/2223/2324.py no pueden hacer `DELETE FROM matches WHERE group_id=?` directo: con FK ON
+(db.get_connection lo activa) y filas hijas (goals/appearances/match_events/match_staff) referenciando
+esos matches, ese DELETE CRASHEA. Tienen que limpiar las tablas hijas ANTES, vía el helper compartido
+db.delete_group_matches (patrón ACTA_CHILD_TABLES, ya usado por import_fiflp.py).
 """
 import sqlite3
 import sys

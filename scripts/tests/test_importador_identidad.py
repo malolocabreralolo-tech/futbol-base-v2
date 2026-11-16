@@ -1,4 +1,4 @@
-"""El importador de actas y el bot con las identidades de acta de la fase 2C (docs/identidad.md).
+"""El importador de actas y el bot con las identidades de acta (docs/identidad.md).
 
 Con id de la federación, la fila de ese id (nunca la de otro niño con el mismo nombre); sin id, la del
 nombre en ese equipo y esa temporada. Cada pasada del bot recalcula las fichas después de importar y
@@ -209,7 +209,7 @@ def test_reimportar_las_actas_deja_las_mismas_identidades_y_las_mismas_fichas():
     pasada(conn)
     primera = foto(conn)
     # Hay uniones de verdad (si no, la prueba no prueba nada): NOA sin id en 2025-26 y con id en 2026-27,
-    # del mismo club: U1 (desde la ronda 2 de la tarea 2, antes que U2).
+    # del mismo club: U1 (antes que U2).
     noa = conn.execute("SELECT id FROM players WHERE fiflp_id=81").fetchone()[0]
     assert conn.execute("SELECT union_por FROM players WHERE ficha_id=?", (noa,)).fetchall() == [("club",)]
     assert conn.execute("SELECT count(*) FROM players WHERE ficha_id IS NOT NULL").fetchone()[0] >= 2

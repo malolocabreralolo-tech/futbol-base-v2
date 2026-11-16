@@ -1,13 +1,13 @@
-"""Grupos nuevos de competiciones que la web ya sigue (fase 2D de v2, 14/11/2026).
+"""Grupos nuevos de competiciones que la web ya sigue.
 
 check_competitions ve las competiciones nuevas, no los grupos nuevos de una que ya se sigue (un «Grupo 25»
-añadido, o una fase nueva publicada como grupos de la misma competición). Ahora cada calendario que el bot
-ya carga (NFG_CmpJornada con CodCompeticion y CodGrupo) se mira también por su desplegable de grupos
+añadido, o una fase nueva publicada como grupos de la misma competición). Por eso cada calendario que el
+bot ya carga (NFG_CmpJornada con CodCompeticion y CodGrupo) se mira también por su desplegable de grupos
 (select[name="grupo"]), sin pedir nada más (update_fiflp.group_select), y al final de la pasada
 update_fiflp.new_groups compara lo visto con los grupos de la temporada (las URL de `groups`) y lo deja en
-data-health.json (newGroups, source_health.set_new_groups), que enseña «Datos y fuentes». No se sabe aún si
-esa página trae el desplegable: run.groupSelects dice en cuántos calendarios se vio. Sin red: la federación
-simulada de test_bot_freno (la pasada 1103, con fiflp_carga.Federacion de verdad).
+data-health.json (newGroups, source_health.set_new_groups), que enseña «Datos y fuentes». No se sabe de
+antemano si esa página trae el desplegable: run.groupSelects dice en cuántos calendarios se vio. Sin red:
+la federación simulada de test_bot_freno (con fiflp_carga.Federacion de verdad).
 """
 from datetime import date, datetime, timedelta, timezone
 import json
@@ -21,8 +21,8 @@ import source_health  # noqa: E402
 import update_fiflp as U  # noqa: E402
 from scripts.tests import test_bot_freno as B  # noqa: E402
 
-bot = B.bot                     # la pasada 1103 con data-health.json de verdad (test_bot_freno)
-TODAY = B.TODAY                 # 15/10/2026
+bot = B.bot                     # la pasada con data-health.json de verdad (test_bot_freno)
+TODAY = B.TODAY
 KNOWN = {("900", str(n)) for n in range(1, 11)}         # los diez grupos de la base de test_bot_freno
 
 

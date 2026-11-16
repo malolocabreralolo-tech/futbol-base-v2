@@ -1,5 +1,5 @@
 // La ficha de jugador (#/jugador?id) y los jugadores seguidos: followed.js, la pantalla, la ruta y
-// los enlaces desde la plantilla y el acta. Desde la fase 2C, una ficha por niño: su clave es la de su
+// los enlaces desde la plantilla y el acta. Una ficha por niño: su clave es la de su
 // identidad principal (el id de la federación o «n» + 9 cifras en base 36) y las demás son alias.
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
@@ -159,7 +159,7 @@ test('plantilla: la fila del jugador lleva su id de la federación si el acta lo
   assert.deepEqual(teamSquad(lineups, { group, team: 'B' }).rows, [{ name: 'Z, W', dorsal: 4, ap: 1, st: 1, g: 0, y: 0, rd: 0 }]);
 });
 
-// ── Fase 2C: claves, alias y lo que la ficha dice de cada fila ──────────────────────────────────────
+// ── claves, alias y lo que la ficha dice de cada fila ──────────────────────────────────────
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 

@@ -1,4 +1,4 @@
-"""Pasada sana (fase 2B de v2): el bot de la federación no puede acabar en verde sin haber leído nada.
+"""Pasada sana: el bot de la federación no puede acabar en verde sin haber leído nada.
 
 pasada_sana.veredicto juzga cada pasada (función pura: los estados de los grupos leídos y cuántos se
 intentaron); update_fiflp le pasa lo de run_passes y lo guarda en data-health.json (source_health,
@@ -26,9 +26,9 @@ def test_more_than_a_third_failed_names_the_failed_groups():
 
 
 def test_a_dry_pass_is_healthy_until_the_dry_streak_lasts_more_than_six_hours():
-    """Ronda de arreglo 1: una pasada seca (ningún grupo «ok» de los previstos) es normal si la racha es corta.
-    El 14/11/2026, 3 de 16 pasadas leyeron 0 grupos: el runner salía por una IP que la federación frena desde
-    la primera página, y la siguiente, con otra IP, leía. En rojo, solo con la racha de más de 6 h."""
+    """Una pasada seca (ningún grupo «ok» de los previstos) es normal si la racha es corta: hay runners que
+    salen por una IP que la federación frena desde la primera página (se han visto 3 de 16 pasadas de un día
+    con 0 grupos), y la siguiente, con otra IP, lee. En rojo, solo con la racha de más de 6 h."""
     assert LIMITE_SECA_HORAS == 6
     assert seca({}, 26) and seca({"A": "error"}, 5) and not seca({"A": "ok"}, 21) and not seca({}, 0)
     assert veredicto({}, 26) == [] and veredicto({}, 26, horas_seca=5.9) == []
@@ -85,7 +85,7 @@ from scripts.tests import test_update_fiflp as T  # noqa: E402
 from scripts.tests import test_bot_freno as B  # noqa: E402
 from scripts.tests import test_alevin_activacion as A  # noqa: E402
 
-bot = B.bot                     # la pasada 1103 con data-health.json de verdad (test_bot_freno)
+bot = B.bot                     # la pasada con data-health.json de verdad (test_bot_freno)
 quiet = lambda *_: None         # noqa: E731
 
 
@@ -164,7 +164,7 @@ def judged(result):
 
 
 def test_a_braked_pass_is_healthy(bot, capsys, passes):
-    """Review Focus 1: el freno de la pasada 1103 que no se pasa: PG2 y FF5 leídos, AL4 sin servir y los
+    """El freno de la pasada que no se pasa: PG2 y FF5 leídos, AL4 sin servir y los
     demás, a otra pasada. Todos cuentan como previstos; el veredicto, sana."""
     data, web, F, log = bot(capsys, serve=B.SERVED_1103)
     result, = passes

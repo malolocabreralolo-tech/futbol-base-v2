@@ -56,8 +56,8 @@ class TestPrebenjaminLinks:
 
 class TestCandidatasConTabla:
     """Las URLs numeradas de prebenjamín existen aunque no haya liga detrás:
-    la sonda las contaba como 'candidatas sin fichar' estando vacías (falsa
-    alarma de 9 candidatas el 23/09/2026). Solo cuenta la que sirve tabla."""
+    la sonda no puede contarlas como 'candidatas sin fichar' estando vacías (falsa
+    alarma). Solo cuenta la que sirve tabla."""
 
     def test_only_urls_with_a_standings_table_are_candidates(self):
         from discover_temporada import candidatas_con_tabla

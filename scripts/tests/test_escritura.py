@@ -90,7 +90,7 @@ def test_el_temporal_va_en_la_misma_carpeta_con_su_nombre(tmp_path, monkeypatch)
     assert origen.name.startswith("sw.js.") and origen.name.endswith(".tmp")
 
 
-# Los módulos que escriben originales, estado o lo publicado (el apartado 3 del mapa de la fase 4).
+# Los módulos que escriben originales, estado o lo publicado.
 MODULOS = ["fetch_fiflp_actas.py", "fetch_fiflp_goleadores.py", "fetch_fiflp_detalle.py", "fetch_fp_app.py",
            "discover_fiflp_comps.py", "import_fiflp_actas.py", "fetch_fiflp_islas.py", "source_health.py",
            "activar_auto.py", "generate_js.py", "precache.py", "codigo.py", "fetch_fiflp_2425.py"]

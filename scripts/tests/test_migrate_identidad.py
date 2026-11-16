@@ -1,9 +1,10 @@
-"""La migración de la fase 2C (migrate_identidad): cada aparición a su identidad de acta según el original,
-sin perder ni borrar nada, y las fichas por encima (docs/identidad.md).
+"""La migración a identidades de acta (migrate_identidad): cada aparición a su identidad de acta según el
+original, sin perder ni borrar nada, y las fichas por encima (docs/identidad.md).
 
-Sobre una base pequeña montada aquí con el importador de verdad (_import_one) con el _get_or_create_player
-de antes de la fase 2C (_pegado_por_nombre, que pega por el nombre las apariciones sin id a la fila de otro
-niño, como hizo con la base real) y unos originales escritos en una carpeta temporal. Nombres inventados."""
+Sobre una base pequeña montada aquí con el importador de verdad (_import_one) con el
+_get_or_create_player anterior a las identidades (_pegado_por_nombre, que pega por el nombre las
+apariciones sin id a la fila de otro niño, como hizo con la base real) y unos originales escritos en una
+carpeta temporal. Nombres inventados."""
 import contextlib
 import json
 import sqlite3
@@ -59,7 +60,7 @@ def acta(local=(), visitante=(), sucesos=()):
 
 
 def _pegado_por_nombre(conn, name, fiflp_id=None, team_id=None, season_id=None, ordinal=1):
-    """El _get_or_create_player de antes de la fase 2C (tal cual, sin la comprobación de la columna
+    """El _get_or_create_player anterior a las identidades (tal cual, sin la comprobación de la columna
     fiflp_id): por el id y, si no, por el nombre normalizado en toda la base, adoptando la fila sin id si
     el nombre lleva coma. El equipo, la temporada y el ordinal no los usaba."""
     norm = I._norm_player(name)
@@ -95,7 +96,7 @@ def importador_de_antes():
 
 
 def importa(conn, mid, gid, local, visitante, fecha, cod, a, raws=None, base_acta=None):
-    """Un partido con su acta importada como lo hizo el importador de antes de la fase 2C; el original va a
+    """Un partido con su acta importada como lo hizo el importador anterior a las identidades; el original va a
     `raws` (por temporada)."""
     partido(conn, mid, gid, local, visitante, fecha, cod)
     with importador_de_antes():
@@ -170,7 +171,7 @@ def mundo(tmp_path):
 
 
 def test_el_esquema_es_idempotente():
-    # La tabla players de antes de la fase 2C (migrate_actas_schema ya trae las columnas nuevas).
+    # La tabla players anterior a las identidades (migrate_actas_schema ya trae las columnas nuevas).
     conn = sqlite3.connect(":memory:")
     conn.execute("CREATE TABLE players (id INTEGER PRIMARY KEY, full_name TEXT NOT NULL, norm_name TEXT NOT NULL "
                  "UNIQUE, fiflp_id INTEGER)")
@@ -343,8 +344,8 @@ def test_lo_que_no_casa_se_cuenta_y_no_se_toca(mundo):
 def test_las_fichas_unen_lo_compatible_y_los_punteros_son_buenos(mundo):
     conn, raws = mundo
     r = M.migrate(conn, str(raws), log=quiet)
-    # EVA sin id (prebenjamín 2025-26) y con id (benjamín 2026-27), del mismo club: U1 (desde la ronda 2
-    # de la tarea 2, antes que U2, que también la uniría: es la única otra ficha con su nombre).
+    # EVA sin id (prebenjamín 2025-26) y con id (benjamín 2026-27), del mismo club: U1 (antes que U2, que
+    # también la uniría: es la única otra ficha con su nombre).
     eva_sin, eva = pid_de(conn, "MORA DIAZ, EVA@3.2"), conn.execute(
         "SELECT id FROM players WHERE fiflp_id=601").fetchone()[0]
     assert fila(conn, eva_sin)[6:] == (eva, "club")
@@ -392,7 +393,7 @@ def test_dos_homonimos_sin_id_en_la_misma_alineacion_no_pierden_ninguna_aparicio
     assert conn.execute("SELECT p.norm_name FROM match_events e JOIN players p ON p.id=e.player_id "
                         "WHERE e.match_id=2").fetchone()[0] == "DANIEL@3.3#2"
     assert fila(conn, pid_de(conn, "DANIEL@3.2#2"))[5] == 2
-    # El ordinal no se une a nada (decisión 3 de docs/identidad.md).
+    # El ordinal no se une a nada (docs/identidad.md).
     assert fila(conn, pid_de(conn, "DANIEL@3.2#2"))[6] is None
     assert conn.execute("PRAGMA foreign_key_check").fetchall() == []
     # Y la segunda vez no cambia nada.
@@ -488,7 +489,7 @@ def test_una_aparicion_sin_dorsal_que_el_original_no_trae_es_un_goleador_sin_id(
 
 
 def test_las_uniones_de_club_y_temporada_no_cuentan_las_de_u1(mundo):
-    # EVA se une por U1 (dos temporadas del club): 'club', pero no de la U0 de club (ronda 3).
+    # EVA se une por U1 (dos temporadas del club): 'club', pero no de la U0 de club.
     conn, raws = mundo
     M.migrate(conn, str(raws), log=quiet)
     eva_sin = pid_de(conn, "MORA DIAZ, EVA@3.2")
@@ -510,7 +511,7 @@ def publicado(conn):
 
 
 def nuevo(conn, mid, gid, local, visitante, fecha, a=None, jornada=None):
-    """Un partido y, si se da, su acta importada con el importador de la fase 2C."""
+    """Un partido y, si se da, su acta importada con el importador actual."""
     partido(conn, mid, gid, local, visitante, fecha, 8000 + mid if a else None)
     if jornada:
         conn.execute("UPDATE matches SET jornada=? WHERE id=?", (f"Jornada {jornada}", mid))

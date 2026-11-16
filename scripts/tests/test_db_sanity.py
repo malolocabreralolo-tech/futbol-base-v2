@@ -353,7 +353,7 @@ def _lineup_keys(texto):
 def _lineup_count(texto):
     """Partidos publicados en un data-lineups-*.js (no claves).
 
-    Desde el Plan A (§9.2) dos partidos con la misma clave `local|visitante|gl-gv`
+    Dos partidos con la misma clave `local|visitante|gl-gv`
     salen como {"dup": true, "list": [...]} en vez de pisarse, así que una clave
     repetida vale tantos partidos como su lista.
     """

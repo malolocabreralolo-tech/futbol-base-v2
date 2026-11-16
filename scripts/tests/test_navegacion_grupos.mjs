@@ -1,11 +1,9 @@
-// Navegación entre grupos (petición de las familias: «poder navegar en la web entre los distintos
-// grupos para ir viendo los resultados de los otros grupos dentro de cada categoría»), en su forma
-// simple (14/10/2026: «abajo tienes Jornada y Tabla y dentro también… hay muchas opciones»): una sola
-// tira de fichas bajo la cabecera de Tabla y Jornada («Todos» delante en Jornada), «Mi grupo» u «Otras
-// ligas» a la derecha de la cabecera, la barra de abajo que conserva el grupo que se mira y «Todos los
-// grupos» de Jornada. Sin la Evolución del grupo: sus enlaces viejos abren la Tabla. El modelo
-// (siblingGroups y competitionRound), las pantallas, la barra (tabTargets y updateTabbar) y el router,
-// sobre las fixtures congeladas y nunca sobre los data-*.js vivos: render(ctx) es pura y se prueba
+// Navegación entre grupos, para ir viendo los resultados de los otros grupos de cada categoría, en su
+// forma simple: una sola tira de fichas bajo la cabecera de Tabla y Jornada («Todos» delante en Jornada),
+// «Mi grupo» u «Otras ligas» a la derecha de la cabecera, la barra de abajo que conserva el grupo que se
+// mira y «Todos los grupos» de Jornada. Sin la Evolución del grupo: sus enlaces viejos abren la Tabla. El
+// modelo (siblingGroups y competitionRound), las pantallas, la barra (tabTargets y updateTabbar) y el
+// router, sobre las fixtures congeladas y nunca sobre los data-*.js vivos: render(ctx) es pura y se prueba
 // sobre su HTML.
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
@@ -82,7 +80,7 @@ test('siblingGroups: null con un solo grupo, para una copa o un torneo y sin gru
   assert.equal(siblingGroups(m, m.group(PORTAL_SEASON, 'PFV2')), null, 'Fuerteventura, un solo grupo');
   assert.equal(siblingGroups(m, m.cups().groups.find((g) => g.kind !== 'league')), null);
   assert.equal(siblingGroups(m, null), null);
-  // Una temporada pasada: la suya (2024-25 de B3 trae P3 y P9 de la Primera Fase; la de B2, solo P1).
+  // Una temporada pasada: la suya (la fixture ampliada de 2024-25 trae P3 y P9 de la Primera Fase; la básica, solo P1).
   const b3 = modelOf(datasetsFor({ seasonRaw: { '2024-2025': fixture('historical-2024-2025-b3') } }));
   assert.deepEqual(ids(siblingGroups(b3, b3.group('2024-2025', 'P9')).list), ['P3', 'P9']);
   const b2 = modelOf(datasetsFor({ seasonRaw: { '2024-2025': pastSeasonRaw() } }));

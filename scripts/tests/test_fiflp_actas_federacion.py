@@ -243,7 +243,7 @@ def test_players_without_a_published_name_stay_in_the_list_under_an_internal_key
     assert "HUGO" in names and "HUGO (2)" in names            # dos niños con el mismo nombre de pila
 
 
-# ── Arreglos de la revisión adversarial ──────────────────────────────────
+# ── Casos límite ──────────────────────────────────
 
 def test_an_acta_without_both_lineups_or_blank_against_a_real_score_is_not_imported():
     conn = base()
@@ -311,8 +311,8 @@ def test_a_round_that_contradicts_a_checked_score_asks_for_the_acta_again():
 
 
 def test_a_first_name_alone_does_not_inherit_an_old_players_history():
-    # Fase 2C: una fila vieja sin id no se adopta nunca, tampoco con nombre completo (antes, «PEREZ, ANA»
-    # sí): pegarla por el nombre le daba al niño la historia de otro. Las une, si acaso, resolver_fichas.
+    # Una fila vieja sin id no se adopta nunca, tampoco con nombre completo: pegarla por el nombre le
+    # daría al niño la historia de otro. Las une, si acaso, resolver_fichas.
     from import_fiflp_actas import _get_or_create_player
     conn = base()
     old = conn.execute("INSERT INTO players(full_name, norm_name) VALUES ('LUCAS', 'LUCAS')").lastrowid
@@ -484,10 +484,9 @@ def test_campos_directory_page_and_venue_matching():
 
 def test_a_campos_directory_cut_short_keeps_the_venues_it_did_not_read(monkeypatch):
     """update_campos lee el directorio a páginas de 100. Si la federación deja de servir a media lectura (su
-    segundo freno: desde el 16/10/2026 F.goto da False al momento, fiflp_carga.BRAKE_PAUSES = 1) o llega el
-    plazo, solo añade o actualiza lo leído y conserva lo demás: hasta el corrector del 16/10/2026 vaciaba la
-    tabla igual, y un directorio de 249 campos cortado en la 2.ª página dejaba 100. Leído entero, la
-    sustituye (fuera el campo que ya no está)."""
+    segundo freno: F.goto da False al momento, fiflp_carga.BRAKE_PAUSES = 1) o llega el plazo, solo añade
+    o actualiza lo leído y conserva lo demás: vaciar la tabla dejaría un directorio de 249 campos cortado
+    en la 2.ª página con 100. Leído entero, la sustituye (fuera el campo que ya no está)."""
     from generate_js import venue_key
     pages = {n: [(f"Campo {n}-{i}", "C. Mayor, 1", "Telde", "Hierba Artificial", "Fútbol 7", n * 1000 + i)
                  for i in range(100 if n < 3 else 49)] for n in (1, 2, 3)}
@@ -539,8 +538,8 @@ def test_a_campos_directory_cut_short_keeps_the_venues_it_did_not_read(monkeypat
 def test_both_passes_end_to_end_with_a_simulated_federation(monkeypatch, number):
     """run_passes entero: jornada → acta (marcador y alineaciones) → goleadores →
     directorio de campos → estado por grupo. Sin red: una página falsa sirve las
-    fixtures reales según la URL. Con el número de la pasada fijo: con el de GitHub
-    (GITHUB_RUN_NUMBER), fallaba en las pasadas de los extras (1115 y 1117, 17/10/2026)."""
+    fixtures reales según la URL. Con el número de la pasada fijo: con el de GitHub (GITHUB_RUN_NUMBER) la
+    prueba cambiaría según la pasada que toque (las de los extras)."""
     assert U.extras_turn(1117) and not U.extras_turn(1116)
     from datetime import date
     monkeypatch.setattr(U, "flatten", lambda page, selector=None: 0)

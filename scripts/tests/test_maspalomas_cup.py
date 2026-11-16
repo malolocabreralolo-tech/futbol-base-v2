@@ -1,12 +1,10 @@
 """TDD — generador de la Maspalomas Cup (`fetch_maspalomas_cup.py`).
 
-Contexto del bug que estos tests fijan: el script generaba
-`const MASPALOMAS_CUP_2026 = {categoría: [partidos]}` mientras lo publicado y lo
-que lee `src/state.js` son `MASPALOMAS_CUP_BENJAMIN` / `_PREBENJAMIN` (grupos con
-clasificación, partidos y cuadros). El paso de transformación se hizo a mano y no
-se guardó, así que re-ejecutar el scraper rompía la web. El test dorado
-(`TestGoldenRegeneration`) garantiza que script y fichero publicado no vuelvan a
-divergir: regenera desde el raw trackeado y compara con lo que hay en el repo.
+El script tiene que generar lo que lee `src/state.js`: `MASPALOMAS_CUP_BENJAMIN` / `_PREBENJAMIN` (grupos
+con clasificación, partidos y cuadros), no `const MASPALOMAS_CUP_2026 = {categoría: [partidos]}`. Un paso
+de transformación a mano que no se guarda haría que re-ejecutar el scraper rompiera la web. El test
+dorado (`TestGoldenRegeneration`) garantiza que script y fichero publicado no divergen: regenera desde el
+raw trackeado y compara con lo que hay en el repo.
 
 La API no expone ni grupo ni ronda: la estructura se deduce del `matchNumber`.
 """
@@ -70,7 +68,7 @@ class TestPenaltyWinner:
 
 class TestShootoutScore:
     """La tanda 'h-a' sale de penaltyHomeScore/penaltyAwayScore del raw y solo
-    acompaña a un ganador de tanda (spec §9.3): nunca hay índice 8 sin 5."""
+    acompaña a un ganador de tanda: nunca hay índice 8 sin 5."""
 
     def test_formats_home_dash_away(self):
         from fetch_maspalomas_cup import _shootout_score
@@ -136,7 +134,7 @@ class TestShootoutScore:
 
 class TestBracketRow:
     """Fila de cuadro en `jornadas`, con el mismo orden por posición que
-    HISTORY (spec §5.3): [día, local, visitante, gl, gv, pen|null, hora,
+    HISTORY: [día, local, visitante, gl, gv, pen|null, hora,
     campo corto, tanda|null]. El índice 5 sigue siendo quién pasó."""
 
     def test_shootout_row_has_nine_columns(self):
@@ -296,7 +294,7 @@ class TestGoldenRegeneration:
 
 
 class TestPublishedContent:
-    """Regresiones concretas que llegaron a producción el 28/06/2026."""
+    """Casos concretos que ya se dieron en producción."""
 
     def _groups(self, var):
         src = JS_PATH.read_text(encoding="utf-8")
@@ -343,7 +341,7 @@ class TestPublishedContent:
                     f"{g['id']}: tamaños de ronda raros {sizes}"
 
     def test_no_orphan_round_label(self):
-        # 'Ronda 6' era la etiqueta sin sentido que recibía la ronda previa.
+        # La ronda previa no puede llevar una etiqueta sin sentido como 'Ronda 6'.
         src = JS_PATH.read_text(encoding="utf-8")
         assert "Ronda 6" not in src
 

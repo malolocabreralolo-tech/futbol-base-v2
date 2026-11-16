@@ -138,18 +138,17 @@ def test_an_error_status_is_a_page_that_did_not_load():
         page = FakePage(statuses=[status] * 3)
         assert not C.goto(page, GROUP, sleep=slept.append, log=lambda *_: None), status
         assert slept == [15, 30] and len(page.gotos) == 3 and page.waits == []
-    # Lo demás es una página: un 200 o sin respuesta. Hasta el 14/11/2026 también un 4xx (la leía el lector):
-    # un 403 a todo eran páginas vacías leídas y la pasada acababa en verde (fase 2B de v2, pasada sana).
+    # Lo demás es una página: un 200 o sin respuesta. Un 4xx no lo es: un 403 a todo daría páginas vacías
+    # leídas y una pasada en verde.
     for statuses in ([200], []):
         assert C.goto(FakePage(statuses=statuses), GROUP, sleep=slept.append, log=lambda *_: None)
 
 
 def test_an_empty_page_is_the_federation_braking_and_not_a_loaded_page():
-    """14/10/2026 (ejecución 38581710573): tras unas 20 páginas seguidas a buen ritmo, la federación
-    sirve un 200 con «<html><head></head><body></body></html>». El bot lo tomó por página cargada y
-    63 de 69 grupos dieron «no sirvió las jornadas». Una página vacía no carga. Y desde lo medido el
-    15/10/2026 (la misma página 10 s después, vacía; el bloqueo, ~5 min), NI UN REINTENTO: antes, uno
-    tras 60 s (EMPTY_WAIT), que salía vacío siempre. Federacion espera el freno; goto solo lo dice (why)."""
+    """Tras unas 20 páginas seguidas a buen ritmo, la federación sirve un 200 con
+    «<html><head></head><body></body></html>». Una página vacía no carga (si el bot la tomara por
+    cargada, grupos enteros darían «no sirvió las jornadas»), y NI UN REINTENTO: la misma página 10 s
+    después sale vacía (el bloqueo dura ~5 min). Federacion espera el freno; goto solo lo dice (why)."""
     slept, said, why = [], [], []
     page = FakePage(empties=1)
     assert not C.goto(page, GROUP, sleep=slept.append, log=said.append, why=why)
@@ -186,8 +185,8 @@ def test_the_minimum_interval_is_set_by_environment():
 
 def test_the_bot_adapter_knows_when_the_federation_stops_serving(monkeypatch):
     """Federacion cuenta las páginas seguidas que no cargan (cada una tras sus reintentos): con
-    BLOCKED_AFTER, blocked; una que carga lo deshace. Sin pausas largas (max_pauses=0, FIFLP_BRAKE_PAUSES=0:
-    lo de antes del 15/10/2026); con ellas, test_a_streak_of_error_pages_pauses_before_blocking."""
+    BLOCKED_AFTER, blocked; una que carga lo deshace. Sin pausas largas (max_pauses=0, FIFLP_BRAKE_PAUSES=0);
+    con ellas, test_a_streak_of_error_pages_pauses_before_blocking."""
     import fetch_fiflp_2425 as F
     monkeypatch.setattr(C, "goto", lambda page, url, **kw: page.statuses.pop(0) == 200)
     fed = C.Federacion(F, interval=0, max_pauses=0, log=lambda *_: None)
@@ -254,7 +253,7 @@ class Brake:
 
 
 class Quota(Brake):
-    """La federación MEDIDA el 15/10/2026 (freno-fiflp.yml): sirve `per_ip` documentos y después vacías
+    """La federación MEDIDA (freno-fiflp.yml): sirve `per_ip` documentos y después vacías
     durante el siguiente de `lasts` (segundos desde la primera vacía; None, ya no vuelve en esa pasada).
     Los sondeos durante el bloqueo no lo alargan ni gastan del cupo siguiente; al pasar, otro cupo."""
 
@@ -281,11 +280,11 @@ def pages(n, first=1):
 
 
 def test_the_measured_brake_15_pages_and_5_minutes_resumes_with_probes_of_the_same_page():
-    """Lo medido el 15/10/2026: 15 páginas, la 16.ª vacía y ~5 min de bloqueo. Sin reintento de la vacía,
-    la espera de 4 min (FIFLP_BRAKE_PAUSE_MIN) y después LA MISMA página cada minuto (FIFLP_BRAKE_PROBE_S):
-    a los 240 s, vacía; a los 300, servida. Se sigue al mismo ritmo (7 s: el cupo es de páginas, no de
-    ritmo; antes, ×1,5) y la vuelta siguiente da otras 15. Sin tope de frenos (FIFLP_BRAKE_PAUSES=sin, lo
-    de antes del 16/10/2026), el segundo también se espera; por defecto, ya no (la prueba siguiente)."""
+    """Lo medido: 15 páginas, la 16.ª vacía y ~5 min de bloqueo. Sin reintento de la vacía, la espera de 4
+    min (FIFLP_BRAKE_PAUSE_MIN) y después LA MISMA página cada minuto (FIFLP_BRAKE_PROBE_S): a los 240 s,
+    vacía; a los 300, servida. Se sigue al mismo ritmo (7 s: el cupo es de páginas, no de ritmo) y la vuelta
+    siguiente da otras 15. Sin tope de frenos (FIFLP_BRAKE_PAUSES=sin), el segundo también se espera; por
+    defecto, no (la prueba siguiente)."""
     b = Quota(per_ip=15, lasts=(300, 300))
     fed, page = b.fed(deadline=1000.0 + 33 * 60, max_pauses=None), b.page()
     urls = pages(40)
@@ -311,11 +310,11 @@ def test_the_measured_brake_15_pages_and_5_minutes_resumes_with_probes_of_the_sa
 
 
 def test_by_default_a_pass_waits_for_the_first_brake_only():
-    """Desde el 16/10/2026, una espera por pasada (BRAKE_PAUSES = 1): en las pasadas 1107-1110 el bloqueo
-    escalaba dentro de la pasada (~300 s el 1.º, ~900 s el 2.º, más que el plazo el 3.º) y la pasada
-    siguiente, con IP nueva, vuelve a empezar con ~5 min. Así: 15 páginas, la espera del 1.º (vuelve a los
-    300 s), otras 15 y, en el 2.º freno, nada más en esta pasada (sin esperar sus 15 min). Esa página no
-    se sirvió por el freno (unserved): el bot no la da por error."""
+    """Una espera por pasada (BRAKE_PAUSES = 1): el bloqueo escala dentro de la pasada (~300 s el 1.º, ~900 s
+    el 2.º, más que el plazo el 3.º) y la pasada siguiente, con IP nueva, vuelve a empezar con ~5 min. Así:
+    15 páginas, la espera del 1.º (vuelve a los 300 s), otras 15 y, en el 2.º freno, nada más en esta
+    pasada (sin esperar sus 15 min). Esa página no se sirvió por el freno (unserved): el bot no la da por
+    error."""
     b = Quota(per_ip=15, lasts=(300, 900, 2700))
     fed, page = b.fed(deadline=1000.0 + 16 * 60), b.page()
     loaded = [fed.goto(page, url) for url in pages(40)]
@@ -328,9 +327,9 @@ def test_by_default_a_pass_waits_for_the_first_brake_only():
 
 
 def test_a_brake_that_does_not_pass_within_its_cap_stops_the_pass():
-    """Si a los 20 min (FIFLP_BRAKE_MAX_MIN) de la página vacía no ha vuelto a servir (en el experimento el
-    más largo duró 364 s; en la pasada 1106, más de 11 min), nada más en esa pasada: blocked, y la página
-    cuenta como no servida por el freno. Diecisiete sondeos (a los 240, 300… 1200 s), una petición cada uno;
+    """Si a los 20 min (FIFLP_BRAKE_MAX_MIN) de la página vacía no ha vuelto a servir (el bloqueo más largo
+    medido duró 364 s; se han visto de más de 11 min), nada más en esa pasada: blocked, y la página cuenta
+    como no servida por el freno. Diecisiete sondeos (a los 240, 300… 1200 s), una petición cada uno;
     nada entre medias."""
     b = Brake(start=1000.0)
     fed, page = b.fed(deadline=1000.0 + 33 * 60), b.page()
@@ -349,10 +348,9 @@ def test_a_brake_that_does_not_pass_within_its_cap_stops_the_pass():
 
 
 def test_several_brakes_in_a_pass_until_the_deadline():
-    """Sin tope de frenos por pasada (FIFLP_BRAKE_PAUSES=sin, max_pauses None; lo de por defecto del 15 al
-    16/10/2026; antes, 3 pausas): con el cupo medido (15 páginas y ~2-6 min), en los 33 min del plazo la
-    federación frena varias veces y cada vez se sigue, hasta el plazo. Ninguna página empieza después.
-    Cada vuelta, 15 páginas."""
+    """Sin tope de frenos por pasada (FIFLP_BRAKE_PAUSES=sin, max_pauses None): con el cupo medido (15
+    páginas y ~2-6 min), en los 33 min del plazo la federación frena varias veces y cada vez se sigue,
+    hasta el plazo. Ninguna página empieza después. Cada vuelta, 15 páginas."""
     b = Quota(per_ip=15, lasts=(304, 364, 304, 122, 303, 300))       # lo medido, a 7 y a 15 s
     deadline = 1000.0 + 33 * 60
     fed, page = b.fed(deadline=deadline, max_pauses=None), b.page()
@@ -407,11 +405,10 @@ def test_a_streak_of_error_pages_pauses_before_blocking():
 
 def test_a_streak_of_dead_pages_while_another_page_loads_is_not_the_brake():
     """Dos URLs muertas seguidas (un 500 tras otro, cada una tras sus reintentos) también son tres páginas
-    seguidas sin cargar, y no son el freno (antes del 15/10/2026: tres pausas de 5 min, la pasada perdida y
-    sus grupos sin error). Antes de la espera del freno, el bot vuelve a pedir la última página que cargó:
-    si carga, la federación sirve; ni espera ni bloqueo, la racha se deshace y esta página no carga (su
-    grupo, un error). Si esa tampoco carga, sí es el freno (o una caída): la espera, y en el sondeo lo
-    mismo (si sirve otras y no esta, se sigue, al mismo ritmo)."""
+    seguidas sin cargar, y no son el freno. Antes de la espera del freno, el bot vuelve a pedir la última
+    página que cargó: si carga, la federación sirve; ni espera ni bloqueo, la racha se deshace y esta
+    página no carga (su grupo, un error). Si esa tampoco carga, sí es el freno (o una caída): la espera, y
+    en el sondeo lo mismo (si sirve otras y no esta, se sigue, al mismo ritmo)."""
     b = Brake(start=10 ** 9)
     fed, page = b.fed(deadline=1000.0 + 25 * 60), b.page()
     good = GROUP + "&CodJornada=3"
@@ -576,11 +573,10 @@ def test_a_closed_browser_is_not_the_federation_braking():
 
 
 def test_the_brake_wait_is_set_by_environment(monkeypatch):
-    """FIFLP_BRAKE_PAUSE_MIN, la primera espera (4 min; hasta el 15/10/2026, cada pausa fija, de 5);
-    FIFLP_BRAKE_PROBE_S, cada cuánto el sondeo (60 s; menos de 30 no: no es educado); FIFLP_BRAKE_MAX_MIN,
-    el tope de cada freno (20 min); FIFLP_BRAKE_PAUSES, cuántos frenos se esperan por pasada (uno por
-    defecto desde el 16/10/2026; del 15 al 16, sin tope, que es «sin»; hasta el 15/10/2026, 3 pausas), y con
-    0, ninguno."""
+    """FIFLP_BRAKE_PAUSE_MIN, la primera espera (4 min); FIFLP_BRAKE_PROBE_S, cada cuánto el sondeo (60 s;
+    menos de 30 no: no es educado); FIFLP_BRAKE_MAX_MIN, el tope de cada freno (20 min);
+    FIFLP_BRAKE_PAUSES, cuántos frenos se esperan por pasada (uno por defecto; «sin», sin tope), y con 0,
+    ninguno."""
     assert C.brake_pause_seconds({}) == C.BRAKE_PAUSE == 240
     assert C.brake_pause_seconds({"FIFLP_BRAKE_PAUSE_MIN": "7,5"}) == 450
     for bad in ("", "x", "-1", "0"):
@@ -594,9 +590,9 @@ def test_the_brake_wait_is_set_by_environment(monkeypatch):
     for bad in ("", "x", "-1", "0"):
         assert C.brake_cap_seconds({"FIFLP_BRAKE_MAX_MIN": bad}) == 1200, bad
     assert C.brake_pauses({}) == C.BRAKE_PAUSES == 1
-    assert C.brake_pauses({"FIFLP_BRAKE_PAUSES": "0"}) == 0          # ninguno: como antes del 15/10/2026
+    assert C.brake_pauses({"FIFLP_BRAKE_PAUSES": "0"}) == 0          # ninguno
     assert C.brake_pauses({"FIFLP_BRAKE_PAUSES": "5"}) == 5
-    assert C.brake_pauses({"FIFLP_BRAKE_PAUSES": "sin"}) is None      # sin tope: del 15 al 16/10/2026
+    assert C.brake_pauses({"FIFLP_BRAKE_PAUSES": "sin"}) is None      # sin tope
     assert C.brake_pauses({"FIFLP_BRAKE_PAUSES": " Sin "}) is None
     for bad in ("x", "-1", "1.5", ""):
         assert C.brake_pauses({"FIFLP_BRAKE_PAUSES": bad}) == 1, bad
@@ -708,7 +704,7 @@ def test_the_page_is_flattened_only_after_the_federation_stylesheets(sync_api, s
 
 
 def test_the_exact_braking_page_in_a_real_browser_is_empty(sync_api):
-    """La respuesta del freno, tal cual la guardó la sonda (probe-fiflp, 14/10/2026): 39 bytes."""
+    """La respuesta del freno, tal cual la guardó la sonda (probe-fiflp): 39 bytes."""
     class Handler(http.server.BaseHTTPRequestHandler):
         def do_GET(self):
             body = b"<html><head></head><body></body></html>" if self.path == "/vacia" else b"<html><body><p>x</p></body></html>"

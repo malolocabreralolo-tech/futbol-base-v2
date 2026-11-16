@@ -1,10 +1,9 @@
 """TDD — _extract_score_from_html decodifica el ntype packed correctamente.
 
-Bug (revisión cups 2025-26): las páginas knockout de FIFLP ofuscan el marcador
-con `ntype(id, n, i, oldClass)`, que cambia la clase del elemento a
-`fa-D[(i*10)+n]` (D = misma tabla que las actas). El extractor capturaba el 4º
-argumento (`"fa-X"` = la clase VIEJA/decoy) en vez de decodificar n,i → daba
-marcadores invertidos/erróneos (la final FASE A salía 1-0 en vez de 0-1).
+Las páginas knockout de FIFLP ofuscan el marcador con `ntype(id, n, i, oldClass)`, que cambia la clase
+del elemento a `fa-D[(i*10)+n]` (D = misma tabla que las actas). El extractor tiene que decodificar n,i y
+no capturar el 4º argumento (`"fa-X"` = la clase VIEJA/decoy): daría marcadores invertidos/erróneos (la
+final FASE A saldría 1-0 en vez de 0-1).
 
 HTML real del dump (debug_fiflp_copa.json, 2026-06-15) de la final FASE A:
   span0 (ACODETTI): ntype("idh4877",5,0,"fa-1") → D[5]=0

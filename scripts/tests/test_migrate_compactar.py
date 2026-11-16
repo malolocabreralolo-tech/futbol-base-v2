@@ -17,7 +17,7 @@ import import_fiflp_actas as I  # noqa: E402
 import migrate_compactar as M  # noqa: E402
 from migrate_actas_schema import migrate as migrate_actas  # noqa: E402
 
-# Las tablas de las actas antes de la compactación (migrate_actas_schema hasta el 14/10/2026).
+# Las tablas de las actas antes de la compactación.
 OLD_ACTAS = """
 CREATE TABLE players (id INTEGER PRIMARY KEY, full_name TEXT NOT NULL, norm_name TEXT NOT NULL UNIQUE,
                       fiflp_id INTEGER);
@@ -168,7 +168,7 @@ def test_convierte_el_esquema_viejo_y_la_segunda_vez_no_hace_nada(tmp_path, monk
     assert sorted(conn.execute("SELECT match_id, team_id, player_id, dorsal, role, goals, yellow, red FROM appearances")) \
         == before_apps
     assert conn.execute("SELECT * FROM match_events ORDER BY id").fetchall() == before_events
-    # El esquema de las actas entero, una vez: añade las columnas de las identidades de acta (fase 2C).
+    # El esquema de las actas entero, una vez: añade las columnas de las identidades de acta.
     migrate_actas(conn, log=quiet)
     # La segunda vez: nada, ni VACUUM ni marca.
     mark.unlink()
@@ -251,7 +251,7 @@ def test_si_algo_falla_no_cambia_nada():
 def test_importar_un_acta_guarda_el_orden_y_no_escribe_en_la_vista():
     conn = old_base()
     M.migrate(conn, log=quiet)
-    migrate_actas(conn, log=quiet)      # el goleador sin id necesita las columnas de las identidades (fase 2C)
+    migrate_actas(conn, log=quiet)      # el goleador sin id necesita las columnas de las identidades
     acta = {"header": {}, "lineups": {
                 "home": [{"name": "JUGADOR E", "dorsal": None, "role": "sub", "fiflp_id": 105},
                          {"name": "JUGADOR C", "dorsal": 9, "role": "starter", "fiflp_id": 103},

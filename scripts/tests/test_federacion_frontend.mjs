@@ -115,7 +115,7 @@ test('archivadas sin partidos: la copa con la tabla jugada es una liguilla, y na
   const gc2 = buildGroup({ ...cfv1, id: 'GC2', phase: 'Primera Fase GC', island: 'grancanaria' }, { season: '2017-2018', cat: 'benjamin' });
   assert.equal(gc2.kind, 'league');
   assert.equal(retiredTeams(gc2).size, 0);
-  // Con calendario, el que no está en él y no ha ganado ni empatado nada sí lo es (spec §5.3).
+  // Con calendario, el que no está en él y no ha ganado ni empatado nada sí lo es.
   const played = buildGroup({ ...cfv1, id: 'GC2', phase: 'Primera Fase GC', jornadas: { 1: [['01-10-2017', 'CD Herbania', 'Peña Amistad', 2, 1, null, '10:00', 'X']] } },
     { season: '2017-2018', cat: 'benjamin' });
   assert.deepEqual([...retiredTeams(played)], ['CD Corralejo D']);

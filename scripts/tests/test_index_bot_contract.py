@@ -1,4 +1,4 @@
-"""Plan B2, tarea 4: el index.html y el sw.js del rediseño siguen siendo del bot.
+"""El index.html y el sw.js del rediseño siguen siendo del bot.
 
 generate_js.bump_cache_version y source_health.finish los leen y reescriben con
 expresiones regulares. Si el esqueleto las rompiera, el bot dejaría de subir la
@@ -72,7 +72,7 @@ def test_source_health_lee_la_fecha_y_la_version_del_esqueleto(site, monkeypatch
 
 
 def test_el_sello_de_los_escudos_no_lo_toca_ni_el_bot_ni_sync_versions(site):
-    """Plan B5, decisión 1: la línea 2 de sw.js es CRESTS_CACHE, la caché de los escudos, con el sello de
+    """La línea 2 de sw.js es CRESTS_CACHE, la caché de los escudos, con el sello de
     escudos/, y solo la escribe build_crests.py. La subida del bot (bump_cache_version: la primera
     futbolbase2-v[0-9a-z]+) y sync_versions.py (la misma expresión, sin anclar) no la alcanzan; y, para
     sync_versions.py, otro sello no es una marca del bot."""
