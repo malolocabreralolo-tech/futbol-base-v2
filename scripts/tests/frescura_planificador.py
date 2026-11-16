@@ -8,17 +8,20 @@ una de cada cinco pasadas, seca (la federación frena desde la primera página),
 pasada a otra (las comprobaciones de data-health.json, lo que plan_groups lee de `checks`), perdido cada 12.
 
 No es una prueba (no entra en la suite: tarda minutos). Sirve para comparar otro planificador con el de hoy:
-medir(planificar=otro) lo instala en lugar de plan_groups mientras dura la medida.
+medir(planificar=otro) lo instala en lugar de plan_groups mientras dura la medida. El planificador por antigüedad
+(scripts/planificador.py) entra con PlanNuevo, que guarda su estado entre pasadas.
 
 Uso, desde la raíz del repositorio:
   python3 scripts/tests/frescura_planificador.py                    # la tabla, con las semillas 7, 11 y 23
   python3 scripts/tests/frescura_planificador.py --json             # los números, en JSON
   python3 scripts/tests/frescura_planificador.py --semillas 7 --escenarios semana tres_semanas
+  python3 scripts/tests/frescura_planificador.py --planificador nuevo        # la tabla del planificador nuevo
+  python3 scripts/tests/frescura_planificador.py --comparar [regla|nuevo]    # el de hoy contra ese
 """
 import argparse
 from concurrent.futures import ProcessPoolExecutor
 import contextlib
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 import itertools
 import json
 import math
@@ -35,6 +38,7 @@ AQUI = Path(__file__).resolve().parent
 sys.path.insert(0, str(AQUI.parent))
 sys.path.insert(0, str(AQUI))
 import fiflp_names  # noqa: E402
+import planificador as P  # noqa: E402
 import reloj_pasadas as R  # noqa: E402
 import source_health  # noqa: E402
 import test_bot_pasada_corta as T  # noqa: E402
@@ -53,8 +57,8 @@ ROT = "test_bot_rotacion"
 def _con(planificar, trabajo):
     """trabajo(tmp, mp) con lo que conftest.py pone a cada prueba (sin la tabla de nombres revisados y con los
     originales de las actas fuera de scripts/) y, si hay, `planificar` en lugar de plan_groups: run_passes lo
-    busca en el módulo en cada pasada. Lo que imprime el bot, fuera (en las pruebas lo captura pytest). Todo se
-    deshace al acabar."""
+    busca en el módulo en cada pasada (y, si tiene `instalar(mp)`, lo que necesita además: PlanNuevo). Lo que
+    imprime el bot, fuera (en las pruebas lo captura pytest). Todo se deshace al acabar."""
     mp = pytest.MonkeyPatch()
     with tempfile.TemporaryDirectory(prefix="frescura-") as d:
         tmp = Path(d)
@@ -64,6 +68,8 @@ def _con(planificar, trabajo):
             mp.setenv("ACTAS_BOT_DIR", str(tmp / "actas_bot"))
             if planificar is not None:
                 mp.setattr(U, "plan_groups", planificar)
+                if hasattr(planificar, "instalar"):
+                    planificar.instalar(mp)
             with open(os.devnull, "w") as nada, contextlib.redirect_stdout(nada):
                 return trabajo(tmp, mp)
         finally:
@@ -107,7 +113,8 @@ def _semana(passes, season, conn):
             "prioritarios_hueco_max_h": round(max(T.priority_gaps(passes, season).values()), 2),
             "prioritarios_tarde": _tarde(passes, season),
             **_errores(passes, s),
-            "paginas_utiles_dia": s["served_per_day"]}
+            "paginas_utiles_dia": s["served_per_day"],
+            "paginas_pedidas_dia": s["requests_per_day"]}
 
 
 def _completo(passes, season):
@@ -156,7 +163,7 @@ def reloj(tmp, mp, semilla):
             "prioritarios_min_mediana": round(statistics.median(minutes), 1) if minutes else None,
             "prioritarios_min_max": round(max(minutes), 1) if minutes else None,
             "prioritarios_hueco_max_h": round(max(T.priority_gaps(passes, season).values()), 2),
-            "paginas_utiles_dia": s["served_per_day"],
+            "paginas_utiles_dia": s["served_per_day"], "paginas_pedidas_dia": s["requests_per_day"],
             "actas_agotadas": _agotadas(conn), "actas_pendientes_final": s["pending_actas_end"]}
 
 
@@ -224,6 +231,101 @@ def estado_perdido(tmp, mp, semilla):
     return _tres_semanas_con(*T.simulate(tmp, mp, days=T.LONG_DAYS, seed=semilla))
 
 
+# ── El planificador nuevo, enchufado a la simulación ──────────────────────────
+
+class PlanNuevo:
+    """Con la firma y la salida de update_fiflp.plan_groups, el orden de scripts/planificador.py. De la base y de
+    los argumentos saca cada Grupo con las funciones de hoy (is_priority, pinned_groups, hot_reason, is_closed,
+    pending_actas, _level); el estado, `{código: {"completa", "intento"}}`, lo guarda en memoria de una pasada a
+    la siguiente (en el bot, la caché de GitHub Actions) y, para un grupo que no está en él, sale de `checks`
+    (data-health.json), como haría el bot sin caché. Una instancia por medida: `instalar` la deja sin estado."""
+
+    def __init__(self, **opciones):
+        self.estado, self.opciones = {}, opciones
+
+    def instalar(self, mp):
+        """Lo que hace falta además de plan_groups: apuntar lo leído al acabar cada pasada (en run_passes, que
+        las simulaciones buscan en el módulo) y perder también este estado donde se pierde el de hoy
+        (perder_estado, que _begin_sin_estado busca en este módulo)."""
+        self.estado = {}
+        pasada, perder, modulo = U.run_passes, perder_estado, sys.modules[__name__]
+
+        def run_passes(*a, **k):
+            run = pasada(*a, **k)
+            self.apuntar_pasada(run)
+            return run
+
+        def perder_los_dos():
+            perder()
+            self.estado = {}
+        mp.setattr(U, "run_passes", run_passes)
+        mp.setattr(modulo, "perder_estado", perder_los_dos)
+
+    def apuntar_pasada(self, run):
+        """Lo que la pasada leyó, a la hora de su lectura. Completo: leído bien (status ok) y sin goleadores ni
+        actas por hacer (no está en extrasDeferred), lo mismo que el bot sabe de sí; lo que leyó con error, solo
+        un intento; lo que el freno o el plazo no dejaron empezar (unserved, deferred), nada."""
+        report = source_health._report or {}
+        cortados = set((report.get("run") or {}).get("extrasDeferred") or [])
+        for code, status in run["estados"].items():
+            at = U.checked_at(report["groups"][code])
+            self.estado = P.apuntar(self.estado, code, at, completa=status == "ok" and code not in cortados)
+
+    @staticmethod
+    def respaldo(checks):
+        """El estado que da data-health.json: su última comprobación correcta como lectura completa; una que
+        falló, como intento."""
+        out = {}
+        for code, check in (checks or {}).items():
+            at = U.checked_at(check)
+            if at is not None:
+                iso = at.isoformat(timespec="seconds")
+                out[code] = {"completa": iso, "intento": iso} if U.checked_ok(check) else {"intento": iso}
+        return out
+
+    def __call__(self, conn, groups, checks, today, number, priority=None, pinned=None, env=None, now=None):
+        if not groups:
+            return U.Plan([], [], set(), number, [], {}, set())
+        now = U._aware(now or datetime.now(timezone.utc))
+        keys = U.priority_keys(U.priority_teams() if priority is None else priority)
+        pinned = U.pinned_groups() if pinned is None else set(pinned)
+        ids = [g[0] for g in groups]
+        marks = ",".join("?" * len(ids))
+        categories = dict(conn.execute(
+            f"SELECT g.id, c.name FROM groups g JOIN categories c ON c.id=g.category_id WHERE g.id IN ({marks})", ids))
+        teams = {}
+        for gid, name in conn.execute(
+                f"""SELECT s.group_id, t.name FROM standings s JOIN teams t ON t.id=s.team_id WHERE s.group_id IN ({marks})
+                    UNION SELECT m.group_id, t.name FROM matches m JOIN teams t ON t.id IN (m.home_team_id, m.away_team_id)
+                    WHERE m.group_id IN ({marks})""", ids + ids):
+            teams.setdefault(gid, []).append(name)
+        grupos, hot = [], {}
+        for gid, code, _ in groups:
+            closed = U.is_closed(conn, gid, today)
+            mine = code in pinned or any(U.is_priority(t, keys) for t in teams.get(gid, []))
+            why = U.hot_reason(conn, gid, keys, now, checks.get(code)) if mine and not closed else None
+            if why:
+                hot[code] = why
+            grupos.append(P.Grupo(code, U._level(categories.get(gid), code), mine, bool(why), closed,
+                                  bool(U.pending_actas(conn, gid))))
+        estado = {**self.respaldo(checks), **self.estado}
+        # Lo que mira stale: un prioritario toca si en la pasada siguiente (PASS_EVERY después) pasaría de su
+        # frescura (FIFLP_PRIORITY_MAX_H) con PASS_SLACK de margen; el planificador lo mira ahora.
+        limite = U.priority_max_age(env) - U.PASS_EVERY + U.PASS_SLACK
+        opciones = {"adelanto": U.PASS_EVERY, **self.opciones}
+        orden = P.planificar(grupos, estado, now, max_prioritario=limite, **opciones)
+        primeros = P.delante(grupos, estado, now, max_prioritario=limite,
+                             **{k: v for k, v in opciones.items() if k in ("nivelar", "adelanto")})
+        rows = {g[1]: g for g in groups}
+        fresh = [rows[x.codigo] for x in grupos if x.prioritario and not x.cerrado and x.codigo not in primeros]
+        return U.Plan([rows[c] for c in orden], fresh, primeros, number, fresh, hot, set(primeros))
+
+
+# La regla sola y con sus dos añadidos (scripts/planificador.py; por qué, en docs/planificador-medidas.md).
+AÑADIDOS = {"nivelar": 3, "cerrado_cada": timedelta(days=1)}
+PLANIFICADORES = {"hoy": lambda: None, "regla": PlanNuevo, "nuevo": lambda: PlanNuevo(**AÑADIDOS)}
+
+
 # ── test_bot_rotacion ─────────────────────────────────────────────────────────
 
 CLOSED = [f"FF{i}" for i in range(1, 25) if i != 5]
@@ -242,6 +344,7 @@ def _rotacion(passes, everyone, closed=(), page=TR.PAGE):
     out["hueco_goleadores"] = max(TR.gaps(passes, "scorers", c) for c in open_groups)
     if closed:
         out["hueco_cerrados"] = max(TR.gaps(passes, "first", c) for c in closed)
+    out["paginas_pedidas"] = sum(len(p["urls"]) for p in passes)
     return out
 
 
@@ -301,10 +404,12 @@ def _rot_cupo(commits, rounds, days):
         rows, reads, others, mine, passes = TR.quota_run(tmp, mp, commits, rounds, days)
         out = {"pasadas_pasado_plazo": sum(r["late"] > 0 for r in rows),
                "pasadas_con_error": sum(r["errors"] > 0 for r in rows),
-               "pasadas_mal_freno": sum(not (r["pauses"] == 1 and r["served"] <= 2 * r["per_ip"] + 1) for r in rows)}
+               "pasadas_mal_freno": sum(not (r["pauses"] == 1 and r["served"] <= 2 * r["per_ip"] + 1) for r in rows),
+               "paginas_servidas": sum(r["served"] for r in rows),
+               # Sin commits no lo afirma ninguna prueba (afirma fijos_en_todas): es la frescura que hay detrás.
+               "prioritarios_hueco_pasadas": max(max(b - a for a, b in zip(m, m[1:]))
+                                                 for m in ([-1] + got + [passes] for got in mine.values()))}
         if commits:
-            out["prioritarios_hueco_pasadas"] = max(max(b - a for a, b in zip(m, m[1:]))
-                                                    for m in ([-1] + got + [passes] for got in mine.values()))
             out["prioritarios_en_todas"] = sum(len(got) >= passes for got in mine.values())
             out["otros_media"] = round(statistics.mean(others[3:]), 2)
             out["otros_min"] = min(others[3:])
@@ -439,8 +544,8 @@ def medir(planificar=None, semilla=7, escenarios=None):
 
 
 def _uno(args):
-    nombre, semilla = args
-    return nombre, semilla, medir(None, semilla, [nombre])[nombre]
+    nombre, semilla, plan = args
+    return nombre, semilla, plan, medir(PLANIFICADORES[plan](), semilla, [nombre])[nombre]
 
 
 def _fmt(v):
@@ -470,26 +575,110 @@ def tabla(por_semilla, semillas):
     return "\n".join("  ".join(c.ljust(a) for c, a in zip(f, anchos)).rstrip() for f in filas)
 
 
+# ── La comparación de dos planificadores ──────────────────────────────────────
+
+# Magnitudes de test_bot_rotacion que no miden frescura sino la forma del reparto de hoy o una condición del
+# escenario (que el plazo corte): no cuentan ni a favor ni en contra. {magnitud: motivo}
+NO_APLICA = {
+    "pasadas_sin_aplazados": "condición del escenario: el plazo corta en todas las pasadas",
+    "goleadores_max_grupos": "condición del escenario: los goleadores tampoco caben todos en una pasada",
+    "grupos_max_pasada": "condición del escenario: con páginas lentas caben menos de 40 grupos",
+    "pasadas_con_aplazados": "condición del escenario: con páginas más lentas, el plazo corta",
+    "cerrados_fuera_de_epoca": "forma de closed_turn: exactamente una lectura en cada época de 4 pasadas (la "
+                               "frescura de los cerrados es hueco_cerrados)",
+    "fijos_en_todas": "forma de la rotación sin estado: sin data-health.json publicado, los prioritarios tocan en "
+                      "todas y se llevan el cupo los primeros por código (la frescura es prioritarios_hueco_pasadas)",
+}
+# Las que no tienen umbral: hacia dónde es mejor.
+SENTIDO = {"paginas_pedidas_dia": "menor", "paginas_pedidas": "menor", "paginas_servidas": "mayor",
+           "prioritarios_hueco_pasadas": "menor"}
+
+
+def sentido(nombre, magnitud):
+    """«menor», «mayor» o «igual»: hacia dónde es mejor una magnitud (por su umbral; si no tiene, SENTIDO)."""
+    if magnitud not in UMBRALES.get(nombre, {}):
+        return SENTIDO[magnitud]
+    op, umbral, _ = UMBRALES[nombre][magnitud]
+    if op in ("<=", "<") or (op == "==" and umbral == 0):
+        return "menor"
+    return "mayor" if op in (">=", ">") else "igual"
+
+
+def _peor(a, b, hacia):
+    """Cuánto es peor `b` (nuevo) que `a` (hoy): positivo, peor. Sin valor (None), lo peor."""
+    if a is None or b is None:
+        return 0 if a is None and b is None else (math.inf if b is None else -math.inf)
+    return {"menor": b - a, "mayor": a - b, "igual": abs(b - a)}[hacia]
+
+
+def comparar(hoy, nuevo, semillas):
+    """Por magnitud: (escenario, magnitud, veredicto, valores de hoy y del nuevo por semilla, cuánto empeora el
+    nuevo como mucho en una misma semilla, el ruido de hoy entre semillas (su rango), umbral, ¿lo cumple el nuevo
+    con la primera semilla?). Veredicto: «igual o mejor», «dentro del ruido», «PEOR» o «no aplica» (NO_APLICA)."""
+    primera, out = semillas[0], []
+    for nombre in hoy[primera]:
+        for magnitud in hoy[primera][nombre]:
+            h = [hoy[s][nombre].get(magnitud) for s in semillas]
+            n = [nuevo[s][nombre].get(magnitud) for s in semillas]
+            hacia = "igual" if magnitud in NO_APLICA else sentido(nombre, magnitud)
+            peor = max(_peor(a, b, hacia) for a, b in zip(h, n))
+            numeros = [v for v in h if v is not None]
+            ruido = (max(numeros) - min(numeros)) if numeros else 0
+            if magnitud in NO_APLICA:
+                veredicto = "no aplica"
+            elif peor <= 0:
+                veredicto = "igual o mejor"
+            else:
+                veredicto = "dentro del ruido" if peor <= ruido else "PEOR"
+            op, umbral, prueba = UMBRALES.get(nombre, {}).get(magnitud, (None, None, ""))
+            ok = "" if op is None or prueba.startswith("referencia") else ("sí" if cumple(n[0], op, umbral) else "NO")
+            out.append((nombre, magnitud, veredicto, h, n, peor, ruido, op, umbral, ok))
+    return out
+
+
+def tabla_comparada(filas):
+    def rango(vs):
+        vs = [v for v in vs if v is not None]
+        return f"{_fmt(min(vs))}–{_fmt(max(vs))}" if vs else "—"
+    lineas = [("escenario", "magnitud", "umbral", "hoy", "nuevo", "ok", "hoy min–max", "nuevo min–max",
+               "peor por", "ruido", "veredicto")]
+    for nombre, magnitud, veredicto, h, n, peor, ruido, op, umbral, ok in filas:
+        lineas.append((nombre, magnitud, "" if op is None else f"{op} {_fmt(round(umbral, 3))}", _fmt(h[0]),
+                       _fmt(n[0]), ok, rango(h), rango(n), _fmt(round(peor, 3)) if peor > 0 else "",
+                       _fmt(round(ruido, 3)), veredicto))
+    anchos = [max(len(f[i]) for f in lineas) for i in range(len(lineas[0]))]
+    return "\n".join("  ".join(c.ljust(a) for c, a in zip(f, anchos)).rstrip() for f in lineas)
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--json", action="store_true", help="los números en JSON, sin tabla")
     ap.add_argument("--semillas", type=int, nargs="+", default=list(SEMILLAS))
     ap.add_argument("--escenarios", nargs="+", choices=list(ESCENARIOS), default=list(ESCENARIOS))
+    ap.add_argument("--planificador", choices=list(PLANIFICADORES), default="hoy",
+                    help="hoy (update_fiflp.plan_groups), regla (scripts/planificador.py sin añadidos) o nuevo (con "
+                         "los añadidos, AÑADIDOS)")
+    ap.add_argument("--comparar", nargs="?", const="nuevo", choices=[p for p in PLANIFICADORES if p != "hoy"],
+                    help="el de hoy y este (por defecto, nuevo), magnitud a magnitud")
     args = ap.parse_args(argv)
     inicio = time.monotonic()
-    trabajos = [(n, s) for s in args.semillas for n in args.escenarios]
-    # Un proceso por escenario y semilla: cada uno con su propio monkeypatch, sin estado compartido.
-    por_semilla = {s: {} for s in args.semillas}
+    planes = ["hoy", args.comparar] if args.comparar else [args.planificador]
+    trabajos = [(n, s, p) for p in planes for s in args.semillas for n in args.escenarios]
+    # Un proceso por escenario, semilla y planificador: cada uno con su propio monkeypatch, sin estado compartido.
+    medidas = {p: {s: {} for s in args.semillas} for p in planes}
     with ProcessPoolExecutor(max_workers=min(len(trabajos), os.cpu_count() or 1)) as pool:
-        for nombre, semilla, numeros in pool.map(_uno, trabajos):
-            por_semilla[semilla][nombre] = numeros
+        for nombre, semilla, plan, numeros in pool.map(_uno, trabajos):
+            medidas[plan][semilla][nombre] = numeros
     # El orden de los escenarios, el pedido.
-    por_semilla = {s: {n: por_semilla[s][n] for n in args.escenarios} for s in args.semillas}
+    medidas = {p: {s: {n: m[s][n] for n in args.escenarios} for s in args.semillas} for p, m in medidas.items()}
     if args.json:
-        print(json.dumps({str(s): v for s, v in por_semilla.items()}, ensure_ascii=False, indent=1))
+        datos = {p: {str(s): v for s, v in m.items()} for p, m in medidas.items()}
+        print(json.dumps(datos if args.comparar else datos[planes[0]], ensure_ascii=False, indent=1))
+    elif args.comparar:
+        print(tabla_comparada(comparar(medidas["hoy"], medidas[args.comparar], args.semillas)))
     else:
-        print(tabla(por_semilla, args.semillas))
-        print(f"\n{len(trabajos)} medidas en {time.monotonic() - inicio:.0f} s", file=sys.stderr)
+        print(tabla(medidas[planes[0]], args.semillas))
+    print(f"\n{len(trabajos)} medidas en {time.monotonic() - inicio:.0f} s", file=sys.stderr)
     return 0
 
 if __name__ == "__main__":
