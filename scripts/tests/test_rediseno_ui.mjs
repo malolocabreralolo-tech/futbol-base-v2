@@ -131,8 +131,8 @@ test('box: título en h2, contexto a la derecha y contenido Html sin reescapar',
   assert.doesNotMatch(s(box('x', { title: 'Tabla' })), /block-context/);
 });
 
-// I2 de la revisión final de B2: un solo bloque con título, block(título, contenido, { context, id }),
-// para Tabla, Partido, Mi equipo y box; antes, dos copias con los argumentos en otro orden.
+// Un solo bloque con título, block(título, contenido, { context, id }), para Tabla, Partido, Mi equipo
+// y box.
 test('block: título en h2, contenido tal cual y, en opciones, el contexto y el id de la sección', () => {
   assert.equal(s(block('Goles', empty('Partido sin goles.'))),
     '<section class="block"><div class="block-head"><h2 class="block-title">Goles</h2></div><p class="empty">Partido sin goles.</p></section>');
@@ -155,7 +155,7 @@ test('shareStatus: la región de estado de «Compartir», la misma en todas las 
   assert.equal(s(shareStatus()), '<p class="share-status" role="status"></p>');
 });
 
-// I2 de la revisión final de B2 (y el minor de la T7): la frase de procedencia, una sola, para
+// La frase de procedencia, una sola, para
 // Mi equipo y Tabla, en sus tres ramas.
 test('sourcePhrase: oficial, calculada o corregida, con la fuente o sin ella', () => {
   const src = 'futbolaspalmas.com';

@@ -1,5 +1,5 @@
 /**
- * Fase 2D, tarea 2: la sonda de «otra-…» como script (scripts/sonda_fases.mjs), la que pasa
+ * La sonda de «otra-…» como script (scripts/sonda_fases.mjs), la que pasa
  * activar_auto.py después de activar. Árboles de prueba en una carpeta temporal; nunca los data-*.js
  * ni src/config.js vivos.
  * Run: node --test scripts/tests/test_sonda_fases.mjs

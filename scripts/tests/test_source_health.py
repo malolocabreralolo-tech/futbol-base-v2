@@ -336,7 +336,7 @@ def pending(capsys, report, now=PEND_NOW):
 
 
 def test_the_pending_order_prints_what_activar_yml_would_activate(portal, capsys):
-    """Fase 2D: update.yml lanza activar.yml solo si hay competiciones o grupos nuevos (sale con 0 e imprime
+    """update.yml lanza activar.yml solo si hay competiciones o grupos nuevos (sale con 0 e imprime
     sus competiciones, sin repetir); con 1 si no hay nada que lanzar."""
     code, out = pending(capsys, PEND_REPORT)
     assert code == 0 and out == "54976988,55400001\n"
@@ -359,7 +359,7 @@ def tried(failed, hours, attempts=1, ids=(BEN, SEG)):
 
 
 def test_the_pending_order_launches_what_was_never_tried_at_once(portal, capsys):
-    """Ronda de arreglo 1: lo pendiente que activar.yml no ha intentado (no está en activation.tried) se lanza
+    """Lo pendiente que activar.yml no ha intentado (no está en activation.tried) se lanza
     ya, aunque lo demás se intentara hace un minuto."""
     assert pending(capsys, tried([(SEG, CONVENIO)], 0.01, ids=[SEG])) == (0, "54976988,55400001\n")
     assert pending(capsys, {**PEND_REPORT, "activation": "x"}) == (0, "54976988,55400001\n")
@@ -404,7 +404,7 @@ def test_the_orders_run_from_the_command_line():
     assert done.returncode == 2 and "veredicto" in done.stderr
 
 
-# ── drySince: la racha de pasadas secas (Ronda de arreglo 1 de la fase 2B) ──
+# ── drySince: la racha de pasadas secas ──
 
 def dry_run(now, reasons=(), dry=True, failed=False):
     source_health.begin("2025-2026")

@@ -1,4 +1,4 @@
-"""Desvío de los marcadores frente a la clasificación oficial (plan A2).
+"""Desvío de los marcadores frente a la clasificación oficial.
 
 La clasificación oficial (GF/GC por equipo) no está ofuscada en ninguna fuente,
 así que es la vara de medir: si los goles que suman los partidos de un equipo

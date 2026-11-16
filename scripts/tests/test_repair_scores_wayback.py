@@ -1,4 +1,4 @@
-"""Reparación de marcadores con capturas de futbolaspalmas en Wayback (plan A2).
+"""Reparación de marcadores con capturas de futbolaspalmas en Wayback.
 
 Todo se prueba sin red: las llamadas a Wayback reciben una función `get` falsa.
 """

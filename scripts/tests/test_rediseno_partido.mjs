@@ -1,5 +1,4 @@
-// Pantalla Partido (spec §4.5, §5.3, §7, §9.2, §9.3 y §11,
-// caso 7). Solo fixtures congeladas y hoy inyectado: nunca los data-*.js vivos.
+// Pantalla Partido. Solo fixtures congeladas y hoy inyectado: nunca los data-*.js vivos.
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
 import { readFileSync } from 'node:fs';
@@ -20,7 +19,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const SEASONS = [{ name: '2025-2026', current: true, detail: true }, { name: '2024-2025', current: false }];
 const TODAY = '2026-09-23';
 
-// Registro de datos con la forma de B2 (datasetsFrom de la Tarea 3), con la cronología y las actas
+// Registro de datos (datasetsFrom), con la cronología y las actas
 // ya cargadas, como las deja needs.
 function datasetsFrom(raw = fixture('current-2025-2026')) {
   return baseDatasets(raw, {
@@ -92,7 +91,7 @@ test('PG2, 02/06/2026, Las Mesas Hu. 2–7 AD Huracán: sin cronología, sin act
   assert.equal(text(blockOf(out, 'Contexto')),
     'Contexto posición y últimos cinco Las Mesas Hu. 9.º , últimos resultados: E empatado, P perdido, P perdido, G ganado, P perdido '
     + 'AD Huracán 3.º , últimos resultados: P perdido, G ganado, G ganado, G ganado, G ganado');
-  // Terminología de la spec: Local y Visitante, G, E y P.
+  // Terminología: Local y Visitante, G, E y P.
   assert.doesNotMatch(text(out), /\b(HOME|AWAY|Home|Away)\b/);
 });
 
@@ -539,13 +538,13 @@ test('acta.css: cada clase de la pantalla existe; marcador de 40 px; pulsables d
   assert.match(current, /color:\s*var\(--ink\)/);
   assert.match(current, /font-weight:\s*800/);
   assert.match(current, /box-shadow:\s*inset 3px 0 0 var\(--ink\)/);
-  // Ninguna regla de la pantalla redondea (sin óvalo ni radio, §3.3) ni fuerza mayúsculas.
+  // Ninguna regla de la pantalla redondea (sin óvalo ni radio) ni fuerza mayúsculas.
   const own = [...css.matchAll(/([^{}]+)\{([^{}]*)\}/g)].filter((m) => m[1].includes('.pt-'));
   assert.ok(own.length > 40);
   for (const [, selector, body] of own) assert.doesNotMatch(body, /border-radius|text-transform:\s*uppercase/, selector.trim());
 });
 
-// ── Plan B5, Tarea 4: «Reintentar» de los Goles y de las Alineaciones, sin perder el sitio ──
+// ── «Reintentar» de los Goles y de las Alineaciones, sin perder el sitio ──
 
 const flush = async () => { for (let i = 0; i < 5; i += 1) await new Promise((resolve) => setImmediate(resolve)); };
 // Un fetch que sirve la cronología y las actas de las fixtures, o un 503 mientras `down`.

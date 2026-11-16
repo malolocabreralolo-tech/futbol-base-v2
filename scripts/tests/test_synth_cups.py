@@ -1,4 +1,4 @@
-"""TDD — synth_copa_campeones rankea por RONDA ALCANZADA (revisión 2026-06-15 L5).
+"""TDD — synth_copa_campeones rankea por RONDA ALCANZADA.
 
 Un equipo que avanzó por penaltis (empate) tiene 0 victorias igual que el
 rival eliminado, y si luego pierde en semis su GD empeora → quedaba POR DEBAJO

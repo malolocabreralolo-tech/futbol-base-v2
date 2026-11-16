@@ -274,7 +274,7 @@ test('CSS: columnas por vista solo por debajo de 1024 px; cada selector en su an
   assert.deepEqual([...used].filter(c => !rules.classes.has(c)), []);
 });
 
-// ── El contexto de la clasificación con la jornada en curso (B3, «Sin prueba todavía») ──
+// ── El contexto de la clasificación con la jornada en curso ──
 
 test('a mitad de temporada, la clasificación dice hasta qué jornada llega, sin «, final»; sin jornada de la fuente, nada', () => {
   const raw = currentAt('2026-03-01');

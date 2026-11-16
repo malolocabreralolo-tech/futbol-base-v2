@@ -1,6 +1,6 @@
-// La vista de equipo compartida (team-view.js; decisiones 8 a 10 de B3), el estado
+// La vista de equipo compartida (team-view.js), el estado
 // de un equipo (teamState, myteam.js) y lo que la acompaña en ui.js: block sin título, el texto
-// oculto de la fila resaltada y el de formChips (recomendación 4 de B1). La portada es la vista de la
+// oculto de la fila resaltada y el de formChips. La portada es la vista de la
 // ficha con su cabecera: lo fijan sus huellas. Solo fixtures y `today` inyectado; el ctx es el común
 // (ctxFor).
 import { test } from 'node:test';
@@ -24,7 +24,7 @@ const HURACAN = { s: '2025-2026', g: 'PG2', t: 'AD Huracán' };
 
 // ── La portada es la vista de la ficha con su cabecera: lo fijan sus huellas ──
 
-// El ctx de la portada de test_rediseno_portada.mjs, con los goleadores congelados de la Tarea 2.
+// El ctx de la portada de test_rediseno_portada.mjs, con los goleadores congelados.
 function homeCtx({
   raw = fixture('current-2025-2026'), myTeam = LAS_MESAS, today, portalSeason = '2025-2026',
   withHealth = fixture('health'), legacyDate = null, goles = true, stale = false,
@@ -48,35 +48,28 @@ function untimedJ18() {
   return raw;
 }
 
-// sha1 del render de la portada en e82eb86 (antes de team-view.js), con las fixtures de B1 y B3; las
-// cinco últimas, de B5, del render de 0208d26, el mismo tras la limpieza de la Tarea 3.
-// 2026-10: los casos A y C, con la fila nueva de «La temporada en cifras» (racha, porterías a cero y
-// partidos sin marcar); B, D, E y X no la pintan y siguen idénticos.
-// 2026-10-04: todos salvo E y X, con lo de la ficha: el calendario completo siempre (#calendario y su
-// .ics), la evolución de puntos, el hueco de la plantilla (homeCtx no trae actas) y la trayectoria; E y
-// X no pasan por la vista de equipo y siguen idénticos.
-// 2026-10-17: los tres A de Las Mesas Hu. (prebenjamín de la temporada del portal, con dos jornadas o
-// más jugadas), con la línea del pronóstico bajo el próximo partido (forecastLine); sin ella, el render
-// es byte a byte el de antes. Los demás no la pintan: benjamín (A2), un retirado, B sin jugar, C y D sin
-// próximo partido, E y X. Y el mismo día, con el 1X2 de las notas de Massey (src/pronostico.js): de
-// esos tres, solo cambia la probabilidad de la línea (91 % → 94 % y 68 % → 67 %; el marcador, el mismo);
-// sin la línea, byte a byte igual.
-// 2026-10-17, más tarde: esos mismos tres, con la línea del pronóstico también bajo cada partido sin jugar
-// del calendario completo (el usuario pidió el de «todos los siguientes enfrentamientos»); sin las líneas
-// del calendario, byte a byte los de antes (BEFORE_CALENDAR, que la prueba comprueba). Los demás no tienen
-// ningún partido que pronosticar y siguen idénticos.
-// 2026-10-18 (revisión): esos tres, con una nota bajo la lista del calendario (de dónde sale el pronóstico y
-// que se recalcula con cada resultado nuevo); sin las líneas ni la nota, byte a byte los de antes.
-// 2026-10-19: todos los que la tenían, sin la evolución de puntos (el usuario la quitó: «no me aporta
-// tanto»), y por lo demás byte a byte los de antes (comprobado ese día con el código de 0b65879, caso a caso);
-// B, E y X no la pintaban y siguen idénticos. El pronóstico de la clasificación final que el usuario pidió
-// en su lugar (una cifra de «La temporada en cifras», «Pronóstico final», que abre su tabla en la Tabla)
-// no sale en ninguno: la clasificación de las fixtures es la del final de la temporada (currentAt no la
-// toca) y no cuadra con el calendario de esos días (startMatchesCalendar de src/proyeccion.js). Lo prueba
-// test_proyeccion_web.mjs, con la clasificación de cada día.
-// 2026-11-14: B y X, con el aviso de estado bajo la cabecera («Los datos llevan 7 días sin comprobarse.»,
-// con un espacio de no separación en «7 días»: la salud de la fixture es del 23/09 y su hoy, el 01/10); sin
-// él, byte a byte los de antes (BEFORE_STATUS). En los demás, la salud es de su mismo día o posterior y no hay aviso.
+// sha1 del render de la portada con las fixtures. Cada huella fija el pintado exacto de un caso; si
+// cambia, la prueba lo dice y hay que decidir si el cambio es el buscado:
+// - A y C llevan la fila nueva de «La temporada en cifras» (racha, porterías a cero y partidos sin marcar);
+//   B, D, E y X no la pintan.
+// - Todos salvo E y X llevan lo de la ficha: el calendario completo siempre (#calendario y su .ics), el
+//   hueco de la plantilla (homeCtx no trae actas) y la trayectoria; E y X no pasan por la vista de equipo.
+// - Los tres A de Las Mesas Hu. (prebenjamín de la temporada del portal, con dos jornadas o más jugadas)
+//   llevan la línea del pronóstico bajo el próximo partido (forecastLine), con el 1X2 de las notas de
+//   Massey (src/pronostico.js); sin la línea, byte a byte iguales. Los demás no la pintan: benjamín (A2),
+//   un retirado, B sin jugar, C y D sin próximo partido, E y X.
+// - Esos tres llevan también la línea del pronóstico bajo cada partido sin jugar del calendario completo
+//   y una nota bajo la lista (de dónde sale el pronóstico y que se recalcula con cada resultado nuevo);
+//   sin las líneas ni la nota, byte a byte los de antes (BEFORE_CALENDAR, que la prueba comprueba).
+// - Ninguno lleva evolución de puntos, ni el pronóstico de la clasificación final (una cifra de «La
+//   temporada en cifras», «Pronóstico final», que abre su tabla en la Tabla): la clasificación de las
+//   fixtures es la del final de la temporada (currentAt no la toca) y no cuadra con el calendario de esos
+//   días (startMatchesCalendar de src/proyeccion.js). Lo prueba test_proyeccion_web.mjs, con la
+//   clasificación de cada día.
+// - B y X llevan el aviso de estado bajo la cabecera («Los datos llevan 7 días sin comprobarse.», con un
+//   espacio de no separación en «7 días»: la salud de la fixture es del 23/09 y su hoy, el 01/10); sin él,
+//   byte a byte los de antes (BEFORE_STATUS). En los demás, la salud es de su mismo día o posterior y no
+//   hay aviso.
 const HOME = {
   A: [{ raw: currentAt('2026-03-01'), today: '2026-03-01' }, '6324408256e66f99200ca25b8cb24e0e92de3ab1'],
   'A en A2, con campo': [{ raw: currentAt('2026-05-20'), myTeam: { ...LAS_MESAS, cat: 'benjamin', groupId: 'A2' }, today: '2026-05-20' }, '211ed85261c6501b00759816803616f915467347'],

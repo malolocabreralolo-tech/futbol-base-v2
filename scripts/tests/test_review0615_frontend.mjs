@@ -1,13 +1,11 @@
 /**
- * Node test runner — fixes frontend de la revisión 2026-06-15.
+ * Node test runner — fixes del frontend.
  * Run: node --test scripts/tests/test_review0615_frontend.mjs
  *
- * Quedan las funciones de state.js que usa el modelo del rediseño: las etiquetas
- * de ronda, el detector de copa y liguilla o cuadro. validJorGroup,
- * knockoutRoundsSource, unifiedPrebenLeagueGroups, countStats, phaseIcon y
- * groupJornadaLabel se fueron con sus pruebas en la revisión final de B2 (M5);
- * countMatches, matchAdvancer, bracketDrawAdvancer y bracketChampion, en B5
- * (decisión 6): nada de src/ las usaba. Quién pasó y el campeón de un cuadro son
+ * Quedan las funciones de state.js que usa el modelo del rediseño: las etiquetas de ronda, el detector
+ * de copa y liguilla o cuadro. Las demás (validJorGroup, knockoutRoundsSource, unifiedPrebenLeagueGroups,
+ * countStats, phaseIcon, groupJornadaLabel, countMatches, matchAdvancer, bracketDrawAdvancer y
+ * bracketChampion) ya no existen: nada de src/ las usaba. Quién pasó y el campeón de un cuadro son
  * bracket(), de model.js, con sus pruebas en test_rediseno_copa.mjs.
  */
 

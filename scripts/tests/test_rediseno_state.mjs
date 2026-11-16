@@ -1,6 +1,6 @@
-// Plan B2, tarea 2: state.js prepara el corte sin romper la app vieja.
+// state.js prepara el corte sin romper la app vieja.
 // - shieldFile: el fichero de escudo exacto o normalizado, nunca por subcadena; lo usan ui.js
-//   (crest) y myteam.js (buildClubIndex), que antes repetían la búsqueda (M7 de B1).
+//   (crest) y myteam.js (buildClubIndex).
 // - dataVersion(): la ?v= de <script src="data-seasons.js">, en todas las peticiones perezosas.
 // - Tiempo límite: una petición perezosa que no responde se corta a los 15 s (fetchData).
 // - readGlobals() y ensureHealth().
@@ -112,7 +112,7 @@ test('cada petición perezosa lleva la versión de data-seasons.js, nunca la de 
   for (const url of requests) assert.match(url, /\?v=20260923j$/, url);
 });
 
-// Alevín (contrato común, punto 4): data-alevin.js se genera siempre, pero hasta que llegue a la web (o
+// Alevín (contrato común): data-alevin.js se genera siempre, pero hasta que llegue a la web (o
 // sin conexión y sin la copia del SW) puede dar 404, que es «sin alevín», nunca un error. La petición
 // lleva la versión de los datos, como todas las perezosas.
 test('ensureAlevin: sin data-alevin.js (un 404), alevín vacío y memorizado; con la versión de los datos', async () => {
@@ -210,18 +210,18 @@ test('crest y buildClubIndex buscan el escudo con shieldFile: una sola búsqueda
   assert.equal(buildClubIndex(names, {}, {}).same('Las Mesas Hu', 'MESAS, U.D. LAS "B"'), false, 'sin escudos no hay arista');
 });
 
-// ── Plan B2, tarea 4 (corte): decisiones 1 y 2 ──────────────────────────────
+// ── El corte ──────────────────────────────
 
 test('decisiones 1 y 2: state.js sin estado de interfaz, sin HTML y sin lo que ya cubre el modelo', () => {
   for (const gone of ['S', 'FEATURED', 'isFeatured', 'featuredStandingFrom', 'featuredMatchesFrom',
     'featuredScorersFrom', 'getTeamForm', 'isHistorical', 'getCurrentSeason', 'teamBadge', 'teamBadgeFallback',
     'handleBadgeError', 'installBadgeErrorDelegation', 'escapeHtml', 'escapeAttr', '$', '$$', 'el',
     'ACTIVATION_KEYS', 'makeActivatable', 'delegateActivation', 'buildUnifiedPrebenjamin', 'buildSparkline',
-    // M5 de la revisión final de B2: las heredadas que nadie usaba en src/, index.html ni sw.js.
+    // Las heredadas que nadie usaba en src/, index.html ni sw.js.
     'getData', 'withSeasonCup', 'countStats', 'getSeasonError', 'ensurePlayers', 'phaseIcon',
     'unifiedPrebenLeagueGroups', 'validJorGroup', 'jornadaLabel', 'groupJornadaLabel', 'knockoutRoundsSource',
     'getPhases',
-    // B5, decisión 6: las cuatro que nadie usaba en src/ (quién pasó y el campeón son bracket(), de model.js).
+    // Las cuatro que nadie usaba en src/ (quién pasó y el campeón son bracket(), de model.js).
     'countMatches', 'matchAdvancer', 'bracketDrawAdvancer', 'bracketChampion']) {
     assert.equal(gone in state, false, `${gone} sigue en state.js`);
   }
@@ -231,7 +231,7 @@ test('decisiones 1 y 2: state.js sin estado de interfaz, sin HTML y sin lo que y
   assert.doesNotMatch(read('src/state.js'), /<(img|span|div|table|svg)\b/, 'state.js ya no pinta HTML');
 });
 
-// I2 de la revisión final de B2: groupScorers (Tabla y Goleadores) y teamScorers (Mi equipo), las
+// groupScorers (Tabla y Goleadores) y teamScorers (Mi equipo), las
 // dos aquí y con un solo orden; teamScorers es el filtro por equipo de groupScorers.
 const GOL = [
   { id: 'PG1', g: 'PREBENJAMIN GC GRUPO 1', s: [['Otro, Grupo', 'Las Mesas Hu.', 30, 20]] },
@@ -260,7 +260,7 @@ test('decisión 2: teamScorers(gol, team), los goleadores del equipo en su grupo
     { name: 'Santana Santacruz, Agoney', goals: 11, games: 21 },
   ]);
   // El grupo se busca solo por su código (id): el respaldo por la clave de texto de los ficheros
-  // antiguos se fue, porque todas las entradas publicadas llevan id (I2 de la revisión final).
+  // antiguos se fue, porque todas las entradas publicadas llevan id.
   assert.deepEqual(state.teamScorers(GOL.map(({ g, s }) => ({ g, s })), team), []);
   assert.deepEqual(state.teamScorers(GOL, { ...team, groupId: 'PG9' }), []);
   assert.deepEqual(state.teamScorers(undefined, team), []);

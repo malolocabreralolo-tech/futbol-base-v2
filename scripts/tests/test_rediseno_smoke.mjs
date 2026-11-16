@@ -1,5 +1,5 @@
-// Plan B2, tarea 4: checkRenderedDom (render-smoke.mjs) con marcadores independientes del estado
-// (spec §11). Acepta la portada en A, B, C o D con su cabecera, el h1 del equipo y algún bloque;
+// checkRenderedDom (render-smoke.mjs) con marcadores independientes del estado
+// Acepta la portada en A, B, C o D con su cabecera, el h1 del equipo y algún bloque;
 // rechaza E, X, la caja de error y el esqueleto sin sustituir. Las páginas se construyen con la
 // portada real (screen-home.js) sobre las fixtures, así que si la pantalla cambia sus marcadores,
 // esta prueba lo dice.

@@ -1,6 +1,6 @@
 // La pantalla Temporadas. render(ctx) es
 // pura: se prueba con ctxFor sobre las fixtures, con SEASONS de datasetsFor (las temporadas que se
-// sirven, decisión 31) y la temporada del portal inyectada.
+// sirven) y la temporada del portal inyectada.
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
 import { ctxFor, datasetsFor, cssRules, PORTAL_SEASON } from './fixtures/rediseno/screens.mjs';

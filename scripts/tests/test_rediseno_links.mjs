@@ -176,7 +176,7 @@ test('M3: downloadCalendar descarga el .ics con ese nombre', () => {
   assert.equal(anchor.clicks, 1);
 });
 
-// I2: la respuesta de Partido para todas las pantallas que comparten.
+// La respuesta de Partido para todas las pantallas que la comparten.
 test('shareAndAnnounce: «Enlace copiado.» o, si no se pudo copiar, el enlace en la región de estado; nada si se compartió', async () => {
   const saved = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
   const withNavigator = (value) => Object.defineProperty(globalThis, 'navigator', { value, configurable: true, writable: true });

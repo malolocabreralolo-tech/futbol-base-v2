@@ -1,4 +1,4 @@
-// Mi equipo, la portada (Plan B2, Tareas 7 y 8; spec §4.2, §4.8, §6.4 y §7), con datos reales
+// Mi equipo, la portada, con datos reales
 // congelados y `today` inyectado. render(ctx) se prueba sin DOM. El modelo del contexto es
 // createModel sobre las fixtures, con buildClubIndex inyectado.
 import test from 'node:test';
@@ -462,7 +462,7 @@ test('mount: responder a la pregunta E guarda { name, season, cat, groupId } del
   assert.deepEqual(saved, [{ name: 'Las Mesas B', season: '2025-2026', cat: 'benjamin', groupId: 'B2' }]);
 });
 
-// I2 de la revisión final de B2: la respuesta común de «Compartir» (la de Partido). Sin share ni
+// La respuesta común de «Compartir» (la de Partido). Sin share ni
 // portapapeles, el enlace va a la región de estado para copiarlo a mano, y el botón no cambia.
 test('mount: «Compartir» sin share ni portapapeles escribe el enlace del partido en la región de estado', async () => {
   const ctx = homeCtx(CASES.A);
@@ -675,7 +675,7 @@ test('Verano de PG2 (caso 8 de §11): MCP3 y MCPK1 con el puesto, los partidos d
     ['#/copa?s=2025-2026&amp;g=MCPK1', 'Copa Plata, semifinales · sáb 27 jun Las Mesas Huracán – Maspa Training A 2–4'],
   ]);
   assert.doesNotMatch(block, /MCB16|MCBK2|Copa Oro|Grupo P\b/);
-  // RC Victoria no tiene «Verano»: «Real Club Victoria» (MCP3) no se une a su club (B1, «Para B2»).
+  // RC Victoria no tiene «Verano»: «Real Club Victoria» (MCP3) no se une a su club.
   assert.ok(!titles(render({ ...CASES.D, myTeam: { ...LAS_MESAS, name: 'RC Victoria' } })).some(t => t.startsWith('Verano')));
 });
 
@@ -716,10 +716,9 @@ test('dos columnas (§4.8), como la ficha: a la izquierda lo principal y el cale
   };
   const a = columnsOf(render(CASES.A));
   assert.deepEqual(titles(a.main), ['Próximo partido', 'Últimos cinco']);
-  // Sin la evolución de puntos (19/10/2026). El pronóstico de la clasificación final que la sustituye (una
-  // cifra de «La temporada en cifras») aquí no sale: la clasificación de las fixtures es la del final de la
-  // temporada y no cuadra con el calendario del 01/03/2026 (startMatchesCalendar; lo prueba
-  // test_proyeccion_web.mjs).
+  // Sin evolución de puntos. El pronóstico de la clasificación final (una cifra de «La temporada en cifras»)
+  // aquí no sale: la clasificación de las fixtures es la del final de la temporada y no cuadra con el
+  // calendario del 01/03/2026 (startMatchesCalendar; lo prueba test_proyeccion_web.mjs).
   assert.deepEqual(titles(a.side), ['Clasificación', 'Goleadores del equipo', 'La temporada en cifras', 'Plantilla', 'Trayectoria']);
   assert.match(a.side, /<p class="home-fresh">.*<\/p><section class="block" id="plantilla" data-slot="plantilla" aria-busy="true">/);
   assert.deepEqual(titles(a.rest), ['Calendario']);

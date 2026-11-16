@@ -73,7 +73,7 @@ test('data-alevin.js, opcional y fuera de index.html; los data-season-<S>-alevin
   assert.equal(sw.classifyRequest('/data-season-2025-2026-alevin.js', null), 'dato');
 });
 
-// Las actas de grupo ya usadas pasan a la versión nueva (decisión 2 de B5: la ficha de mi equipo, ya
+// Las actas de grupo ya usadas pasan a la versión nueva (la ficha de mi equipo, ya
 // vista, sigue con su plantilla sin conexión tras una subida de datos): sin repetir, las más recientes
 // y como mucho LINEUPS_KEEP; ni los demás datos ni las actas antiguas, de temporada entera.
 test('lineupsToCarry: las actas de grupo de las cachés anteriores, sin repetir, las más recientes', () => {
@@ -138,7 +138,7 @@ test('CRESTS_CACHE literal on line 2, with the seal of escudos/ and out of reach
   assert.doesNotMatch(second, /futbolbase2-v[0-9a-z]+/);
 });
 
-// ─── 4. activate: solo las cachés de esta app (decisión 8 de B4 y 1 de B5) ──
+// ─── 4. activate: solo las cachés de esta app ──
 test('activate solo borra las cachés de esta app de otras versiones, futbolbase2-v* y futbolbase2-escudos-*: el origen es compartido', async () => {
   // malolocabreralolo-tech.github.io lo comparten v1 y otros proyectos de la cuenta: sus cachés no se
   // tocan. La de los escudos se queda mientras su sello sea el de CRESTS_CACHE, aunque cambie CACHE_NAME;

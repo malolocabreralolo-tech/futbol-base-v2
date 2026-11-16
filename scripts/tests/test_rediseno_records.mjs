@@ -167,7 +167,7 @@ test('máximos goleadores: los 30 primeros de la categoría (sumando sus fases),
     assert.deepEqual(rows.map((row) => row.href), all.slice(0, 30).map((row) => escape(teamHref(PORTAL_SEASON, row.groupId, row.team))), c);
     assert.match(blockOf(out, 'Máximos goleadores'), new RegExp(`<p class="block-context"><a class="more" href="#/goleadores\\?s=2025-2026&amp;c=${c}">ver todos \\(${total}\\)</a></p>`), c);
   }
-  // El puesto es el de Goleadores (rankScorers, decisión 144): a igualdad de goles, antes el de menos
+  // El puesto es el de Goleadores (rankScorers): a igualdad de goles, antes el de menos
   // partidos (42 en 18 es 5.º, y 42 en 19, 6.º).
   assert.deepEqual(table(render({})).slice(3, 7).map((row) => `${row.pos} ${row.goals} ${row.games}`), ['4 50 20', '5 42 18', '6 42 19', '7 41 21']);
   assert.deepEqual(table(render({})).map((row) => row.pos), rankScorers(categoryScorers(ctx({}).model.scorers(PORTAL_SEASON, 'prebenjamin'))).slice(0, 30).map((row) => row.pos));

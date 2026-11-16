@@ -57,7 +57,7 @@ const resolve = (hash, options) => resolveParams(parseRoute(hash), context(optio
 // Una redirección como [href, aviso]; así se lee igual que en la barra de direcciones.
 const target = (res) => (res.redirect ? [routeHref(res.redirect.screen, res.redirect.params), res.redirect.notice] : res);
 
-// ── resolveParams: cada fila de §4.1 ─────────────────────────────────────
+// ── resolveParams: cada fila de la tabla de rutas ─────────────────────────────────────
 
 test('Mi equipo, Temporadas, Fuentes y Ajustes no llevan parámetros', () => {
   for (const hash of ['#/', '#/?g=PG2', '#/temporadas', '#/fuentes?x=1', '#/ajustes']) assert.deepEqual(resolve(hash), { params: {} }, hash);
@@ -252,7 +252,7 @@ test('routeIsMine (myteam.js desde B5): el partido o la ficha de mi equipo, en s
 
 // ── Pantallas registradas ────────────────────────────────────────────────
 
-// Cada ruta de §4.1 tiene la suya: la provisional de B2 ya no existe.
+// Cada ruta tiene su pantalla: no queda ninguna provisional.
 test('cada ruta de §4.1 tiene su pantalla, con el id de su ruta; la provisional de B2 ya no existe', () => {
   assert.deepEqual(Object.keys(SCREEN_MAP).sort(), [...SCREENS].sort());
   for (const name of SCREENS) {
@@ -431,13 +431,13 @@ test('temporada pasada sin cargar: se carga y después se pone el grupo por defe
   assert.deepEqual(log.filter((x) => x.startsWith('render')), ['render tabla']);
 });
 
-// ── Ronda final de B2: temporada pendiente, ancla de formulario y padre de Partido ──
+// ── Temporada pendiente, ancla de formulario y padre de Partido ──
 
 test('temporada pasada sin cargar que la pantalla no pide: la carga el router y la pinta, nunca la caja de error (I4(a))', async () => {
   const b = fakeBrowser('#/equipo?s=2024-2025&g=PGC2&t=Las%20Mesas%20Hu.');
   const loaded = [];
   const log = [];
-  // Una pantalla que no pide su temporada en needs, como las de B3.
+  // Una pantalla que no pide su temporada en needs.
   const router = startRouter({ screens: { '': screen('home'), equipo: screen('equipo') }, root: b.root, getContext: context({ loaded }), window: b.win, loadSeason: seasonLoader(loaded, { log }) });
   await router.idle();
   assert.deepEqual(log, ['carga 2024-2025'], 'el router pide la temporada pendiente, con la de la ruta');
@@ -633,7 +633,7 @@ test('un bucle de redirecciones (defensivo) da «No se pudieron cargar los datos
   const b = fakeBrowser('#/tabla');
   // Un getContext que alterna la resolución en cada llamada: resolveParams converge siempre con un
   // contexto fijo, así que para probar el límite (defensivo) de MAX_REDIRECTS hace falta un
-  // contexto que cambie solo, no un caso real de la tabla de §4.1.
+  // contexto que cambie solo, no un caso real de la tabla de rutas.
   const other = { status: 'ok', group: group('A2'), name: 'AD Huracán', cat: 'benjamin' };
   const ctxA = context();
   const ctxB = context({ resolution: other });
@@ -767,7 +767,7 @@ test('si mount navega (nav.replace), manda esa navegación: el pintado anterior 
   assert.deepEqual(b.entries(), ['#/', '#/tabla?v=goles']);
   assert.match(b.root.innerHTML, /<h1>tabla<\/h1>/);
   assert.equal(b.h1().focused, 1, 'un solo foco, el de la tabla');
-  // La navegación anidada hereda el destino de fuera: es un push, así que arriba (hallazgo 3),
+  // La navegación anidada hereda el destino de fuera: es un push, así que arriba,
   // nunca el scrollY 300 de antes de pulsar Explorar.
   assert.equal(b.win.scrollY, 0, 'arriba al avanzar, no el scroll de antes del push');
 });
@@ -856,7 +856,7 @@ test('dos nav.back() seguidos: ninguna de las dos promesas se queda colgada (B2,
   assert.equal(b.index(), 0);
   assert.match(b.root.innerHTML, /<h1>home<\/h1>/);
 });
-// ── La temporada pendiente y la validación de las rutas de B3 ──
+// ── La temporada pendiente y la validación de las rutas nuevas ──
 
 // Pantallas falsas de todas las rutas, con su id como h1 (la de '' se llama home).
 const allScreens = (log = []) => Object.fromEntries(SCREENS.map((name) => [name, screen(name || 'home', { log })]));
@@ -1002,7 +1002,7 @@ test('Equipo con otra grafía del equipo: su nombre canónico, con replaceState 
   assert.doesNotMatch(b.root.innerHTML, /route-notice/);
 });
 
-// ── Plan B3, tarea 1: nav.update, nav.addRecent y nav.clearData ──────────
+// ── nav.update, nav.addRecent y nav.clearData ──────────
 
 test('nav.update: la búsqueda va a la dirección con replaceState, sin pintar ni mover el foco ni el desplazamiento; Atrás no recorre cada letra (decisión 4 de B3)', async () => {
   const b = fakeBrowser('#/');
@@ -1129,7 +1129,7 @@ test('nav.addRecent llama a actions.addRecent sin volver a pintar; nav.clearData
   assert.deepEqual(bare.entries(), ['#/ajustes', '#/']);
 });
 
-// ── Plan B5, Tarea 3: nav.update ligado a su mount y el «‹» del DOM por goBack ──
+// ── nav.update ligado a su mount y el «‹» del DOM por goBack ──
 
 test('nav.update de un mount que ya no es el vigente no toca la ruta nueva y devuelve false; el del vigente, sí (B5, decisión 6)', async () => {
   const b = fakeBrowser('#/');

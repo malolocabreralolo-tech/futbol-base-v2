@@ -194,7 +194,7 @@ class TestFailedStandingsDownloadSkipsTheGroup:
 class TestRolloverTripwire:
     """El corte no puede ser 'TODOS los grupos': futbolaspalmas rueda la
     temporada escalonada por competición, así que con un solo grupo actualizado
-    el run seguía verde y el cambio de temporada pasaba desapercibido."""
+    el run saldría verde y el cambio de temporada pasaría desapercibido."""
 
     def test_nothing_updated_stops_the_run(self):
         from fetch_futbolaspalmas import rollover_detected

@@ -85,7 +85,7 @@ test('skeleton: cabecera y primeras cajas de cada pantalla, ocupado, sin h1 ni d
   }
   assert.match(s(skeleton('home')), /<span class="sk sk-crest"><\/span>.*<div class="box skeleton sk-box-home"><\/div>/);
   assert.doesNotMatch(s(skeleton('jornada')), /sk-crest/);
-  // Temporadas, Fuentes y Ajustes comparten el genérico; las otras seis de B3 tienen el suyo (B5, decisión 4).
+  // Temporadas, Fuentes y Ajustes comparten el genérico; las otras seis tienen el suyo.
   for (const id of ['temporadas', 'fuentes']) {
     assert.equal(s(skeleton(id)), s(skeleton('ajustes')).replace('data-skeleton="ajustes"', `data-skeleton="${id}"`), id);
   }
@@ -207,7 +207,7 @@ test('index.html: la cabecera de renderHeader, con la barra dentro, y el esquele
   assert.ok(page.indexOf('<header class="shell-header">') < page.indexOf('<main id="contenido"'));
 });
 
-// ── Plan B5, Tarea 4: «Reintentar» de un bloque, en su sitio ──
+// ── «Reintentar» de un bloque, en su sitio ──
 
 test('retryBlock: vuelve a pedir, pinta el bloque en su sitio y lleva el foco a su título; si ya no está, nada', async () => {
   const failed = s(block('Goles', errorBox('la cronología de goles'), { id: 'goles' }));
@@ -230,7 +230,7 @@ test('retryBlock: vuelve a pedir, pinta el bloque en su sitio y lleva el foco a 
   assert.equal(await retryBlock(page.section, 'goles', {}, () => { throw new Error('no debe pedir'); }, () => ''), null);
 });
 
-// ── El esqueleto propio de las seis pantallas de B3 ──
+// ── El esqueleto propio de las seis pantallas nuevas ──
 
 // Las cajas de cada una, en orden: lo que va antes de su primer bloque y ese bloque.
 const B3_SKELETONS = {
@@ -247,7 +247,7 @@ test('las seis pantallas de B3, con su esqueleto: sus cajas con el alto medido a
     assert.equal(out.includes('<span class="sk sk-block-title"></span>'), id !== 'goleadores', `${id}: el título de bloque`);
     assert.equal(out.includes('<span class="sk sk-crest"></span>'), id === 'equipo', `${id}: el escudo en la cabecera`);
   }
-  // El alto de cada caja, el de lo que se ve tras el esqueleto a 390 px con las fixtures (Tarea 5, paso 0).
+  // El alto de cada caja, el de lo que se ve tras el esqueleto a 390 px con las fixtures.
   const height = (cls) => Number((decl(`.${cls}`).match(/(?:^|;)\s*height:\s*(\d+)px/) || [])[1]);
   assert.deepEqual(Object.fromEntries(Object.values(B3_SKELETONS).flat().map((cls) => [cls, height(cls)])), {
     'sk-box-team': 147, 'sk-box-search': 54, 'sk-box-leagues': 319, 'sk-box-groups': 197,

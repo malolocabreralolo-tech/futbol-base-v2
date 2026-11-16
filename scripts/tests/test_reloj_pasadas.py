@@ -143,7 +143,7 @@ def test_entering_a_window_the_next_pass_comes_sooner():
 
 
 def test_a_rerun_counts_from_when_it_was_relaunched():
-    """Relanzar una ejecución (Re-run) conserva su createdAt y cambia su startedAt (corrector del 17/10/2026):
+    """Relanzar una ejecución (Re-run) conserva su createdAt y cambia su startedAt:
     la 1120, creada el sábado 24/10 a las 10:08 de Canarias, falla y se relanza a las 11:30. En el tick de las
     11:52, con solo createdAt, «se creó hace 104 min» y el reloj lanzaba otra pasada ~20 min después de
     acabar el relanzamiento (y el relanzamiento repite el número: el mismo turno). Cuenta desde las 11:30."""
@@ -233,8 +233,8 @@ def test_it_runs_alone_with_the_system_python(tmp_path):
 def test_without_the_time_zones_there_are_no_windows_but_the_clock_goes_on(monkeypatch, tmp_path, capsys):
     """Sin la zona Atlantic/Canary (ZoneInfoNotFoundError, un KeyError: la base de zonas del sistema no está y
     el reloj no instala tzdata), el reloj no sabe la hora de Canarias: sin ventanas, una pasada cada 2 h
-    (BASE), con un aviso, y sin dejar el job en rojo (corrector del 17/10/2026: salía con una traza, sin due,
-    y como update.yml no tiene cron no había ninguna pasada)."""
+    (BASE), con un aviso, y sin dejar el job en rojo (sin ello saldría con una traza, sin due,
+    y como update.yml no tiene cron no habría ninguna pasada)."""
     def missing(key):
         raise zoneinfo.ZoneInfoNotFoundError(f"No time zone found with key {key}")
     monkeypatch.setattr(R, "ZoneInfo", missing)
