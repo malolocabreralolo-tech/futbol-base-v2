@@ -32,6 +32,7 @@ sys.path.insert(1, str(Path(__file__).resolve().parents[1]))
 from fetch_fiflp_actas import SEASON_NAME, catalog_comps, _options  # noqa: E402
 from fiflp_render import flatten, fiflp_launch_args  # noqa: E402
 from update_fiflp import GOLEADORES_URL, parse_goleadores  # noqa: E402
+from escritura import escribir_atomico  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 
@@ -51,7 +52,7 @@ def load(path):
 
 
 def save(path, data):
-    path.write_text(json.dumps(data, ensure_ascii=False, indent=1, sort_keys=True) + "\n", encoding="utf-8")
+    escribir_atomico(path, json.dumps(data, ensure_ascii=False, indent=1, sort_keys=True) + "\n")
 
 
 def done(entry):

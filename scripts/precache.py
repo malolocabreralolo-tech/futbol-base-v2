@@ -27,6 +27,8 @@ import re
 import sys
 from pathlib import Path
 
+from escritura import escribir_atomico
+
 ROOT = Path(__file__).resolve().parents[1]
 INICIO = "// >>> precache: lo escribe scripts/precache.py"
 FIN = "// <<< precache"
@@ -120,7 +122,7 @@ def escribir(root=ROOT):
     nuevo = sw[:start] + bloque(precache, opcionales) + sw[end:]
     if nuevo == sw:
         return False
-    (root / "sw.js").write_text(nuevo, encoding="utf-8")
+    escribir_atomico(root / "sw.js", nuevo)
     print(f"  sw.js precache: {len(precache)} ficheros, {len(opcionales)} opcionales")
     return True
 

@@ -42,6 +42,7 @@ except ImportError:
 # Allow importing db.py from the same directory
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from db import get_connection, PROJECT_ROOT
+from escritura import escribir_atomico  # noqa: E402
 import precache  # noqa: E402
 
 
@@ -902,8 +903,7 @@ def write_lineups(conn, root=None):
             os.remove(os.path.join(root, name))
             print(f"  {name}: borrado")
     for name, content in files.items():
-        with open(os.path.join(root, name), "w", encoding="utf-8") as f:
-            f.write(content)
+        escribir_atomico(os.path.join(root, name), content)
     print(f"  {len(files)} ficheros data-lineups-<S>-<grupo>.js")
     return files
 
@@ -1099,8 +1099,7 @@ def write_jugadores(conn, root=None):
     root = root or PROJECT_ROOT
     files = jugadores_files(conn)
     for name, content in files.items():
-        with open(os.path.join(root, name), "w", encoding="utf-8") as f:
-            f.write(content)
+        escribir_atomico(os.path.join(root, name), content)
     total = sum(len(c) for c in files.values())
     print(f"  {len(files)} ficheros data-jugadores-<k>.js, {total:,} bytes")
     return files
@@ -1533,15 +1532,13 @@ def generate_per_season_files(seasons_list):
         alevin = s.get("_alevin")
         s = {k: v for k, v in s.items() if k != "_alevin"}
         content = f"const {var_name}=" + js_val(s) + ";\n"
-        with open(out_path, "w", encoding="utf-8") as f:
-            f.write(content)
+        escribir_atomico(out_path, content)
         written.append((name, len(content)))
         # El alevín, en su fichero (perezoso, fuera del precache del SW: docs/alevin.md §5); el de una
         # temporada que ya no tiene alevín, fuera (la web trata su 404 como «sin alevín»).
         alevin_path = os.path.join(PROJECT_ROOT, f"data-season-{name}-alevin.js")
         if alevin:
-            with open(alevin_path, "w", encoding="utf-8") as f:
-                f.write(f"const {var_name}_ALEVIN=" + js_val(alevin) + ";\n")
+            escribir_atomico(alevin_path, f"const {var_name}_ALEVIN=" + js_val(alevin) + ";\n")
             print(f"  data-season-{name}-alevin.js: {os.path.getsize(alevin_path):,} bytes")
         elif os.path.exists(alevin_path):
             os.remove(alevin_path)
@@ -1619,8 +1616,7 @@ def bump_cache_version(root=None, touch_footer=True, version=None):
             new_content
         )
     if new_content != content:
-        with open(index_path, "w", encoding="utf-8") as f:
-            f.write(new_content)
+        escribir_atomico(index_path, new_content)
         print(f"  index.html cache version bumped to ?v={version}")
 
     # C3: keep sw.js CACHE_NAME (first line, /futbolbase2-v[0-9a-z]+/) in sync
@@ -1631,8 +1627,7 @@ def bump_cache_version(root=None, touch_footer=True, version=None):
             sw = f.read()
         new_sw = re.sub(r"futbolbase2-v[0-9a-z]+", f"futbolbase2-v{version}", sw, count=1)
         if new_sw != sw:
-            with open(sw_path, "w", encoding="utf-8") as f:
-                f.write(new_sw)
+            escribir_atomico(sw_path, new_sw)
             print(f"  sw.js CACHE_NAME bumped to futbolbase2-v{version}")
     else:
         print("  WARNING: sw.js not found, skipping CACHE_NAME bump")
@@ -1653,8 +1648,7 @@ def bump_if_changed(before_snapshot, root=None):
 def write_file(filename, content):
     """Write content to a file in the project root."""
     path = os.path.join(PROJECT_ROOT, filename)
-    with open(path, "w", encoding="utf-8") as f:
-        f.write(content)
+    escribir_atomico(path, content)
     size = os.path.getsize(path)
     print(f"  {filename}: {size:,} bytes")
 

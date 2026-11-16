@@ -24,6 +24,9 @@ Thumbs.db
 # Datos sensibles
 datos-fuente/fiflp_cookies.txt
 
+# Temporales de la escritura atómica (scripts/escritura.py): un corte puede dejar alguno.
+*.tmp
+
 # SQLite transients (futbolbase.db itself is tracked)
 *.db-wal
 *.db-shm

@@ -45,6 +45,7 @@ import fiflp_manifest as M  # noqa: E402
 from activate_season import add_groups, fiflp_ids, raw_team_names, validate_manifest, verify_sources  # noqa: E402
 from categorias import category_of  # noqa: E402
 from db import get_connection  # noqa: E402
+from escritura import escribir_atomico  # noqa: E402
 from source_health import RETRY_AFTER  # noqa: E402
 
 # Los motivos de fallo (activation.failed[].reason), con estos textos: «Datos y fuentes» los enseña y
@@ -313,7 +314,7 @@ def escribir_manifiesto(root, season, groups, today=None):
     fresh = {g["id"] for g in groups}
     manifest = {"season": season, "groups": [g for g in before if g.get("id") not in fresh] + list(groups)}
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    escribir_atomico(path, json.dumps(manifest, ensure_ascii=False, indent=2) + "\n")
     return path
 
 
@@ -333,7 +334,7 @@ def escribir_activacion(health_path, activation, done_comps, season_pairs):
             report[key] = items
         else:
             report.pop(key, None)
-    Path(health_path).write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    escribir_atomico(health_path, json.dumps(report, ensure_ascii=False, indent=2) + "\n")
 
 
 def intentos(previous, tried):

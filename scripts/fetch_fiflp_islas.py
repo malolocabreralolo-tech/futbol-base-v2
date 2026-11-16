@@ -39,6 +39,7 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import fetch_fiflp_2425 as F
 from categorias import DEFAULT_CATEGORIES, category_of, parse_categories, web_key
+from escritura import escribir_atomico
 
 # CodTemporada -> competiciones insulares de benjamín/prebenjamín (fútbol 7/8,
 # nada de sala). Tomadas del catálogo FIFLP por season_code.
@@ -196,8 +197,7 @@ def drop_empty_groups(path):
         data = json.load(f)
     kept = [g for g in data if g.get("jornadas") or g.get("standings")]
     if len(kept) != len(data):
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump(kept, f, ensure_ascii=False, indent=2)
+        escribir_atomico(path, json.dumps(kept, ensure_ascii=False, indent=2))
     return len(data) - len(kept)
 
 
@@ -232,10 +232,7 @@ def guardar_por_grupo(path, hasta=None, now=None):
         keys = {(str(g.get("competition_id")), str(g.get("group_id"))) for g in data}
         if (str(gdata.get("competition_id")), str(gdata.get("group_id"))) not in keys:
             data.append(gdata)
-            tmp = f"{path}.tmp"
-            with open(tmp, "w", encoding="utf-8") as f:
-                json.dump(data, f, ensure_ascii=False, indent=2)
-            os.replace(tmp, path)
+            escribir_atomico(path, json.dumps(data, ensure_ascii=False, indent=2))
         if hasta is not None and now() >= hasta:
             raise Plazo(f"plazo de la descarga agotado tras {gdata.get('competition_id')}_{gdata.get('group_id')}")
     return hook

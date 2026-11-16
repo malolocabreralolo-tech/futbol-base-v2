@@ -29,6 +29,7 @@ try:
     from scripts.migrate_actas_schema import STAFF_KINDS
     from scripts import actas_lotes
     from scripts.migrate_identidad import norm_sin_id, poner_claves
+    from scripts.escritura import escribir_atomico
 except ImportError:
     # Direct CLI run (`python3 scripts/import_fiflp_actas.py`): sys.path[0] is
     # scripts/, so the `scripts.` package is not importable. Add the repo root.
@@ -38,6 +39,7 @@ except ImportError:
     from scripts.migrate_actas_schema import STAFF_KINDS
     from scripts import actas_lotes
     from scripts.migrate_identidad import norm_sin_id, poner_claves
+    from scripts.escritura import escribir_atomico
 
 UNMATCHED_PATH = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fiflp_actas_unmatched.json")
 
@@ -411,8 +413,7 @@ def _load_unmatched() -> dict:
 
 
 def _save_unmatched(d: dict) -> None:
-    with open(UNMATCHED_PATH, "w", encoding="utf-8") as f:
-        json.dump(d, f, ensure_ascii=False, indent=2, sort_keys=True)
+    escribir_atomico(UNMATCHED_PATH, json.dumps(d, ensure_ascii=False, indent=2, sort_keys=True))
 
 
 # ---------------------------------------------------------------------------

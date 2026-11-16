@@ -34,6 +34,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from fiflp_detalle import parse_campo, parse_clasificacion, parse_directorio  # noqa: E402
+from escritura import escribir_atomico  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 DB_PATH = HERE.parent / "futbolbase.db"
@@ -93,7 +94,7 @@ def load(path):
 
 
 def save(path, data):
-    path.write_text(json.dumps(data, ensure_ascii=False, indent=1, sort_keys=True) + "\n", encoding="utf-8")
+    escribir_atomico(path, json.dumps(data, ensure_ascii=False, indent=1, sort_keys=True) + "\n")
 
 
 def group_done(entry, jornadas):

@@ -41,6 +41,7 @@ from datetime import date, datetime, timedelta
 from pathlib import Path
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from escritura import escribir_atomico  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 API = "https://futbolaspalmas.com/directo.php"
@@ -159,7 +160,7 @@ def run(season, today=None, log=print):
         except Exception as e:
             log(f"  ! día {day}: {e}")
         time.sleep(DELAY)
-    path.write_text(json.dumps(data, ensure_ascii=False, indent=1, sort_keys=True) + "\n", encoding="utf-8")
+    escribir_atomico(path, json.dumps(data, ensure_ascii=False, indent=1, sort_keys=True) + "\n")
     return data
 
 

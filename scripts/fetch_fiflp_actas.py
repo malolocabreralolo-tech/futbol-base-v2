@@ -30,6 +30,7 @@ import os, sys, re, json, time, random, argparse, threading
 from pathlib import Path
 from scripts.acta_parser import parse_acta
 from scripts import actas_lotes
+from scripts.escritura import escribir_atomico
 
 # Playwright is only needed at runtime (inside main()). Importing it at module
 # level made the Tests CI pytest job red because the runner doesn't install
@@ -283,9 +284,7 @@ def load_raw(season_code, lote=""):
 
 
 def save_raw(season_code, data, lote=""):
-    raw_path(season_code, lote).write_text(
-        json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8"
-    )
+    escribir_atomico(raw_path(season_code, lote), json.dumps(data, ensure_ascii=False, indent=2))
 
 
 def acta_lote(acta, default=None):
@@ -666,7 +665,7 @@ def fetch_and_parse_acta(page, cod_acta, dump_fixture_for=None, max_retries=2):
         fix_dir = Path("scripts/tests/fixtures")
         fix_dir.mkdir(parents=True, exist_ok=True)
         out_path = fix_dir / f"acta_live_{cod_acta}.html"
-        out_path.write_text(html, encoding="utf-8")
+        escribir_atomico(out_path, html)
         print(f"  dumped fixture: {out_path}")
     try:
         # Primero el acta tal como se ve (fiflp_render aplana la ofuscación de
@@ -702,7 +701,7 @@ def fetch_and_parse_acta(page, cod_acta, dump_fixture_for=None, max_retries=2):
         fix_dir = Path("scripts/tests/fixtures")
         fix_dir.mkdir(parents=True, exist_ok=True)
         out_path = fix_dir / f"acta_failed_{cod_acta}.html"
-        out_path.write_text(html, encoding="utf-8")
+        escribir_atomico(out_path, html)
         print(f"  ! parse failed silently (after {max_retries} retries) — dumped HTML to {out_path}")
         fetch_and_parse_acta._dumped_failure = True
     return result
@@ -878,10 +877,10 @@ def main():
             for t in actas:
                 index[t["cod_acta"]] = {k: v for k, v in t.items() if k != "cod_acta"}
             # Tras cada competición: una tanda cortada no pierde lo enumerado.
-            ipath.write_text(json.dumps(index, ensure_ascii=False, indent=1), encoding="utf-8")
+            escribir_atomico(ipath, json.dumps(index, ensure_ascii=False, indent=1))
             print(f"    ({time.time() - started:.0f} s)")
             delay()
-        ipath.write_text(json.dumps(index, ensure_ascii=False, indent=1), encoding="utf-8")
+        escribir_atomico(ipath, json.dumps(index, ensure_ascii=False, indent=1))
 
         # Dedupe all_targets by cod_acta (multiple comps may reference same acta)
         seen_t: set = set()
@@ -917,10 +916,10 @@ def main():
     store.save(force=True)
     left = sum(1 for t in all_targets if wanted(t["cod_acta"]))
     # Una competición sin enumerar por falta de plazo cuenta como pendiente: la cadena sigue.
-    status_path(season, lote).write_text(json.dumps(
+    escribir_atomico(status_path(season, lote), json.dumps(
         {"season": SEASON_NAME[season], "enumerated": len(all_targets), "in_raw": len(store.data),
          "pending": left + unenumerated, "unenumerated_comps": unenumerated,
-         "fetched": collector.fetched}, indent=1) + "\n", encoding="utf-8")
+         "fetched": collector.fetched}, indent=1) + "\n")
     print(f"Done season {season} ({raw_path(season, lote).name}): total {len(store.data)} actas in raw, {left} pending")
 
 

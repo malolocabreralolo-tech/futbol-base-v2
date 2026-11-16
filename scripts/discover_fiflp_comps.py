@@ -16,6 +16,8 @@ import sys
 
 from playwright.sync_api import sync_playwright
 
+from escritura import escribir_atomico
+
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 OUTPUT = os.path.join(SCRIPT_DIR, "fiflp_comps_catalog.json")
 BASE = "https://www.fiflp.com/pnfg/NPcd"
@@ -106,8 +108,7 @@ def main():
 
         browser.close()
 
-    with open(OUTPUT, "w", encoding="utf-8") as f:
-        json.dump(results, f, ensure_ascii=False, indent=2)
+    escribir_atomico(OUTPUT, json.dumps(results, ensure_ascii=False, indent=2))
     print(f"\nSaved to {OUTPUT}")
 
 

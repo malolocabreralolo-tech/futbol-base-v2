@@ -23,6 +23,8 @@ import subprocess
 import sys
 from pathlib import Path
 
+from escritura import escribir_atomico
+
 ROOT = Path(__file__).resolve().parents[1]
 EMPAQUETAR = ROOT / "scripts" / "empaquetar" / "empaquetar.mjs"
 ESBUILD = ROOT / "scripts" / "empaquetar" / "node_modules" / "esbuild"
@@ -147,10 +149,10 @@ def main(argv=None):
             path.unlink()
     want = huella(root)
     origen = {"codigo": want, "app": rutas["app"], "css": rutas["css"], "externos": EXTERNOS}
-    (root / "dist" / "origen.json").write_text(json.dumps(origen, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    escribir_atomico(root / "dist" / "origen.json", json.dumps(origen, ensure_ascii=False, indent=2) + "\n")
     nuevo = CSS_RE.sub(f"./{rutas['css']}", APP_RE.sub(f"./{rutas['app']}", index))
     if nuevo != index:
-        index_path.write_text(nuevo, encoding="utf-8")
+        escribir_atomico(index_path, nuevo)
     print(f"fuentes {want}: {rutas['app']} y {rutas['css']}, en index.html (el precache de sw.js: scripts/precache.py)")
     return 0
 

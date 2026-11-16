@@ -1201,7 +1201,7 @@ def _run_launch(tmp_path, report, gh_exit=0):
     _, step = _update_step(LANZAR)
     work = tmp_path / "arbol"
     (work / "scripts").mkdir(parents=True)
-    for name in ("source_health.py", "portal_config.py"):
+    for name in ("source_health.py", "portal_config.py", "escritura.py"):
         shutil.copy2(ROOT / "scripts" / name, work / "scripts" / name)
     (work / "data-health.json").write_text(json.dumps(report), encoding="utf-8")
     bin_dir, calls = tmp_path / "bin", tmp_path / "gh-llamadas"

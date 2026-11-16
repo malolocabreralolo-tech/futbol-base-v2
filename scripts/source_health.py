@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import re
 import sys
+from escritura import escribir_atomico
 from portal_config import load_config
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -253,7 +254,7 @@ def finish(now=None, failed=False):
                 for code in _timed)
     if not timed and meaningful(_report) == meaningful(_previous or {}) and _is_recent(_previous, now):
         return
-    REPORT_PATH.write_text(json.dumps(_report, ensure_ascii=False, indent=2) + "\n")
+    escribir_atomico(REPORT_PATH, json.dumps(_report, ensure_ascii=False, indent=2) + "\n")
 
 
 # Cuándo vuelve a lanzar el bot activar.yml (update.yml, «Lanzar la activación si hay algo nuevo», con
@@ -338,7 +339,7 @@ def main(argv=None, now=None):
         report["runHealth"] = _red(health, before + [args[1]] if args[1] not in before else before)
         if isinstance(health, dict) and health.get("drySince"):
             report["runHealth"]["drySince"] = health["drySince"]
-        REPORT_PATH.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n")
+        escribir_atomico(REPORT_PATH, json.dumps(report, ensure_ascii=False, indent=2) + "\n")
         return 0
     print('uso: source_health.py veredicto | marcar "<motivo>" | pendiente', file=sys.stderr)
     return 2
