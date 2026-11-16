@@ -1,0 +1,4 @@
+# Lo que instalan los workflows para las pruebas de Python, fijado: las versiones de la pasada del bot del 15/11/2026.
+# Solo lo que se instala por nombre (no es un fichero de bloqueo: sus dependencias las resuelve pip).
+pytest==9.2.0
+pyyaml==6.0.3

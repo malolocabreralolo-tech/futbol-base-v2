@@ -56,14 +56,20 @@ jobs:
         with:
           python-version: '3.11'
 
+      # El Node de las pruebas, fijado como en tests.yml (no el que traiga la imagen del runner).
+      - name: Set up Node
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+
       - name: Instalar dependencias de test
-        run: pip install pytest pyyaml
+        run: pip install -r scripts/requirements-tests.txt
 
       # Desde 2026/27 los grupos vienen de la federación (FIFLP), que solo
       # responde a un navegador y no a IPs domésticas: update_fiflp.py.
       - name: Instalar Playwright (grupos de la federación)
         run: |
-          pip install playwright
+          pip install -r scripts/requirements-bot.txt
           playwright install chromium --with-deps
 
       # Diagnóstico del freno de la federación (15/10/2026): la IP pública del runner, que cambia de una

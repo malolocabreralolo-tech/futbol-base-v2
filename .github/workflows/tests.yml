@@ -7,6 +7,7 @@ on:
       - 'scripts/**.py'
       - 'scripts/**.json'
       - 'scripts/**.sh'
+      - 'scripts/requirements-*.txt'
       - 'scripts/tests/**'
       - 'scripts/empaquetar/**'
       - 'dist/**'
@@ -33,6 +34,7 @@ on:
       - 'scripts/**.py'
       - 'scripts/**.json'
       - 'scripts/**.sh'
+      - 'scripts/requirements-*.txt'
       - 'scripts/tests/**'
       - 'scripts/empaquetar/**'
       - 'dist/**'
@@ -78,7 +80,10 @@ jobs:
         with:
           node-version: '22'
       - name: Install pytest
-        run: pip install pytest pyyaml
+        run: pip install -r scripts/requirements-tests.txt
+      # El fichero del bot se resuelve (versiones que existen y casan entre sí) sin instalar Playwright aquí.
+      - name: Dependencias del bot instalables
+        run: pip install --dry-run -r scripts/requirements-bot.txt
       # Antes de instalar esbuild, como las corre el bot (update.yml y activar.yml no lo instalan): las pruebas
       # que dependen de si hay esbuild (las que importan codigo o publicar, y las del precache).
       - name: Pruebas de publicación sin esbuild (como el bot)
@@ -146,7 +151,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Install pytest
-        run: pip install pytest
+        run: pip install -r scripts/requirements-tests.txt
       - name: Copia de seguridad del PC (pc/copia)
         working-directory: pc/copia
         run: python3 -m pytest tests -q -W error

@@ -32,7 +32,7 @@ jobs:
           python-version: '3.11'
       - name: Install Playwright
         run: |
-          pip install playwright
+          pip install -r scripts/requirements-bot.txt
           playwright install chromium --with-deps
       # Las ligas de Gran Canaria son mucho mas grandes que las insulares
       # (12-14 grupos x ~26 jornadas con delay de 2-3s), asi que el limite de

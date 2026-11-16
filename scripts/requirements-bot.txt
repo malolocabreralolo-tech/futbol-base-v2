@@ -1,0 +1,5 @@
+# Lo que instalan los workflows que leen la federación (más las pruebas), fijado: la versión de la pasada del bot
+# del 15/11/2026. Solo lo que se instala por nombre (no es un fichero de bloqueo: greenlet, pyee… los resuelve pip).
+# Con Playwright fijado, `playwright install chromium` baja siempre el mismo Chromium (1.65.2: el 1255).
+-r requirements-tests.txt
+playwright==1.65.2

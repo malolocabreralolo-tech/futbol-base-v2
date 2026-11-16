@@ -182,8 +182,9 @@ def test_update_runs_both_suites_before_commit():
 def test_update_installs_test_dependencies():
     # pyyaml is needed by this very test file when CI runs pytest.
     runs = " ".join(_runs(_load("update.yml"), "update"))
-    assert re.search(r"pip install[^\n]*\bpytest\b", runs)
-    assert re.search(r"pip install[^\n]*\bpyyaml\b", runs)
+    assert "pip install -r scripts/requirements-tests.txt" in runs
+    assert "pip install -r scripts/requirements-bot.txt" in runs
+    assert {"pytest", "pyyaml"} <= set(_requisitos("requirements-tests.txt"))
 
 
 def test_update_has_concurrency_and_timeout():
@@ -787,7 +788,7 @@ def test_tests_yml_runs_the_pc_tests():
     dice su README: la de la copia desde su carpeta, que es la que hace importable su paquete (copia)."""
     steps = _steps(_load("tests.yml"), "pc-tests")
     runs = [(step.get("working-directory"), step.get("run") or "") for step in steps]
-    assert re.search(r"pip install[^\n]*\bpytest\b", " ".join(run for _, run in runs))
+    assert "pip install -r scripts/requirements-tests.txt" in " ".join(run for _, run in runs)
     assert ("pc/copia", "python3 -m pytest tests -q -W error") in runs, runs
     assert (None, "python3 -m pytest pc/reloj/tests -q -W error") in runs, runs
 
@@ -844,7 +845,7 @@ def test_tests_yml_pasa_las_pruebas_de_publicacion_sin_esbuild_como_el_bot():
     sin = names.index("Pruebas de publicación sin esbuild (como el bot)")
     install = next(i for i, step in enumerate(steps) if (step.get("run") or "").strip() == "npm ci --prefix scripts/empaquetar")
     assert sin < install, names
-    pip = next(i for i, step in enumerate(steps) if "pip install pytest" in (step.get("run") or ""))
+    pip = next(i for i, step in enumerate(steps) if "pip install -r scripts/requirements-tests.txt" in (step.get("run") or ""))
     assert pip < sin, names
     run = steps[sin]["run"]
     assert run.startswith("python3 -m pytest ") and "npm" not in run, run
@@ -856,9 +857,8 @@ def test_tests_yml_pasa_las_pruebas_de_publicacion_sin_esbuild_como_el_bot():
 
 def test_tests_yml_pytest_installs_pyyaml():
     runs = " ".join(_runs(_load("tests.yml"), "pytest"))
-    assert re.search(r"pip install[^\n]*\bpyyaml\b", runs), (
-        "pytest job must install pyyaml (test_workflows.py imports yaml)"
-    )
+    assert "pip install -r scripts/requirements-tests.txt" in runs, runs
+    assert "pyyaml" in _requisitos("requirements-tests.txt"), "test_workflows.py imports yaml"
 
 
 def test_python_tests_run_without_playwright():
@@ -870,6 +870,86 @@ def test_python_tests_run_without_playwright():
     for path in sorted((ROOT / "scripts" / "tests").glob("test_*.py")):
         for n, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1):
             assert not re.match(r"\s*(?:import|from)\s+playwright\b", line), f"{path.name}:{n}: {line.strip()}"
+
+
+# Lo que se instala con pip va fijado en dos ficheros (fase 4 de v2, tarea 4): con «lo último del día», una
+# versión nueva de Playwright (y su Chromium) entraba en el bot sin que nadie la probara.
+REQUISITOS = ROOT / "scripts"
+PIP_DESDE_FICHERO = re.compile(r"pip3? install (?:--dry-run )?-r scripts/requirements-(?:tests|bot)\.txt")
+
+
+def _requisitos(nombre):
+    """{paquete: versión} de un fichero de requisitos, sin comentarios, líneas vacías ni `-r`."""
+    fijados = {}
+    for line in (REQUISITOS / nombre).read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if line and not line.startswith(("#", "-r")):
+            paquete, _, version = line.partition("==")
+            fijados[paquete] = version
+    return fijados
+
+
+def test_requisitos_fijados():
+    """Cada paquete con su versión exacta; solo lo que los workflows instalan por nombre (no es un fichero de
+    bloqueo: las dependencias de cada uno las resuelve pip), y el del bot incluye el de las pruebas."""
+    for nombre in ("requirements-tests.txt", "requirements-bot.txt"):
+        for line in (REQUISITOS / nombre).read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if line and not line.startswith(("#", "-r")):
+                assert re.fullmatch(r"[a-z0-9_-]+==\d+(\.\d+)+", line), f"{nombre}: {line}"
+    assert set(_requisitos("requirements-tests.txt")) == {"pytest", "pyyaml"}
+    assert set(_requisitos("requirements-bot.txt")) == {"playwright"}
+    bot = (REQUISITOS / "requirements-bot.txt").read_text(encoding="utf-8").splitlines()
+    assert "-r requirements-tests.txt" in [line.strip() for line in bot]
+
+
+def test_pip_solo_desde_los_ficheros():
+    """Ningún workflow instala con pip un paquete por nombre: solo desde los ficheros de requisitos; y quien
+    baja Chromium (playwright install) instala antes el Playwright fijado."""
+    for name in sorted(WORKFLOWS):
+        runs = _all_runs(name)
+        for run in runs:
+            for m in re.finditer(r"\bpip3?\s+install\b[^\n]*", run):
+                assert PIP_DESDE_FICHERO.fullmatch(m.group(0).strip()), f"{name}: {m.group(0)}"
+        texto = "\n".join(runs)
+        if "playwright install" in texto:
+            bot = texto.find("pip install -r scripts/requirements-bot.txt")
+            assert 0 <= bot < texto.find("playwright install"), name
+
+
+def test_ci_sin_playwright_de_python():
+    """tests.yml instala las dependencias de las pruebas, no las del bot (sus pruebas corren sin Playwright de
+    Python: test_python_tests_run_without_playwright); del fichero del bot solo comprueba que se resuelve."""
+    data = _load("tests.yml")
+    pytest_runs = _runs(data, "pytest")
+    assert "pip install -r scripts/requirements-tests.txt" in pytest_runs
+    assert "pip install -r scripts/requirements-tests.txt" in _runs(data, "pc-tests")
+    for run in _all_runs("tests.yml"):
+        for m in re.finditer(r"\bpip3?\s+install\b[^\n]*requirements-bot\.txt", run):
+            assert "--dry-run" in m.group(0), m.group(0)
+    steps = _steps(data, "pytest")
+    names = [step.get("name") for step in steps]
+    assert "Dependencias del bot instalables" in names, names
+    paso = names.index("Dependencias del bot instalables")
+    assert steps[paso]["run"].strip() == "pip install --dry-run -r scripts/requirements-bot.txt"
+    instala = next(i for i, step in enumerate(steps) if "requirements-tests.txt" in (step.get("run") or ""))
+    assert instala < paso, names
+    trig = _triggers(data)
+    for event in ("push", "pull_request"):
+        assert "scripts/requirements-*.txt" in trig[event]["paths"], f"{event}: subir una versión corre las pruebas"
+
+
+@pytest.mark.parametrize("name,job", [("update.yml", "update"), ("activar.yml", "activar")])
+def test_node_fijado_en_el_bot(name, job):
+    """El bot corre sus pruebas de Node con el Node 22 de setup-node, como tests.yml, y no con el que traiga
+    la imagen del runner."""
+    steps = _steps(_load(name), job)
+    setup = [i for i, step in enumerate(steps) if str(step.get("uses", "")).startswith("actions/setup-node@")]
+    assert len(setup) == 1, name
+    assert steps[setup[0]]["with"]["node-version"] == "22", name
+    node = next(i for i, step in enumerate(steps) if re.search(r"(?:^|\s)node\s", step.get("run") or ""))
+    assert "node --test scripts/tests/test_*.mjs" in steps[node]["run"], (name, steps[node].get("name"))
+    assert setup[0] < node, name
 
 
 def test_tests_yml_paths_cover_fonts_icons_and_crests():
@@ -981,7 +1061,7 @@ def test_the_bot_works_on_the_current_main_not_on_the_dispatch_commit():
 # lo que se le pide.
 
 V2_REPO = "malolocabreralolo-tech/futbol-base-v2"
-ACTIVAR_STEPS = ["Checkout", "Set up Python", "Qué hay pendiente", "Instalar dependencias de test",
+ACTIVAR_STEPS = ["Checkout", "Set up Python", "Set up Node", "Qué hay pendiente", "Instalar dependencias de test",
                  "Instalar Playwright (federación)", "Catálogo de la temporada", "Descargar lo pendiente",
                  "Subir lo descargado", "Activar", "Cambios en la web", "Base sana (bloquea el commit si falla)",
                  "Tests Python (bloquean el commit si fallan)",
@@ -1039,9 +1119,9 @@ def test_activar_does_nothing_when_nothing_is_pending():
     ni se activa nada (y lo que viene después depende de que se activara) y el job acaba en verde."""
     _, job = _activar()
     by_name = {s["name"]: s for s in job["steps"]}
-    for name in ACTIVAR_STEPS[3:9]:
+    for name in ACTIVAR_STEPS[4:10]:
         assert PENDING in by_name[name]["if"], name
-    for name in ACTIVAR_STEPS[9:]:
+    for name in ACTIVAR_STEPS[10:]:
         cond = by_name[name]["if"]
         assert "steps.activar.outcome" in cond or "steps.cambios.outputs.datos" in cond or "steps.pytest.outcome" in cond, name
 

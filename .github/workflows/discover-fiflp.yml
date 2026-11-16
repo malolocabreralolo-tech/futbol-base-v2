@@ -23,7 +23,7 @@ jobs:
           python-version: '3.11'
       - name: Install Playwright
         run: |
-          pip install playwright
+          pip install -r scripts/requirements-bot.txt
           playwright install chromium --with-deps
       - name: Discover competitions across all seasons
         run: python3 scripts/discover_fiflp_comps.py
