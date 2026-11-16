@@ -1,5 +1,5 @@
 /**
- * Rediseño «Acta», competitionKey y groupLabel.
+ * Rediseño «Acta»: competitionKey y groupLabel.
  * Run: node --test scripts/tests/test_rediseno_model_competicion.mjs
  *
  * phases.json trae todas las fases reales de la base (2021-22 a 2025-26), y

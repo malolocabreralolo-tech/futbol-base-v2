@@ -1,4 +1,4 @@
-// Mi equipo, la portada, con datos reales
+// Mi equipo, la portada: con datos reales
 // congelados y `today` inyectado. render(ctx) se prueba sin DOM. El modelo del contexto es
 // createModel sobre las fixtures, con buildClubIndex inyectado.
 import test from 'node:test';

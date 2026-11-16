@@ -1,4 +1,4 @@
-// Pantalla Tabla. render(ctx)
+// Pantalla Tabla: render(ctx)
 // es pura: se prueba sobre el HTML que devuelve, con las fixtures congeladas y `today` inyectado.
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';

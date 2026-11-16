@@ -1,4 +1,4 @@
-// El marco de la app. shell.js, su CSS
+// El marco de la app: shell.js, su CSS
 // y la cabecera y el esqueleto de la portada que lleva index.html.
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';

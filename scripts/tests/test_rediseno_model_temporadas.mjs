@@ -1,5 +1,5 @@
 /**
- * Rediseño «Acta», model.js, filas, grupos y temporadas.
+ * Rediseño «Acta»: model.js, filas, grupos y temporadas.
  * Run: node --test scripts/tests/test_rediseno_model_temporadas.mjs
  *
  * Solo fixtures congeladas (scripts/tests/fixtures/rediseno/) y filas reales
