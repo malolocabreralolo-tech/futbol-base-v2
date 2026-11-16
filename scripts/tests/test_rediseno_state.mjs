@@ -16,8 +16,7 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const read = (path) => readFileSync(join(ROOT, path), 'utf8');
 
 // El <script> de data-seasons.js lleva la versión de los datos; el de data-benjamin.js, otra, para
-// comprobar que solo manda la de data-seasons.js (la app anterior la tomaba de data-matchdetail-keys.js,
-// que B4 retiró).
+// comprobar que solo manda la de data-seasons.js (data-matchdetail-keys.js ya no existe).
 const scripts = {
   'data-seasons.js': './data-seasons.js?v=20260923j',
   'data-benjamin.js': './data-benjamin.js?v=VIEJA',

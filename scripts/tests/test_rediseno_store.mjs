@@ -64,7 +64,7 @@ test('safeStorage acepta una función que devuelve el Storage y captura el error
   assert.equal(viaFunction.setItem('b', '2'), true);
   assert.equal(memory.getItem('b'), '2');
   // Con las cookies bloqueadas, solo con leer el Storage del navegador ya se lanza: un getter que
-  // lanza, como el de window.localStorage, y la función que B2 le pasa a safeStorage.
+  // lanza, como el de window.localStorage, y la función que la app le pasa a safeStorage.
   const browser = Object.defineProperty({}, 'localStorage', {
     get() { throw new Error('SecurityError: The operation is insecure.'); },
   });
