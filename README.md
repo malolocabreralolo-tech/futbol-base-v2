@@ -1,6 +1,6 @@
 # Fútbol Base Las Palmas
 
-Esto es la **v2** del portal, [en su propio enlace](https://malolocabreralolo-tech.github.io/futbol-base-v2/), al lado de la [v1](https://malolocabreralolo-tech.github.io/futbol-base/), la web de siempre, que no se toca: v2 tiene su repositorio, sus cachés y sus claves, y de v1 solo lee, una vez, «mi equipo», los vistos y los jugadores seguidos. Qué cambia y por qué, en el [diseño de v2](docs/superpowers/specs/2026-11-13-futbol-base-v2-design.md); la copia de seguridad en el PC, en [pc/copia/README.md](pc/copia/README.md).
+Esto es la **v2** del portal, [en su propio enlace](https://malolocabreralolo-tech.github.io/futbol-base-v2/), al lado de la [v1](https://malolocabreralolo-tech.github.io/futbol-base/), la web de siempre, que no se toca: v2 tiene su repositorio, sus cachés y sus claves, y de v1 solo lee, una vez, «mi equipo», los vistos y los jugadores seguidos. Qué cambia y por qué, en el [diseño de v2](docs/superpowers/specs/2026-11-13-futbol-base-v2-design.md); la copia de seguridad en el PC, en [pc/copia/README.md](pc/copia/README.md). Qué parte de la base se puede rehacer desde los originales guardados (comprobado) y qué no, en [docs/reconstruccion.md](docs/reconstruccion.md).
 
 [Ver el portal](https://malolocabreralolo-tech.github.io/futbol-base-v2/)
 

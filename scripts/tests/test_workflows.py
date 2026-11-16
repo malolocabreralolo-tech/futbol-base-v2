@@ -793,6 +793,23 @@ def test_tests_yml_runs_the_pc_tests():
     assert (None, "python3 -m pytest pc/reloj/tests -q -W error") in runs, runs
 
 
+def test_tests_yml_comprueba_la_reconstruccion():
+    """La prueba lenta de scripts/reconstruir.py (RECONSTRUIR=1, minutos sobre la base de verdad) va en un paso
+    propio del job de Python de tests.yml, después de la suite; la suite que pasa el bot en cada pasada la salta
+    (ni update.yml ni activar.yml ponen RECONSTRUIR)."""
+    steps = _steps(_load("tests.yml"), "pytest")
+    pasos = [i for i, step in enumerate(steps) if "test_reconstruir.py" in (step.get("run") or "")]
+    assert len(pasos) == 1, [step.get("name") for step in steps]
+    paso = steps[pasos[0]]
+    assert str((paso.get("env") or {}).get("RECONSTRUIR")) == "1", paso
+    assert paso["run"].strip() == "python3 -m pytest scripts/tests/test_reconstruir.py -q", paso["run"]
+    suite = next(i for i, step in enumerate(steps) if (step.get("run") or "").strip() == "python -m pytest scripts/tests/ -v")
+    assert suite < pasos[0]
+    assert not [step for step in steps if step is not paso and "RECONSTRUIR" in repr(step)]
+    for name in ("update.yml", "activar.yml"):
+        assert "RECONSTRUIR" not in (WF_DIR / name).read_text(encoding="utf-8"), name
+
+
 def test_tests_yml_render_smoke_intact():
     runs = " ".join(_runs(_load("tests.yml"), "render-smoke"))
     assert "node scripts/tests/render-smoke.mjs" in runs

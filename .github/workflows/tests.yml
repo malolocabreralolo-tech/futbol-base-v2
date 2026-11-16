@@ -92,6 +92,12 @@ jobs:
         run: npm ci --prefix scripts/empaquetar
       - name: Run Python tests
         run: python -m pytest scripts/tests/ -v
+      # Qué se rehace desde los originales (scripts/reconstruir.py, docs/reconstruccion.md), sobre copias de la
+      # base: minutos, por eso aquí aparte; la suite que pasa el bot en cada pasada la salta sin RECONSTRUIR.
+      - name: Reconstrucción desde los originales
+        env:
+          RECONSTRUIR: '1'
+        run: python3 -m pytest scripts/tests/test_reconstruir.py -q
 
   node-tests:
     runs-on: ubuntu-24.04
