@@ -499,83 +499,46 @@
     "name": "2027-2028",
     "status": "pending"
   },
-  "newCompetitions": [
-    {
-      "id": "54977125",
-      "name": "LIGA ALEVIN GRAN CANARIA FASE C",
-      "firstSeen": "2026-11-17"
-    },
-    {
-      "id": "55335271",
-      "name": "LIGA ALEVIN GRAN CANARIA FASE E",
-      "firstSeen": "2026-11-17"
-    },
-    {
-      "id": "55335272",
-      "name": "LIGA ALEVIN GRAN CANARIA FASE F",
-      "firstSeen": "2026-11-17"
-    }
-  ],
   "runHealth": {
     "ok": true
   },
   "activation": {
-    "at": "2026-11-17T18:52:07+00:00",
+    "at": "2026-11-17T19:42:39+00:00",
     "activated": [
-      {
-        "competition": "54977110",
-        "name": "LIGA ALEVIN GRAN CANARIA FASE A",
-        "codes": [
-          "ALA1",
-          "ALA2",
-          "ALA3"
-        ]
-      },
-      {
-        "competition": "54977117",
-        "name": "LIGA ALEVIN GRAN CANARIA LIGA B",
-        "codes": [
-          "ALB1",
-          "ALB2",
-          "ALB3"
-        ]
-      },
-      {
-        "competition": "55335268",
-        "name": "LIGA ALEVIN GRAN CANARIA FASE D",
-        "codes": [
-          "ALD1",
-          "ALD2",
-          "ALD3"
-        ]
-      }
-    ],
-    "failed": [
       {
         "competition": "54977125",
         "name": "LIGA ALEVIN GRAN CANARIA FASE C",
-        "reason": "la descarga no está completa: faltan 1 grupos"
+        "codes": [
+          "ALC1",
+          "ALC2",
+          "ALC3"
+        ]
       },
       {
         "competition": "55335271",
         "name": "LIGA ALEVIN GRAN CANARIA FASE E",
-        "reason": "la descarga no está completa: falta la lista de grupos de la federación"
+        "codes": [
+          "ALE1",
+          "ALE2",
+          "ALE3"
+        ]
       },
       {
         "competition": "55335272",
         "name": "LIGA ALEVIN GRAN CANARIA FASE F",
-        "reason": "la descarga no está completa: falta la lista de grupos de la federación"
+        "codes": [
+          "ALF1",
+          "ALF2"
+        ]
       }
     ],
+    "failed": [],
     "tried": [
-      "54977110",
-      "54977117",
       "54977125",
-      "55335268",
       "55335271",
       "55335272"
     ],
-    "attempts": 2
+    "attempts": 1
   },
   "run": {
     "pass": 73,

@@ -81,6 +81,78 @@
       "island": "grancanaria",
       "fullName": "ALEVIN SEGUNDA FASE D - GRUPO 3",
       "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=55335268&CodGrupo=55335304"
+    },
+    {
+      "id": "ALC1",
+      "cat": "alevin",
+      "name": "Grupo 1",
+      "phase": "Segunda Fase C",
+      "island": "grancanaria",
+      "fullName": "ALEVIN SEGUNDA FASE C - GRUPO 1",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54977125&CodGrupo=55335290"
+    },
+    {
+      "id": "ALC2",
+      "cat": "alevin",
+      "name": "Grupo 2",
+      "phase": "Segunda Fase C",
+      "island": "grancanaria",
+      "fullName": "ALEVIN SEGUNDA FASE C - GRUPO 2",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54977125&CodGrupo=55335291"
+    },
+    {
+      "id": "ALC3",
+      "cat": "alevin",
+      "name": "Grupo 3",
+      "phase": "Segunda Fase C",
+      "island": "grancanaria",
+      "fullName": "ALEVIN SEGUNDA FASE C - GRUPO 3",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54977125&CodGrupo=55335292"
+    },
+    {
+      "id": "ALE1",
+      "cat": "alevin",
+      "name": "Grupo 1",
+      "phase": "Segunda Fase E",
+      "island": "grancanaria",
+      "fullName": "ALEVIN SEGUNDA FASE E - GRUPO 1",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=55335271&CodGrupo=55335306"
+    },
+    {
+      "id": "ALE2",
+      "cat": "alevin",
+      "name": "Grupo 2",
+      "phase": "Segunda Fase E",
+      "island": "grancanaria",
+      "fullName": "ALEVIN SEGUNDA FASE E - GRUPO 2",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=55335271&CodGrupo=55335307"
+    },
+    {
+      "id": "ALE3",
+      "cat": "alevin",
+      "name": "Grupo 3",
+      "phase": "Segunda Fase E",
+      "island": "grancanaria",
+      "fullName": "ALEVIN SEGUNDA FASE E - GRUPO 3",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=55335271&CodGrupo=55335308"
+    },
+    {
+      "id": "ALF1",
+      "cat": "alevin",
+      "name": "Grupo 1",
+      "phase": "Segunda Fase F",
+      "island": "grancanaria",
+      "fullName": "ALEVIN SEGUNDA FASE F - GRUPO 1",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=55335272&CodGrupo=55335309"
+    },
+    {
+      "id": "ALF2",
+      "cat": "alevin",
+      "name": "Grupo 2",
+      "phase": "Segunda Fase F",
+      "island": "grancanaria",
+      "fullName": "ALEVIN SEGUNDA FASE F - GRUPO 2",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=55335272&CodGrupo=55335310"
     }
   ]
 }
