@@ -3,6 +3,7 @@ jugada no encuentra su partido (el rival tiene otro nombre) y lo entra otra vez.
 mismo enlace al acta (fiflp_acta): el bot se la pasaba de uno a otro en cada lectura del grupo. La función
 junta al equipo del nombre viejo en el de la clasificación, solo en ese grupo. Equipos y datos, inventados."""
 import sqlite3
+from datetime import date
 
 import pytest
 
@@ -291,3 +292,186 @@ def test_tras_write_round_con_el_rival_renombrado_queda_un_partido():
     U.write_round(conn, gid, J5, [{"home": "Casa", "away": "Nuevo", "hs": 1, "as": 4, "date": "2026-10-24",
                                    "time": "", "venue": "", "fiflp_acta": ACTA}], log=_quiet)
     assert len(_j5(conn, gid)) == 1
+
+
+# ── El camino del bot: update_group y update_groups ─────────────────────────
+
+def _fed_table(names, played=5):
+    return [{"pos": p, "team": t, "pts": 0, "j": played, "g": 0, "e": 0, "p": 0, "gf": 0, "gc": 0, "df": 0}
+            for p, t in enumerate(names, 1)]
+
+
+def _read(home, away, hs, as_, acta):
+    return {"home": home, "away": away, "hs": hs, "as": as_, "date": "2026-10-24", "time": "", "venue": "",
+            "fiflp_acta": acta}
+
+
+def _count(conn, gid):
+    return conn.execute("SELECT count(*) FROM matches WHERE group_id=?", (gid,)).fetchone()[0]
+
+
+def test_el_renombre_visto_en_la_pasada_no_deja_repetido_ni_acta_pendiente():
+    """La pasada en que la federación ya sirve el nombre nuevo (clasificación y jornada 5): update_group escribe
+    la jornada, que entra el partido otra vez, y lo junta antes de que se decidan las actas pendientes."""
+    conn = _db()
+    gid = _gid(conn, "BX1")
+    j1 = _match(conn, gid, "Jornada 1", "Otro", "Viejo", 2, 1, 900001, 900001)
+    _acta_children(conn, j1, "Otro", "Viejo")
+    old = _match(conn, gid, J5, "Casa", "Viejo", 1, 4, ACTA, ACTA)
+    _acta_children(conn, old, "Casa", "Viejo")
+    _match(conn, gid, "Jornada 6", "Viejo", "Casa")
+    _standings(conn, gid, ["Casa", "Otro", "Viejo"])
+    conn.commit()
+    n = _count(conn, gid)
+    status, _ = U.update_group(conn, gid, "BX1", _fed_table(["Casa", "Otro", "Nuevo"]),
+                               {J5: [_read("Casa", "Nuevo", 1, 4, ACTA)]}, log=_quiet)
+    assert status == "ok"
+    assert [r[1:] for r in _j5(conn, gid)] == [("Casa", "Nuevo", 1, 4, ACTA, ACTA)]
+    assert _count(conn, gid) == n
+    assert U.pending_actas(conn, gid) == []
+    assert _with_team(conn, gid, "Viejo") == [] and _strays(conn, gid) == []
+
+
+def test_la_jornada_vieja_servida_con_el_nombre_viejo_no_repite_cada_pasada():
+    """Ya juntado, la federación sigue sirviendo una jornada antigua con el nombre viejo: cada pasada la entra otra
+    vez y la junta en la misma pasada. El grupo no crece ni queda acta que pedir."""
+    conn, gid = _renamed()
+    assert U.merge_renamed_teams(conn, gid, log=_quiet) == 1
+    conn.commit()
+    n = _count(conn, gid)
+    table = _fed_table(["Casa", "Otro", "Tercero", "Cuarto", "Nuevo"])
+    rounds = {"Jornada 1": [_read("Otro", "Viejo", 2, 1, 900001)], J5: [_read("Casa", "Nuevo", 1, 4, ACTA)]}
+    for _ in range(2):
+        assert U.update_group(conn, gid, "BX1", table, rounds, log=_quiet)[0] == "ok"
+        assert _count(conn, gid) == n
+        assert U.pending_actas(conn, gid) == []
+        assert _with_team(conn, gid, "Viejo") == []
+
+
+def test_update_group_junta_antes_y_despues_de_escribir_las_jornadas(monkeypatch):
+    """Antes, para leer los nombres con el grupo limpio; después, para el repetido que entre en esta pasada."""
+    conn, gid = _renamed()
+    calls = []
+    merge, write = U.merge_renamed_teams, U.write_round
+    monkeypatch.setattr(U, "merge_renamed_teams", lambda *a, **k: calls.append("junta") or merge(*a, **k))
+    monkeypatch.setattr(U, "write_round", lambda *a, **k: calls.append("jornada") or write(*a, **k))
+    U.update_group(conn, gid, "BX1", _fed_table(["Casa", "Otro", "Tercero", "Cuarto", "Nuevo"]),
+                   {J5: [_read("Casa", "Nuevo", 1, 4, ACTA)]}, log=_quiet)
+    assert calls == ["junta", "jornada", "junta"]
+
+
+def test_update_groups_junta_todos_los_grupos_al_empezar(monkeypatch):
+    """Al empezar la pasada, en todos los grupos de la federación, y lo guarda aunque la federación no conteste."""
+    conn, gid = _renamed()
+    conn.execute("UPDATE groups SET url='https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?CodGrupo=1'")
+    conn.commit()
+
+    def down(work, deadline=None):
+        raise RuntimeError("sin navegador")
+    monkeypatch.setattr(U, "_with_browser", down)
+    monkeypatch.setattr(U.source_health, "record", lambda *a, **k: None)
+    U.update_groups(conn, 1, today=date(2026, 10, 25))
+    conn.rollback()
+    _assert_merged(conn, gid)
+
+
+# ── Lo que no es un renombre, y cómo se queda cada fila ─────────────────────
+
+def _pair(rows, listed=("Casa", "Nuevo", "Otro", "Tercero")):
+    conn = _db()
+    gid = _gid(conn, "BX1")
+    for row in rows:
+        _match(conn, gid, *row)
+    _standings(conn, gid, list(listed))
+    conn.commit()
+    return conn, gid
+
+
+@pytest.mark.parametrize("rows", [
+    # Cuatro equipos distintos: nada en común.
+    [(J5, "Casa", "Viejo", 1, 4, ACTA), (J5, "Otro", "Nuevo", 1, 4, ACTA)],
+    # Un equipo en común, pero en lados distintos.
+    [(J5, "Casa", "Viejo", 1, 4, ACTA), (J5, "Nuevo", "Casa", 1, 4, ACTA)],
+    # Otra jornada.
+    [(J5, "Casa", "Viejo", 1, 4, ACTA), ("Jornada 6", "Casa", "Nuevo", 1, 4, ACTA)],
+    # Otro marcador.
+    [(J5, "Casa", "Viejo", 1, 4, ACTA), (J5, "Casa", "Nuevo", 1, 3, ACTA)],
+    # Sin jornada.
+    [(None, "Casa", "Viejo", 1, 4, ACTA), (None, "Casa", "Nuevo", 1, 4, ACTA)],
+], ids=["cuatro-equipos", "otro-lado", "otra-jornada", "otro-marcador", "sin-jornada"])
+def test_no_es_el_mismo_partido(rows):
+    conn, gid = _pair(rows)
+    before = _dump(conn)
+    assert U.merge_renamed_teams(conn, gid, log=_quiet) == 0
+    assert _dump(conn) == before
+
+
+def test_el_mismo_cruce_en_otra_jornada_no_se_toca():
+    """Al pasar un partido del viejo al nuevo, el repetido se busca en SU jornada: el mismo cruce del nuevo en otra
+    jornada es otro partido."""
+    conn, gid = _renamed()
+    _match(conn, gid, "Jornada 8", "Casa", "Viejo")
+    _match(conn, gid, "Jornada 9", "Casa", "Nuevo")
+    conn.commit()
+    assert U.merge_renamed_teams(conn, gid, log=_quiet) == 1
+    assert [j for (j,) in _with_team(conn, gid, "Nuevo")] == [
+        "Jornada 1", "Jornada 2", "Jornada 4", J5, "Jornada 6", "Jornada 8", "Jornada 9"]
+
+
+def test_entre_dos_filas_sin_acta_se_queda_la_jugada():
+    """Ninguna tiene acta ni lo que cuelga de ella: se queda la que tiene marcador, aunque sea la más nueva."""
+    conn, gid = _renamed()
+    _match(conn, gid, "Jornada 8", "Tercero", "Viejo")
+    _match(conn, gid, "Jornada 8", "Tercero", "Nuevo", 2, 2, 900008)
+    conn.commit()
+    assert U.merge_renamed_teams(conn, gid, log=_quiet) == 1
+    assert conn.execute("""SELECT home_score, away_score, fiflp_acta FROM matches WHERE group_id=?
+                           AND jornada='Jornada 8'""", (gid,)).fetchall() == [(2, 2, 900008)]
+
+
+def test_las_hijas_de_la_fila_que_se_va_pasan_a_la_que_se_queda_si_no_tiene():
+    """El código del acta en una fila (se queda) y lo que cuelga de ella en la otra: pasa a la que se queda."""
+    conn = _db()
+    gid = _gid(conn, "BX1")
+    old = _match(conn, gid, J5, "Casa", "Viejo", 1, 4, ACTA)
+    _acta_children(conn, old, "Casa", "Viejo")
+    new = _match(conn, gid, J5, "Casa", "Nuevo", 1, 4, ACTA, ACTA)
+    _standings(conn, gid, ["Casa", "Nuevo"])
+    conn.commit()
+    assert U.merge_renamed_teams(conn, gid, log=_quiet) == 1
+    assert [r[0] for r in _j5(conn, gid)] == [new]
+    assert _children(conn, new) == (17, 5, 6)
+    assert _sides(conn, gid, J5) == {("local", "Casa"): 9, ("visitante", "Nuevo"): 8}
+    assert conn.execute("PRAGMA foreign_key_check").fetchall() == []
+
+
+def test_las_hijas_de_la_fila_que_se_va_se_borran_si_la_que_se_queda_tiene_las_suyas():
+    conn = _db()
+    gid = _gid(conn, "BX1")
+    old = _match(conn, gid, J5, "Casa", "Viejo", 1, 4, ACTA)
+    _acta_children(conn, old, "Casa", "Viejo")
+    new = _match(conn, gid, J5, "Casa", "Nuevo", 1, 4, ACTA, ACTA)
+    _acta_children(conn, new, "Casa", "Nuevo")
+    _standings(conn, gid, ["Casa", "Nuevo"])
+    conn.commit()
+    assert U.merge_renamed_teams(conn, gid, log=_quiet) == 1
+    assert [r[0] for r in _j5(conn, gid)] == [new]
+    assert _children(conn, new) == (17, 5, 6)
+    assert sum(conn.execute(f"SELECT count(*) FROM {t}").fetchone()[0]
+               for t in ("appearances", "match_events", "match_staff_all")) == 17 + 5 + 6
+    assert conn.execute("PRAGMA foreign_key_check").fetchall() == []
+
+
+def test_un_error_a_mitad_deja_el_grupo_como_estaba():
+    """Un fallo en el último paso (el cuerpo técnico) deshace también los partidos ya juntados, y la conexión no
+    queda a medias."""
+    conn, gid = _renamed()
+    conn.execute("""CREATE TRIGGER falla BEFORE UPDATE OF team_id ON match_staff_all
+                    BEGIN SELECT RAISE(ABORT, 'falla'); END""")
+    conn.commit()
+    before = _dump(conn)
+    lines = []
+    assert U.merge_renamed_teams(conn, gid, log=lines.append) == 0
+    assert not conn.in_transaction
+    assert _dump(conn) == before
+    assert len(lines) == 1 and "!" in lines[0] and lines[0].count("BX1") == 1

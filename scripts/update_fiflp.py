@@ -916,13 +916,14 @@ def merge_twin_teams(conn, group_id, log=print):
 def _renamed_pairs(conn, group_id):
     """[{equipo, equipo}] de un grupo que juegan el mismo partido: dos partidos jugados con el mismo enlace
     al acta (fiflp_acta), la misma jornada y el mismo marcador, con un equipo en el mismo lado y el otro
-    distinto. Es un equipo que la federación renombró: la lectura de la jornada no encontró el partido."""
+    distinto. Es un equipo que la federación renombró: la lectura de la jornada no encontró el partido. Sin
+    jornada no se sabe si es el mismo partido: no entra."""
     from itertools import combinations
     same = {}
     for jornada, home, away, hs, as_, acta in conn.execute(
             """SELECT jornada, home_team_id, away_team_id, home_score, away_score, fiflp_acta FROM matches
                WHERE group_id=? AND fiflp_acta IS NOT NULL AND home_score IS NOT NULL AND away_score IS NOT NULL
-               ORDER BY id""", (group_id,)):
+               AND jornada IS NOT NULL ORDER BY id""", (group_id,)):
         same.setdefault((acta, jornada, hs, as_), []).append((home, away))
     pairs = []
     for fixtures in same.values():
@@ -937,7 +938,7 @@ def merge_renamed_teams(conn, group_id, log=print):
     """El mismo partido dos veces porque la federación renombró a un equipo (_renamed_pairs): de los dos
     nombres se queda el de la clasificación del grupo y todos los partidos del grupo del otro pasan a él. De
     un partido que así queda repetido se queda uno: el que tiene el acta importada (cod_acta); si no, el que
-    tiene lo que cuelga de ella; si no, el más antiguo; lo que cuelga del otro pasa al que se queda si no
+    tiene lo que cuelga de ella; si no, el que tiene marcador; si no, el más antiguo; lo que cuelga del otro pasa al que se queda si no
     tiene lo suyo; y lo que cuelga de las actas de los partidos del grupo pasa del equipo viejo al nuevo. Si
     los dos nombres o ninguno están en la clasificación, o juegan entre sí, no se toca nada y se avisa. No
     toca el equipo, su clasificación, sus goleadores ni otros grupos. Idempotente; devuelve cuántos equipos
@@ -956,8 +957,8 @@ def merge_renamed_teams(conn, group_id, log=print):
                    for t in children)
 
     def keep_first(match):
-        cod = conn.execute("SELECT cod_acta FROM matches WHERE id=?", (match,)).fetchone()[0]
-        return (cod is None, not has(match, acta), match)
+        cod, score = conn.execute("SELECT cod_acta, home_score FROM matches WHERE id=?", (match,)).fetchone()
+        return (cod is None, not has(match, acta), score is None, match)
 
     merged = 0
     for pair in pairs:
@@ -1459,6 +1460,9 @@ def update_group(conn, group_id, code, raw_standings, raw_rounds, log=print):
                           "fiflp_acta": m.get("fiflp_acta")})
         for i, n in enumerate(write_round(conn, group_id, label, clean, log)):
             totals[i] += n
+    # Una jornada leída con un nombre que la federación ya cambió entra el partido otra vez: se junta antes de
+    # publicarlo y de que se pida su acta.
+    merge_renamed_teams(conn, group_id, log)
     totals[2] += reconcile_with_table(conn, group_id, log)
     current = current_round(conn, group_id)
     if current:
