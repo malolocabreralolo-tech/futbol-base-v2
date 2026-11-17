@@ -485,38 +485,51 @@
     "ok": true
   },
   "activation": {
-    "at": "2026-11-17T17:57:52+00:00",
-    "activated": [],
-    "failed": [
+    "at": "2026-11-17T18:52:07+00:00",
+    "activated": [
       {
         "competition": "54977110",
         "name": "LIGA ALEVIN GRAN CANARIA FASE A",
-        "reason": "sin convenio de código: LIGA ALEVIN GRAN CANARIA FASE A"
+        "codes": [
+          "ALA1",
+          "ALA2",
+          "ALA3"
+        ]
       },
       {
         "competition": "54977117",
         "name": "LIGA ALEVIN GRAN CANARIA LIGA B",
-        "reason": "sin convenio de código: LIGA ALEVIN GRAN CANARIA LIGA B"
-      },
-      {
-        "competition": "54977125",
-        "name": "LIGA ALEVIN GRAN CANARIA FASE C",
-        "reason": "sin convenio de código: LIGA ALEVIN GRAN CANARIA FASE C"
+        "codes": [
+          "ALB1",
+          "ALB2",
+          "ALB3"
+        ]
       },
       {
         "competition": "55335268",
         "name": "LIGA ALEVIN GRAN CANARIA FASE D",
-        "reason": "sin convenio de código: LIGA ALEVIN GRAN CANARIA FASE D"
+        "codes": [
+          "ALD1",
+          "ALD2",
+          "ALD3"
+        ]
+      }
+    ],
+    "failed": [
+      {
+        "competition": "54977125",
+        "name": "LIGA ALEVIN GRAN CANARIA FASE C",
+        "reason": "la descarga no está completa: faltan 1 grupos"
       },
       {
         "competition": "55335271",
         "name": "LIGA ALEVIN GRAN CANARIA FASE E",
-        "reason": "sin convenio de código: LIGA ALEVIN GRAN CANARIA FASE E"
+        "reason": "la descarga no está completa: falta la lista de grupos de la federación"
       },
       {
         "competition": "55335272",
         "name": "LIGA ALEVIN GRAN CANARIA FASE F",
-        "reason": "sin convenio de código: LIGA ALEVIN GRAN CANARIA FASE F"
+        "reason": "la descarga no está completa: falta la lista de grupos de la federación"
       }
     ],
     "tried": [
@@ -527,24 +540,9 @@
       "55335271",
       "55335272"
     ],
-    "attempts": 1
+    "attempts": 2
   },
   "newCompetitions": [
-    {
-      "id": "54977110",
-      "name": "LIGA ALEVIN GRAN CANARIA FASE A",
-      "firstSeen": "2026-11-17"
-    },
-    {
-      "id": "55335268",
-      "name": "LIGA ALEVIN GRAN CANARIA FASE D",
-      "firstSeen": "2026-11-17"
-    },
-    {
-      "id": "54977117",
-      "name": "LIGA ALEVIN GRAN CANARIA LIGA B",
-      "firstSeen": "2026-11-17"
-    },
     {
       "id": "54977125",
       "name": "LIGA ALEVIN GRAN CANARIA FASE C",
