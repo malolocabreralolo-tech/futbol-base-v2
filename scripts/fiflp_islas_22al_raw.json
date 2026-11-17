@@ -24821,5 +24821,6665 @@
         ]
       }
     ]
+  },
+  {
+    "competition_id": "54977125",
+    "competition_name": "LIGA ALEVIN GRAN CANARIA FASE C",
+    "cat": "alevin",
+    "island": "grancanaria",
+    "phase": "LIGA ALEVIN GRAN CANARIA FASE C",
+    "group_id": "55335292",
+    "group_name": "GRUPO 3",
+    "standings": [],
+    "jornadas": [
+      {
+        "num": "1",
+        "date": "22-11-2026",
+        "matches": [
+          {
+            "home": "DORAMAS, C.D. \"C\"",
+            "away": "VALLINAMAR, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "20-11-2026",
+            "time": "17:00",
+            "venue": "CRUCE ARINAGA F8 (4)",
+            "referee": ""
+          },
+          {
+            "home": "PLAYA DEL HOMBRE, C.D.",
+            "away": "ENTREHIGUERAS-ATCO MARZASPORT, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "20-11-2026",
+            "time": "17:30",
+            "venue": "MANUEL MARTIN \"NAÑO\"",
+            "referee": ""
+          },
+          {
+            "home": "ARGUINEGUIN, C.D. \"A\"",
+            "away": "CASA PASTORES, C.F. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "21-11-2026",
+            "time": "09:00",
+            "venue": "ARGUINEGUIN",
+            "referee": ""
+          },
+          {
+            "home": "MASPA TRAINING, C.D. \"B\"",
+            "away": "ATLETICO G.C., C.F. \"D\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "21-11-2026",
+            "time": "09:00",
+            "venue": "MASPALOMAS 2",
+            "referee": ""
+          },
+          {
+            "home": "DANIEL CARNEVALI, C.D. \"B\"",
+            "away": "MASPALOMAS, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "21-11-2026",
+            "time": "10:30",
+            "venue": "LA MAYORDOMIA 2",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "2",
+        "date": "29-11-2026",
+        "matches": [
+          {
+            "home": "ATLETICO G.C., C.F. \"D\"",
+            "away": "DANIEL CARNEVALI, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "26-11-2026",
+            "time": "19:30",
+            "venue": "MUNDIAL 82 ANEXO",
+            "referee": ""
+          },
+          {
+            "home": "ENTREHIGUERAS-ATCO MARZASPORT, C.D.",
+            "away": "ARGUINEGUIN, C.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "27-11-2026",
+            "time": "18:00",
+            "venue": "MARZAGAN",
+            "referee": ""
+          },
+          {
+            "home": "VALLINAMAR, C.D.",
+            "away": "PLAYA DEL HOMBRE, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "27-11-2026",
+            "time": "18:30",
+            "venue": "E.M. JINAMAR",
+            "referee": ""
+          },
+          {
+            "home": "CASA PASTORES, C.F. \"A\"",
+            "away": "MASPA TRAINING, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "28-11-2026",
+            "time": "10:30",
+            "venue": "CAMINO LA MADERA ANEXO F8",
+            "referee": ""
+          },
+          {
+            "home": "MASPALOMAS, C.D. \"B\"",
+            "away": "DORAMAS, C.D. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "28-11-2026",
+            "time": "12:30",
+            "venue": "MASPALOMAS 4 (F8)",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "3",
+        "date": "13-12-2026",
+        "matches": [
+          {
+            "home": "DORAMAS, C.D. \"C\"",
+            "away": "ATLETICO G.C., C.F. \"D\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "11-12-2026",
+            "time": "17:00",
+            "venue": "CRUCE ARINAGA F8 (4)",
+            "referee": ""
+          },
+          {
+            "home": "PLAYA DEL HOMBRE, C.D.",
+            "away": "MASPALOMAS, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "11-12-2026",
+            "time": "17:30",
+            "venue": "MANUEL MARTIN \"NAÑO\"",
+            "referee": ""
+          },
+          {
+            "home": "ARGUINEGUIN, C.D. \"A\"",
+            "away": "VALLINAMAR, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "12-12-2026",
+            "time": "09:00",
+            "venue": "ARGUINEGUIN",
+            "referee": ""
+          },
+          {
+            "home": "MASPA TRAINING, C.D. \"B\"",
+            "away": "DANIEL CARNEVALI, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "12-12-2026",
+            "time": "09:00",
+            "venue": "MASPALOMAS 2",
+            "referee": ""
+          },
+          {
+            "home": "CASA PASTORES, C.F. \"A\"",
+            "away": "ENTREHIGUERAS-ATCO MARZASPORT, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "12-12-2026",
+            "time": "10:30",
+            "venue": "CAMINO LA MADERA ANEXO F8",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "4",
+        "date": "20-12-2026",
+        "matches": [
+          {
+            "home": "ATLETICO G.C., C.F. \"D\"",
+            "away": "PLAYA DEL HOMBRE, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "17-12-2026",
+            "time": "19:30",
+            "venue": "MUNDIAL 82 ANEXO",
+            "referee": ""
+          },
+          {
+            "home": "ENTREHIGUERAS-ATCO MARZASPORT, C.D.",
+            "away": "MASPA TRAINING, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "18-12-2026",
+            "time": "18:00",
+            "venue": "MARZAGAN",
+            "referee": ""
+          },
+          {
+            "home": "VALLINAMAR, C.D.",
+            "away": "CASA PASTORES, C.F. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "18-12-2026",
+            "time": "18:30",
+            "venue": "E.M. JINAMAR",
+            "referee": ""
+          },
+          {
+            "home": "MASPALOMAS, C.D. \"B\"",
+            "away": "ARGUINEGUIN, C.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "19-12-2026",
+            "time": "10:30",
+            "venue": "MASPALOMAS 2",
+            "referee": ""
+          },
+          {
+            "home": "DANIEL CARNEVALI, C.D. \"B\"",
+            "away": "DORAMAS, C.D. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "19-12-2026",
+            "time": "10:30",
+            "venue": "LA MAYORDOMIA 2",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "5",
+        "date": "17-01-2027",
+        "matches": [
+          {
+            "home": "PLAYA DEL HOMBRE, C.D.",
+            "away": "DANIEL CARNEVALI, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "15-01-2027",
+            "time": "17:30",
+            "venue": "MANUEL MARTIN \"NAÑO\"",
+            "referee": ""
+          },
+          {
+            "home": "ARGUINEGUIN, C.D. \"A\"",
+            "away": "ATLETICO G.C., C.F. \"D\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "16-01-2027",
+            "time": "09:00",
+            "venue": "ARGUINEGUIN",
+            "referee": ""
+          },
+          {
+            "home": "ENTREHIGUERAS-ATCO MARZASPORT, C.D.",
+            "away": "VALLINAMAR, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "16-01-2027",
+            "time": "10:00",
+            "venue": "MARZAGAN",
+            "referee": ""
+          },
+          {
+            "home": "CASA PASTORES, C.F. \"A\"",
+            "away": "MASPALOMAS, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "16-01-2027",
+            "time": "10:30",
+            "venue": "CAMINO LA MADERA ANEXO F8",
+            "referee": ""
+          },
+          {
+            "home": "MASPA TRAINING, C.D. \"B\"",
+            "away": "DORAMAS, C.D. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "16-01-2027",
+            "time": "10:30",
+            "venue": "MASPALOMAS 2",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "6",
+        "date": "24-01-2027",
+        "matches": [
+          {
+            "home": "ATLETICO G.C., C.F. \"D\"",
+            "away": "CASA PASTORES, C.F. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "21-01-2027",
+            "time": "19:30",
+            "venue": "MUNDIAL 82 ANEXO",
+            "referee": ""
+          },
+          {
+            "home": "DORAMAS, C.D. \"C\"",
+            "away": "PLAYA DEL HOMBRE, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "22-01-2027",
+            "time": "17:00",
+            "venue": "CRUCE ARINAGA F8 (3)",
+            "referee": ""
+          },
+          {
+            "home": "VALLINAMAR, C.D.",
+            "away": "MASPA TRAINING, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "22-01-2027",
+            "time": "18:30",
+            "venue": "E.M. JINAMAR",
+            "referee": ""
+          },
+          {
+            "home": "MASPALOMAS, C.D. \"B\"",
+            "away": "ENTREHIGUERAS-ATCO MARZASPORT, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "23-01-2027",
+            "time": "09:00",
+            "venue": "MASPALOMAS 2",
+            "referee": ""
+          },
+          {
+            "home": "DANIEL CARNEVALI, C.D. \"B\"",
+            "away": "ARGUINEGUIN, C.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "23-01-2027",
+            "time": "10:30",
+            "venue": "LA MAYORDOMIA 2",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "7",
+        "date": "31-01-2027",
+        "matches": [
+          {
+            "home": "ENTREHIGUERAS-ATCO MARZASPORT, C.D.",
+            "away": "ATLETICO G.C., C.F. \"D\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "29-01-2027",
+            "time": "18:00",
+            "venue": "MARZAGAN",
+            "referee": ""
+          },
+          {
+            "home": "VALLINAMAR, C.D.",
+            "away": "MASPALOMAS, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "29-01-2027",
+            "time": "18:30",
+            "venue": "E.M. JINAMAR",
+            "referee": ""
+          },
+          {
+            "home": "ARGUINEGUIN, C.D. \"A\"",
+            "away": "DORAMAS, C.D. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "30-01-2027",
+            "time": "09:00",
+            "venue": "ARGUINEGUIN",
+            "referee": ""
+          },
+          {
+            "home": "CASA PASTORES, C.F. \"A\"",
+            "away": "DANIEL CARNEVALI, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "30-01-2027",
+            "time": "10:30",
+            "venue": "CAMINO LA MADERA ANEXO F8",
+            "referee": ""
+          },
+          {
+            "home": "MASPA TRAINING, C.D. \"B\"",
+            "away": "PLAYA DEL HOMBRE, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "30-01-2027",
+            "time": "10:30",
+            "venue": "MASPALOMAS 2",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "8",
+        "date": "07-02-2027",
+        "matches": [
+          {
+            "home": "ATLETICO G.C., C.F. \"D\"",
+            "away": "VALLINAMAR, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "04-02-2027",
+            "time": "19:30",
+            "venue": "MUNDIAL 82 ANEXO",
+            "referee": ""
+          },
+          {
+            "home": "DORAMAS, C.D. \"C\"",
+            "away": "CASA PASTORES, C.F. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "05-02-2027",
+            "time": "17:00",
+            "venue": "CRUCE ARINAGA F8 (3)",
+            "referee": ""
+          },
+          {
+            "home": "PLAYA DEL HOMBRE, C.D.",
+            "away": "ARGUINEGUIN, C.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "05-02-2027",
+            "time": "17:30",
+            "venue": "MANUEL MARTIN \"NAÑO\"",
+            "referee": ""
+          },
+          {
+            "home": "MASPA TRAINING, C.D. \"B\"",
+            "away": "MASPALOMAS, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "06-02-2027",
+            "time": "10:30",
+            "venue": "MASPALOMAS 2",
+            "referee": ""
+          },
+          {
+            "home": "DANIEL CARNEVALI, C.D. \"B\"",
+            "away": "ENTREHIGUERAS-ATCO MARZASPORT, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "06-02-2027",
+            "time": "10:30",
+            "venue": "LA MAYORDOMIA 2",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "9",
+        "date": "21-02-2027",
+        "matches": [
+          {
+            "home": "VALLINAMAR, C.D.",
+            "away": "DANIEL CARNEVALI, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "19-02-2027",
+            "time": "18:30",
+            "venue": "E.M. JINAMAR",
+            "referee": ""
+          },
+          {
+            "home": "ENTREHIGUERAS-ATCO MARZASPORT, C.D.",
+            "away": "DORAMAS, C.D. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "19-02-2027",
+            "time": "19:30",
+            "venue": "MARZAGAN",
+            "referee": ""
+          },
+          {
+            "home": "ARGUINEGUIN, C.D. \"A\"",
+            "away": "MASPA TRAINING, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "20-02-2027",
+            "time": "09:00",
+            "venue": "ARGUINEGUIN",
+            "referee": ""
+          },
+          {
+            "home": "MASPALOMAS, C.D. \"B\"",
+            "away": "ATLETICO G.C., C.F. \"D\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "20-02-2027",
+            "time": "10:30",
+            "venue": "MASPALOMAS 2",
+            "referee": ""
+          },
+          {
+            "home": "CASA PASTORES, C.F. \"A\"",
+            "away": "PLAYA DEL HOMBRE, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "20-02-2027",
+            "time": "10:30",
+            "venue": "CAMINO LA MADERA ANEXO F8",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "10",
+        "date": "28-02-2027",
+        "matches": [
+          {
+            "home": "ATLETICO G.C., C.F. \"D\"",
+            "away": "MASPA TRAINING, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "25-02-2027",
+            "time": "19:30",
+            "venue": "MUNDIAL 82 ANEXO",
+            "referee": ""
+          },
+          {
+            "home": "ENTREHIGUERAS-ATCO MARZASPORT, C.D.",
+            "away": "PLAYA DEL HOMBRE, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "26-02-2027",
+            "time": "18:00",
+            "venue": "MARZAGAN",
+            "referee": ""
+          },
+          {
+            "home": "VALLINAMAR, C.D.",
+            "away": "DORAMAS, C.D. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "26-02-2027",
+            "time": "18:30",
+            "venue": "E.M. JINAMAR",
+            "referee": ""
+          },
+          {
+            "home": "CASA PASTORES, C.F. \"A\"",
+            "away": "ARGUINEGUIN, C.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "27-02-2027",
+            "time": "10:30",
+            "venue": "CAMINO LA MADERA ANEXO F8",
+            "referee": ""
+          },
+          {
+            "home": "MASPALOMAS, C.D. \"B\"",
+            "away": "DANIEL CARNEVALI, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "27-02-2027",
+            "time": "10:30",
+            "venue": "MASPALOMAS 2",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "11",
+        "date": "07-03-2027",
+        "matches": [
+          {
+            "home": "DORAMAS, C.D. \"C\"",
+            "away": "MASPALOMAS, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "05-03-2027",
+            "time": "17:00",
+            "venue": "CRUCE ARINAGA F8 (4)",
+            "referee": ""
+          },
+          {
+            "home": "PLAYA DEL HOMBRE, C.D.",
+            "away": "VALLINAMAR, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "05-03-2027",
+            "time": "17:30",
+            "venue": "MANUEL MARTIN \"NAÑO\"",
+            "referee": ""
+          },
+          {
+            "home": "MASPA TRAINING, C.D. \"B\"",
+            "away": "CASA PASTORES, C.F. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "06-03-2027",
+            "time": "09:00",
+            "venue": "MASPALOMAS 2",
+            "referee": ""
+          },
+          {
+            "home": "ARGUINEGUIN, C.D. \"A\"",
+            "away": "ENTREHIGUERAS-ATCO MARZASPORT, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "06-03-2027",
+            "time": "09:00",
+            "venue": "ARGUINEGUIN",
+            "referee": ""
+          },
+          {
+            "home": "DANIEL CARNEVALI, C.D. \"B\"",
+            "away": "ATLETICO G.C., C.F. \"D\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "06-03-2027",
+            "time": "10:30",
+            "venue": "LA MAYORDOMIA 2",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "12",
+        "date": "14-03-2027",
+        "matches": [
+          {
+            "home": "ATLETICO G.C., C.F. \"D\"",
+            "away": "DORAMAS, C.D. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "11-03-2027",
+            "time": "19:30",
+            "venue": "MUNDIAL 82 ANEXO",
+            "referee": ""
+          },
+          {
+            "home": "VALLINAMAR, C.D.",
+            "away": "ARGUINEGUIN, C.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "12-03-2027",
+            "time": "18:30",
+            "venue": "E.M. JINAMAR",
+            "referee": ""
+          },
+          {
+            "home": "ENTREHIGUERAS-ATCO MARZASPORT, C.D.",
+            "away": "CASA PASTORES, C.F. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "13-03-2027",
+            "time": "10:00",
+            "venue": "MARZAGAN",
+            "referee": ""
+          },
+          {
+            "home": "MASPALOMAS, C.D. \"B\"",
+            "away": "PLAYA DEL HOMBRE, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "13-03-2027",
+            "time": "10:30",
+            "venue": "MASPALOMAS 2",
+            "referee": ""
+          },
+          {
+            "home": "DANIEL CARNEVALI, C.D. \"B\"",
+            "away": "MASPA TRAINING, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "13-03-2027",
+            "time": "10:30",
+            "venue": "LA MAYORDOMIA 2",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "13",
+        "date": "21-03-2027",
+        "matches": [
+          {
+            "home": "DORAMAS, C.D. \"C\"",
+            "away": "DANIEL CARNEVALI, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "19-03-2027",
+            "time": "17:00",
+            "venue": "CRUCE ARINAGA F8 (3)",
+            "referee": ""
+          },
+          {
+            "home": "PLAYA DEL HOMBRE, C.D.",
+            "away": "ATLETICO G.C., C.F. \"D\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "19-03-2027",
+            "time": "17:30",
+            "venue": "MANUEL MARTIN \"NAÑO\"",
+            "referee": ""
+          },
+          {
+            "home": "MASPA TRAINING, C.D. \"B\"",
+            "away": "ENTREHIGUERAS-ATCO MARZASPORT, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "20-03-2027",
+            "time": "09:00",
+            "venue": "MASPALOMAS 2",
+            "referee": ""
+          },
+          {
+            "home": "ARGUINEGUIN, C.D. \"A\"",
+            "away": "MASPALOMAS, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "20-03-2027",
+            "time": "09:00",
+            "venue": "ARGUINEGUIN",
+            "referee": ""
+          },
+          {
+            "home": "CASA PASTORES, C.F. \"A\"",
+            "away": "VALLINAMAR, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "20-03-2027",
+            "time": "10:30",
+            "venue": "CAMINO LA MADERA ANEXO F8",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "14",
+        "date": "04-04-2027",
+        "matches": [
+          {
+            "home": "ATLETICO G.C., C.F. \"D\"",
+            "away": "ARGUINEGUIN, C.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "01-04-2027",
+            "time": "19:30",
+            "venue": "MUNDIAL 82 ANEXO",
+            "referee": ""
+          },
+          {
+            "home": "DORAMAS, C.D. \"C\"",
+            "away": "MASPA TRAINING, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "02-04-2027",
+            "time": "17:00",
+            "venue": "CRUCE ARINAGA F8 (4)",
+            "referee": ""
+          },
+          {
+            "home": "VALLINAMAR, C.D.",
+            "away": "ENTREHIGUERAS-ATCO MARZASPORT, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "02-04-2027",
+            "time": "18:30",
+            "venue": "E.M. JINAMAR",
+            "referee": ""
+          },
+          {
+            "home": "MASPALOMAS, C.D. \"B\"",
+            "away": "CASA PASTORES, C.F. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "03-04-2027",
+            "time": "10:30",
+            "venue": "MASPALOMAS 2",
+            "referee": ""
+          },
+          {
+            "home": "DANIEL CARNEVALI, C.D. \"B\"",
+            "away": "PLAYA DEL HOMBRE, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "03-04-2027",
+            "time": "10:30",
+            "venue": "LA MAYORDOMIA 2",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "15",
+        "date": "18-04-2027",
+        "matches": [
+          {
+            "home": "PLAYA DEL HOMBRE, C.D.",
+            "away": "DORAMAS, C.D. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "16-04-2027",
+            "time": "17:30",
+            "venue": "MANUEL MARTIN \"NAÑO\"",
+            "referee": ""
+          },
+          {
+            "home": "ENTREHIGUERAS-ATCO MARZASPORT, C.D.",
+            "away": "MASPALOMAS, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "16-04-2027",
+            "time": "19:30",
+            "venue": "MARZAGAN",
+            "referee": ""
+          },
+          {
+            "home": "ARGUINEGUIN, C.D. \"A\"",
+            "away": "DANIEL CARNEVALI, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "17-04-2027",
+            "time": "09:00",
+            "venue": "ARGUINEGUIN",
+            "referee": ""
+          },
+          {
+            "home": "MASPA TRAINING, C.D. \"B\"",
+            "away": "VALLINAMAR, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "17-04-2027",
+            "time": "10:30",
+            "venue": "MASPALOMAS 2",
+            "referee": ""
+          },
+          {
+            "home": "CASA PASTORES, C.F. \"A\"",
+            "away": "ATLETICO G.C., C.F. \"D\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "17-04-2027",
+            "time": "10:30",
+            "venue": "CAMINO LA MADERA ANEXO F8",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "16",
+        "date": "25-04-2027",
+        "matches": [
+          {
+            "home": "ATLETICO G.C., C.F. \"D\"",
+            "away": "ENTREHIGUERAS-ATCO MARZASPORT, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "22-04-2027",
+            "time": "19:30",
+            "venue": "MUNDIAL 82 ANEXO",
+            "referee": ""
+          },
+          {
+            "home": "DORAMAS, C.D. \"C\"",
+            "away": "ARGUINEGUIN, C.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "23-04-2027",
+            "time": "17:00",
+            "venue": "CRUCE ARINAGA F8 (3)",
+            "referee": ""
+          },
+          {
+            "home": "PLAYA DEL HOMBRE, C.D.",
+            "away": "MASPA TRAINING, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "23-04-2027",
+            "time": "17:30",
+            "venue": "MANUEL MARTIN \"NAÑO\"",
+            "referee": ""
+          },
+          {
+            "home": "MASPALOMAS, C.D. \"B\"",
+            "away": "VALLINAMAR, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "24-04-2027",
+            "time": "09:00",
+            "venue": "MASPALOMAS 2",
+            "referee": ""
+          },
+          {
+            "home": "DANIEL CARNEVALI, C.D. \"B\"",
+            "away": "CASA PASTORES, C.F. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "24-04-2027",
+            "time": "10:30",
+            "venue": "LA MAYORDOMIA 2",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "17",
+        "date": "09-05-2027",
+        "matches": [
+          {
+            "home": "ENTREHIGUERAS-ATCO MARZASPORT, C.D.",
+            "away": "DANIEL CARNEVALI, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "07-05-2027",
+            "time": "18:00",
+            "venue": "MARZAGAN",
+            "referee": ""
+          },
+          {
+            "home": "VALLINAMAR, C.D.",
+            "away": "ATLETICO G.C., C.F. \"D\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "07-05-2027",
+            "time": "18:30",
+            "venue": "E.M. JINAMAR",
+            "referee": ""
+          },
+          {
+            "home": "MASPALOMAS, C.D. \"B\"",
+            "away": "MASPA TRAINING, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "08-05-2027",
+            "time": "09:00",
+            "venue": "MASPALOMAS 2",
+            "referee": ""
+          },
+          {
+            "home": "ARGUINEGUIN, C.D. \"A\"",
+            "away": "PLAYA DEL HOMBRE, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "08-05-2027",
+            "time": "09:00",
+            "venue": "ARGUINEGUIN",
+            "referee": ""
+          },
+          {
+            "home": "CASA PASTORES, C.F. \"A\"",
+            "away": "DORAMAS, C.D. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "08-05-2027",
+            "time": "10:30",
+            "venue": "CAMINO LA MADERA ANEXO F8",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "18",
+        "date": "23-05-2027",
+        "matches": [
+          {
+            "home": "ATLETICO G.C., C.F. \"D\"",
+            "away": "MASPALOMAS, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "21-05-2027",
+            "time": "17:30",
+            "venue": "MUNDIAL 82 ANEXO",
+            "referee": ""
+          },
+          {
+            "home": "DANIEL CARNEVALI, C.D. \"B\"",
+            "away": "VALLINAMAR, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "21-05-2027",
+            "time": "17:30",
+            "venue": "LA MAYORDOMIA 2",
+            "referee": ""
+          },
+          {
+            "home": "DORAMAS, C.D. \"C\"",
+            "away": "ENTREHIGUERAS-ATCO MARZASPORT, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "21-05-2027",
+            "time": "17:30",
+            "venue": "CRUCE ARINAGA F8 (4)",
+            "referee": ""
+          },
+          {
+            "home": "PLAYA DEL HOMBRE, C.D.",
+            "away": "CASA PASTORES, C.F. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "21-05-2027",
+            "time": "17:30",
+            "venue": "MANUEL MARTIN \"NAÑO\"",
+            "referee": ""
+          },
+          {
+            "home": "MASPA TRAINING, C.D. \"B\"",
+            "away": "ARGUINEGUIN, C.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "21-05-2027",
+            "time": "17:30",
+            "venue": "MASPALOMAS 2",
+            "referee": ""
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "competition_id": "55335271",
+    "competition_name": "LIGA ALEVIN GRAN CANARIA FASE E",
+    "cat": "alevin",
+    "island": "grancanaria",
+    "phase": "LIGA ALEVIN GRAN CANARIA FASE E",
+    "group_id": "55335306",
+    "group_name": "GRUPO 1",
+    "standings": [],
+    "jornadas": [
+      {
+        "num": "1",
+        "date": "22-11-2026",
+        "matches": [
+          {
+            "home": "ARUCAS C.F. \"C\"",
+            "away": "GUINIGUADA APOLINARIO, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": 297462,
+            "date": "21-11-2026",
+            "time": "09:00",
+            "venue": "JAVIER ARMAS REYES (F8)",
+            "referee": ""
+          },
+          {
+            "home": "PANADERIA PULIDO SAN MATEO, C.F.",
+            "away": "PILETAS, A.D. U.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": 297464,
+            "date": "21-11-2026",
+            "time": "09:30",
+            "venue": "SAN MATEO",
+            "referee": ""
+          },
+          {
+            "home": "CORAZON DE MARIA, C.D. \"D\"",
+            "away": "VILLA DE SANTA BRIGIDA, U.D \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": 297465,
+            "date": "21-11-2026",
+            "time": "10:30",
+            "venue": "COLEGIO CLARET",
+            "referee": ""
+          },
+          {
+            "home": "VETERANOS DEL PILA, C.D. \"C\"",
+            "away": "MOYA, U.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": 297463,
+            "date": "21-11-2026",
+            "time": "12:00",
+            "venue": "MANUEL NARANJO SOSA 1",
+            "referee": ""
+          },
+          {
+            "home": "Descansa",
+            "away": "BARRIAL ATLETICO, U.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "2",
+        "date": "29-11-2026",
+        "matches": [
+          {
+            "home": "BARRIAL ATLETICO, U.D. \"B\"",
+            "away": "CORAZON DE MARIA, C.D. \"D\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "27-11-2026",
+            "time": "17:00",
+            "venue": "SARDINA",
+            "referee": ""
+          },
+          {
+            "home": "GUINIGUADA APOLINARIO, C.D. \"B\"",
+            "away": "Descansa",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          },
+          {
+            "home": "VILLA DE SANTA BRIGIDA, U.D \"B\"",
+            "away": "PANADERIA PULIDO SAN MATEO, C.F.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "28-11-2026",
+            "time": "09:00",
+            "venue": "LOS OLIVOS",
+            "referee": ""
+          },
+          {
+            "home": "MOYA, U.D. \"A\"",
+            "away": "ARUCAS C.F. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "28-11-2026",
+            "time": "10:30",
+            "venue": "GARCIA HERNANDEZ \"MOYA\"",
+            "referee": ""
+          },
+          {
+            "home": "PILETAS, A.D. U.D.",
+            "away": "VETERANOS DEL PILA, C.D. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "28-11-2026",
+            "time": "11:15",
+            "venue": "PILETAS",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "3",
+        "date": "13-12-2026",
+        "matches": [
+          {
+            "home": "GUINIGUADA APOLINARIO, C.D. \"B\"",
+            "away": "MOYA, U.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "11-12-2026",
+            "time": "19:30",
+            "venue": "LOMO APOLINARIO F8",
+            "referee": ""
+          },
+          {
+            "home": "ARUCAS C.F. \"C\"",
+            "away": "PILETAS, A.D. U.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "12-12-2026",
+            "time": "09:00",
+            "venue": "JAVIER ARMAS REYES (F8)",
+            "referee": ""
+          },
+          {
+            "home": "PANADERIA PULIDO SAN MATEO, C.F.",
+            "away": "BARRIAL ATLETICO, U.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "12-12-2026",
+            "time": "09:30",
+            "venue": "SAN MATEO",
+            "referee": ""
+          },
+          {
+            "home": "VETERANOS DEL PILA, C.D. \"C\"",
+            "away": "VILLA DE SANTA BRIGIDA, U.D \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "12-12-2026",
+            "time": "12:00",
+            "venue": "MANUEL NARANJO SOSA 1",
+            "referee": ""
+          },
+          {
+            "home": "Descansa",
+            "away": "CORAZON DE MARIA, C.D. \"D\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "4",
+        "date": "20-12-2026",
+        "matches": [
+          {
+            "home": "BARRIAL ATLETICO, U.D. \"B\"",
+            "away": "VETERANOS DEL PILA, C.D. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "18-12-2026",
+            "time": "17:00",
+            "venue": "SARDINA",
+            "referee": ""
+          },
+          {
+            "home": "VILLA DE SANTA BRIGIDA, U.D \"B\"",
+            "away": "ARUCAS C.F. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "19-12-2026",
+            "time": "09:00",
+            "venue": "LOS OLIVOS",
+            "referee": ""
+          },
+          {
+            "home": "CORAZON DE MARIA, C.D. \"D\"",
+            "away": "PANADERIA PULIDO SAN MATEO, C.F.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "19-12-2026",
+            "time": "09:00",
+            "venue": "COLEGIO CLARET",
+            "referee": ""
+          },
+          {
+            "home": "MOYA, U.D. \"A\"",
+            "away": "Descansa",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          },
+          {
+            "home": "PILETAS, A.D. U.D.",
+            "away": "GUINIGUADA APOLINARIO, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "19-12-2026",
+            "time": "11:15",
+            "venue": "PILETAS",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "5",
+        "date": "17-01-2027",
+        "matches": [
+          {
+            "home": "GUINIGUADA APOLINARIO, C.D. \"B\"",
+            "away": "VILLA DE SANTA BRIGIDA, U.D \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "16-01-2027",
+            "time": "09:00",
+            "venue": "LOMO APOLINARIO F8",
+            "referee": ""
+          },
+          {
+            "home": "ARUCAS C.F. \"C\"",
+            "away": "BARRIAL ATLETICO, U.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "16-01-2027",
+            "time": "09:00",
+            "venue": "JAVIER ARMAS REYES (F8)",
+            "referee": ""
+          },
+          {
+            "home": "MOYA, U.D. \"A\"",
+            "away": "PILETAS, A.D. U.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "16-01-2027",
+            "time": "10:00",
+            "venue": "GARCIA HERNANDEZ \"MOYA\"",
+            "referee": ""
+          },
+          {
+            "home": "VETERANOS DEL PILA, C.D. \"C\"",
+            "away": "CORAZON DE MARIA, C.D. \"D\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "16-01-2027",
+            "time": "12:00",
+            "venue": "MANUEL NARANJO SOSA 1",
+            "referee": ""
+          },
+          {
+            "home": "Descansa",
+            "away": "PANADERIA PULIDO SAN MATEO, C.F.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "6",
+        "date": "24-01-2027",
+        "matches": [
+          {
+            "home": "BARRIAL ATLETICO, U.D. \"B\"",
+            "away": "GUINIGUADA APOLINARIO, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "22-01-2027",
+            "time": "17:00",
+            "venue": "SARDINA",
+            "referee": ""
+          },
+          {
+            "home": "VILLA DE SANTA BRIGIDA, U.D \"B\"",
+            "away": "MOYA, U.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "23-01-2027",
+            "time": "09:00",
+            "venue": "LOS OLIVOS",
+            "referee": ""
+          },
+          {
+            "home": "PANADERIA PULIDO SAN MATEO, C.F.",
+            "away": "VETERANOS DEL PILA, C.D. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "23-01-2027",
+            "time": "09:30",
+            "venue": "SAN MATEO",
+            "referee": ""
+          },
+          {
+            "home": "CORAZON DE MARIA, C.D. \"D\"",
+            "away": "ARUCAS C.F. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "23-01-2027",
+            "time": "10:30",
+            "venue": "COLEGIO CLARET",
+            "referee": ""
+          },
+          {
+            "home": "PILETAS, A.D. U.D.",
+            "away": "Descansa",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "7",
+        "date": "31-01-2027",
+        "matches": [
+          {
+            "home": "GUINIGUADA APOLINARIO, C.D. \"B\"",
+            "away": "CORAZON DE MARIA, C.D. \"D\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "30-01-2027",
+            "time": "09:00",
+            "venue": "LOMO APOLINARIO F8",
+            "referee": ""
+          },
+          {
+            "home": "ARUCAS C.F. \"C\"",
+            "away": "PANADERIA PULIDO SAN MATEO, C.F.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "30-01-2027",
+            "time": "09:00",
+            "venue": "JAVIER ARMAS REYES (F8)",
+            "referee": ""
+          },
+          {
+            "home": "MOYA, U.D. \"A\"",
+            "away": "BARRIAL ATLETICO, U.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "30-01-2027",
+            "time": "10:00",
+            "venue": "GARCIA HERNANDEZ \"MOYA\"",
+            "referee": ""
+          },
+          {
+            "home": "PILETAS, A.D. U.D.",
+            "away": "VILLA DE SANTA BRIGIDA, U.D \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "30-01-2027",
+            "time": "11:15",
+            "venue": "PILETAS",
+            "referee": ""
+          },
+          {
+            "home": "Descansa",
+            "away": "VETERANOS DEL PILA, C.D. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "8",
+        "date": "07-02-2027",
+        "matches": [
+          {
+            "home": "BARRIAL ATLETICO, U.D. \"B\"",
+            "away": "PILETAS, A.D. U.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "05-02-2027",
+            "time": "17:00",
+            "venue": "SARDINA",
+            "referee": ""
+          },
+          {
+            "home": "PANADERIA PULIDO SAN MATEO, C.F.",
+            "away": "GUINIGUADA APOLINARIO, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "06-02-2027",
+            "time": "09:30",
+            "venue": "SAN MATEO",
+            "referee": ""
+          },
+          {
+            "home": "CORAZON DE MARIA, C.D. \"D\"",
+            "away": "MOYA, U.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "06-02-2027",
+            "time": "10:30",
+            "venue": "COLEGIO CLARET",
+            "referee": ""
+          },
+          {
+            "home": "VETERANOS DEL PILA, C.D. \"C\"",
+            "away": "ARUCAS C.F. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "06-02-2027",
+            "time": "12:00",
+            "venue": "MANUEL NARANJO SOSA 1",
+            "referee": ""
+          },
+          {
+            "home": "Descansa",
+            "away": "VILLA DE SANTA BRIGIDA, U.D \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "9",
+        "date": "21-02-2027",
+        "matches": [
+          {
+            "home": "GUINIGUADA APOLINARIO, C.D. \"B\"",
+            "away": "VETERANOS DEL PILA, C.D. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "19-02-2027",
+            "time": "19:30",
+            "venue": "LOMO APOLINARIO F8",
+            "referee": ""
+          },
+          {
+            "home": "ARUCAS C.F. \"C\"",
+            "away": "Descansa",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          },
+          {
+            "home": "VILLA DE SANTA BRIGIDA, U.D \"B\"",
+            "away": "BARRIAL ATLETICO, U.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "20-02-2027",
+            "time": "09:00",
+            "venue": "LOS OLIVOS",
+            "referee": ""
+          },
+          {
+            "home": "MOYA, U.D. \"A\"",
+            "away": "PANADERIA PULIDO SAN MATEO, C.F.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "20-02-2027",
+            "time": "10:00",
+            "venue": "GARCIA HERNANDEZ \"MOYA\"",
+            "referee": ""
+          },
+          {
+            "home": "PILETAS, A.D. U.D.",
+            "away": "CORAZON DE MARIA, C.D. \"D\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "20-02-2027",
+            "time": "11:15",
+            "venue": "PILETAS",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "10",
+        "date": "28-02-2027",
+        "matches": [
+          {
+            "home": "BARRIAL ATLETICO, U.D. \"B\"",
+            "away": "Descansa",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          },
+          {
+            "home": "GUINIGUADA APOLINARIO, C.D. \"B\"",
+            "away": "ARUCAS C.F. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "26-02-2027",
+            "time": "19:30",
+            "venue": "LOMO APOLINARIO F8",
+            "referee": ""
+          },
+          {
+            "home": "VILLA DE SANTA BRIGIDA, U.D \"B\"",
+            "away": "CORAZON DE MARIA, C.D. \"D\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "27-02-2027",
+            "time": "09:00",
+            "venue": "LOS OLIVOS",
+            "referee": ""
+          },
+          {
+            "home": "MOYA, U.D. \"A\"",
+            "away": "VETERANOS DEL PILA, C.D. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "27-02-2027",
+            "time": "10:00",
+            "venue": "GARCIA HERNANDEZ \"MOYA\"",
+            "referee": ""
+          },
+          {
+            "home": "PILETAS, A.D. U.D.",
+            "away": "PANADERIA PULIDO SAN MATEO, C.F.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "27-02-2027",
+            "time": "11:15",
+            "venue": "PILETAS",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "11",
+        "date": "07-03-2027",
+        "matches": [
+          {
+            "home": "PANADERIA PULIDO SAN MATEO, C.F.",
+            "away": "VILLA DE SANTA BRIGIDA, U.D \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "06-03-2027",
+            "time": "09:30",
+            "venue": "SAN MATEO",
+            "referee": ""
+          },
+          {
+            "home": "ARUCAS C.F. \"C\"",
+            "away": "MOYA, U.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "06-03-2027",
+            "time": "10:30",
+            "venue": "JAVIER ARMAS REYES (F8)",
+            "referee": ""
+          },
+          {
+            "home": "CORAZON DE MARIA, C.D. \"D\"",
+            "away": "BARRIAL ATLETICO, U.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "06-03-2027",
+            "time": "10:30",
+            "venue": "COLEGIO CLARET",
+            "referee": ""
+          },
+          {
+            "home": "VETERANOS DEL PILA, C.D. \"C\"",
+            "away": "PILETAS, A.D. U.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "06-03-2027",
+            "time": "12:00",
+            "venue": "MANUEL NARANJO SOSA 1",
+            "referee": ""
+          },
+          {
+            "home": "Descansa",
+            "away": "GUINIGUADA APOLINARIO, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "12",
+        "date": "14-03-2027",
+        "matches": [
+          {
+            "home": "BARRIAL ATLETICO, U.D. \"B\"",
+            "away": "PANADERIA PULIDO SAN MATEO, C.F.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "12-03-2027",
+            "time": "18:30",
+            "venue": "SARDINA",
+            "referee": ""
+          },
+          {
+            "home": "CORAZON DE MARIA, C.D. \"D\"",
+            "away": "Descansa",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          },
+          {
+            "home": "VILLA DE SANTA BRIGIDA, U.D \"B\"",
+            "away": "VETERANOS DEL PILA, C.D. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "13-03-2027",
+            "time": "09:00",
+            "venue": "LOS OLIVOS",
+            "referee": ""
+          },
+          {
+            "home": "MOYA, U.D. \"A\"",
+            "away": "GUINIGUADA APOLINARIO, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "13-03-2027",
+            "time": "10:00",
+            "venue": "GARCIA HERNANDEZ \"MOYA\"",
+            "referee": ""
+          },
+          {
+            "home": "PILETAS, A.D. U.D.",
+            "away": "ARUCAS C.F. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "13-03-2027",
+            "time": "11:15",
+            "venue": "PILETAS",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "13",
+        "date": "21-03-2027",
+        "matches": [
+          {
+            "home": "GUINIGUADA APOLINARIO, C.D. \"B\"",
+            "away": "PILETAS, A.D. U.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "19-03-2027",
+            "time": "19:30",
+            "venue": "LOMO APOLINARIO F8",
+            "referee": ""
+          },
+          {
+            "home": "PANADERIA PULIDO SAN MATEO, C.F.",
+            "away": "CORAZON DE MARIA, C.D. \"D\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "20-03-2027",
+            "time": "09:30",
+            "venue": "SAN MATEO",
+            "referee": ""
+          },
+          {
+            "home": "ARUCAS C.F. \"C\"",
+            "away": "VILLA DE SANTA BRIGIDA, U.D \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "20-03-2027",
+            "time": "10:30",
+            "venue": "JAVIER ARMAS REYES (F8)",
+            "referee": ""
+          },
+          {
+            "home": "VETERANOS DEL PILA, C.D. \"C\"",
+            "away": "BARRIAL ATLETICO, U.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "20-03-2027",
+            "time": "12:00",
+            "venue": "MANUEL NARANJO SOSA 1",
+            "referee": ""
+          },
+          {
+            "home": "Descansa",
+            "away": "MOYA, U.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "14",
+        "date": "04-04-2027",
+        "matches": [
+          {
+            "home": "BARRIAL ATLETICO, U.D. \"B\"",
+            "away": "ARUCAS C.F. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "02-04-2027",
+            "time": "18:30",
+            "venue": "SARDINA",
+            "referee": ""
+          },
+          {
+            "home": "VILLA DE SANTA BRIGIDA, U.D \"B\"",
+            "away": "GUINIGUADA APOLINARIO, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "03-04-2027",
+            "time": "09:00",
+            "venue": "LOS OLIVOS",
+            "referee": ""
+          },
+          {
+            "home": "PANADERIA PULIDO SAN MATEO, C.F.",
+            "away": "Descansa",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          },
+          {
+            "home": "CORAZON DE MARIA, C.D. \"D\"",
+            "away": "VETERANOS DEL PILA, C.D. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "03-04-2027",
+            "time": "10:30",
+            "venue": "COLEGIO CLARET",
+            "referee": ""
+          },
+          {
+            "home": "PILETAS, A.D. U.D.",
+            "away": "MOYA, U.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "03-04-2027",
+            "time": "11:15",
+            "venue": "PILETAS",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "15",
+        "date": "18-04-2027",
+        "matches": [
+          {
+            "home": "GUINIGUADA APOLINARIO, C.D. \"B\"",
+            "away": "BARRIAL ATLETICO, U.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "17-04-2027",
+            "time": "09:00",
+            "venue": "LOMO APOLINARIO F8",
+            "referee": ""
+          },
+          {
+            "home": "ARUCAS C.F. \"C\"",
+            "away": "CORAZON DE MARIA, C.D. \"D\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "17-04-2027",
+            "time": "09:00",
+            "venue": "JAVIER ARMAS REYES (F8)",
+            "referee": ""
+          },
+          {
+            "home": "MOYA, U.D. \"A\"",
+            "away": "VILLA DE SANTA BRIGIDA, U.D \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "17-04-2027",
+            "time": "10:00",
+            "venue": "GARCIA HERNANDEZ \"MOYA\"",
+            "referee": ""
+          },
+          {
+            "home": "VETERANOS DEL PILA, C.D. \"C\"",
+            "away": "PANADERIA PULIDO SAN MATEO, C.F.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "17-04-2027",
+            "time": "12:00",
+            "venue": "MANUEL NARANJO SOSA 1",
+            "referee": ""
+          },
+          {
+            "home": "Descansa",
+            "away": "PILETAS, A.D. U.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "16",
+        "date": "25-04-2027",
+        "matches": [
+          {
+            "home": "BARRIAL ATLETICO, U.D. \"B\"",
+            "away": "MOYA, U.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "23-04-2027",
+            "time": "17:00",
+            "venue": "SARDINA",
+            "referee": ""
+          },
+          {
+            "home": "VETERANOS DEL PILA, C.D. \"C\"",
+            "away": "Descansa",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          },
+          {
+            "home": "VILLA DE SANTA BRIGIDA, U.D \"B\"",
+            "away": "PILETAS, A.D. U.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "24-04-2027",
+            "time": "09:00",
+            "venue": "LOS OLIVOS",
+            "referee": ""
+          },
+          {
+            "home": "CORAZON DE MARIA, C.D. \"D\"",
+            "away": "GUINIGUADA APOLINARIO, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "24-04-2027",
+            "time": "10:30",
+            "venue": "COLEGIO CLARET",
+            "referee": ""
+          },
+          {
+            "home": "PANADERIA PULIDO SAN MATEO, C.F.",
+            "away": "ARUCAS C.F. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "24-04-2027",
+            "time": "10:30",
+            "venue": "SAN MATEO",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "17",
+        "date": "09-05-2027",
+        "matches": [
+          {
+            "home": "VILLA DE SANTA BRIGIDA, U.D \"B\"",
+            "away": "Descansa",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          },
+          {
+            "home": "ARUCAS C.F. \"C\"",
+            "away": "VETERANOS DEL PILA, C.D. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "08-05-2027",
+            "time": "09:00",
+            "venue": "JAVIER ARMAS REYES (F8)",
+            "referee": ""
+          },
+          {
+            "home": "MOYA, U.D. \"A\"",
+            "away": "CORAZON DE MARIA, C.D. \"D\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "08-05-2027",
+            "time": "10:00",
+            "venue": "GARCIA HERNANDEZ \"MOYA\"",
+            "referee": ""
+          },
+          {
+            "home": "GUINIGUADA APOLINARIO, C.D. \"B\"",
+            "away": "PANADERIA PULIDO SAN MATEO, C.F.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "08-05-2027",
+            "time": "10:30",
+            "venue": "LOMO APOLINARIO F8",
+            "referee": ""
+          },
+          {
+            "home": "PILETAS, A.D. U.D.",
+            "away": "BARRIAL ATLETICO, U.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "08-05-2027",
+            "time": "11:15",
+            "venue": "PILETAS",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "18",
+        "date": "23-05-2027",
+        "matches": [
+          {
+            "home": "BARRIAL ATLETICO, U.D. \"B\"",
+            "away": "VILLA DE SANTA BRIGIDA, U.D \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "22-05-2027",
+            "time": "12:00",
+            "venue": "SARDINA",
+            "referee": ""
+          },
+          {
+            "home": "CORAZON DE MARIA, C.D. \"D\"",
+            "away": "PILETAS, A.D. U.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "22-05-2027",
+            "time": "12:00",
+            "venue": "COLEGIO CLARET",
+            "referee": ""
+          },
+          {
+            "home": "PANADERIA PULIDO SAN MATEO, C.F.",
+            "away": "MOYA, U.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "22-05-2027",
+            "time": "12:00",
+            "venue": "SAN MATEO",
+            "referee": ""
+          },
+          {
+            "home": "VETERANOS DEL PILA, C.D. \"C\"",
+            "away": "GUINIGUADA APOLINARIO, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "22-05-2027",
+            "time": "12:00",
+            "venue": "MANUEL NARANJO SOSA 1",
+            "referee": ""
+          },
+          {
+            "home": "Descansa",
+            "away": "ARUCAS C.F. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "competition_id": "55335271",
+    "competition_name": "LIGA ALEVIN GRAN CANARIA FASE E",
+    "cat": "alevin",
+    "island": "grancanaria",
+    "phase": "LIGA ALEVIN GRAN CANARIA FASE E",
+    "group_id": "55335307",
+    "group_name": "GRUPO 2",
+    "standings": [],
+    "jornadas": [
+      {
+        "num": "1",
+        "date": "22-11-2026",
+        "matches": [
+          {
+            "home": "SAN LAZARO, U.D. \"B\"",
+            "away": "UNIVERSITARIO C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": 297643,
+            "date": "21-11-2026",
+            "time": "09:00",
+            "venue": "LOPEZ SOCAS",
+            "referee": ""
+          },
+          {
+            "home": "UNION MARINA, C.F. \"A\"",
+            "away": "UNION VIERA, C.F. \"D\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "21-11-2026",
+            "time": "09:00",
+            "venue": "MANUEL MARTIN \"NAÑO\"",
+            "referee": ""
+          },
+          {
+            "home": "SAN JOSE, REAL SPORTING \"A\"",
+            "away": "VETERANOS DEL PILA, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": 297645,
+            "date": "21-11-2026",
+            "time": "09:00",
+            "venue": "CHANO CRUZ",
+            "referee": ""
+          },
+          {
+            "home": "ATLETICO ISLETA \"B\"",
+            "away": "MOYA, C.D. U.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": 297642,
+            "date": "21-11-2026",
+            "time": "12:00",
+            "venue": "JARDIN DE INFANCIA F8",
+            "referee": ""
+          },
+          {
+            "home": "Descansa",
+            "away": "INTERCANARIAS/PILAR C.F. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "2",
+        "date": "29-11-2026",
+        "matches": [
+          {
+            "home": "UNIVERSITARIO C.D. \"B\"",
+            "away": "ATLETICO ISLETA \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": 297648,
+            "date": "25-11-2026",
+            "time": "18:30",
+            "venue": "NICOLÁS SÁNCHEZ SANTANA",
+            "referee": ""
+          },
+          {
+            "home": "INTERCANARIAS/PILAR C.F. \"A\"",
+            "away": "SAN JOSE, REAL SPORTING \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "27-11-2026",
+            "time": "19:00",
+            "venue": "EL PILAR",
+            "referee": ""
+          },
+          {
+            "home": "MOYA, C.D. U.D. \"B\"",
+            "away": "Descansa",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          },
+          {
+            "home": "UNION VIERA, C.F. \"D\"",
+            "away": "SAN LAZARO, U.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "28-11-2026",
+            "time": "18:30",
+            "venue": "ALFONSO SILVA",
+            "referee": ""
+          },
+          {
+            "home": "VETERANOS DEL PILA, C.D. \"B\"",
+            "away": "UNION MARINA, C.F. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "29-11-2026",
+            "time": "09:30",
+            "venue": "MANUEL NARANJO SOSA 1",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "3",
+        "date": "13-12-2026",
+        "matches": [
+          {
+            "home": "UNION MARINA, C.F. \"A\"",
+            "away": "INTERCANARIAS/PILAR C.F. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "12-12-2026",
+            "time": "09:00",
+            "venue": "MANUEL MARTIN \"NAÑO\"",
+            "referee": ""
+          },
+          {
+            "home": "MOYA, C.D. U.D. \"B\"",
+            "away": "UNIVERSITARIO C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "12-12-2026",
+            "time": "10:00",
+            "venue": "GARCIA HERNANDEZ \"MOYA\"",
+            "referee": ""
+          },
+          {
+            "home": "ATLETICO ISLETA \"B\"",
+            "away": "UNION VIERA, C.F. \"D\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "12-12-2026",
+            "time": "12:00",
+            "venue": "JARDIN DE INFANCIA F8",
+            "referee": ""
+          },
+          {
+            "home": "Descansa",
+            "away": "SAN JOSE, REAL SPORTING \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          },
+          {
+            "home": "SAN LAZARO, U.D. \"B\"",
+            "away": "VETERANOS DEL PILA, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "13-12-2026",
+            "time": "09:00",
+            "venue": "LOPEZ SOCAS",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "4",
+        "date": "20-12-2026",
+        "matches": [
+          {
+            "home": "UNIVERSITARIO C.D. \"B\"",
+            "away": "Descansa",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          },
+          {
+            "home": "INTERCANARIAS/PILAR C.F. \"A\"",
+            "away": "SAN LAZARO, U.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "18-12-2026",
+            "time": "19:00",
+            "venue": "EL PILAR",
+            "referee": ""
+          },
+          {
+            "home": "SAN JOSE, REAL SPORTING \"A\"",
+            "away": "UNION MARINA, C.F. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "19-12-2026",
+            "time": "09:00",
+            "venue": "CHANO CRUZ",
+            "referee": ""
+          },
+          {
+            "home": "UNION VIERA, C.F. \"D\"",
+            "away": "MOYA, C.D. U.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "19-12-2026",
+            "time": "13:00",
+            "venue": "ALFONSO SILVA",
+            "referee": ""
+          },
+          {
+            "home": "VETERANOS DEL PILA, C.D. \"B\"",
+            "away": "ATLETICO ISLETA \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "20-12-2026",
+            "time": "09:30",
+            "venue": "MANUEL NARANJO SOSA 1",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "5",
+        "date": "17-01-2027",
+        "matches": [
+          {
+            "home": "UNIVERSITARIO C.D. \"B\"",
+            "away": "UNION VIERA, C.F. \"D\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "13-01-2027",
+            "time": "18:30",
+            "venue": "NICOLÁS SÁNCHEZ SANTANA",
+            "referee": ""
+          },
+          {
+            "home": "MOYA, C.D. U.D. \"B\"",
+            "away": "VETERANOS DEL PILA, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "16-01-2027",
+            "time": "10:00",
+            "venue": "GARCIA HERNANDEZ \"MOYA\"",
+            "referee": ""
+          },
+          {
+            "home": "ATLETICO ISLETA \"B\"",
+            "away": "INTERCANARIAS/PILAR C.F. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "16-01-2027",
+            "time": "12:00",
+            "venue": "JARDIN DE INFANCIA F8",
+            "referee": ""
+          },
+          {
+            "home": "Descansa",
+            "away": "UNION MARINA, C.F. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          },
+          {
+            "home": "SAN LAZARO, U.D. \"B\"",
+            "away": "SAN JOSE, REAL SPORTING \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "17-01-2027",
+            "time": "09:00",
+            "venue": "LOPEZ SOCAS",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "6",
+        "date": "24-01-2027",
+        "matches": [
+          {
+            "home": "INTERCANARIAS/PILAR C.F. \"A\"",
+            "away": "MOYA, C.D. U.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "22-01-2027",
+            "time": "19:00",
+            "venue": "EL PILAR",
+            "referee": ""
+          },
+          {
+            "home": "UNION VIERA, C.F. \"D\"",
+            "away": "Descansa",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          },
+          {
+            "home": "SAN JOSE, REAL SPORTING \"A\"",
+            "away": "ATLETICO ISLETA \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "23-01-2027",
+            "time": "09:00",
+            "venue": "CHANO CRUZ",
+            "referee": ""
+          },
+          {
+            "home": "UNION MARINA, C.F. \"A\"",
+            "away": "SAN LAZARO, U.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "23-01-2027",
+            "time": "09:00",
+            "venue": "MANUEL MARTIN \"NAÑO\"",
+            "referee": ""
+          },
+          {
+            "home": "VETERANOS DEL PILA, C.D. \"B\"",
+            "away": "UNIVERSITARIO C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "24-01-2027",
+            "time": "09:30",
+            "venue": "MANUEL NARANJO SOSA 1",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "7",
+        "date": "31-01-2027",
+        "matches": [
+          {
+            "home": "UNIVERSITARIO C.D. \"B\"",
+            "away": "INTERCANARIAS/PILAR C.F. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "27-01-2027",
+            "time": "18:30",
+            "venue": "NICOLÁS SÁNCHEZ SANTANA",
+            "referee": ""
+          },
+          {
+            "home": "UNION VIERA, C.F. \"D\"",
+            "away": "VETERANOS DEL PILA, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "30-01-2027",
+            "time": "09:00",
+            "venue": "ALFONSO SILVA",
+            "referee": ""
+          },
+          {
+            "home": "MOYA, C.D. U.D. \"B\"",
+            "away": "SAN JOSE, REAL SPORTING \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "30-01-2027",
+            "time": "10:00",
+            "venue": "GARCIA HERNANDEZ \"MOYA\"",
+            "referee": ""
+          },
+          {
+            "home": "ATLETICO ISLETA \"B\"",
+            "away": "UNION MARINA, C.F. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "30-01-2027",
+            "time": "12:00",
+            "venue": "JARDIN DE INFANCIA F8",
+            "referee": ""
+          },
+          {
+            "home": "Descansa",
+            "away": "SAN LAZARO, U.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "8",
+        "date": "07-02-2027",
+        "matches": [
+          {
+            "home": "INTERCANARIAS/PILAR C.F. \"A\"",
+            "away": "UNION VIERA, C.F. \"D\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "05-02-2027",
+            "time": "19:00",
+            "venue": "EL PILAR",
+            "referee": ""
+          },
+          {
+            "home": "SAN JOSE, REAL SPORTING \"A\"",
+            "away": "UNIVERSITARIO C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "06-02-2027",
+            "time": "09:00",
+            "venue": "CHANO CRUZ",
+            "referee": ""
+          },
+          {
+            "home": "UNION MARINA, C.F. \"A\"",
+            "away": "MOYA, C.D. U.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "06-02-2027",
+            "time": "09:00",
+            "venue": "MANUEL MARTIN \"NAÑO\"",
+            "referee": ""
+          },
+          {
+            "home": "Descansa",
+            "away": "VETERANOS DEL PILA, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          },
+          {
+            "home": "SAN LAZARO, U.D. \"B\"",
+            "away": "ATLETICO ISLETA \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "07-02-2027",
+            "time": "09:00",
+            "venue": "LOPEZ SOCAS",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "9",
+        "date": "21-02-2027",
+        "matches": [
+          {
+            "home": "UNIVERSITARIO C.D. \"B\"",
+            "away": "UNION MARINA, C.F. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "17-02-2027",
+            "time": "18:30",
+            "venue": "NICOLÁS SÁNCHEZ SANTANA",
+            "referee": ""
+          },
+          {
+            "home": "MOYA, C.D. U.D. \"B\"",
+            "away": "SAN LAZARO, U.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "20-02-2027",
+            "time": "10:00",
+            "venue": "GARCIA HERNANDEZ \"MOYA\"",
+            "referee": ""
+          },
+          {
+            "home": "UNION VIERA, C.F. \"D\"",
+            "away": "SAN JOSE, REAL SPORTING \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "20-02-2027",
+            "time": "11:00",
+            "venue": "ALFONSO SILVA",
+            "referee": ""
+          },
+          {
+            "home": "ATLETICO ISLETA \"B\"",
+            "away": "Descansa",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          },
+          {
+            "home": "VETERANOS DEL PILA, C.D. \"B\"",
+            "away": "INTERCANARIAS/PILAR C.F. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "21-02-2027",
+            "time": "09:30",
+            "venue": "MANUEL NARANJO SOSA 1",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "10",
+        "date": "28-02-2027",
+        "matches": [
+          {
+            "home": "UNIVERSITARIO C.D. \"B\"",
+            "away": "SAN LAZARO, U.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "24-02-2027",
+            "time": "18:30",
+            "venue": "NICOLÁS SÁNCHEZ SANTANA",
+            "referee": ""
+          },
+          {
+            "home": "INTERCANARIAS/PILAR C.F. \"A\"",
+            "away": "Descansa",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          },
+          {
+            "home": "MOYA, C.D. U.D. \"B\"",
+            "away": "ATLETICO ISLETA \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "27-02-2027",
+            "time": "10:00",
+            "venue": "GARCIA HERNANDEZ \"MOYA\"",
+            "referee": ""
+          },
+          {
+            "home": "UNION VIERA, C.F. \"D\"",
+            "away": "UNION MARINA, C.F. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "27-02-2027",
+            "time": "16:30",
+            "venue": "ALFONSO SILVA",
+            "referee": ""
+          },
+          {
+            "home": "VETERANOS DEL PILA, C.D. \"B\"",
+            "away": "SAN JOSE, REAL SPORTING \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "28-02-2027",
+            "time": "09:30",
+            "venue": "MANUEL NARANJO SOSA 1",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "11",
+        "date": "07-03-2027",
+        "matches": [
+          {
+            "home": "UNION MARINA, C.F. \"A\"",
+            "away": "VETERANOS DEL PILA, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "06-03-2027",
+            "time": "09:00",
+            "venue": "MANUEL MARTIN \"NAÑO\"",
+            "referee": ""
+          },
+          {
+            "home": "SAN JOSE, REAL SPORTING \"A\"",
+            "away": "INTERCANARIAS/PILAR C.F. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "06-03-2027",
+            "time": "09:00",
+            "venue": "CHANO CRUZ",
+            "referee": ""
+          },
+          {
+            "home": "ATLETICO ISLETA \"B\"",
+            "away": "UNIVERSITARIO C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "06-03-2027",
+            "time": "12:00",
+            "venue": "JARDIN DE INFANCIA F8",
+            "referee": ""
+          },
+          {
+            "home": "Descansa",
+            "away": "MOYA, C.D. U.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          },
+          {
+            "home": "SAN LAZARO, U.D. \"B\"",
+            "away": "UNION VIERA, C.F. \"D\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "07-03-2027",
+            "time": "09:00",
+            "venue": "LOPEZ SOCAS",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "12",
+        "date": "14-03-2027",
+        "matches": [
+          {
+            "home": "UNIVERSITARIO C.D. \"B\"",
+            "away": "MOYA, C.D. U.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "10-03-2027",
+            "time": "18:30",
+            "venue": "NICOLÁS SÁNCHEZ SANTANA",
+            "referee": ""
+          },
+          {
+            "home": "INTERCANARIAS/PILAR C.F. \"A\"",
+            "away": "UNION MARINA, C.F. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "12-03-2027",
+            "time": "19:00",
+            "venue": "EL PILAR",
+            "referee": ""
+          },
+          {
+            "home": "SAN JOSE, REAL SPORTING \"A\"",
+            "away": "Descansa",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          },
+          {
+            "home": "UNION VIERA, C.F. \"D\"",
+            "away": "ATLETICO ISLETA \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "13-03-2027",
+            "time": "15:00",
+            "venue": "ALFONSO SILVA",
+            "referee": ""
+          },
+          {
+            "home": "VETERANOS DEL PILA, C.D. \"B\"",
+            "away": "SAN LAZARO, U.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "14-03-2027",
+            "time": "09:30",
+            "venue": "MANUEL NARANJO SOSA 1",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "13",
+        "date": "21-03-2027",
+        "matches": [
+          {
+            "home": "UNION MARINA, C.F. \"A\"",
+            "away": "SAN JOSE, REAL SPORTING \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "20-03-2027",
+            "time": "09:00",
+            "venue": "MANUEL MARTIN \"NAÑO\"",
+            "referee": ""
+          },
+          {
+            "home": "MOYA, C.D. U.D. \"B\"",
+            "away": "UNION VIERA, C.F. \"D\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "20-03-2027",
+            "time": "10:00",
+            "venue": "GARCIA HERNANDEZ \"MOYA\"",
+            "referee": ""
+          },
+          {
+            "home": "ATLETICO ISLETA \"B\"",
+            "away": "VETERANOS DEL PILA, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "20-03-2027",
+            "time": "12:00",
+            "venue": "JARDIN DE INFANCIA F8",
+            "referee": ""
+          },
+          {
+            "home": "Descansa",
+            "away": "UNIVERSITARIO C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          },
+          {
+            "home": "SAN LAZARO, U.D. \"B\"",
+            "away": "INTERCANARIAS/PILAR C.F. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "21-03-2027",
+            "time": "09:00",
+            "venue": "LOPEZ SOCAS",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "14",
+        "date": "04-04-2027",
+        "matches": [
+          {
+            "home": "INTERCANARIAS/PILAR C.F. \"A\"",
+            "away": "ATLETICO ISLETA \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "02-04-2027",
+            "time": "19:00",
+            "venue": "EL PILAR",
+            "referee": ""
+          },
+          {
+            "home": "SAN JOSE, REAL SPORTING \"A\"",
+            "away": "SAN LAZARO, U.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "03-04-2027",
+            "time": "09:00",
+            "venue": "CHANO CRUZ",
+            "referee": ""
+          },
+          {
+            "home": "UNION MARINA, C.F. \"A\"",
+            "away": "Descansa",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          },
+          {
+            "home": "UNION VIERA, C.F. \"D\"",
+            "away": "UNIVERSITARIO C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "03-04-2027",
+            "time": "15:00",
+            "venue": "ALFONSO SILVA",
+            "referee": ""
+          },
+          {
+            "home": "VETERANOS DEL PILA, C.D. \"B\"",
+            "away": "MOYA, C.D. U.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "04-04-2027",
+            "time": "09:30",
+            "venue": "MANUEL NARANJO SOSA 1",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "15",
+        "date": "18-04-2027",
+        "matches": [
+          {
+            "home": "UNIVERSITARIO C.D. \"B\"",
+            "away": "VETERANOS DEL PILA, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "14-04-2027",
+            "time": "18:30",
+            "venue": "NICOLÁS SÁNCHEZ SANTANA",
+            "referee": ""
+          },
+          {
+            "home": "MOYA, C.D. U.D. \"B\"",
+            "away": "INTERCANARIAS/PILAR C.F. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "17-04-2027",
+            "time": "10:00",
+            "venue": "GARCIA HERNANDEZ \"MOYA\"",
+            "referee": ""
+          },
+          {
+            "home": "ATLETICO ISLETA \"B\"",
+            "away": "SAN JOSE, REAL SPORTING \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "17-04-2027",
+            "time": "12:00",
+            "venue": "JARDIN DE INFANCIA F8",
+            "referee": ""
+          },
+          {
+            "home": "Descansa",
+            "away": "UNION VIERA, C.F. \"D\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          },
+          {
+            "home": "SAN LAZARO, U.D. \"B\"",
+            "away": "UNION MARINA, C.F. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "18-04-2027",
+            "time": "09:00",
+            "venue": "LOPEZ SOCAS",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "16",
+        "date": "25-04-2027",
+        "matches": [
+          {
+            "home": "INTERCANARIAS/PILAR C.F. \"A\"",
+            "away": "UNIVERSITARIO C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "23-04-2027",
+            "time": "19:00",
+            "venue": "EL PILAR",
+            "referee": ""
+          },
+          {
+            "home": "SAN JOSE, REAL SPORTING \"A\"",
+            "away": "MOYA, C.D. U.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "24-04-2027",
+            "time": "09:00",
+            "venue": "CHANO CRUZ",
+            "referee": ""
+          },
+          {
+            "home": "UNION MARINA, C.F. \"A\"",
+            "away": "ATLETICO ISLETA \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "24-04-2027",
+            "time": "09:00",
+            "venue": "MANUEL MARTIN \"NAÑO\"",
+            "referee": ""
+          },
+          {
+            "home": "SAN LAZARO, U.D. \"B\"",
+            "away": "Descansa",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          },
+          {
+            "home": "VETERANOS DEL PILA, C.D. \"B\"",
+            "away": "UNION VIERA, C.F. \"D\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "25-04-2027",
+            "time": "09:30",
+            "venue": "MANUEL NARANJO SOSA 1",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "17",
+        "date": "09-05-2027",
+        "matches": [
+          {
+            "home": "UNIVERSITARIO C.D. \"B\"",
+            "away": "SAN JOSE, REAL SPORTING \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "05-05-2027",
+            "time": "18:30",
+            "venue": "NICOLÁS SÁNCHEZ SANTANA",
+            "referee": ""
+          },
+          {
+            "home": "UNION VIERA, C.F. \"D\"",
+            "away": "INTERCANARIAS/PILAR C.F. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "08-05-2027",
+            "time": "09:00",
+            "venue": "ALFONSO SILVA",
+            "referee": ""
+          },
+          {
+            "home": "MOYA, C.D. U.D. \"B\"",
+            "away": "UNION MARINA, C.F. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "08-05-2027",
+            "time": "10:00",
+            "venue": "GARCIA HERNANDEZ \"MOYA\"",
+            "referee": ""
+          },
+          {
+            "home": "ATLETICO ISLETA \"B\"",
+            "away": "SAN LAZARO, U.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "08-05-2027",
+            "time": "12:00",
+            "venue": "JARDIN DE INFANCIA F8",
+            "referee": ""
+          },
+          {
+            "home": "VETERANOS DEL PILA, C.D. \"B\"",
+            "away": "Descansa",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "18",
+        "date": "23-05-2027",
+        "matches": [
+          {
+            "home": "INTERCANARIAS/PILAR C.F. \"A\"",
+            "away": "VETERANOS DEL PILA, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "22-05-2027",
+            "time": "09:00",
+            "venue": "EL PILAR",
+            "referee": ""
+          },
+          {
+            "home": "SAN JOSE, REAL SPORTING \"A\"",
+            "away": "UNION VIERA, C.F. \"D\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "22-05-2027",
+            "time": "09:00",
+            "venue": "CHANO CRUZ",
+            "referee": ""
+          },
+          {
+            "home": "UNION MARINA, C.F. \"A\"",
+            "away": "UNIVERSITARIO C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "22-05-2027",
+            "time": "09:00",
+            "venue": "MANUEL MARTIN \"NAÑO\"",
+            "referee": ""
+          },
+          {
+            "home": "SAN LAZARO, U.D. \"B\"",
+            "away": "MOYA, C.D. U.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "22-05-2027",
+            "time": "09:00",
+            "venue": "LOPEZ SOCAS",
+            "referee": ""
+          },
+          {
+            "home": "Descansa",
+            "away": "ATLETICO ISLETA \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "competition_id": "55335271",
+    "competition_name": "LIGA ALEVIN GRAN CANARIA FASE E",
+    "cat": "alevin",
+    "island": "grancanaria",
+    "phase": "LIGA ALEVIN GRAN CANARIA FASE E",
+    "group_id": "55335308",
+    "group_name": "GRUPO 3",
+    "standings": [],
+    "jornadas": [
+      {
+        "num": "1",
+        "date": "22-11-2026",
+        "matches": [
+          {
+            "home": "AGUIMES C.F. \"A\"",
+            "away": "CALERO, C.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "20-11-2026",
+            "time": "17:00",
+            "venue": "LAS CRUCITAS",
+            "referee": ""
+          },
+          {
+            "home": "OJOS DE GARZA, C.D. \"A\"",
+            "away": "LA UNION VECINDARIO \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "20-11-2026",
+            "time": "18:00",
+            "venue": "OJOS DE GARZA",
+            "referee": ""
+          },
+          {
+            "home": "SAN PEDRO MARTIR, C.D. \"B\"",
+            "away": "ARINAGA, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "21-11-2026",
+            "time": "09:00",
+            "venue": "CAMPO MUNICIPAL DE DOCTORAL - JUANITO LUJÁN",
+            "referee": ""
+          },
+          {
+            "home": "MOGAN, C.F. \"B\"",
+            "away": "HUESAS, U.D. LAS \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "21-11-2026",
+            "time": "10:30",
+            "venue": "MOGAN",
+            "referee": ""
+          },
+          {
+            "home": "CERRUDA SANTA LUCIA DE TIRAJANA, C.D. \"C\"",
+            "away": "INGENIO, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "21-11-2026",
+            "time": "12:30",
+            "venue": "CAMPO MUNICIPAL ANEXO DE VECINDARIO",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "2",
+        "date": "29-11-2026",
+        "matches": [
+          {
+            "home": "ARINAGA, C.D. \"B\"",
+            "away": "CERRUDA SANTA LUCIA DE TIRAJANA, C.D. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "27-11-2026",
+            "time": "17:00",
+            "venue": "MUNICIPAL DE ARINAGA",
+            "referee": ""
+          },
+          {
+            "home": "CALERO, C.D. \"A\"",
+            "away": "SAN PEDRO MARTIR, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "28-11-2026",
+            "time": "09:00",
+            "venue": "EL CALERO",
+            "referee": ""
+          },
+          {
+            "home": "INGENIO, C.D. \"B\"",
+            "away": "OJOS DE GARZA, C.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "28-11-2026",
+            "time": "09:00",
+            "venue": "CRISTOBAL HERRERA",
+            "referee": ""
+          },
+          {
+            "home": "HUESAS, U.D. LAS \"B\"",
+            "away": "AGUIMES C.F. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "28-11-2026",
+            "time": "10:30",
+            "venue": "LAS HUESAS",
+            "referee": ""
+          },
+          {
+            "home": "LA UNION VECINDARIO \"C\"",
+            "away": "MOGAN, C.F. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "28-11-2026",
+            "time": "12:30",
+            "venue": "CAMPO MUNICIPAL ANEXO DE VECINDARIO",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "3",
+        "date": "13-12-2026",
+        "matches": [
+          {
+            "home": "AGUIMES C.F. \"A\"",
+            "away": "LA UNION VECINDARIO \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "11-12-2026",
+            "time": "17:00",
+            "venue": "LAS CRUCITAS",
+            "referee": ""
+          },
+          {
+            "home": "OJOS DE GARZA, C.D. \"A\"",
+            "away": "ARINAGA, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "11-12-2026",
+            "time": "18:00",
+            "venue": "OJOS DE GARZA",
+            "referee": ""
+          },
+          {
+            "home": "CALERO, C.D. \"A\"",
+            "away": "HUESAS, U.D. LAS \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "12-12-2026",
+            "time": "09:00",
+            "venue": "EL CALERO",
+            "referee": ""
+          },
+          {
+            "home": "SAN PEDRO MARTIR, C.D. \"B\"",
+            "away": "CERRUDA SANTA LUCIA DE TIRAJANA, C.D. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "12-12-2026",
+            "time": "09:00",
+            "venue": "CAMPO MUNICIPAL DE DOCTORAL - JUANITO LUJÁN",
+            "referee": ""
+          },
+          {
+            "home": "MOGAN, C.F. \"B\"",
+            "away": "INGENIO, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "12-12-2026",
+            "time": "10:30",
+            "venue": "MOGAN",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "4",
+        "date": "20-12-2026",
+        "matches": [
+          {
+            "home": "ARINAGA, C.D. \"B\"",
+            "away": "MOGAN, C.F. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "18-12-2026",
+            "time": "17:00",
+            "venue": "MUNICIPAL DE ARINAGA",
+            "referee": ""
+          },
+          {
+            "home": "HUESAS, U.D. LAS \"B\"",
+            "away": "SAN PEDRO MARTIR, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "19-12-2026",
+            "time": "10:30",
+            "venue": "LAS HUESAS",
+            "referee": ""
+          },
+          {
+            "home": "INGENIO, C.D. \"B\"",
+            "away": "AGUIMES C.F. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "19-12-2026",
+            "time": "10:30",
+            "venue": "CRISTOBAL HERRERA",
+            "referee": ""
+          },
+          {
+            "home": "LA UNION VECINDARIO \"C\"",
+            "away": "CALERO, C.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "19-12-2026",
+            "time": "12:30",
+            "venue": "CAMPO MUNICIPAL ANEXO DE VECINDARIO",
+            "referee": ""
+          },
+          {
+            "home": "CERRUDA SANTA LUCIA DE TIRAJANA, C.D. \"C\"",
+            "away": "OJOS DE GARZA, C.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "19-12-2026",
+            "time": "12:30",
+            "venue": "CAMPO MUNICIPAL ANEXO DE VECINDARIO",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "5",
+        "date": "17-01-2027",
+        "matches": [
+          {
+            "home": "AGUIMES C.F. \"A\"",
+            "away": "ARINAGA, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "15-01-2027",
+            "time": "17:00",
+            "venue": "LAS CRUCITAS",
+            "referee": ""
+          },
+          {
+            "home": "CALERO, C.D. \"A\"",
+            "away": "INGENIO, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "16-01-2027",
+            "time": "09:00",
+            "venue": "EL CALERO",
+            "referee": ""
+          },
+          {
+            "home": "SAN PEDRO MARTIR, C.D. \"B\"",
+            "away": "OJOS DE GARZA, C.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "16-01-2027",
+            "time": "09:00",
+            "venue": "CAMPO MUNICIPAL DE DOCTORAL - JUANITO LUJÁN",
+            "referee": ""
+          },
+          {
+            "home": "HUESAS, U.D. LAS \"B\"",
+            "away": "LA UNION VECINDARIO \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "16-01-2027",
+            "time": "10:30",
+            "venue": "LAS HUESAS",
+            "referee": ""
+          },
+          {
+            "home": "MOGAN, C.F. \"B\"",
+            "away": "CERRUDA SANTA LUCIA DE TIRAJANA, C.D. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "16-01-2027",
+            "time": "10:30",
+            "venue": "MOGAN",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "6",
+        "date": "24-01-2027",
+        "matches": [
+          {
+            "home": "ARINAGA, C.D. \"B\"",
+            "away": "CALERO, C.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "22-01-2027",
+            "time": "17:00",
+            "venue": "MUNICIPAL DE ARINAGA",
+            "referee": ""
+          },
+          {
+            "home": "OJOS DE GARZA, C.D. \"A\"",
+            "away": "MOGAN, C.F. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "22-01-2027",
+            "time": "18:00",
+            "venue": "OJOS DE GARZA",
+            "referee": ""
+          },
+          {
+            "home": "INGENIO, C.D. \"B\"",
+            "away": "HUESAS, U.D. LAS \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "23-01-2027",
+            "time": "10:30",
+            "venue": "CRISTOBAL HERRERA",
+            "referee": ""
+          },
+          {
+            "home": "LA UNION VECINDARIO \"C\"",
+            "away": "SAN PEDRO MARTIR, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "23-01-2027",
+            "time": "12:30",
+            "venue": "CAMPO MUNICIPAL ANEXO DE VECINDARIO",
+            "referee": ""
+          },
+          {
+            "home": "CERRUDA SANTA LUCIA DE TIRAJANA, C.D. \"C\"",
+            "away": "AGUIMES C.F. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "23-01-2027",
+            "time": "12:30",
+            "venue": "CAMPO MUNICIPAL ANEXO DE VECINDARIO",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "7",
+        "date": "31-01-2027",
+        "matches": [
+          {
+            "home": "AGUIMES C.F. \"A\"",
+            "away": "OJOS DE GARZA, C.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "29-01-2027",
+            "time": "17:00",
+            "venue": "LAS CRUCITAS",
+            "referee": ""
+          },
+          {
+            "home": "CALERO, C.D. \"A\"",
+            "away": "CERRUDA SANTA LUCIA DE TIRAJANA, C.D. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "30-01-2027",
+            "time": "09:00",
+            "venue": "EL CALERO",
+            "referee": ""
+          },
+          {
+            "home": "SAN PEDRO MARTIR, C.D. \"B\"",
+            "away": "MOGAN, C.F. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "30-01-2027",
+            "time": "09:00",
+            "venue": "CAMPO MUNICIPAL DE DOCTORAL - JUANITO LUJÁN",
+            "referee": ""
+          },
+          {
+            "home": "HUESAS, U.D. LAS \"B\"",
+            "away": "ARINAGA, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "30-01-2027",
+            "time": "10:30",
+            "venue": "LAS HUESAS",
+            "referee": ""
+          },
+          {
+            "home": "LA UNION VECINDARIO \"C\"",
+            "away": "INGENIO, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "30-01-2027",
+            "time": "12:30",
+            "venue": "CAMPO MUNICIPAL ANEXO DE VECINDARIO",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "8",
+        "date": "07-02-2027",
+        "matches": [
+          {
+            "home": "ARINAGA, C.D. \"B\"",
+            "away": "LA UNION VECINDARIO \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "05-02-2027",
+            "time": "17:00",
+            "venue": "MUNICIPAL DE ARINAGA",
+            "referee": ""
+          },
+          {
+            "home": "OJOS DE GARZA, C.D. \"A\"",
+            "away": "CALERO, C.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "05-02-2027",
+            "time": "18:00",
+            "venue": "OJOS DE GARZA",
+            "referee": ""
+          },
+          {
+            "home": "SAN PEDRO MARTIR, C.D. \"B\"",
+            "away": "INGENIO, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "06-02-2027",
+            "time": "09:00",
+            "venue": "CAMPO MUNICIPAL DE DOCTORAL - JUANITO LUJÁN",
+            "referee": ""
+          },
+          {
+            "home": "MOGAN, C.F. \"B\"",
+            "away": "AGUIMES C.F. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "06-02-2027",
+            "time": "10:30",
+            "venue": "MOGAN",
+            "referee": ""
+          },
+          {
+            "home": "CERRUDA SANTA LUCIA DE TIRAJANA, C.D. \"C\"",
+            "away": "HUESAS, U.D. LAS \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "06-02-2027",
+            "time": "12:30",
+            "venue": "CAMPO MUNICIPAL ANEXO DE VECINDARIO",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "9",
+        "date": "21-02-2027",
+        "matches": [
+          {
+            "home": "AGUIMES C.F. \"A\"",
+            "away": "SAN PEDRO MARTIR, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "19-02-2027",
+            "time": "17:00",
+            "venue": "LAS CRUCITAS",
+            "referee": ""
+          },
+          {
+            "home": "INGENIO, C.D. \"B\"",
+            "away": "ARINAGA, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "20-02-2027",
+            "time": "09:00",
+            "venue": "CRISTOBAL HERRERA",
+            "referee": ""
+          },
+          {
+            "home": "CALERO, C.D. \"A\"",
+            "away": "MOGAN, C.F. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "20-02-2027",
+            "time": "09:00",
+            "venue": "EL CALERO",
+            "referee": ""
+          },
+          {
+            "home": "HUESAS, U.D. LAS \"B\"",
+            "away": "OJOS DE GARZA, C.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "20-02-2027",
+            "time": "10:30",
+            "venue": "LAS HUESAS",
+            "referee": ""
+          },
+          {
+            "home": "LA UNION VECINDARIO \"C\"",
+            "away": "CERRUDA SANTA LUCIA DE TIRAJANA, C.D. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "20-02-2027",
+            "time": "12:30",
+            "venue": "CAMPO MUNICIPAL ANEXO DE VECINDARIO",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "10",
+        "date": "28-02-2027",
+        "matches": [
+          {
+            "home": "ARINAGA, C.D. \"B\"",
+            "away": "SAN PEDRO MARTIR, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "26-02-2027",
+            "time": "17:00",
+            "venue": "MUNICIPAL DE ARINAGA",
+            "referee": ""
+          },
+          {
+            "home": "CALERO, C.D. \"A\"",
+            "away": "AGUIMES C.F. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "27-02-2027",
+            "time": "09:00",
+            "venue": "EL CALERO",
+            "referee": ""
+          },
+          {
+            "home": "HUESAS, U.D. LAS \"B\"",
+            "away": "MOGAN, C.F. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "27-02-2027",
+            "time": "10:30",
+            "venue": "LAS HUESAS",
+            "referee": ""
+          },
+          {
+            "home": "INGENIO, C.D. \"B\"",
+            "away": "CERRUDA SANTA LUCIA DE TIRAJANA, C.D. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "27-02-2027",
+            "time": "10:30",
+            "venue": "CRISTOBAL HERRERA",
+            "referee": ""
+          },
+          {
+            "home": "LA UNION VECINDARIO \"C\"",
+            "away": "OJOS DE GARZA, C.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "27-02-2027",
+            "time": "12:30",
+            "venue": "CAMPO MUNICIPAL ANEXO DE VECINDARIO",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "11",
+        "date": "07-03-2027",
+        "matches": [
+          {
+            "home": "AGUIMES C.F. \"A\"",
+            "away": "HUESAS, U.D. LAS \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "05-03-2027",
+            "time": "17:00",
+            "venue": "LAS CRUCITAS",
+            "referee": ""
+          },
+          {
+            "home": "OJOS DE GARZA, C.D. \"A\"",
+            "away": "INGENIO, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "05-03-2027",
+            "time": "18:00",
+            "venue": "OJOS DE GARZA",
+            "referee": ""
+          },
+          {
+            "home": "SAN PEDRO MARTIR, C.D. \"B\"",
+            "away": "CALERO, C.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "06-03-2027",
+            "time": "09:00",
+            "venue": "CAMPO MUNICIPAL DE DOCTORAL - JUANITO LUJÁN",
+            "referee": ""
+          },
+          {
+            "home": "MOGAN, C.F. \"B\"",
+            "away": "LA UNION VECINDARIO \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "06-03-2027",
+            "time": "10:30",
+            "venue": "MOGAN",
+            "referee": ""
+          },
+          {
+            "home": "CERRUDA SANTA LUCIA DE TIRAJANA, C.D. \"C\"",
+            "away": "ARINAGA, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "06-03-2027",
+            "time": "12:30",
+            "venue": "CAMPO MUNICIPAL ANEXO DE VECINDARIO",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "12",
+        "date": "14-03-2027",
+        "matches": [
+          {
+            "home": "ARINAGA, C.D. \"B\"",
+            "away": "OJOS DE GARZA, C.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "12-03-2027",
+            "time": "17:00",
+            "venue": "MUNICIPAL DE ARINAGA",
+            "referee": ""
+          },
+          {
+            "home": "INGENIO, C.D. \"B\"",
+            "away": "MOGAN, C.F. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "13-03-2027",
+            "time": "09:00",
+            "venue": "CRISTOBAL HERRERA",
+            "referee": ""
+          },
+          {
+            "home": "HUESAS, U.D. LAS \"B\"",
+            "away": "CALERO, C.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "13-03-2027",
+            "time": "10:30",
+            "venue": "LAS HUESAS",
+            "referee": ""
+          },
+          {
+            "home": "LA UNION VECINDARIO \"C\"",
+            "away": "AGUIMES C.F. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "13-03-2027",
+            "time": "12:30",
+            "venue": "CAMPO MUNICIPAL ANEXO DE VECINDARIO",
+            "referee": ""
+          },
+          {
+            "home": "CERRUDA SANTA LUCIA DE TIRAJANA, C.D. \"C\"",
+            "away": "SAN PEDRO MARTIR, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "13-03-2027",
+            "time": "12:30",
+            "venue": "CAMPO MUNICIPAL ANEXO DE VECINDARIO",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "13",
+        "date": "21-03-2027",
+        "matches": [
+          {
+            "home": "AGUIMES C.F. \"A\"",
+            "away": "INGENIO, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "19-03-2027",
+            "time": "17:00",
+            "venue": "LAS CRUCITAS",
+            "referee": ""
+          },
+          {
+            "home": "OJOS DE GARZA, C.D. \"A\"",
+            "away": "CERRUDA SANTA LUCIA DE TIRAJANA, C.D. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "19-03-2027",
+            "time": "18:00",
+            "venue": "OJOS DE GARZA",
+            "referee": ""
+          },
+          {
+            "home": "SAN PEDRO MARTIR, C.D. \"B\"",
+            "away": "HUESAS, U.D. LAS \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "20-03-2027",
+            "time": "09:00",
+            "venue": "CAMPO MUNICIPAL DE DOCTORAL - JUANITO LUJÁN",
+            "referee": ""
+          },
+          {
+            "home": "CALERO, C.D. \"A\"",
+            "away": "LA UNION VECINDARIO \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "20-03-2027",
+            "time": "09:00",
+            "venue": "EL CALERO",
+            "referee": ""
+          },
+          {
+            "home": "MOGAN, C.F. \"B\"",
+            "away": "ARINAGA, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "20-03-2027",
+            "time": "10:30",
+            "venue": "MOGAN",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "14",
+        "date": "04-04-2027",
+        "matches": [
+          {
+            "home": "ARINAGA, C.D. \"B\"",
+            "away": "AGUIMES C.F. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "02-04-2027",
+            "time": "17:00",
+            "venue": "MUNICIPAL DE ARINAGA",
+            "referee": ""
+          },
+          {
+            "home": "OJOS DE GARZA, C.D. \"A\"",
+            "away": "SAN PEDRO MARTIR, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "02-04-2027",
+            "time": "18:00",
+            "venue": "OJOS DE GARZA",
+            "referee": ""
+          },
+          {
+            "home": "LA UNION VECINDARIO \"C\"",
+            "away": "HUESAS, U.D. LAS \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "03-04-2027",
+            "time": "10:30",
+            "venue": "CAMPO MUNICIPAL ANEXO DE VECINDARIO",
+            "referee": ""
+          },
+          {
+            "home": "INGENIO, C.D. \"B\"",
+            "away": "CALERO, C.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "03-04-2027",
+            "time": "10:30",
+            "venue": "CRISTOBAL HERRERA",
+            "referee": ""
+          },
+          {
+            "home": "CERRUDA SANTA LUCIA DE TIRAJANA, C.D. \"C\"",
+            "away": "MOGAN, C.F. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "03-04-2027",
+            "time": "12:30",
+            "venue": "CAMPO MUNICIPAL ANEXO DE VECINDARIO",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "15",
+        "date": "18-04-2027",
+        "matches": [
+          {
+            "home": "AGUIMES C.F. \"A\"",
+            "away": "CERRUDA SANTA LUCIA DE TIRAJANA, C.D. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "16-04-2027",
+            "time": "17:00",
+            "venue": "LAS CRUCITAS",
+            "referee": ""
+          },
+          {
+            "home": "SAN PEDRO MARTIR, C.D. \"B\"",
+            "away": "LA UNION VECINDARIO \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "17-04-2027",
+            "time": "09:00",
+            "venue": "CAMPO MUNICIPAL DE DOCTORAL - JUANITO LUJÁN",
+            "referee": ""
+          },
+          {
+            "home": "CALERO, C.D. \"A\"",
+            "away": "ARINAGA, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "17-04-2027",
+            "time": "09:00",
+            "venue": "EL CALERO",
+            "referee": ""
+          },
+          {
+            "home": "HUESAS, U.D. LAS \"B\"",
+            "away": "INGENIO, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "17-04-2027",
+            "time": "10:30",
+            "venue": "LAS HUESAS",
+            "referee": ""
+          },
+          {
+            "home": "MOGAN, C.F. \"B\"",
+            "away": "OJOS DE GARZA, C.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "17-04-2027",
+            "time": "10:30",
+            "venue": "MOGAN",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "16",
+        "date": "25-04-2027",
+        "matches": [
+          {
+            "home": "ARINAGA, C.D. \"B\"",
+            "away": "HUESAS, U.D. LAS \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "23-04-2027",
+            "time": "17:00",
+            "venue": "MUNICIPAL DE ARINAGA",
+            "referee": ""
+          },
+          {
+            "home": "OJOS DE GARZA, C.D. \"A\"",
+            "away": "AGUIMES C.F. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "23-04-2027",
+            "time": "18:00",
+            "venue": "OJOS DE GARZA",
+            "referee": ""
+          },
+          {
+            "home": "INGENIO, C.D. \"B\"",
+            "away": "LA UNION VECINDARIO \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "24-04-2027",
+            "time": "10:30",
+            "venue": "CRISTOBAL HERRERA",
+            "referee": ""
+          },
+          {
+            "home": "MOGAN, C.F. \"B\"",
+            "away": "SAN PEDRO MARTIR, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "24-04-2027",
+            "time": "10:30",
+            "venue": "MOGAN",
+            "referee": ""
+          },
+          {
+            "home": "CERRUDA SANTA LUCIA DE TIRAJANA, C.D. \"C\"",
+            "away": "CALERO, C.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "24-04-2027",
+            "time": "12:30",
+            "venue": "CAMPO MUNICIPAL ANEXO DE VECINDARIO",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "17",
+        "date": "09-05-2027",
+        "matches": [
+          {
+            "home": "AGUIMES C.F. \"A\"",
+            "away": "MOGAN, C.F. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "07-05-2027",
+            "time": "17:00",
+            "venue": "LAS CRUCITAS",
+            "referee": ""
+          },
+          {
+            "home": "INGENIO, C.D. \"B\"",
+            "away": "SAN PEDRO MARTIR, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "08-05-2027",
+            "time": "09:00",
+            "venue": "CRISTOBAL HERRERA",
+            "referee": ""
+          },
+          {
+            "home": "LA UNION VECINDARIO \"C\"",
+            "away": "ARINAGA, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "08-05-2027",
+            "time": "09:00",
+            "venue": "CAMPO MUNICIPAL ANEXO DE VECINDARIO",
+            "referee": ""
+          },
+          {
+            "home": "CALERO, C.D. \"A\"",
+            "away": "OJOS DE GARZA, C.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "08-05-2027",
+            "time": "09:00",
+            "venue": "EL CALERO",
+            "referee": ""
+          },
+          {
+            "home": "HUESAS, U.D. LAS \"B\"",
+            "away": "CERRUDA SANTA LUCIA DE TIRAJANA, C.D. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "08-05-2027",
+            "time": "10:30",
+            "venue": "LAS HUESAS",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "18",
+        "date": "23-05-2027",
+        "matches": [
+          {
+            "home": "ARINAGA, C.D. \"B\"",
+            "away": "INGENIO, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "22-05-2027",
+            "time": "12:30",
+            "venue": "MUNICIPAL DE ARINAGA",
+            "referee": ""
+          },
+          {
+            "home": "CERRUDA SANTA LUCIA DE TIRAJANA, C.D. \"C\"",
+            "away": "LA UNION VECINDARIO \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "22-05-2027",
+            "time": "12:30",
+            "venue": "CAMPO MUNICIPAL ANEXO DE VECINDARIO",
+            "referee": ""
+          },
+          {
+            "home": "OJOS DE GARZA, C.D. \"A\"",
+            "away": "HUESAS, U.D. LAS \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "22-05-2027",
+            "time": "12:30",
+            "venue": "OJOS DE GARZA",
+            "referee": ""
+          },
+          {
+            "home": "MOGAN, C.F. \"B\"",
+            "away": "CALERO, C.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "22-05-2027",
+            "time": "12:30",
+            "venue": "MOGAN",
+            "referee": ""
+          },
+          {
+            "home": "SAN PEDRO MARTIR, C.D. \"B\"",
+            "away": "AGUIMES C.F. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "22-05-2027",
+            "time": "12:30",
+            "venue": "CAMPO MUNICIPAL DE DOCTORAL - JUANITO LUJÁN",
+            "referee": ""
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "competition_id": "55335272",
+    "competition_name": "LIGA ALEVIN GRAN CANARIA FASE F",
+    "cat": "alevin",
+    "island": "grancanaria",
+    "phase": "LIGA ALEVIN GRAN CANARIA FASE F",
+    "group_id": "55335309",
+    "group_name": "GRUPO 1",
+    "standings": [],
+    "jornadas": [
+      {
+        "num": "1",
+        "date": "22-11-2026",
+        "matches": [
+          {
+            "home": "ALCOTAN CANARIAS, C.D.",
+            "away": "COLORADAS, U.D. LAS",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": 298002,
+            "date": "21-11-2026",
+            "time": "09:00",
+            "venue": "ANTONIO ROJAS",
+            "referee": ""
+          },
+          {
+            "home": "BAÑADEROS, C.D. \"A\"",
+            "away": "SAN LAZARO, U.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": 298005,
+            "date": "21-11-2026",
+            "time": "09:00",
+            "venue": "MANUEL PABLO",
+            "referee": ""
+          },
+          {
+            "home": "FIRGAS, C.D.",
+            "away": "ATALAYA, U.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": 298006,
+            "date": "21-11-2026",
+            "time": "09:00",
+            "venue": "DOMINGO PONCE",
+            "referee": ""
+          },
+          {
+            "home": "GLAUCUS, C.D. \"B\"",
+            "away": "GUAYARMINA, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": 298004,
+            "date": "21-11-2026",
+            "time": "12:00",
+            "venue": "C.M. LA SUERTE",
+            "referee": ""
+          },
+          {
+            "home": "SAN ANTONIO, U.D. \"B\"",
+            "away": "VILLA DE SANTA BRIGIDA, U.D. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": 298003,
+            "date": "21-11-2026",
+            "time": "16:00",
+            "venue": "LOPEZ SOCAS",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "2",
+        "date": "29-11-2026",
+        "matches": [
+          {
+            "home": "ATALAYA, U.D. \"B\"",
+            "away": "BAÑADEROS, C.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "27-11-2026",
+            "time": "17:00",
+            "venue": "CMF LA ATALAYA",
+            "referee": ""
+          },
+          {
+            "home": "GUAYARMINA, C.D. \"B\"",
+            "away": "SAN ANTONIO, U.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "28-11-2026",
+            "time": "09:00",
+            "venue": "SAUCILLO",
+            "referee": ""
+          },
+          {
+            "home": "COLORADAS, U.D. LAS",
+            "away": "FIRGAS, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "28-11-2026",
+            "time": "10:30",
+            "venue": "JARDIN DE INFANCIA F8",
+            "referee": ""
+          },
+          {
+            "home": "SAN LAZARO, U.D. \"A\"",
+            "away": "GLAUCUS, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "28-11-2026",
+            "time": "10:30",
+            "venue": "LOPEZ SOCAS",
+            "referee": ""
+          },
+          {
+            "home": "VILLA DE SANTA BRIGIDA, U.D. \"C\"",
+            "away": "ALCOTAN CANARIAS, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "29-11-2026",
+            "time": "09:00",
+            "venue": "LOS OLIVOS",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "3",
+        "date": "13-12-2026",
+        "matches": [
+          {
+            "home": "ALCOTAN CANARIAS, C.D.",
+            "away": "GUAYARMINA, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "12-12-2026",
+            "time": "09:00",
+            "venue": "ANTONIO ROJAS",
+            "referee": ""
+          },
+          {
+            "home": "SAN ANTONIO, U.D. \"B\"",
+            "away": "SAN LAZARO, U.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "12-12-2026",
+            "time": "09:00",
+            "venue": "LOPEZ SOCAS",
+            "referee": ""
+          },
+          {
+            "home": "FIRGAS, C.D.",
+            "away": "BAÑADEROS, C.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "12-12-2026",
+            "time": "09:00",
+            "venue": "DOMINGO PONCE",
+            "referee": ""
+          },
+          {
+            "home": "COLORADAS, U.D. LAS",
+            "away": "VILLA DE SANTA BRIGIDA, U.D. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "12-12-2026",
+            "time": "10:30",
+            "venue": "JARDIN DE INFANCIA F8",
+            "referee": ""
+          },
+          {
+            "home": "GLAUCUS, C.D. \"B\"",
+            "away": "ATALAYA, U.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "12-12-2026",
+            "time": "12:00",
+            "venue": "C.M. LA SUERTE",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "4",
+        "date": "20-12-2026",
+        "matches": [
+          {
+            "home": "ATALAYA, U.D. \"B\"",
+            "away": "SAN ANTONIO, U.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "18-12-2026",
+            "time": "17:00",
+            "venue": "CMF LA ATALAYA",
+            "referee": ""
+          },
+          {
+            "home": "GUAYARMINA, C.D. \"B\"",
+            "away": "COLORADAS, U.D. LAS",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "19-12-2026",
+            "time": "09:00",
+            "venue": "SAUCILLO",
+            "referee": ""
+          },
+          {
+            "home": "SAN LAZARO, U.D. \"A\"",
+            "away": "ALCOTAN CANARIAS, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "19-12-2026",
+            "time": "09:00",
+            "venue": "LOPEZ SOCAS",
+            "referee": ""
+          },
+          {
+            "home": "BAÑADEROS, C.D. \"A\"",
+            "away": "GLAUCUS, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "19-12-2026",
+            "time": "13:00",
+            "venue": "MANUEL PABLO",
+            "referee": ""
+          },
+          {
+            "home": "VILLA DE SANTA BRIGIDA, U.D. \"C\"",
+            "away": "FIRGAS, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "20-12-2026",
+            "time": "09:00",
+            "venue": "LOS OLIVOS",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "5",
+        "date": "17-01-2027",
+        "matches": [
+          {
+            "home": "COLORADAS, U.D. LAS",
+            "away": "SAN LAZARO, U.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "16-01-2027",
+            "time": "09:00",
+            "venue": "JARDIN DE INFANCIA F8",
+            "referee": ""
+          },
+          {
+            "home": "ALCOTAN CANARIAS, C.D.",
+            "away": "ATALAYA, U.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "16-01-2027",
+            "time": "09:00",
+            "venue": "ANTONIO ROJAS",
+            "referee": ""
+          },
+          {
+            "home": "SAN ANTONIO, U.D. \"B\"",
+            "away": "BAÑADEROS, C.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "16-01-2027",
+            "time": "09:00",
+            "venue": "LOPEZ SOCAS",
+            "referee": ""
+          },
+          {
+            "home": "FIRGAS, C.D.",
+            "away": "GLAUCUS, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "16-01-2027",
+            "time": "09:00",
+            "venue": "DOMINGO PONCE",
+            "referee": ""
+          },
+          {
+            "home": "VILLA DE SANTA BRIGIDA, U.D. \"C\"",
+            "away": "GUAYARMINA, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "17-01-2027",
+            "time": "09:00",
+            "venue": "LOS OLIVOS",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "6",
+        "date": "24-01-2027",
+        "matches": [
+          {
+            "home": "ATALAYA, U.D. \"B\"",
+            "away": "COLORADAS, U.D. LAS",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "22-01-2027",
+            "time": "17:00",
+            "venue": "CMF LA ATALAYA",
+            "referee": ""
+          },
+          {
+            "home": "GUAYARMINA, C.D. \"B\"",
+            "away": "FIRGAS, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "23-01-2027",
+            "time": "09:00",
+            "venue": "SAUCILLO",
+            "referee": ""
+          },
+          {
+            "home": "SAN LAZARO, U.D. \"A\"",
+            "away": "VILLA DE SANTA BRIGIDA, U.D. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "23-01-2027",
+            "time": "09:00",
+            "venue": "LOPEZ SOCAS",
+            "referee": ""
+          },
+          {
+            "home": "BAÑADEROS, C.D. \"A\"",
+            "away": "ALCOTAN CANARIAS, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "23-01-2027",
+            "time": "09:00",
+            "venue": "MANUEL PABLO",
+            "referee": ""
+          },
+          {
+            "home": "GLAUCUS, C.D. \"B\"",
+            "away": "SAN ANTONIO, U.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "23-01-2027",
+            "time": "09:00",
+            "venue": "C.M. LA SUERTE",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "7",
+        "date": "31-01-2027",
+        "matches": [
+          {
+            "home": "GUAYARMINA, C.D. \"B\"",
+            "away": "SAN LAZARO, U.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "30-01-2027",
+            "time": "09:00",
+            "venue": "SAUCILLO",
+            "referee": ""
+          },
+          {
+            "home": "COLORADAS, U.D. LAS",
+            "away": "BAÑADEROS, C.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "30-01-2027",
+            "time": "09:00",
+            "venue": "JARDIN DE INFANCIA F8",
+            "referee": ""
+          },
+          {
+            "home": "ALCOTAN CANARIAS, C.D.",
+            "away": "GLAUCUS, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "30-01-2027",
+            "time": "09:00",
+            "venue": "ANTONIO ROJAS",
+            "referee": ""
+          },
+          {
+            "home": "FIRGAS, C.D.",
+            "away": "SAN ANTONIO, U.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "30-01-2027",
+            "time": "09:00",
+            "venue": "DOMINGO PONCE",
+            "referee": ""
+          },
+          {
+            "home": "VILLA DE SANTA BRIGIDA, U.D. \"C\"",
+            "away": "ATALAYA, U.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "31-01-2027",
+            "time": "09:00",
+            "venue": "LOS OLIVOS",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "8",
+        "date": "07-02-2027",
+        "matches": [
+          {
+            "home": "BAÑADEROS, C.D. \"A\"",
+            "away": "VILLA DE SANTA BRIGIDA, U.D. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "06-02-2027",
+            "time": "09:00",
+            "venue": "MANUEL PABLO",
+            "referee": ""
+          },
+          {
+            "home": "SAN ANTONIO, U.D. \"B\"",
+            "away": "ALCOTAN CANARIAS, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "06-02-2027",
+            "time": "09:00",
+            "venue": "LOPEZ SOCAS",
+            "referee": ""
+          },
+          {
+            "home": "FIRGAS, C.D.",
+            "away": "SAN LAZARO, U.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "06-02-2027",
+            "time": "10:30",
+            "venue": "DOMINGO PONCE",
+            "referee": ""
+          },
+          {
+            "home": "ATALAYA, U.D. \"B\"",
+            "away": "GUAYARMINA, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "06-02-2027",
+            "time": "12:00",
+            "venue": "CMF LA ATALAYA",
+            "referee": ""
+          },
+          {
+            "home": "GLAUCUS, C.D. \"B\"",
+            "away": "COLORADAS, U.D. LAS",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "06-02-2027",
+            "time": "12:00",
+            "venue": "C.M. LA SUERTE",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "9",
+        "date": "21-02-2027",
+        "matches": [
+          {
+            "home": "SAN LAZARO, U.D. \"A\"",
+            "away": "ATALAYA, U.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "20-02-2027",
+            "time": "09:00",
+            "venue": "LOPEZ SOCAS",
+            "referee": ""
+          },
+          {
+            "home": "GUAYARMINA, C.D. \"B\"",
+            "away": "BAÑADEROS, C.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "20-02-2027",
+            "time": "09:00",
+            "venue": "SAUCILLO",
+            "referee": ""
+          },
+          {
+            "home": "ALCOTAN CANARIAS, C.D.",
+            "away": "FIRGAS, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "20-02-2027",
+            "time": "09:00",
+            "venue": "ANTONIO ROJAS",
+            "referee": ""
+          },
+          {
+            "home": "COLORADAS, U.D. LAS",
+            "away": "SAN ANTONIO, U.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "20-02-2027",
+            "time": "10:30",
+            "venue": "JARDIN DE INFANCIA F8",
+            "referee": ""
+          },
+          {
+            "home": "VILLA DE SANTA BRIGIDA, U.D. \"C\"",
+            "away": "GLAUCUS, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "21-02-2027",
+            "time": "09:00",
+            "venue": "LOS OLIVOS",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "10",
+        "date": "28-02-2027",
+        "matches": [
+          {
+            "home": "ATALAYA, U.D. \"B\"",
+            "away": "FIRGAS, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "26-02-2027",
+            "time": "17:00",
+            "venue": "CMF LA ATALAYA",
+            "referee": ""
+          },
+          {
+            "home": "GUAYARMINA, C.D. \"B\"",
+            "away": "GLAUCUS, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "27-02-2027",
+            "time": "09:00",
+            "venue": "SAUCILLO",
+            "referee": ""
+          },
+          {
+            "home": "SAN LAZARO, U.D. \"A\"",
+            "away": "BAÑADEROS, C.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "27-02-2027",
+            "time": "09:00",
+            "venue": "LOPEZ SOCAS",
+            "referee": ""
+          },
+          {
+            "home": "COLORADAS, U.D. LAS",
+            "away": "ALCOTAN CANARIAS, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "27-02-2027",
+            "time": "10:30",
+            "venue": "JARDIN DE INFANCIA F8",
+            "referee": ""
+          },
+          {
+            "home": "VILLA DE SANTA BRIGIDA, U.D. \"C\"",
+            "away": "SAN ANTONIO, U.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "28-02-2027",
+            "time": "09:00",
+            "venue": "LOS OLIVOS",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "11",
+        "date": "07-03-2027",
+        "matches": [
+          {
+            "home": "ALCOTAN CANARIAS, C.D.",
+            "away": "VILLA DE SANTA BRIGIDA, U.D. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "06-03-2027",
+            "time": "09:00",
+            "venue": "ANTONIO ROJAS",
+            "referee": ""
+          },
+          {
+            "home": "SAN ANTONIO, U.D. \"B\"",
+            "away": "GUAYARMINA, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "06-03-2027",
+            "time": "09:00",
+            "venue": "LOPEZ SOCAS",
+            "referee": ""
+          },
+          {
+            "home": "GLAUCUS, C.D. \"B\"",
+            "away": "SAN LAZARO, U.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "06-03-2027",
+            "time": "09:00",
+            "venue": "C.M. LA SUERTE",
+            "referee": ""
+          },
+          {
+            "home": "BAÑADEROS, C.D. \"A\"",
+            "away": "ATALAYA, U.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "06-03-2027",
+            "time": "09:00",
+            "venue": "MANUEL PABLO",
+            "referee": ""
+          },
+          {
+            "home": "FIRGAS, C.D.",
+            "away": "COLORADAS, U.D. LAS",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "06-03-2027",
+            "time": "10:30",
+            "venue": "DOMINGO PONCE",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "12",
+        "date": "14-03-2027",
+        "matches": [
+          {
+            "home": "ATALAYA, U.D. \"B\"",
+            "away": "GLAUCUS, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "12-03-2027",
+            "time": "17:00",
+            "venue": "CMF LA ATALAYA",
+            "referee": ""
+          },
+          {
+            "home": "GUAYARMINA, C.D. \"B\"",
+            "away": "ALCOTAN CANARIAS, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "13-03-2027",
+            "time": "09:00",
+            "venue": "SAUCILLO",
+            "referee": ""
+          },
+          {
+            "home": "SAN LAZARO, U.D. \"A\"",
+            "away": "SAN ANTONIO, U.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "13-03-2027",
+            "time": "09:00",
+            "venue": "LOPEZ SOCAS",
+            "referee": ""
+          },
+          {
+            "home": "BAÑADEROS, C.D. \"A\"",
+            "away": "FIRGAS, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "13-03-2027",
+            "time": "13:00",
+            "venue": "MANUEL PABLO",
+            "referee": ""
+          },
+          {
+            "home": "VILLA DE SANTA BRIGIDA, U.D. \"C\"",
+            "away": "COLORADAS, U.D. LAS",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "14-03-2027",
+            "time": "09:00",
+            "venue": "LOS OLIVOS",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "13",
+        "date": "21-03-2027",
+        "matches": [
+          {
+            "home": "ALCOTAN CANARIAS, C.D.",
+            "away": "SAN LAZARO, U.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "20-03-2027",
+            "time": "09:00",
+            "venue": "ANTONIO ROJAS",
+            "referee": ""
+          },
+          {
+            "home": "SAN ANTONIO, U.D. \"B\"",
+            "away": "ATALAYA, U.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "20-03-2027",
+            "time": "09:00",
+            "venue": "LOPEZ SOCAS",
+            "referee": ""
+          },
+          {
+            "home": "GLAUCUS, C.D. \"B\"",
+            "away": "BAÑADEROS, C.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "20-03-2027",
+            "time": "09:00",
+            "venue": "C.M. LA SUERTE",
+            "referee": ""
+          },
+          {
+            "home": "FIRGAS, C.D.",
+            "away": "VILLA DE SANTA BRIGIDA, U.D. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "20-03-2027",
+            "time": "10:30",
+            "venue": "DOMINGO PONCE",
+            "referee": ""
+          },
+          {
+            "home": "COLORADAS, U.D. LAS",
+            "away": "GUAYARMINA, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "20-03-2027",
+            "time": "10:30",
+            "venue": "JARDIN DE INFANCIA F8",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "14",
+        "date": "04-04-2027",
+        "matches": [
+          {
+            "home": "ATALAYA, U.D. \"B\"",
+            "away": "ALCOTAN CANARIAS, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "02-04-2027",
+            "time": "17:00",
+            "venue": "CMF LA ATALAYA",
+            "referee": ""
+          },
+          {
+            "home": "GUAYARMINA, C.D. \"B\"",
+            "away": "VILLA DE SANTA BRIGIDA, U.D. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "03-04-2027",
+            "time": "09:00",
+            "venue": "SAUCILLO",
+            "referee": ""
+          },
+          {
+            "home": "SAN LAZARO, U.D. \"A\"",
+            "away": "COLORADAS, U.D. LAS",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "03-04-2027",
+            "time": "09:00",
+            "venue": "LOPEZ SOCAS",
+            "referee": ""
+          },
+          {
+            "home": "BAÑADEROS, C.D. \"A\"",
+            "away": "SAN ANTONIO, U.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "03-04-2027",
+            "time": "09:00",
+            "venue": "MANUEL PABLO",
+            "referee": ""
+          },
+          {
+            "home": "GLAUCUS, C.D. \"B\"",
+            "away": "FIRGAS, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "03-04-2027",
+            "time": "12:00",
+            "venue": "C.M. LA SUERTE",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "15",
+        "date": "18-04-2027",
+        "matches": [
+          {
+            "home": "FIRGAS, C.D.",
+            "away": "GUAYARMINA, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "17-04-2027",
+            "time": "09:00",
+            "venue": "DOMINGO PONCE",
+            "referee": ""
+          },
+          {
+            "home": "COLORADAS, U.D. LAS",
+            "away": "ATALAYA, U.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "17-04-2027",
+            "time": "09:00",
+            "venue": "JARDIN DE INFANCIA F8",
+            "referee": ""
+          },
+          {
+            "home": "ALCOTAN CANARIAS, C.D.",
+            "away": "BAÑADEROS, C.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "17-04-2027",
+            "time": "09:00",
+            "venue": "ANTONIO ROJAS",
+            "referee": ""
+          },
+          {
+            "home": "SAN ANTONIO, U.D. \"B\"",
+            "away": "GLAUCUS, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "17-04-2027",
+            "time": "09:00",
+            "venue": "LOPEZ SOCAS",
+            "referee": ""
+          },
+          {
+            "home": "VILLA DE SANTA BRIGIDA, U.D. \"C\"",
+            "away": "SAN LAZARO, U.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "18-04-2027",
+            "time": "09:00",
+            "venue": "LOS OLIVOS",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "16",
+        "date": "25-04-2027",
+        "matches": [
+          {
+            "home": "ATALAYA, U.D. \"B\"",
+            "away": "VILLA DE SANTA BRIGIDA, U.D. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "23-04-2027",
+            "time": "17:00",
+            "venue": "CMF LA ATALAYA",
+            "referee": ""
+          },
+          {
+            "home": "SAN LAZARO, U.D. \"A\"",
+            "away": "GUAYARMINA, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "24-04-2027",
+            "time": "09:00",
+            "venue": "LOPEZ SOCAS",
+            "referee": ""
+          },
+          {
+            "home": "BAÑADEROS, C.D. \"A\"",
+            "away": "COLORADAS, U.D. LAS",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "24-04-2027",
+            "time": "09:00",
+            "venue": "MANUEL PABLO",
+            "referee": ""
+          },
+          {
+            "home": "SAN ANTONIO, U.D. \"B\"",
+            "away": "FIRGAS, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "24-04-2027",
+            "time": "09:00",
+            "venue": "LOPEZ SOCAS",
+            "referee": ""
+          },
+          {
+            "home": "GLAUCUS, C.D. \"B\"",
+            "away": "ALCOTAN CANARIAS, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "24-04-2027",
+            "time": "16:00",
+            "venue": "C.M. LA SUERTE",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "17",
+        "date": "09-05-2027",
+        "matches": [
+          {
+            "home": "GUAYARMINA, C.D. \"B\"",
+            "away": "ATALAYA, U.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "08-05-2027",
+            "time": "09:00",
+            "venue": "SAUCILLO",
+            "referee": ""
+          },
+          {
+            "home": "COLORADAS, U.D. LAS",
+            "away": "GLAUCUS, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "08-05-2027",
+            "time": "09:00",
+            "venue": "JARDIN DE INFANCIA F8",
+            "referee": ""
+          },
+          {
+            "home": "ALCOTAN CANARIAS, C.D.",
+            "away": "SAN ANTONIO, U.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "08-05-2027",
+            "time": "09:00",
+            "venue": "ANTONIO ROJAS",
+            "referee": ""
+          },
+          {
+            "home": "SAN LAZARO, U.D. \"A\"",
+            "away": "FIRGAS, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "08-05-2027",
+            "time": "10:30",
+            "venue": "LOPEZ SOCAS",
+            "referee": ""
+          },
+          {
+            "home": "VILLA DE SANTA BRIGIDA, U.D. \"C\"",
+            "away": "BAÑADEROS, C.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "09-05-2027",
+            "time": "09:00",
+            "venue": "LOS OLIVOS",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "18",
+        "date": "23-05-2027",
+        "matches": [
+          {
+            "home": "BAÑADEROS, C.D. \"A\"",
+            "away": "GUAYARMINA, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "22-05-2027",
+            "time": "09:00",
+            "venue": "MANUEL PABLO",
+            "referee": ""
+          },
+          {
+            "home": "ATALAYA, U.D. \"B\"",
+            "away": "SAN LAZARO, U.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "22-05-2027",
+            "time": "10:30",
+            "venue": "CMF LA ATALAYA",
+            "referee": ""
+          },
+          {
+            "home": "GLAUCUS, C.D. \"B\"",
+            "away": "VILLA DE SANTA BRIGIDA, U.D. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "22-05-2027",
+            "time": "10:30",
+            "venue": "C.M. LA SUERTE",
+            "referee": ""
+          },
+          {
+            "home": "SAN ANTONIO, U.D. \"B\"",
+            "away": "COLORADAS, U.D. LAS",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "22-05-2027",
+            "time": "10:30",
+            "venue": "LOPEZ SOCAS",
+            "referee": ""
+          },
+          {
+            "home": "FIRGAS, C.D.",
+            "away": "ALCOTAN CANARIAS, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "22-05-2027",
+            "time": "10:30",
+            "venue": "DOMINGO PONCE",
+            "referee": ""
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "competition_id": "55335272",
+    "competition_name": "LIGA ALEVIN GRAN CANARIA FASE F",
+    "cat": "alevin",
+    "island": "grancanaria",
+    "phase": "LIGA ALEVIN GRAN CANARIA FASE F",
+    "group_id": "55335310",
+    "group_name": "GRUPO 2",
+    "standings": [],
+    "jornadas": [
+      {
+        "num": "1",
+        "date": "22-11-2026",
+        "matches": [
+          {
+            "home": "JINAMAR, U.D.",
+            "away": "VELEZ, U.D. LOS \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "20-11-2026",
+            "time": "19:00",
+            "venue": "E.M. JINAMAR",
+            "referee": ""
+          },
+          {
+            "home": "CASTILLO C.F. \"A\"",
+            "away": "DORAMAS, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "21-11-2026",
+            "time": "09:00",
+            "venue": "CASTILLO DEL ROMERAL",
+            "referee": ""
+          },
+          {
+            "home": "UNION VIERA, C.F. \"E\"",
+            "away": "JOVERO-LAS ROSAS, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": 298093,
+            "date": "21-11-2026",
+            "time": "16:30",
+            "venue": "ALFONSO SILVA",
+            "referee": ""
+          },
+          {
+            "home": "Descansa",
+            "away": "CD MIGUEL LEON",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          },
+          {
+            "home": "LOMO BLANCO S.J.A., C.D. \"B\"",
+            "away": "PEDRO HIDALGO, U.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": 298094,
+            "date": "22-11-2026",
+            "time": "10:30",
+            "venue": "JOSE RUANO TEJERA",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "2",
+        "date": "29-11-2026",
+        "matches": [
+          {
+            "home": "VELEZ, U.D. LOS \"A\"",
+            "away": "LOMO BLANCO S.J.A., C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "27-11-2026",
+            "time": "17:30",
+            "venue": "MONTAÑA LOS VELEZ",
+            "referee": ""
+          },
+          {
+            "home": "DORAMAS, C.D. \"B\"",
+            "away": "Descansa",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          },
+          {
+            "home": "JOVERO-LAS ROSAS, C.D.",
+            "away": "CASTILLO C.F. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "28-11-2026",
+            "time": "10:30",
+            "venue": "LAS ROSAS",
+            "referee": ""
+          },
+          {
+            "home": "PEDRO HIDALGO, U.D. \"A\"",
+            "away": "UNION VIERA, C.F. \"E\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "28-11-2026",
+            "time": "10:30",
+            "venue": "JOSE V. SEPULVEDA",
+            "referee": ""
+          },
+          {
+            "home": "CD MIGUEL LEON",
+            "away": "JINAMAR, U.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "29-11-2026",
+            "time": "09:00",
+            "venue": "LA VEGA DE SAN JOSE",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "3",
+        "date": "13-12-2026",
+        "matches": [
+          {
+            "home": "DORAMAS, C.D. \"B\"",
+            "away": "JOVERO-LAS ROSAS, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "12-12-2026",
+            "time": "09:00",
+            "venue": "CRUCE ARINAGA F8 (3)",
+            "referee": ""
+          },
+          {
+            "home": "CASTILLO C.F. \"A\"",
+            "away": "PEDRO HIDALGO, U.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "12-12-2026",
+            "time": "09:00",
+            "venue": "CASTILLO DEL ROMERAL",
+            "referee": ""
+          },
+          {
+            "home": "UNION VIERA, C.F. \"E\"",
+            "away": "VELEZ, U.D. LOS \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "12-12-2026",
+            "time": "09:00",
+            "venue": "ALFONSO SILVA",
+            "referee": ""
+          },
+          {
+            "home": "Descansa",
+            "away": "JINAMAR, U.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          },
+          {
+            "home": "LOMO BLANCO S.J.A., C.D. \"B\"",
+            "away": "CD MIGUEL LEON",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "13-12-2026",
+            "time": "10:30",
+            "venue": "JOSE RUANO TEJERA",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "4",
+        "date": "20-12-2026",
+        "matches": [
+          {
+            "home": "VELEZ, U.D. LOS \"A\"",
+            "away": "CASTILLO C.F. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "18-12-2026",
+            "time": "17:30",
+            "venue": "MONTAÑA LOS VELEZ",
+            "referee": ""
+          },
+          {
+            "home": "JINAMAR, U.D.",
+            "away": "LOMO BLANCO S.J.A., C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "18-12-2026",
+            "time": "19:00",
+            "venue": "E.M. JINAMAR",
+            "referee": ""
+          },
+          {
+            "home": "PEDRO HIDALGO, U.D. \"A\"",
+            "away": "DORAMAS, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "19-12-2026",
+            "time": "09:00",
+            "venue": "JOSE V. SEPULVEDA",
+            "referee": ""
+          },
+          {
+            "home": "JOVERO-LAS ROSAS, C.D.",
+            "away": "Descansa",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          },
+          {
+            "home": "CD MIGUEL LEON",
+            "away": "UNION VIERA, C.F. \"E\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "20-12-2026",
+            "time": "09:00",
+            "venue": "LA VEGA DE SAN JOSE",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "5",
+        "date": "17-01-2027",
+        "matches": [
+          {
+            "home": "DORAMAS, C.D. \"B\"",
+            "away": "VELEZ, U.D. LOS \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "16-01-2027",
+            "time": "09:00",
+            "venue": "CRUCE ARINAGA F8 (3)",
+            "referee": ""
+          },
+          {
+            "home": "CASTILLO C.F. \"A\"",
+            "away": "CD MIGUEL LEON",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "16-01-2027",
+            "time": "09:00",
+            "venue": "CASTILLO DEL ROMERAL",
+            "referee": ""
+          },
+          {
+            "home": "UNION VIERA, C.F. \"E\"",
+            "away": "JINAMAR, U.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "16-01-2027",
+            "time": "09:00",
+            "venue": "ALFONSO SILVA",
+            "referee": ""
+          },
+          {
+            "home": "JOVERO-LAS ROSAS, C.D.",
+            "away": "PEDRO HIDALGO, U.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "16-01-2027",
+            "time": "10:30",
+            "venue": "LAS ROSAS",
+            "referee": ""
+          },
+          {
+            "home": "Descansa",
+            "away": "LOMO BLANCO S.J.A., C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "6",
+        "date": "24-01-2027",
+        "matches": [
+          {
+            "home": "VELEZ, U.D. LOS \"A\"",
+            "away": "JOVERO-LAS ROSAS, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "22-01-2027",
+            "time": "17:30",
+            "venue": "MONTAÑA LOS VELEZ",
+            "referee": ""
+          },
+          {
+            "home": "JINAMAR, U.D.",
+            "away": "CASTILLO C.F. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "22-01-2027",
+            "time": "19:00",
+            "venue": "E.M. JINAMAR",
+            "referee": ""
+          },
+          {
+            "home": "PEDRO HIDALGO, U.D. \"A\"",
+            "away": "Descansa",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          },
+          {
+            "home": "CD MIGUEL LEON",
+            "away": "DORAMAS, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "24-01-2027",
+            "time": "09:00",
+            "venue": "LA VEGA DE SAN JOSE",
+            "referee": ""
+          },
+          {
+            "home": "LOMO BLANCO S.J.A., C.D. \"B\"",
+            "away": "UNION VIERA, C.F. \"E\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "24-01-2027",
+            "time": "10:30",
+            "venue": "JOSE RUANO TEJERA",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "7",
+        "date": "31-01-2027",
+        "matches": [
+          {
+            "home": "DORAMAS, C.D. \"B\"",
+            "away": "JINAMAR, U.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "30-01-2027",
+            "time": "09:00",
+            "venue": "CRUCE ARINAGA F8 (3)",
+            "referee": ""
+          },
+          {
+            "home": "CASTILLO C.F. \"A\"",
+            "away": "LOMO BLANCO S.J.A., C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "30-01-2027",
+            "time": "09:00",
+            "venue": "CASTILLO DEL ROMERAL",
+            "referee": ""
+          },
+          {
+            "home": "PEDRO HIDALGO, U.D. \"A\"",
+            "away": "VELEZ, U.D. LOS \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "30-01-2027",
+            "time": "10:30",
+            "venue": "JOSE V. SEPULVEDA",
+            "referee": ""
+          },
+          {
+            "home": "JOVERO-LAS ROSAS, C.D.",
+            "away": "CD MIGUEL LEON",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "30-01-2027",
+            "time": "10:30",
+            "venue": "LAS ROSAS",
+            "referee": ""
+          },
+          {
+            "home": "Descansa",
+            "away": "UNION VIERA, C.F. \"E\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "8",
+        "date": "07-02-2027",
+        "matches": [
+          {
+            "home": "JINAMAR, U.D.",
+            "away": "JOVERO-LAS ROSAS, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "05-02-2027",
+            "time": "19:00",
+            "venue": "E.M. JINAMAR",
+            "referee": ""
+          },
+          {
+            "home": "UNION VIERA, C.F. \"E\"",
+            "away": "CASTILLO C.F. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "06-02-2027",
+            "time": "11:00",
+            "venue": "ALFONSO SILVA",
+            "referee": ""
+          },
+          {
+            "home": "Descansa",
+            "away": "VELEZ, U.D. LOS \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          },
+          {
+            "home": "CD MIGUEL LEON",
+            "away": "PEDRO HIDALGO, U.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "07-02-2027",
+            "time": "09:00",
+            "venue": "LA VEGA DE SAN JOSE",
+            "referee": ""
+          },
+          {
+            "home": "LOMO BLANCO S.J.A., C.D. \"B\"",
+            "away": "DORAMAS, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "07-02-2027",
+            "time": "10:30",
+            "venue": "JOSE RUANO TEJERA",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "9",
+        "date": "21-02-2027",
+        "matches": [
+          {
+            "home": "VELEZ, U.D. LOS \"A\"",
+            "away": "CD MIGUEL LEON",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "19-02-2027",
+            "time": "17:30",
+            "venue": "MONTAÑA LOS VELEZ",
+            "referee": ""
+          },
+          {
+            "home": "DORAMAS, C.D. \"B\"",
+            "away": "UNION VIERA, C.F. \"E\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "20-02-2027",
+            "time": "09:00",
+            "venue": "CRUCE ARINAGA F8 (3)",
+            "referee": ""
+          },
+          {
+            "home": "CASTILLO C.F. \"A\"",
+            "away": "Descansa",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          },
+          {
+            "home": "PEDRO HIDALGO, U.D. \"A\"",
+            "away": "JINAMAR, U.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "20-02-2027",
+            "time": "10:30",
+            "venue": "JOSE V. SEPULVEDA",
+            "referee": ""
+          },
+          {
+            "home": "JOVERO-LAS ROSAS, C.D.",
+            "away": "LOMO BLANCO S.J.A., C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "20-02-2027",
+            "time": "10:30",
+            "venue": "LAS ROSAS",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "10",
+        "date": "28-02-2027",
+        "matches": [
+          {
+            "home": "VELEZ, U.D. LOS \"A\"",
+            "away": "JINAMAR, U.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "26-02-2027",
+            "time": "17:30",
+            "venue": "MONTAÑA LOS VELEZ",
+            "referee": ""
+          },
+          {
+            "home": "DORAMAS, C.D. \"B\"",
+            "away": "CASTILLO C.F. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "27-02-2027",
+            "time": "09:00",
+            "venue": "CRUCE ARINAGA F8 (3)",
+            "referee": ""
+          },
+          {
+            "home": "JOVERO-LAS ROSAS, C.D.",
+            "away": "UNION VIERA, C.F. \"E\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "27-02-2027",
+            "time": "10:30",
+            "venue": "LAS ROSAS",
+            "referee": ""
+          },
+          {
+            "home": "PEDRO HIDALGO, U.D. \"A\"",
+            "away": "LOMO BLANCO S.J.A., C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "27-02-2027",
+            "time": "10:30",
+            "venue": "JOSE V. SEPULVEDA",
+            "referee": ""
+          },
+          {
+            "home": "CD MIGUEL LEON",
+            "away": "Descansa",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "11",
+        "date": "07-03-2027",
+        "matches": [
+          {
+            "home": "JINAMAR, U.D.",
+            "away": "CD MIGUEL LEON",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "05-03-2027",
+            "time": "19:00",
+            "venue": "E.M. JINAMAR",
+            "referee": ""
+          },
+          {
+            "home": "CASTILLO C.F. \"A\"",
+            "away": "JOVERO-LAS ROSAS, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "06-03-2027",
+            "time": "09:00",
+            "venue": "CASTILLO DEL ROMERAL",
+            "referee": ""
+          },
+          {
+            "home": "UNION VIERA, C.F. \"E\"",
+            "away": "PEDRO HIDALGO, U.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "06-03-2027",
+            "time": "09:00",
+            "venue": "ALFONSO SILVA",
+            "referee": ""
+          },
+          {
+            "home": "Descansa",
+            "away": "DORAMAS, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          },
+          {
+            "home": "LOMO BLANCO S.J.A., C.D. \"B\"",
+            "away": "VELEZ, U.D. LOS \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "07-03-2027",
+            "time": "10:30",
+            "venue": "JOSE RUANO TEJERA",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "12",
+        "date": "14-03-2027",
+        "matches": [
+          {
+            "home": "VELEZ, U.D. LOS \"A\"",
+            "away": "UNION VIERA, C.F. \"E\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "12-03-2027",
+            "time": "17:30",
+            "venue": "MONTAÑA LOS VELEZ",
+            "referee": ""
+          },
+          {
+            "home": "JINAMAR, U.D.",
+            "away": "Descansa",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          },
+          {
+            "home": "JOVERO-LAS ROSAS, C.D.",
+            "away": "DORAMAS, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "13-03-2027",
+            "time": "10:30",
+            "venue": "LAS ROSAS",
+            "referee": ""
+          },
+          {
+            "home": "PEDRO HIDALGO, U.D. \"A\"",
+            "away": "CASTILLO C.F. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "13-03-2027",
+            "time": "10:30",
+            "venue": "JOSE V. SEPULVEDA",
+            "referee": ""
+          },
+          {
+            "home": "CD MIGUEL LEON",
+            "away": "LOMO BLANCO S.J.A., C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "14-03-2027",
+            "time": "09:00",
+            "venue": "LA VEGA DE SAN JOSE",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "13",
+        "date": "21-03-2027",
+        "matches": [
+          {
+            "home": "DORAMAS, C.D. \"B\"",
+            "away": "PEDRO HIDALGO, U.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "20-03-2027",
+            "time": "09:00",
+            "venue": "CRUCE ARINAGA F8 (3)",
+            "referee": ""
+          },
+          {
+            "home": "CASTILLO C.F. \"A\"",
+            "away": "VELEZ, U.D. LOS \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "20-03-2027",
+            "time": "09:00",
+            "venue": "CASTILLO DEL ROMERAL",
+            "referee": ""
+          },
+          {
+            "home": "UNION VIERA, C.F. \"E\"",
+            "away": "CD MIGUEL LEON",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "20-03-2027",
+            "time": "09:00",
+            "venue": "ALFONSO SILVA",
+            "referee": ""
+          },
+          {
+            "home": "Descansa",
+            "away": "JOVERO-LAS ROSAS, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          },
+          {
+            "home": "LOMO BLANCO S.J.A., C.D. \"B\"",
+            "away": "JINAMAR, U.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "21-03-2027",
+            "time": "10:30",
+            "venue": "JOSE RUANO TEJERA",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "14",
+        "date": "04-04-2027",
+        "matches": [
+          {
+            "home": "VELEZ, U.D. LOS \"A\"",
+            "away": "DORAMAS, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "02-04-2027",
+            "time": "17:30",
+            "venue": "MONTAÑA LOS VELEZ",
+            "referee": ""
+          },
+          {
+            "home": "JINAMAR, U.D.",
+            "away": "UNION VIERA, C.F. \"E\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "02-04-2027",
+            "time": "19:00",
+            "venue": "E.M. JINAMAR",
+            "referee": ""
+          },
+          {
+            "home": "PEDRO HIDALGO, U.D. \"A\"",
+            "away": "JOVERO-LAS ROSAS, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "03-04-2027",
+            "time": "10:30",
+            "venue": "JOSE V. SEPULVEDA",
+            "referee": ""
+          },
+          {
+            "home": "CD MIGUEL LEON",
+            "away": "CASTILLO C.F. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "04-04-2027",
+            "time": "09:00",
+            "venue": "LA VEGA DE SAN JOSE",
+            "referee": ""
+          },
+          {
+            "home": "LOMO BLANCO S.J.A., C.D. \"B\"",
+            "away": "Descansa",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "15",
+        "date": "18-04-2027",
+        "matches": [
+          {
+            "home": "DORAMAS, C.D. \"B\"",
+            "away": "CD MIGUEL LEON",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "17-04-2027",
+            "time": "09:00",
+            "venue": "CRUCE ARINAGA F8 (3)",
+            "referee": ""
+          },
+          {
+            "home": "CASTILLO C.F. \"A\"",
+            "away": "JINAMAR, U.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "17-04-2027",
+            "time": "09:00",
+            "venue": "CASTILLO DEL ROMERAL",
+            "referee": ""
+          },
+          {
+            "home": "UNION VIERA, C.F. \"E\"",
+            "away": "LOMO BLANCO S.J.A., C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "17-04-2027",
+            "time": "09:00",
+            "venue": "ALFONSO SILVA",
+            "referee": ""
+          },
+          {
+            "home": "JOVERO-LAS ROSAS, C.D.",
+            "away": "VELEZ, U.D. LOS \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "17-04-2027",
+            "time": "10:30",
+            "venue": "LAS ROSAS",
+            "referee": ""
+          },
+          {
+            "home": "Descansa",
+            "away": "PEDRO HIDALGO, U.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "16",
+        "date": "25-04-2027",
+        "matches": [
+          {
+            "home": "VELEZ, U.D. LOS \"A\"",
+            "away": "PEDRO HIDALGO, U.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "23-04-2027",
+            "time": "17:30",
+            "venue": "MONTAÑA LOS VELEZ",
+            "referee": ""
+          },
+          {
+            "home": "JINAMAR, U.D.",
+            "away": "DORAMAS, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "23-04-2027",
+            "time": "19:00",
+            "venue": "E.M. JINAMAR",
+            "referee": ""
+          },
+          {
+            "home": "UNION VIERA, C.F. \"E\"",
+            "away": "Descansa",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          },
+          {
+            "home": "CD MIGUEL LEON",
+            "away": "JOVERO-LAS ROSAS, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "25-04-2027",
+            "time": "09:00",
+            "venue": "LA VEGA DE SAN JOSE",
+            "referee": ""
+          },
+          {
+            "home": "LOMO BLANCO S.J.A., C.D. \"B\"",
+            "away": "CASTILLO C.F. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "25-04-2027",
+            "time": "10:30",
+            "venue": "JOSE RUANO TEJERA",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "17",
+        "date": "09-05-2027",
+        "matches": [
+          {
+            "home": "VELEZ, U.D. LOS \"A\"",
+            "away": "Descansa",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          },
+          {
+            "home": "DORAMAS, C.D. \"B\"",
+            "away": "LOMO BLANCO S.J.A., C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "08-05-2027",
+            "time": "09:00",
+            "venue": "CRUCE ARINAGA F8 (3)",
+            "referee": ""
+          },
+          {
+            "home": "CASTILLO C.F. \"A\"",
+            "away": "UNION VIERA, C.F. \"E\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "08-05-2027",
+            "time": "09:00",
+            "venue": "CASTILLO DEL ROMERAL",
+            "referee": ""
+          },
+          {
+            "home": "PEDRO HIDALGO, U.D. \"A\"",
+            "away": "CD MIGUEL LEON",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "08-05-2027",
+            "time": "10:30",
+            "venue": "JOSE V. SEPULVEDA",
+            "referee": ""
+          },
+          {
+            "home": "JOVERO-LAS ROSAS, C.D.",
+            "away": "JINAMAR, U.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "08-05-2027",
+            "time": "10:30",
+            "venue": "LAS ROSAS",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "18",
+        "date": "23-05-2027",
+        "matches": [
+          {
+            "home": "CD MIGUEL LEON",
+            "away": "VELEZ, U.D. LOS \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "22-05-2027",
+            "time": "09:00",
+            "venue": "LA VEGA DE SAN JOSE",
+            "referee": ""
+          },
+          {
+            "home": "JINAMAR, U.D.",
+            "away": "PEDRO HIDALGO, U.D. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "22-05-2027",
+            "time": "09:00",
+            "venue": "E.M. JINAMAR",
+            "referee": ""
+          },
+          {
+            "home": "LOMO BLANCO S.J.A., C.D. \"B\"",
+            "away": "JOVERO-LAS ROSAS, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "22-05-2027",
+            "time": "09:00",
+            "venue": "JOSE RUANO TEJERA",
+            "referee": ""
+          },
+          {
+            "home": "UNION VIERA, C.F. \"E\"",
+            "away": "DORAMAS, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "22-05-2027",
+            "time": "09:00",
+            "venue": "ALFONSO SILVA",
+            "referee": ""
+          },
+          {
+            "home": "Descansa",
+            "away": "CASTILLO C.F. \"A\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          }
+        ]
+      }
+    ]
   }
 ]
