@@ -16,14 +16,14 @@ El canal federación → base → JS está preparado para alevín de Gran Canari
    | Competición | Código | Fase |
    |---|---|---|
    | Fase Previa / Primera Fase | `AL1`…`ALn` | `Primera Fase GC` |
-   | Segunda Fase X (letras A-Z; «FASE LIGA X» o «SEGUNDA FASE X») | `ALX1`…`ALXn` | `Segunda Fase X` |
+   | Segunda Fase X (letras A-Z; «FASE LIGA X», «SEGUNDA FASE X» o una liga cuyo nombre acaba en «FASE X» o «LIGA X», como «LIGA ALEVIN GRAN CANARIA FASE A» y «… LIGA B» de 2026-27; nunca una copa, un torneo, la Copa de Campeones, el Clausura ni una eliminatoria) | `ALX1`…`ALXn` | `Segunda Fase X` |
    | Preferente F-8 (temporadas antiguas) | `ALP1`… | `Preferente GC` |
    | Primera F-8 antigua | `AL1`… | `Primera Fase GC` |
    | Copa de Campeones | `ALCC1`… (2024-25, una por fase: `ALCCA1`…`ALCCE1`) | `Copa de Campeones` (`Copa de Campeones A`…) |
    | Clausura | `ALCL1` | `Clausura Alevín` |
    | Eliminatorias | `ALEL1`… | `Eliminatorias` |
 
-   Benjamín y prebenjamín: las eliminatorias de Gran Canaria son `EL1`… y `PEL1`…, con la fase `Eliminatorias` (las de Lanzarote y Fuerteventura no tienen convenio: tendrían el mismo código, así que `fiflp_manifest` aborta y `meta_by_name` no les da ninguno); la Segunda Fase de benjamín admite cualquier letra (`A1`…, `F1`…). Las finales y semifinales de alevín no tienen convenio (`ALF` es la Segunda Fase F): no se crean.
+   Benjamín y prebenjamín: las eliminatorias de Gran Canaria son `EL1`… y `PEL1`…, con la fase `Eliminatorias` (las de Lanzarote y Fuerteventura no tienen convenio: tendrían el mismo código, así que `fiflp_manifest` aborta y `meta_by_name` no les da ninguno); la Segunda Fase de benjamín admite cualquier letra (`A1`…, `F1`…) y los mismos nombres («FASE LIGA X», «SEGUNDA FASE X», «… FASE X», «… LIGA X»). Las finales y semifinales de alevín no tienen convenio (`ALF` es la Segunda Fase F): no se crean.
 3. **Eliminatorias** (de cualquier categoría): fase que empieza por `Eliminatorias`. La web las trata como copa (pantalla Copa, `isCupGroup`), y `generate_js` nunca recalcula su clasificación como una liga.
 4. **`data-alevin.js`** (temporada en curso): se genera **siempre**, aunque esté vacío; **no** va en `index.html` (se carga de forma perezosa); en el precache de `sw.js` va como opcional (`scripts/precache.py`). Lleva exactamente estas constantes, en este orden:
 

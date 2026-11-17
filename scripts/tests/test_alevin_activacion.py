@@ -78,6 +78,112 @@ def test_comp_meta_refuses_what_has_no_convention_or_is_out_of_scope(name):
         M.comp_meta(name)
 
 
+# ── La Segunda Fase con el nombre corto: «… FASE X» o «… LIGA X» al final ─────
+# La federación también nombra así la Segunda Fase («LIGA B» es su errata de «FASE B»): es la Segunda
+# Fase X, igual que «FASE LIGA X» y «SEGUNDA FASE X».
+
+@pytest.mark.parametrize("name, meta", [
+    ("LIGA ALEVIN GRAN CANARIA FASE A", ("ALA", "Segunda Fase A")),
+    ("LIGA ALEVIN GRAN CANARIA LIGA B", ("ALB", "Segunda Fase B")),
+    ("LIGA ALEVIN GRAN CANARIA FASE C", ("ALC", "Segunda Fase C")),
+    ("LIGA ALEVIN GRAN CANARIA FASE D", ("ALD", "Segunda Fase D")),
+    ("LIGA ALEVIN GRAN CANARIA FASE E", ("ALE", "Segunda Fase E")),
+    ("LIGA ALEVIN GRAN CANARIA FASE F", ("ALF", "Segunda Fase F")),
+    ("Liga Alevín Gran Canaria  Fase z ", ("ALZ", "Segunda Fase Z")),
+    ("LIGA BENJAMIN GRAN CANARIA FASE A", ("A", "Segunda Fase A")),
+    ("LIGA BENJAMIN GRAN CANARIA LIGA F", ("F", "Segunda Fase F")),
+])
+def test_the_short_name_of_the_second_phase_is_the_second_phase(name, meta):
+    assert M.comp_meta(name) == meta
+
+
+@pytest.mark.parametrize("name, meta", [
+    # La primera fase sigue siendo la primera.
+    ("LIGA ALEVIN GRAN CANARIA FASE PREVIA", ("AL", "Primera Fase GC")),
+    ("LIGA ALEVIN GRAN CANARIA PRIMERA FASE", ("AL", "Primera Fase GC")),
+    ("LIGA BENJAMIN GRAN CANARIA FASE PREVIA", ("FF", "Primera Fase GC")),
+    # La Copa de Campeones de alevín ya usa «FASE X» al final para lo suyo.
+    ("copa de campeones categoria alevin fase a", ("ALCCA", "Copa de Campeones A")),
+    ("COPA DE CAMPEONES ALEVIN GRAN CANARIA", ("ALCC", "Copa de Campeones")),
+    ("CLAUSURA ALEVÍN", ("ALCL", "Clausura Alevín")),
+    ("ALEVIN ELIMINATORIAS GRAN CANARIA", ("ALEL", "Eliminatorias")),
+    ("LIGA BENJAMIN GRAN CANARIA ELIMINATORIAS", ("EL", "Eliminatorias")),
+    ("COPA BENJAMÍN GRAN CANARIA", ("CGC", "Copa Gran Canaria")),
+    # Lanzarote y Fuerteventura numeran sus fases: «FASE 2» no es una letra.
+    ("LIGA BENJAMIN DE LANZAROTE FASE 1", ("LZ", "Lanzarote Fase 1")),
+    ("LIGA BENJAMIN DE LANZAROTE FASE 2", ("LZS", "Lanzarote Fase 2")),
+    ("Benjamin Fuerteventura Fase 2", ("FV2", "Fuerteventura Fase 2")),
+    ("LIGA PREBENJAMIN DE GRAN CANARIA", ("PG", "Gran Canaria")),
+])
+def test_the_short_name_changes_nothing_else(name, meta):
+    assert M.comp_meta(name) == meta
+
+
+@pytest.mark.parametrize("name", [
+    # Una copa, un torneo, la Copa de Campeones de benjamín o un Clausura que acaben en «FASE X» no son
+    # la Segunda Fase.
+    "copa de campeones categoria benjamin fase a",
+    "COPA ALEVIN GRAN CANARIA FASE A",
+    "COPA BENJAMIN GRAN CANARIA FASE B",
+    "TORNEO ALEVIN GRAN CANARIA FASE A",
+    "TORNEO BENJAMIN GRAN CANARIA LIGA A",
+    "LIGA BENJAMIN CLAUSURA GRAN CANARIA FASE A",
+    "LIGA BENJAMIN GRAN CANARIA CAMPEONES FASE A",
+    "COPA CAMPEONES PREBENJAMIN FASE A",
+    # Ni dos letras, ni un número, ni una letra que no va al final.
+    "LIGA ALEVIN GRAN CANARIA FASE AB",
+    "LIGA ALEVIN GRAN CANARIA FASE 3",
+    "LIGA ALEVIN GRAN CANARIA FASE A 2026",
+    "LIGA BENJAMIN GRAN CANARIA FASE 3",
+    "LIGA ALEVIN FUTBOL SALA GRAN CANARIA FASE A",
+    "LIGA ALEVIN LANZAROTE FASE A",
+])
+def test_the_short_name_rule_does_not_catch_cups_tournaments_or_numbers(name):
+    with pytest.raises(ValueError):
+        M.comp_meta(name)
+
+
+def test_the_eliminatoria_ending_in_a_letter_stays_an_eliminatoria():
+    assert M.comp_meta("LIGA ALEVIN GRAN CANARIA ELIMINATORIA FASE A") == ("ALEL", "Eliminatorias")
+    assert M.comp_meta("LIGA BENJAMIN GRAN CANARIA ELIMINATORIAS FASE A") == ("EL", "Eliminatorias")
+
+
+# Nombres reales del catálogo y de las descargas de islas con lo que deben dar: los seis de nombre corto
+# son la Segunda Fase; todos los demás, lo que daban sin la regla del nombre corto.
+REALES = {
+    "LIGA ALEVIN GRAN CANARIA FASE A": ("ALA", "Segunda Fase A"),
+    "LIGA ALEVIN GRAN CANARIA LIGA B": ("ALB", "Segunda Fase B"),
+    "LIGA ALEVIN GRAN CANARIA FASE C": ("ALC", "Segunda Fase C"),
+    "LIGA ALEVIN GRAN CANARIA FASE D": ("ALD", "Segunda Fase D"),
+    "LIGA ALEVIN GRAN CANARIA FASE E": ("ALE", "Segunda Fase E"),
+    "LIGA ALEVIN GRAN CANARIA FASE F": ("ALF", "Segunda Fase F"),
+    "LIGA ALEVIN GRAN CANARIA FASE PREVIA": ("AL", "Primera Fase GC"),
+    "LIGA ALEVIN F7 GRAN CANARIA FASE LIGA B": ("ALB", "Segunda Fase B"),
+    "LIGA ALEVIN F8 GRAN CANARIA SEGUNDA FASE E": ("ALE", "Segunda Fase E"),
+    "LIGA BENJAMIN F7 GRAN CANARIA FASE LIGA C": ("C", "Segunda Fase C"),
+    "Benjamin GC Fase Liga A": ("A", "Segunda Fase A"),
+    "LIGA BENJAMIN GRAN CANARIA FASE PREVIA": ("FF", "Primera Fase GC"),
+    "copa de campeones categoria alevin fase c": ("ALCCC", "Copa de Campeones C"),
+    "copa de campeones categoria benjamin fase c": None,
+    "LIGA BENJAMIN DE LANZAROTE FASE 2": ("LZS", "Lanzarote Fase 2"),
+    "LIGA BENJAMIN F-7 FUERTEVENTURA 2ª FASE": ("FV2", "Fuerteventura Fase 2"),
+    "Benjamin GC Segunda Fase": None,
+    "LIGA PRIMERA BENJAMIN F-8 GRAN CANARIA SEGUNDA FASE": None,
+    "LIGA PREFERENTE ALEVIN F-8 GRAN CANARIA": None,
+    "CLAUSURA BENJAMÍN": None,
+    "TORNEO CLAUSURA TEMPORADA PREBENJAMIN": None,
+}
+
+
+@pytest.mark.parametrize("name", sorted(REALES))
+def test_real_names_give_what_they_gave_except_the_six_new_ones(name):
+    if REALES[name] is None:
+        with pytest.raises(ValueError):
+            M.comp_meta(name)
+    else:
+        assert M.comp_meta(name) == REALES[name]
+
+
 def group(comp_id, comp_name, n, teams, day="03-10-2026", acta=None, played=False):
     return {"competition_id": comp_id, "competition_name": comp_name, "group_id": str(5500 + n),
             "group_name": f"GRUPO {n}", "standings": [],

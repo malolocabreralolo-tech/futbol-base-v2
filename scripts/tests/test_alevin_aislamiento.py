@@ -226,6 +226,11 @@ def test_a_cup_of_an_archived_season_is_created_in_its_category_with_its_code():
     ("LIGA ALEVIN F8 GRAN CANARIA SEGUNDA FASE A", ("ALA", "Segunda Fase A", "grancanaria")),
     ("LIGA ALEVIN F7 GRAN CANARIA FASE LIGA C", ("ALC", "Segunda Fase C", "grancanaria")),
     ("LIGA ALEVIN GRAN CANARIA SEGUNDA FASE F", ("ALF", "Segunda Fase F", "grancanaria")),
+    # El nombre corto de la Segunda Fase (2026-27), como en fiflp_manifest.comp_meta.
+    ("LIGA ALEVIN GRAN CANARIA FASE A", ("ALA", "Segunda Fase A", "grancanaria")),
+    ("LIGA ALEVIN GRAN CANARIA LIGA B", ("ALB", "Segunda Fase B", "grancanaria")),
+    ("LIGA ALEVIN GRAN CANARIA FASE AB", None),
+    ("COPA ALEVIN GRAN CANARIA FASE A", None),
     ("COPA DE CAMPEONES ALEVIN GRAN CANARIA", ("ALCC", "Copa de Campeones", "grancanaria")),
     ("COPA CAMPEONES ALEVÍN", ("ALCC", "Copa de Campeones", "grancanaria")),
     ("copa de campeones categoria alevin fase d", ("ALCCD", "Copa de Campeones D", "grancanaria")),

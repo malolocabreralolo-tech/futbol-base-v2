@@ -22,6 +22,7 @@ Alevín, solo de Gran Canaria (docs/alevin.md; todos los códigos empiezan por A
 
     LIGA ALEVIN GRAN CANARIA FASE PREVIA     -> AL1..   «Primera Fase GC»
     LIGA ALEVIN ... FASE LIGA X / SEGUNDA FASE X -> ALX1.. «Segunda Fase X»
+    LIGA ALEVIN GRAN CANARIA FASE X / LIGA X     -> ALX1.. «Segunda Fase X» (también benjamín: X1..)
     COPA CAMPEONES ALEVÍN (… FASE X)         -> ALCC1.. (ALCCX1..) «Copa de Campeones (X)»
     CLAUSURA ALEVÍN                          -> ALCL1   «Clausura Alevín»
 
@@ -50,8 +51,26 @@ def fold(text):
 ELIMINATORIAS = {"benjamin": "EL", "prebenjamin": "PEL", "alevin": "ALEL"}
 # 'FASE LIGA C' (2025-26) o 'SEGUNDA FASE F': la letra de la Segunda Fase, cualquiera (2026-27 tendrá F).
 SEGUNDA_FASE = re.compile(r"\b(?:FASE LIGA|SEGUNDA FASE|2. FASE)\s+([A-Z])\b")
+# 'LIGA ALEVIN GRAN CANARIA FASE A' o '… LIGA B': la Segunda Fase con el nombre corto, la letra al final.
+SEGUNDA_FASE_CORTA = re.compile(r"\b(?:FASE|LIGA) ([A-Z])$")
+# Lo que acaba igual pero no es la liga de la Segunda Fase (la Copa de Campeones de alevín usa «FASE X»).
+NO_ES_LIGA = re.compile(r"\b(?:COPA|TORNEO|CAMPEONES|CLAUSURA|CIERRE|ELIMINATORIAS?|FINAL|SEMIFINAL(?:ES)?)\b")
 # El nombre entero (sin tildes ni espacios de más): otra copa de Gran Canaria (de campeones, final…) aborta.
 COPA_GRAN_CANARIA = re.compile(r"COPA BENJAMIN (?:DE )?GRAN CANARIA")
+
+
+def segunda_fase(n):
+    """La letra de la Segunda Fase de un nombre ya sin tildes, o None: «FASE LIGA X», «SEGUNDA FASE X» o,
+    en una liga, el nombre acabado en «FASE X» o «LIGA X»."""
+    m = SEGUNDA_FASE.search(n)
+    if m:
+        return m.group(1)
+    n = " ".join(n.split())
+    if re.search(r"\bLIGA\b", n) and not NO_ES_LIGA.search(n):
+        m = SEGUNDA_FASE_CORTA.search(n)
+        if m:
+            return m.group(1)
+    return None
 
 
 def category(name):
@@ -71,9 +90,9 @@ def _alevin_meta(name, n):
         return ("ALCC" + m.group(1), f"Copa de Campeones {m.group(1)}") if m else ("ALCC", "Copa de Campeones")
     if "CLAUSURA" in n:
         return "ALCL", "Clausura Alevín"
-    m = SEGUNDA_FASE.search(n)
-    if m:
-        return "AL" + m.group(1), f"Segunda Fase {m.group(1)}"
+    x = segunda_fase(n)
+    if x:
+        return "AL" + x, f"Segunda Fase {x}"
     if "FASE PREVIA" in n or "PRIMERA FASE" in n:
         return "AL", "Primera Fase GC"
     raise ValueError(f"competición sin convenio de código: {name}")
@@ -110,9 +129,9 @@ def comp_meta(name):
         return "PG", "Gran Canaria"
     if COPA_GRAN_CANARIA.fullmatch(" ".join(n.split())):
         return "CGC", "Copa Gran Canaria"
-    m = SEGUNDA_FASE.search(n)
-    if m:
-        return m.group(1), f"Segunda Fase {m.group(1)}"
+    x = segunda_fase(n)
+    if x:
+        return x, f"Segunda Fase {x}"
     if "FASE PREVIA" in n or "PRIMERA FASE" in n:
         return "FF", "Primera Fase GC"
     raise ValueError(f"competición sin convenio de código: {name}")

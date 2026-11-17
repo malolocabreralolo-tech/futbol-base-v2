@@ -46,6 +46,7 @@ from import_fiflp_cups_2324 import clean_team_name  # noqa: E402
 from import_fiflp_goleadores import match_group, _category  # noqa: E402
 from categorias import category_of  # noqa: E402
 from import_fiflp_islas import COMP_META  # noqa: E402
+from fiflp_manifest import segunda_fase  # noqa: E402
 import import_fiflp_actas  # noqa: E402
 import actas_lotes  # noqa: E402
 
@@ -243,9 +244,10 @@ def _alevin_meta(n):
         return ("ALCC" + m.group(1), f"Copa de Campeones {m.group(1)}", gc) if m else ("ALCC", "Copa de Campeones", gc)
     if "CLAUSURA" in n:
         return "ALCL", "Clausura Alevín", gc
-    m = re.search(r"\b(?:SEGUNDA FASE|FASE LIGA)\s+([A-Z])\b", n)
-    if m:
-        return "AL" + m.group(1), f"Segunda Fase {m.group(1)}", gc
+    # La Segunda Fase con el mismo convenio que la activación (también «… FASE X» o «… LIGA X» al final).
+    x = segunda_fase(n)
+    if x:
+        return "AL" + x, f"Segunda Fase {x}", gc
     if "PREFERENTE" in n:
         return "ALP", "Preferente GC", gc
     if "FASE PREVIA" in n or re.search(r"\bPRIMERA\b", n):
