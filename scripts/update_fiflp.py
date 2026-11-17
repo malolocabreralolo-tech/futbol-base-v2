@@ -913,6 +913,101 @@ def merge_twin_teams(conn, group_id, log=print):
     return merged
 
 
+def _renamed_pairs(conn, group_id):
+    """[{equipo, equipo}] de un grupo que juegan el mismo partido: dos partidos jugados con el mismo enlace
+    al acta (fiflp_acta), la misma jornada y el mismo marcador, con un equipo en el mismo lado y el otro
+    distinto. Es un equipo que la federación renombró: la lectura de la jornada no encontró el partido."""
+    from itertools import combinations
+    same = {}
+    for jornada, home, away, hs, as_, acta in conn.execute(
+            """SELECT jornada, home_team_id, away_team_id, home_score, away_score, fiflp_acta FROM matches
+               WHERE group_id=? AND fiflp_acta IS NOT NULL AND home_score IS NOT NULL AND away_score IS NOT NULL
+               ORDER BY id""", (group_id,)):
+        same.setdefault((acta, jornada, hs, as_), []).append((home, away))
+    pairs = []
+    for fixtures in same.values():
+        for (h1, a1), (h2, a2) in combinations(fixtures, 2):
+            pair = {a1, a2} if h1 == h2 and a1 != a2 else {h1, h2} if a1 == a2 and h1 != h2 else None
+            if pair and pair not in pairs:
+                pairs.append(pair)
+    return pairs
+
+
+def merge_renamed_teams(conn, group_id, log=print):
+    """El mismo partido dos veces porque la federación renombró a un equipo (_renamed_pairs): de los dos
+    nombres se queda el de la clasificación del grupo y todos los partidos del grupo del otro pasan a él. De
+    un partido que así queda repetido se queda uno: el que tiene el acta importada (cod_acta); si no, el que
+    tiene lo que cuelga de ella; si no, el más antiguo; lo que cuelga del otro pasa al que se queda si no
+    tiene lo suyo. Si los dos nombres o ninguno están en la clasificación, no se toca nada y se avisa. No
+    toca el equipo, su clasificación ni otros grupos. Idempotente; devuelve cuántos equipos juntó."""
+    pairs = _renamed_pairs(conn, group_id)
+    if not pairs:
+        return 0
+    code = (conn.execute("SELECT code FROM groups WHERE id=?", (group_id,)).fetchone() or [group_id])[0]
+    listed = {r[0] for r in conn.execute("SELECT team_id FROM standings WHERE group_id=?", (group_id,))}
+    tables = _tables(conn)
+    acta = [t for t in ACTA_CHILDREN if t in tables]
+    other = [t for t in OTHER_CHILDREN if t in tables]
+
+    def has(match, children):
+        return any(conn.execute(f"SELECT 1 FROM {t} WHERE match_id=? LIMIT 1", (match,)).fetchone()
+                   for t in children)
+
+    def keep_first(match):
+        cod = conn.execute("SELECT cod_acta FROM matches WHERE id=?", (match,)).fetchone()[0]
+        return (cod is None, not has(match, acta), match)
+
+    merged = 0
+    for pair in pairs:
+        names = dict(conn.execute("SELECT id, name FROM teams WHERE id IN (?, ?)", tuple(pair)))
+        a, b = sorted(pair)
+        if (a in listed) == (b in listed):
+            where = "los dos están" if a in listed else "ninguno está"
+            log(f"    ! {code}: {a} {names.get(a)} y {b} {names.get(b)} juegan el mismo partido y {where} en la "
+                f"clasificación: no se juntan")
+            continue
+        new, old = (a, b) if a in listed else (b, a)
+        # Un partido entre los dos nombres dice que son dos equipos: juntarlos lo dejaría contra sí mismo.
+        if conn.execute("""SELECT 1 FROM matches WHERE group_id=? AND home_team_id IN (?, ?)
+                           AND away_team_id IN (?, ?)""", (group_id, old, new, old, new)).fetchone():
+            log(f"    ! {code}: {old} {names.get(old)} y {new} {names.get(new)} juegan entre sí: no se juntan")
+            continue
+        conn.execute("SAVEPOINT renombrado")
+        try:
+            moved = dropped = 0
+            for mid, jornada, home, away in conn.execute(
+                    """SELECT id, jornada, home_team_id, away_team_id FROM matches WHERE group_id=?
+                       AND ? IN (home_team_id, away_team_id) ORDER BY id""", (group_id, old)).fetchall():
+                home, away = (new if home == old else home), (new if away == old else away)
+                twin = conn.execute("""SELECT id FROM matches WHERE group_id=? AND jornada IS ? AND home_team_id=?
+                                       AND away_team_id=? AND id<>?""", (group_id, jornada, home, away, mid)).fetchone()
+                keep = mid
+                if twin:
+                    keep, drop = sorted((mid, twin[0]), key=keep_first)
+                    # Lo del que se va es la misma acta: al que se queda si no tiene la suya; si no, fuera.
+                    for children in (acta, *([t] for t in other)):
+                        if not has(keep, children):
+                            for t in children:
+                                conn.execute(f"UPDATE {t} SET match_id=? WHERE match_id=?", (keep, drop))
+                    for t in acta + other:
+                        conn.execute(f"DELETE FROM {t} WHERE match_id=?", (drop,))
+                    conn.execute("DELETE FROM matches WHERE id=?", (drop,))
+                    dropped += 1
+                if keep == mid:
+                    conn.execute("UPDATE matches SET home_team_id=?, away_team_id=? WHERE id=?", (home, away, mid))
+                moved += 1
+        except Exception as e:      # sqlite3.IntegrityError, sobre todo: el grupo, como estaba
+            conn.execute("ROLLBACK TO renombrado")
+            conn.execute("RELEASE renombrado")
+            log(f"    ! {code}: {old} {names.get(old)} no se junta con {new} {names.get(new)}: {e}")
+            continue
+        conn.execute("RELEASE renombrado")
+        log(f"    {names.get(old)} es ahora {names.get(new)} ({old} → {new}): {moved} partidos del grupo, "
+            f"{dropped} repetido{'' if dropped == 1 else 's'} fuera")
+        merged += 1
+    return merged
+
+
 def name_map(scraped_names, group_teams):
     """{nombre FIFLP limpio: nombre de la base}. Primero contra la plantilla del
     grupo; lo que no casa, con el nombre limpio de FIFLP. Un nombre de la federación
@@ -1322,6 +1417,7 @@ def update_group(conn, group_id, code, raw_standings, raw_rounds, log=print):
     calendario, después de juntar los equipos entrados dos veces (merge_twin_teams). Con una jornada
     leída vacía que la base tiene con partidos (empty_rounds), JornadaVacia antes de escribir nada más."""
     merge_twin_teams(conn, group_id, log)
+    merge_renamed_teams(conn, group_id, log)
     group_teams = group_team_names(conn, group_id)
     names = name_map([r["team"] for r in raw_standings] +
                      [m[s] for ms in raw_rounds.values() for m in ms for s in ("home", "away")],
@@ -1747,6 +1843,8 @@ def update_groups(conn, season_id, today=None, now=None):
     # federación, antes de group_team_names), en todos los grupos, se lean o no en esta pasada.
     for group_id, code, _ in every:
         if merge_twin_teams(conn, group_id, log=lambda line, code=code: print(f"  {code}: {line.strip()}")):
+            conn.commit()
+        if merge_renamed_teams(conn, group_id, log=lambda line, code=code: print(f"  {code}: {line.strip()}")):
             conn.commit()
     today = today or date.today()
     print(f"\nFederación (FIFLP): {len(groups)} grupos, plazo de {budget_seconds() / 60:g} min", flush=True)
