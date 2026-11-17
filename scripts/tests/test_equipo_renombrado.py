@@ -81,14 +81,17 @@ def _standings(conn, gid, names):
 
 
 def _renamed(acta_on_old=False, listed=("Nuevo",)):
-    """BX1: «Viejo» (el nombre de antes) juega las jornadas 1, 2 y 4; la 5, dos veces: Casa – Viejo y Casa –
+    """BX1: «Viejo» (el nombre de antes) juega las jornadas 1 (de visitante, con su acta), 2 (de local, con su
+    acta) y 4; la 5, dos veces: Casa – Viejo y Casa –
     Nuevo, el mismo partido con el mismo enlace al acta y el mismo marcador. El acta importada (su código y lo
     que cuelga de ella) va en la de «Nuevo» o, con acta_on_old, en la de «Viejo». La clasificación, con
     «Nuevo» (o lo que diga `listed`)."""
     conn = _db()
     gid = _gid(conn, "BX1")
-    _match(conn, gid, "Jornada 1", "Otro", "Viejo", 2, 1, 900001, 900001)
-    _match(conn, gid, "Jornada 2", "Viejo", "Tercero", 0, 0, 900002, 900002)
+    j1 = _match(conn, gid, "Jornada 1", "Otro", "Viejo", 2, 1, 900001, 900001)
+    j2 = _match(conn, gid, "Jornada 2", "Viejo", "Tercero", 0, 0, 900002, 900002)
+    _acta_children(conn, j1, "Otro", "Viejo")
+    _acta_children(conn, j2, "Viejo", "Tercero")
     _match(conn, gid, "Jornada 3", "Casa", "Otro", 3, 3, 900003, 900003)
     _match(conn, gid, "Jornada 4", "Viejo", "Cuarto", 5, 0, 900004, 900004)
     old = _match(conn, gid, J5, "Casa", "Viejo", 1, 4, ACTA, ACTA if acta_on_old else None)
@@ -120,6 +123,21 @@ def _with_team(conn, gid, name):
                            ORDER BY jornada""", (gid, _t(conn, name))).fetchall()
 
 
+def _strays(conn, gid):
+    """Filas hijas de los partidos del grupo con un equipo que no es ni el local ni el visitante."""
+    return [r for t in ("appearances", "match_events", "match_staff_all") for r in conn.execute(
+        f"""SELECT '{t}', m.jornada, x.team_id FROM {t} x JOIN matches m ON m.id=x.match_id WHERE m.group_id=?
+            AND x.team_id IS NOT NULL AND x.team_id NOT IN (m.home_team_id, m.away_team_id)""", (gid,))]
+
+
+def _sides(conn, gid, jornada, table="appearances"):
+    """{(lado, equipo): filas} de lo que cuelga del acta de una jornada."""
+    return dict(((side, name), n) for side, name, n in conn.execute(
+        f"""SELECT CASE x.team_id WHEN m.home_team_id THEN 'local' ELSE 'visitante' END, t.name, count(*)
+            FROM {table} x JOIN matches m ON m.id=x.match_id JOIN teams t ON t.id=x.team_id
+            WHERE m.group_id=? AND m.jornada=? GROUP BY 1, 2""", (gid, jornada)))
+
+
 def _dump(conn):
     return "\n".join(conn.iterdump())
 
@@ -134,6 +152,13 @@ def _assert_merged(conn, gid):
     assert [j for (j,) in _with_team(conn, gid, "Nuevo")] == ["Jornada 1", "Jornada 2", "Jornada 4", J5, "Jornada 6"]
     assert conn.execute("PRAGMA foreign_key_check").fetchall() == []
     assert conn.execute("SELECT 1 FROM teams WHERE name='Viejo'").fetchone(), "el equipo no se borra"
+    # Las actas donde «Viejo» era visitante (J1) y local (J2), con lo suyo en «Nuevo» y en su lado.
+    assert _strays(conn, gid) == []
+    assert _sides(conn, gid, "Jornada 1") == {("local", "Otro"): 9, ("visitante", "Nuevo"): 8}
+    assert _sides(conn, gid, "Jornada 2") == {("local", "Nuevo"): 9, ("visitante", "Tercero"): 8}
+    assert _sides(conn, gid, "Jornada 2", "match_events") == {("local", "Nuevo"): 3, ("visitante", "Tercero"): 2}
+    assert _sides(conn, gid, "Jornada 2", "match_staff_all") == {("local", "Nuevo"): 3, ("visitante", "Tercero"): 2}
+    assert _sides(conn, gid, J5) == {("local", "Casa"): 9, ("visitante", "Nuevo"): 8}
 
 
 def test_junta_el_partido_repetido():
@@ -141,7 +166,7 @@ def test_junta_el_partido_repetido():
     lines = []
     assert U.merge_renamed_teams(conn, gid, log=lines.append) == 1
     _assert_merged(conn, gid)
-    assert len(lines) == 1 and "Viejo" in lines[0] and "Nuevo" in lines[0]
+    assert len(lines) == 1 and "Viejo" in lines[0] and "Nuevo" in lines[0] and lines[0].count("BX1") == 1
 
 
 def test_el_acta_en_la_fila_vieja_se_conserva():
@@ -166,16 +191,25 @@ def test_es_idempotente():
 def test_no_toca_otros_grupos():
     conn, gid = _renamed()
     other = _gid(conn, "BX2")
-    _match(conn, other, "Jornada 1", "Viejo", "Ajeno", 2, 2, 910001, 910001)
+    _acta_children(conn, _match(conn, other, "Jornada 1", "Viejo", "Ajeno", 2, 2, 910001, 910001), "Viejo", "Ajeno")
     _match(conn, other, "Jornada 2", "Ajeno", "Viejo")
     _standings(conn, other, ["Viejo", "Ajeno"])
     conn.commit()
+
+    def children():
+        return [conn.execute(f"""SELECT x.* FROM {t} x JOIN matches m ON m.id=x.match_id WHERE m.group_id=?
+                                 ORDER BY 1, 2, 3""", (other,)).fetchall()
+                for t in ("appearances", "match_events", "match_staff_all")]
+
+    kids = children()
+    assert _sides(conn, other, "Jornada 1") == {("local", "Viejo"): 9, ("visitante", "Ajeno"): 8}
     rows = lambda: conn.execute("SELECT * FROM matches WHERE group_id=? ORDER BY id", (other,)).fetchall()  # noqa: E731
     standings = lambda: conn.execute("SELECT * FROM standings WHERE group_id=? ORDER BY id", (other,)).fetchall()  # noqa: E731
     before, table = rows(), standings()
     assert U.merge_renamed_teams(conn, gid, log=_quiet) == 1
     _assert_merged(conn, gid)
-    assert rows() == before and standings() == table
+    assert rows() == before and standings() == table and children() == kids
+    assert _sides(conn, other, "Jornada 1") == {("local", "Viejo"): 9, ("visitante", "Ajeno"): 8}
     assert [j for (j,) in _with_team(conn, other, "Viejo")] == ["Jornada 1", "Jornada 2"]
     # Y en el otro grupo no hay nada que juntar.
     assert U.merge_renamed_teams(conn, other, log=_quiet) == 0
@@ -189,7 +223,20 @@ def test_ambiguo_no_toca_nada(listed):
     assert U.merge_renamed_teams(conn, gid, log=lines.append) == 0
     assert _dump(conn) == before
     assert len(lines) == 1
-    assert "BX1" in lines[0]
+    assert lines[0].count("BX1") == 1
+    assert str(_t(conn, "Viejo")) in lines[0] and str(_t(conn, "Nuevo")) in lines[0]
+
+
+def test_dos_equipos_que_juegan_entre_si_no_se_juntan():
+    """Un partido entre los dos nombres dice que son dos equipos: juntarlos lo dejaría contra sí mismo."""
+    conn, gid = _renamed()
+    _match(conn, gid, "Jornada 7", "Viejo", "Nuevo")
+    conn.commit()
+    before = _dump(conn)
+    lines = []
+    assert U.merge_renamed_teams(conn, gid, log=lines.append) == 0
+    assert _dump(conn) == before
+    assert len(lines) == 1 and lines[0].count("BX1") == 1
     assert str(_t(conn, "Viejo")) in lines[0] and str(_t(conn, "Nuevo")) in lines[0]
 
 

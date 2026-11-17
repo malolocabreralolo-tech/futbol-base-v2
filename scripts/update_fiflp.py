@@ -938,8 +938,10 @@ def merge_renamed_teams(conn, group_id, log=print):
     nombres se queda el de la clasificación del grupo y todos los partidos del grupo del otro pasan a él. De
     un partido que así queda repetido se queda uno: el que tiene el acta importada (cod_acta); si no, el que
     tiene lo que cuelga de ella; si no, el más antiguo; lo que cuelga del otro pasa al que se queda si no
-    tiene lo suyo. Si los dos nombres o ninguno están en la clasificación, no se toca nada y se avisa. No
-    toca el equipo, su clasificación ni otros grupos. Idempotente; devuelve cuántos equipos juntó."""
+    tiene lo suyo; y lo que cuelga de las actas de los partidos del grupo pasa del equipo viejo al nuevo. Si
+    los dos nombres o ninguno están en la clasificación, o juegan entre sí, no se toca nada y se avisa. No
+    toca el equipo, su clasificación, sus goleadores ni otros grupos. Idempotente; devuelve cuántos equipos
+    juntó. Cada aviso lleva el código del grupo."""
     pairs = _renamed_pairs(conn, group_id)
     if not pairs:
         return 0
@@ -996,13 +998,19 @@ def merge_renamed_teams(conn, group_id, log=print):
                 if keep == mid:
                     conn.execute("UPDATE matches SET home_team_id=?, away_team_id=? WHERE id=?", (home, away, mid))
                 moved += 1
+            # Lo que cuelga de las actas va con el equipo de su partido (la web pone cada alineación en su lado
+            # por él): lo del nombre viejo, al nuevo, solo en los partidos del grupo.
+            for t in ("appearances", "match_events", "match_staff", "match_staff_all"):
+                if t in tables:
+                    conn.execute(f"""UPDATE {t} SET team_id=? WHERE team_id=?
+                                     AND match_id IN (SELECT id FROM matches WHERE group_id=?)""", (new, old, group_id))
         except Exception as e:      # sqlite3.IntegrityError, sobre todo: el grupo, como estaba
             conn.execute("ROLLBACK TO renombrado")
             conn.execute("RELEASE renombrado")
             log(f"    ! {code}: {old} {names.get(old)} no se junta con {new} {names.get(new)}: {e}")
             continue
         conn.execute("RELEASE renombrado")
-        log(f"    {names.get(old)} es ahora {names.get(new)} ({old} → {new}): {moved} partidos del grupo, "
+        log(f"    {code}: {names.get(old)} es ahora {names.get(new)} ({old} → {new}): {moved} partidos del grupo, "
             f"{dropped} repetido{'' if dropped == 1 else 's'} fuera")
         merged += 1
     return merged
@@ -1844,7 +1852,7 @@ def update_groups(conn, season_id, today=None, now=None):
     for group_id, code, _ in every:
         if merge_twin_teams(conn, group_id, log=lambda line, code=code: print(f"  {code}: {line.strip()}")):
             conn.commit()
-        if merge_renamed_teams(conn, group_id, log=lambda line, code=code: print(f"  {code}: {line.strip()}")):
+        if merge_renamed_teams(conn, group_id, log=lambda line: print(f"  {line.strip()}")):     # ya lleva el código
             conn.commit()
     today = today or date.today()
     print(f"\nFederación (FIFLP): {len(groups)} grupos, plazo de {budget_seconds() / 60:g} min", flush=True)
