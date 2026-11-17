@@ -510,21 +510,13 @@ def level(code):
     return "alevín" if code.startswith("AL") else "prebenjamín" if code.startswith("PG") else "benjamín"
 
 
-@pytest.mark.parametrize("commits, rounds, days", [(True, 2, 7), (True, 3, 7), (False, 2, 2), (False, 3, 2)],
-                         ids=["con-commits-4pag", "con-commits-5pag", "sin-commits-4pag", "sin-commits-5pag"])
-def test_with_the_measured_quota_every_group_is_read_within_days(tmp_path, monkeypatch, commits, rounds, days):
-    """Con el cupo medido (~15 páginas por IP y ~5 min de bloqueo: fiflp_carga) y el bot de ahora (una
-    pasada cada 2 h que espera solo el primer freno, BRAKE_PAUSES, y acaba en el segundo; 16 min de plazo;
-    cada grupo completo; los prioritarios cuando toca), cada pasada son ~30 páginas: los prioritarios de su
-    turno (cada uno, una de cada tres pasadas: 6 h) y unos pocos grupos más (4 o 5 páginas por grupo, más
-    sus goleadores y sus actas). Con la cuota de alevín DELANTE del turno de prebenjamín y de benjamín,
-    esos pocos serían siempre alevín y los 46 grupos no prioritarios de benjamín y prebenjamín no se
-    leerían NUNCA; con el turno intercalado (plan_groups, interleave) y la fase de cada nivel (pass_phase),
-    cada nivel lee su parte y todo grupo se lee en una semana. Con commits (data-health.json publicado: la
-    hora de los prioritarios se publica siempre), cada prioritario se lee al menos cada 6 h y no en todas.
-    Sin commits (cada pasada arranca del mismo data-health.json, de hace 6 h y cada vez más viejo), los
-    prioritarios tocan en todas: lo seguro, aunque cueste el resto. Ningún error, ninguna página pasado el
-    plazo y una sola espera del freno por pasada."""
+def quota_run(tmp_path, monkeypatch, commits, rounds, days):
+    """La simulación de test_with_the_measured_quota_…, sin afirmar nada de lo que mide (frescura_planificador.py
+    la reutiliza para medir otros planificadores): pasadas cada PASS_EVERY durante `days` días, con o sin
+    commits entre ellas y `rounds` jornadas por leer en cada grupo. Devuelve (por pasada: páginas pedidas
+    pasado el plazo, errores publicados, esperas del freno, páginas servidas y el cupo por IP; por grupo,
+    cuántas veces se leyó; por pasada, cuántos grupos no prioritarios; por prioritario, en qué pasadas; y
+    cuántas pasadas)."""
     import fiflp_carga as C
     import source_health
     (tmp_path / "index.html").write_text('<script src="./data-seasons.js?v=20261014a"></script>')
@@ -542,6 +534,7 @@ def test_with_the_measured_quota_every_group_is_read_within_days(tmp_path, monke
     codes = {gid: code for gid, code, _ in U.fiflp_groups(base, 1)}
     start_report = base_report(base)
     conn, report, reads, others, mine = base, start_report, {code: 0 for code in codes.values()}, [], {c: [] for c in MINE}
+    rows = []
     every = U.PASS_EVERY
     for i in range(int(timedelta(days=days) / every)):
         if not commits:
@@ -565,10 +558,9 @@ def test_with_the_measured_quota_every_group_is_read_within_days(tmp_path, monke
         U.run_passes(CupoPage(web, rounds=rounds), F, conn, 1, groups, TODAY, pending, now=now, number=1000 + i)
         source_health.finish(now=now + timedelta(minutes=20))
         assert pending == {}
-        assert all(t <= F.deadline for t in web.starts), i                 # nada pasado el plazo
         report = json.loads(source_health.REPORT_PATH.read_text())
-        assert report["summary"]["error"] == 0, i
-        assert F.pauses == 1 and len(web.served) <= 2 * web.per_ip + 1, i  # una espera: ~30 páginas
+        rows.append({"late": sum(t > F.deadline for t in web.starts), "errors": report["summary"]["error"],
+                     "pauses": F.pauses, "served": len(web.served), "per_ip": web.per_ip})
         # Leído: su calendario servido, y el grupo entero (no en unserved: el freno lo cortó).
         fresh = {codes[int(m.group(1))] for u in web.served if "CodJornada" not in u
                  for m in [re.search(r"NFG_CmpJornada\?.*CodGrupo=(\d+)$", u)] if m} - set(report["run"]["unserved"])
@@ -577,7 +569,29 @@ def test_with_the_measured_quota_every_group_is_read_within_days(tmp_path, monke
             if code in MINE:
                 mine[code].append(i)
         others.append(len(fresh - set(MINE)))
-    passes = int(timedelta(days=days) / every)
+    return rows, reads, others, mine, int(timedelta(days=days) / every)
+
+
+@pytest.mark.parametrize("commits, rounds, days", [(True, 2, 7), (True, 3, 7), (False, 2, 2), (False, 3, 2)],
+                         ids=["con-commits-4pag", "con-commits-5pag", "sin-commits-4pag", "sin-commits-5pag"])
+def test_with_the_measured_quota_every_group_is_read_within_days(tmp_path, monkeypatch, commits, rounds, days):
+    """Con el cupo medido (~15 páginas por IP y ~5 min de bloqueo: fiflp_carga) y el bot de ahora (una
+    pasada cada 2 h que espera solo el primer freno, BRAKE_PAUSES, y acaba en el segundo; 16 min de plazo;
+    cada grupo completo; los prioritarios cuando toca), cada pasada son ~30 páginas: los prioritarios de su
+    turno (cada uno, una de cada tres pasadas: 6 h) y unos pocos grupos más (4 o 5 páginas por grupo, más
+    sus goleadores y sus actas). Con la cuota de alevín DELANTE del turno de prebenjamín y de benjamín,
+    esos pocos serían siempre alevín y los 46 grupos no prioritarios de benjamín y prebenjamín no se
+    leerían NUNCA; con el turno intercalado (plan_groups, interleave) y la fase de cada nivel (pass_phase),
+    cada nivel lee su parte y todo grupo se lee en una semana. Con commits (data-health.json publicado: la
+    hora de los prioritarios se publica siempre), cada prioritario se lee al menos cada 6 h y no en todas.
+    Sin commits (cada pasada arranca del mismo data-health.json, de hace 6 h y cada vez más viejo), los
+    prioritarios tocan en todas: lo seguro, aunque cueste el resto. Ningún error, ninguna página pasado el
+    plazo y una sola espera del freno por pasada."""
+    rows, reads, others, mine, passes = quota_run(tmp_path, monkeypatch, commits, rounds, days)
+    for i, row in enumerate(rows):
+        assert row["late"] == 0, i                                          # nada pasado el plazo
+        assert row["errors"] == 0, i
+        assert row["pauses"] == 1 and row["served"] <= 2 * row["per_ip"] + 1, i  # una espera: ~30 páginas
     if commits:
         # Cada prioritario, al menos una de cada tres pasadas (6 h), y no en todas.
         for code, got in mine.items():

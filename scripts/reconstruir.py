@@ -279,10 +279,11 @@ def _uno(dominio, db_path, root):
             if cambiados:
                 raise RuntimeError(f"el importador ha escrito fuera de la copia: {', '.join(cambiados)}")
             out = _resultado(antes, despues, dominio.consultas)
-            avisos = conn.execute("SELECT group_concat(texto, '; ') FROM temp._avisos").fetchone()[0] \
-                if conn.execute("SELECT 1 FROM sqlite_temp_master WHERE name='_avisos'").fetchone() else None
+            avisos = [t for (t,) in conn.execute("SELECT texto FROM temp._avisos ORDER BY rowid")] \
+                if conn.execute("SELECT 1 FROM sqlite_temp_master WHERE name='_avisos'").fetchone() else []
             if avisos:
-                out = {**out, "igual": False, "detalle": f"{out['detalle']}; avisos del bot: {avisos}"}
+                texto = "; ".join(avisos[:10]) + (f"; y {len(avisos) - 10} más" if len(avisos) > 10 else "")
+                out = {**out, "igual": False, "detalle": f"{out['detalle']}; avisos: {texto}"}
             return out
         except SinRed as e:
             return {"igual": False, "filas": 0, "distintas": 0, "detalle": f"intentó salir a la red: {e}"}
@@ -359,6 +360,13 @@ def _sin_cuerpo_tecnico(conn, gid):
     conn.execute("DELETE FROM match_staff_all WHERE match_id IN (SELECT id FROM matches WHERE group_id = ?)", (gid,))
 
 
+def _avisar(conn, texto):
+    """Apunta en temp._avisos lo que impide dar el dominio por igual aunque las filas coincidan; comprobar lo
+    añade al detalle. Sin nombres de personas: códigos, tipos de error y recuentos. No hace commit."""
+    conn.execute("CREATE TEMP TABLE IF NOT EXISTS _avisos (texto TEXT)")
+    conn.execute("INSERT INTO temp._avisos VALUES (?)", (texto,))
+
+
 def _fichas(conn, carpeta):
     """Las fichas, como al final de cada pasada del bot (fetch_futbolaspalmas.main)."""
     import migrate_identidad
@@ -384,10 +392,9 @@ def _pasada(conn, carpeta):
             ultima = [x for x in linea.strip().splitlines() if x.strip()][-1]
             avisos.append(f"falló «{paso}» ({ultima.split(':')[0].strip()})")
     _fichas(conn, carpeta)
-    if avisos:
-        conn.execute("CREATE TEMP TABLE IF NOT EXISTS _avisos (texto TEXT)")
-        conn.executemany("INSERT INTO temp._avisos VALUES (?)", [(a,) for a in avisos])
-        conn.commit()
+    for aviso in avisos:
+        _avisar(conn, aviso)
+    conn.commit()
 
 
 # -------------------------------------------------------------------------------------- consultas
@@ -548,18 +555,24 @@ def _ambito_bot(conn, carpeta):
 def _rehacer_bot(conn, carpeta):
     """Cada original, por el camino del bot al leer un acta (update_fiflp._read_actas): el partido de la
     temporada que la enlaza en su calendario (fiflp_acta, lo que lee pending_actas) y apply_acta, con su
-    commit. Después, las fichas. Un original que no casa o que apply_acta rechaza no entra (y sale distinto)."""
+    commit. Después, las fichas. Un original que no casa con un solo partido, o que apply_acta rechaza, no
+    entra: queda como aviso (su código y por qué) y el dominio no sale igual. Dos partidos con el mismo enlace
+    son el mismo partido entrado dos veces (docs/reconstruccion.md): el bot no sabe cuál es el bueno y le pasa
+    el acta al que la tiene pendiente, así que tampoco se puede rehacer sin elegir."""
     import update_fiflp
     for _, temporada, cod, acta in _originales_bot(carpeta):
         filas = conn.execute("""SELECT m.id FROM matches m JOIN groups g ON g.id = m.group_id
                                 JOIN seasons s ON s.id = g.season_id WHERE s.name = ? AND m.fiflp_acta = ?""",
                              (temporada, cod)).fetchall()
-        if len(filas) == 1:
+        if len(filas) != 1:
+            _avisar(conn, f"el original del acta {cod} casa con {len(filas)} partidos de {temporada} (fiflp_acta)")
+        else:
             try:
-                update_fiflp.apply_acta(conn, filas[0][0], cod, copy.deepcopy(acta), log=_callar)
-            except Exception:
+                if not update_fiflp.apply_acta(conn, filas[0][0], cod, copy.deepcopy(acta), log=_callar):
+                    _avisar(conn, f"apply_acta rechaza el original del acta {cod}")
+            except Exception as e:
                 conn.rollback()
-                continue
+                _avisar(conn, f"el original del acta {cod} no se aplica ({type(e).__name__})")
         conn.commit()
     _fichas(conn, carpeta)
 

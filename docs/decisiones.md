@@ -51,6 +51,7 @@ al que afecta. Solo lo que sigue siendo verdad: la historia de cómo se llegó a
 - **Un 4xx de la federación también es un rechazo**: si no, un 403 a todo daría una pasada en verde sin leer nada. `scripts/fiflp_carga.py` (`_refused`), `scripts/pasada_sana.py`.
 - **Las pasadas las lanza un reloj (`reloj.yml`), no el cron**: GitHub pierde o retrasa los cron. Una cada 2 h; cada hora en las ventanas de partidos (viernes tarde, sábado y domingo). `scripts/reloj_pasadas.py`.
 - **El orden de cada pasada sale de su número**, no de nada guardado: una pasada sin cambios publicados no sube nada, y la siguiente repetiría los mismos grupos. `scripts/update_fiflp.py` (`plan_groups`).
+- **El reparto de lecturas por turnos se queda**: una regla más simple («el más antiguo primero», con estado guardado) se midió en las simulaciones y empeoraba lo de los equipos del dueño (y más). `docs/planificador-medidas.md`.
 - **Los prioritarios solo cuando toca** (cada 6 h, o en cada pasada mientras tienen un partido recién jugado sin resultado o sin acta, 12 h como mucho). `scripts/update_fiflp.py`.
 - **Alevín va intercalado con benjamín y prebenjamín**, con una cuota mínima: delante se llevaría todo el cupo. `scripts/update_fiflp.py` (`ALEVIN_MIN_GROUPS`).
 - **Cada grupo se lee completo (calendario, goleadores y actas) antes del siguiente**, para que el freno no deje calendarios sin sus actas. `scripts/update_fiflp.py` (`run_passes`).
@@ -61,6 +62,7 @@ al que afecta. Solo lo que sigue siendo verdad: la historia de cómo se llegó a
 ## La base y los originales
 
 - **Nunca se borra un partido**: si la federación lo mueve de jornada, se avisa. Un marcador nuevo entra siempre; uno que ya estaba solo cambia si cuadra mejor con la clasificación oficial, y uno comprobado con el acta no lo cambia una lectura de la jornada. `scripts/update_fiflp.py`.
+- **Un equipo que la federación renombra a mitad de temporada se junta en el nombre de la clasificación, solo en ese grupo**: la lectura de una jornada ya jugada no encuentra el partido y lo entra otra vez con el mismo enlace al acta (el partido sale dos veces y el acta pasa de uno a otro en cada lectura). Se reconoce por dos partidos jugados con el mismo enlace, jornada y marcador que difieren en un equipo; si los dos nombres juegan entre sí, o los dos o ninguno están en la clasificación, no se juntan y se avisa. `scripts/update_fiflp.py` (`merge_renamed_teams`).
 - **La clave de club conserva la letra de filial** («UD Atalaya» y «UD Atalaya B» son dos equipos), y es la misma en Python y en la web. `scripts/generate_js.py` (`normalize_for_teams_mapping`), `src/state.js` (`normalizeForTeamsMapping`).
 - **Cada niño es una ficha con una o varias identidades de acta**; lo imposible por edad no se une nunca. `scripts/identidad.py`, `scripts/migrate_identidad.py`, `docs/identidad.md`.
 - **El bot guarda el original de cada acta que importa** (`scripts/actas_bot_<temporada>_<categoría>.jsonl`), para rehacer lo que sale de las actas sin volver a pedirlas. `scripts/actas_bot.py`.
