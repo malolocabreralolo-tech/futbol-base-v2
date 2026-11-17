@@ -485,31 +485,49 @@
     "ok": true
   },
   "activation": {
-    "at": "2026-11-14T20:13:57+00:00",
-    "activated": [
+    "at": "2026-11-17T17:57:52+00:00",
+    "activated": [],
+    "failed": [
       {
-        "competition": "54976988",
-        "name": "LIGA BENJAMIN GRAN CANARIA FASE PREVIA",
-        "codes": [
-          "EL1",
-          "EL2"
-        ]
+        "competition": "54977110",
+        "name": "LIGA ALEVIN GRAN CANARIA FASE A",
+        "reason": "sin convenio de código: LIGA ALEVIN GRAN CANARIA FASE A"
       },
       {
-        "competition": "54976940",
-        "name": "LIGA ALEVIN GRAN CANARIA FASE PREVIA",
-        "codes": [
-          "ALEL1",
-          "ALEL2"
-        ]
+        "competition": "54977117",
+        "name": "LIGA ALEVIN GRAN CANARIA LIGA B",
+        "reason": "sin convenio de código: LIGA ALEVIN GRAN CANARIA LIGA B"
+      },
+      {
+        "competition": "54977125",
+        "name": "LIGA ALEVIN GRAN CANARIA FASE C",
+        "reason": "sin convenio de código: LIGA ALEVIN GRAN CANARIA FASE C"
+      },
+      {
+        "competition": "55335268",
+        "name": "LIGA ALEVIN GRAN CANARIA FASE D",
+        "reason": "sin convenio de código: LIGA ALEVIN GRAN CANARIA FASE D"
+      },
+      {
+        "competition": "55335271",
+        "name": "LIGA ALEVIN GRAN CANARIA FASE E",
+        "reason": "sin convenio de código: LIGA ALEVIN GRAN CANARIA FASE E"
+      },
+      {
+        "competition": "55335272",
+        "name": "LIGA ALEVIN GRAN CANARIA FASE F",
+        "reason": "sin convenio de código: LIGA ALEVIN GRAN CANARIA FASE F"
       }
     ],
-    "failed": [],
     "tried": [
-      "54976940",
-      "54976988"
+      "54977110",
+      "54977117",
+      "54977125",
+      "55335268",
+      "55335271",
+      "55335272"
     ],
-    "attempts": 2
+    "attempts": 1
   },
   "newCompetitions": [
     {
