@@ -4169,7 +4169,7 @@
   },
   "2026-2027": {
     "season_code": "22",
-    "total": 58,
+    "total": 66,
     "relevant": [
       {
         "id": "54977176",
@@ -4254,6 +4254,10 @@
       {
         "id": "54977026",
         "name": "LIGA PREBENJAMIN FUERTEVENTURA"
+      },
+      {
+        "id": "54977055",
+        "name": "LIGA PREBENJAMIN FUTBOL SALA GRAN CANARIA (LPFS)"
       }
     ],
     "all": [
@@ -4272,6 +4276,10 @@
       {
         "id": "54976863",
         "name": "LIGA PRIMERA REGIONAL LANZAROTE"
+      },
+      {
+        "id": "54976871",
+        "name": "LIGA PRIMERA REGIONAL DE FUERTEVENTURA"
       },
       {
         "id": "55014588",
@@ -4446,6 +4454,30 @@
         "name": "LIGA ALEVIN GRAN CANARIA FASE PREVIA"
       },
       {
+        "id": "54977110",
+        "name": "LIGA ALEVIN GRAN CANARIA FASE A"
+      },
+      {
+        "id": "55335268",
+        "name": "LIGA ALEVIN GRAN CANARIA FASE D"
+      },
+      {
+        "id": "54977117",
+        "name": "LIGA ALEVIN GRAN CANARIA LIGA B"
+      },
+      {
+        "id": "54977125",
+        "name": "LIGA ALEVIN GRAN CANARIA FASE C"
+      },
+      {
+        "id": "55335271",
+        "name": "LIGA ALEVIN GRAN CANARIA FASE E"
+      },
+      {
+        "id": "55335272",
+        "name": "LIGA ALEVIN GRAN CANARIA FASE F"
+      },
+      {
         "id": "54976933",
         "name": "LIGA ALEVIN LANZAROTE FASE 1"
       },
@@ -4488,6 +4520,10 @@
       {
         "id": "54977026",
         "name": "LIGA PREBENJAMIN FUERTEVENTURA"
+      },
+      {
+        "id": "54977055",
+        "name": "LIGA PREBENJAMIN FUTBOL SALA GRAN CANARIA (LPFS)"
       }
     ]
   },
