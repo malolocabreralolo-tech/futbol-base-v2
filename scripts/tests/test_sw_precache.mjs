@@ -27,7 +27,7 @@ const huella = (texto) => createHash('sha1').update(texto).digest('hex').slice(0
 const urlDe = (request) => (typeof request === 'string' ? request : request.url);
 
 class CacheFalsa {
-  constructor() { this.entradas = new Map(); }
+  constructor() { this.entradas = new Map(); this.esperas = new Map(); }
   async match(request, opciones = {}) {
     const url = urlDe(request);
     if (this.entradas.has(url)) return this.entradas.get(url).clone();
@@ -37,7 +37,18 @@ class CacheFalsa {
     }
     return undefined;
   }
-  async put(request, response) { this.entradas.set(urlDe(request), response); }
+  async put(request, response) {
+    const url = urlDe(request);
+    this.entradas.set(url, response);
+    for (const avisar of this.esperas.get(url) || []) avisar();
+    this.esperas.delete(url);
+  }
+  // Se cumple cuando `request` ya está guardada: una señal cierta, sin depender de cuántas vueltas tarde.
+  guardada(request) {
+    const url = urlDe(request);
+    if (this.entradas.has(url)) return Promise.resolve();
+    return new Promise((resolve) => this.esperas.set(url, [...(this.esperas.get(url) || []), resolve]));
+  }
   async keys() { return [...this.entradas.keys()].map((url) => ({ url })); }
   async delete(request) { return this.entradas.delete(urlDe(request)); }
 }
@@ -290,13 +301,14 @@ test('instalar no lanza más de DESCARGAS_A_LA_VEZ descargas a la vez', async ()
   assert.ok(maximo <= w.sw.DESCARGAS_A_LA_VEZ && maximo > 1, `máximo en vuelo: ${maximo}`);
 });
 
-test('si mientras se instala alguien quita una clave ya guardada (la limpieza de la versión anterior), se vuelve a bajar', async () => {
+// El tope de tiempo acota la espera de la descarga de data-season hasta que index.html esté guardado.
+test('si mientras se instala alguien quita una clave ya guardada (la limpieza de la versión anterior), se vuelve a bajar', { timeout: 10_000 }, async () => {
   const caches = new CachesFalsas();
   let quitada = false;
   const respuestas = { ...FICHEROS, 'data-season-2024-2025.js': async () => {
     // La última descarga: la limpieza de la versión que activa quita index.html, que ya estaba guardado.
     const cache = await caches.open('futbolbase2-precache');
-    for (let i = 0; i < 100 && !(await cache.match(clave('index.html'))); i += 1) await tic();
+    await cache.guardada(clave('index.html'));
     if (!quitada) quitada = await cache.delete(clave('index.html'));
     return new Response(FICHEROS['data-season-2024-2025.js'], { status: 200 });
   } };
