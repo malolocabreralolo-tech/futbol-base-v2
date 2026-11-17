@@ -27,6 +27,11 @@ jugadores, 6 saldrían con el nombre escrito de otra forma (una tilde o una may�
 la federación en 1). La base guarda el nombre tal como venía la primera vez que se leyó un acta suya, y el
 original guarda la última lectura.
 
+Si la comprobación diaria sale en rojo en una de las partes que se rehacen, la base tiene algo que sus
+originales no explican, y la salida dice qué. Por ejemplo, el 17/11/2026 un partido de 2026-27 estaba dos
+veces en la base (la federación cambió el nombre de un equipo después de jugarse y el bot lo entró otra vez
+con el nombre nuevo): el acta no sabe a cuál de los dos va, y la comprobación lo dice con el código del acta.
+
 ## Lo que no se puede rehacer, y por qué
 
 - **Lo de la temporada en curso que el bot lee en vivo**: calendario, clasificación, goleadores, equipos y

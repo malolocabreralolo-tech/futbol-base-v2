@@ -171,6 +171,90 @@ def test_cli_sale_con_1_si_un_rehacible_difiere(tmp_path):
     assert "1 distintas" in mal.stdout, mal.stdout
 
 
+def test_un_aviso_del_rehacer_hace_que_no_salga_igual(tmp_path):
+    """Lo que el rehacer apunta como aviso (temp._avisos) sale en el detalle y el dominio no sale igual, aunque
+    las filas comparadas coincidan."""
+    db = tmp_path / "base.db"
+    conn = sqlite3.connect(db)
+    conn.execute("CREATE TABLE t (k TEXT PRIMARY KEY)")
+    conn.commit()
+    conn.close()
+
+    def rehacer(conn, carpeta):
+        reconstruir._avisar(conn, "aviso de prueba")
+
+    prueba = reconstruir.Dominio("prueba", ("t",), ("scripts/maspalomas_cup_*_raw.json",), True,
+                                 borrar=lambda conn: None, rehacer=rehacer,
+                                 consultas=(reconstruir.Consulta("t", "SELECT k FROM t", ("k",)),))
+    out = reconstruir.comprobar(str(db), str(ROOT), dominios=[prueba])["prueba"]
+    assert out["igual"] is False and "aviso de prueba" in out["detalle"], out
+
+
+# Un acta mínima, con jugadores inventados: lo justo para que update_fiflp.apply_acta la acepte.
+_ACTA = {"consistent": True, "events": [], "staff": {},
+         "header": {"home_team": "Equipo Norte", "away_team": "Equipo Sur", "home_score": 1, "away_score": 4},
+         "lineups": {"home": [{"name": "JUGADOR UNO", "dorsal": 1, "role": "starter", "fiflp_id": 9001}],
+                     "away": [{"name": "JUGADOR DOS", "dorsal": 2, "role": "starter", "fiflp_id": 9002}]}}
+
+
+def _base_con_acta_del_bot(tmp_path, repetido):
+    """Una base de 2026-27 con un partido de jornada 5 y su acta importada como la importa el bot (apply_acta), y
+    su original en <raíz>/scripts/actas_bot_2026-2027_benjamin.jsonl. `repetido`: el mismo partido entrado otra
+    vez con el rival con otro nombre y el mismo enlace al acta (fiflp_acta), sin acta, como lo deja el bot cuando
+    la federación renombra un equipo de un partido ya jugado (FF13 de 2026-27, 17/11)."""
+    import copy
+    import json
+    import migrate_actas_schema
+    import migrate_compactar
+    import migrate_identidad
+    import update_fiflp
+    from db import get_connection, init_db
+    root = tmp_path / "raiz"
+    (root / "scripts").mkdir(parents=True)
+    linea = {"cod_acta": 111, "leida": "2026-11-17T11:43:59+00:00", "acta": _ACTA}
+    (root / "scripts" / "actas_bot_2026-2027_benjamin.jsonl").write_text(
+        json.dumps(linea, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n", encoding="utf-8")
+    db = tmp_path / "base.db"
+    conn = get_connection(str(db))
+    init_db(conn)
+    migrate_actas_schema.migrate(conn)
+    migrate_compactar.migrate(conn)
+    migrate_identidad.asegurar_esquema(conn)
+    conn.execute("INSERT INTO seasons(name, start_year, end_year, is_current) VALUES ('2026-2027', 2026, 2027, 1)")
+    conn.execute("INSERT INTO categories(name) VALUES ('BENJAMIN')")
+    conn.execute("INSERT INTO groups(season_id, category_id, code) VALUES (1, 1, 'FF1')")
+    conn.executemany("INSERT INTO teams(name) VALUES (?)", [("Equipo Norte",), ("Equipo Sur",), ("Otro Nombre",)])
+    conn.execute("""INSERT INTO matches(group_id, jornada, date, home_team_id, away_team_id, home_score, away_score,
+                    fiflp_acta) VALUES (1, 'Jornada 5', '2026-11-07', 1, 2, 1, 4, 111)""")
+    if repetido:
+        conn.execute("""INSERT INTO matches(group_id, jornada, date, home_team_id, away_team_id, home_score,
+                        away_score, fiflp_acta) VALUES (1, 'Jornada 5', '2026-11-07', 1, 3, 1, 4, 111)""")
+    assert update_fiflp.apply_acta(conn, 1, 111, copy.deepcopy(_ACTA), log=lambda *a: None)
+    conn.commit()
+    conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+    conn.close()
+    return db, root
+
+
+def _actas_bot():
+    return next(d for d in reconstruir.DOMINIOS if d.nombre == "actas_bot")
+
+
+def test_actas_bot_se_rehace_en_una_base_de_prueba(tmp_path):
+    db, root = _base_con_acta_del_bot(tmp_path, repetido=False)
+    out = reconstruir.comprobar(str(db), str(root), dominios=[_actas_bot()])["actas_bot"]
+    assert out["igual"] is True and out["filas"] > 0, out
+
+
+def test_actas_bot_con_el_partido_repetido_lo_dice(tmp_path):
+    """Dos partidos de la temporada con el mismo enlace al acta: el original no casa con un solo partido, el acta
+    no vuelve a entrar y la comprobación dice cuál es (por su código) y por qué."""
+    db, root = _base_con_acta_del_bot(tmp_path, repetido=True)
+    out = reconstruir.comprobar(str(db), str(root), dominios=[_actas_bot()])["actas_bot"]
+    assert out["igual"] is False, out
+    assert "acta 111" in out["detalle"] and "2 partidos" in out["detalle"], out["detalle"]
+
+
 # ------------------------------------------------------------------ lentas, sobre la base de verdad
 
 @LENTAS
