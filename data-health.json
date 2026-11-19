@@ -584,7 +584,8 @@
     "status": "pending"
   },
   "runHealth": {
-    "ok": true
+    "ok": true,
+    "drySince": "2026-11-19T18:59:46+00:00"
   },
   "activation": {
     "at": "2026-11-17T19:42:39+00:00",
@@ -625,29 +626,44 @@
     "attempts": 1
   },
   "run": {
-    "pass": 97,
+    "pass": 98,
     "groups": 96,
-    "refreshed": 37,
+    "refreshed": 0,
     "priority": [
-      "ALB1",
-      "AL9",
-      "EL2",
-      "ALC1"
+      "FF5",
+      "AL18",
+      "ALB2",
+      "ALEL1"
     ],
     "fresh": [
       "PG2",
-      "FF5",
+      "EL2",
       "AL4",
-      "AL18",
+      "AL9",
       "AL20",
-      "ALB2",
+      "ALB1",
       "ALB3",
-      "ALEL1",
+      "ALC1",
       "ALEL2"
     ],
     "resting": [],
     "deferred": [
+      "AL18",
+      "ALB2",
+      "ALEL1",
+      "ALC2",
+      "PG4",
+      "FV11",
+      "ALC3",
+      "FV12",
+      "AL27",
+      "FF18",
+      "AL28",
+      "FF19",
+      "AL29",
+      "AL30",
       "FF20",
+      "PG3",
       "AL31",
       "FF21",
       "AL32",
@@ -655,9 +671,9 @@
       "ALA1",
       "FF23",
       "ALA2",
-      "PG3",
       "FF24",
       "ALA3",
+      "PLZ2",
       "ALF1",
       "LZ4",
       "ALF2",
@@ -665,17 +681,17 @@
       "ALD1",
       "FV13",
       "ALD2",
-      "PLZ2",
       "FV14",
+      "PLZ1",
       "ALD3",
       "LZ1",
       "ALE1",
-      "ALE2",
       "LZ2",
+      "ALE2",
       "ALE3",
       "LZ3",
       "AL6",
-      "PLZ1",
+      "PFV1",
       "FF3",
       "AL7",
       "FF4",
@@ -684,9 +700,9 @@
       "AL10",
       "FF7",
       "AL11",
-      "PFV1",
       "AL12",
       "FF8",
+      "PFV2",
       "AL13",
       "CGC1",
       "AL1",
@@ -694,31 +710,49 @@
       "AL2",
       "FF1",
       "AL3",
-      "PFV2",
       "FF2",
-      "AL5"
+      "AL5",
+      "AL19",
+      "PFV3",
+      "FF13",
+      "AL21",
+      "FF14",
+      "AL22",
+      "FF15",
+      "AL23",
+      "FF16",
+      "AL24",
+      "AL25",
+      "FF17",
+      "PG1",
+      "AL26",
+      "FF9",
+      "AL14",
+      "FF10",
+      "AL15",
+      "FF11",
+      "AL16",
+      "FF12",
+      "AL17"
     ],
-    "unserved": [],
+    "unserved": [
+      "FF5"
+    ],
     "extrasDeferred": [],
-    "seconds": 959,
-    "pages": 137,
-    "extras": [
-      "competiciones",
-      "directorio"
-    ],
-    "calendarShows": {
-      "other": 11
-    },
-    "groupSelects": {
-      "seen": 37,
-      "of": 37
-    },
+    "seconds": 783,
+    "pages": 11,
+    "blocked": true,
     "rawBackfill": {
-      "read": 15,
+      "read": 0,
       "left": 413
-    }
+    },
+    "pauses": 1,
+    "resumed": 0,
+    "brakeAfter": [
+      0
+    ]
   },
-  "checkedAt": "2026-11-19T17:08:08+00:00",
+  "checkedAt": "2026-11-19T19:01:37+00:00",
   "lastDataChange": "2026-11-19",
   "dataVersion": "20261119c",
   "summary": {
