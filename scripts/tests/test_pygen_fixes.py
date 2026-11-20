@@ -1081,8 +1081,10 @@ class TestMatchKeyCollisions:
     def test_real_db_no_key_is_silently_overwritten(self, tmp_path):
         """Base real: cada partido con goles sale UNA vez en MATCH_DETAIL y cada
         partido con acta UNA vez en el LINEUPS_<S>_<grupo> de su grupo, con su
-        (s, gr[, cod]), sea como entrada suelta o dentro de un dup."""
-        from scripts.generate_js import generate_matchdetail_js, lineups_files
+        (s, gr[, cod]), sea como entrada suelta o dentro de un dup. Los partidos con goles
+        son los del portal antiguo (goals) y los que solo tienen los goleadores de la app
+        (_fp_goal_entries, que nunca repite uno de goals)."""
+        from scripts.generate_js import generate_matchdetail_js, lineups_files, _fp_goal_entries
         conn = self._real_conn(tmp_path)
         md = _parse_tail_const(generate_matchdetail_js(conn), "MATCH_DETAIL")
         got = sorted((e["s"], e["gr"]) for v in md.values() for e in _entries(v))
@@ -1090,7 +1092,8 @@ class TestMatchKeyCollisions:
             SELECT s.name, gr.code FROM matches m
               JOIN groups gr ON gr.id = m.group_id
               JOIN seasons s ON s.id = gr.season_id
-             WHERE m.id IN (SELECT match_id FROM goals)""").fetchall())
+             WHERE m.id IN (SELECT match_id FROM goals)""").fetchall()
+            + [(e["s"], e["gr"]) for _, e in _fp_goal_entries(conn)])
         assert got == want, "MATCH_DETAIL perdió o duplicó partidos con goles"
         got = []
         for name, js in lineups_files(conn).items():
