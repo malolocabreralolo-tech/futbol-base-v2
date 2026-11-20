@@ -584,7 +584,11 @@
     "status": "pending"
   },
   "runHealth": {
-    "ok": true,
+    "ok": false,
+    "reasons": [
+      "las pruebas fallaron: los datos de esta pasada no se publicaron"
+    ],
+    "since": "2026-11-20T19:47:00+00:00",
     "drySince": "2026-11-20T17:49:35+00:00"
   },
   "activation": {
