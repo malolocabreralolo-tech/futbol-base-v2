@@ -584,7 +584,8 @@
     "status": "pending"
   },
   "runHealth": {
-    "ok": true
+    "ok": true,
+    "drySince": "2026-11-20T04:31:59+00:00"
   },
   "activation": {
     "at": "2026-11-17T19:42:39+00:00",
@@ -625,38 +626,50 @@
     "attempts": 1
   },
   "run": {
-    "pass": 102,
+    "pass": 103,
     "groups": 96,
-    "refreshed": 35,
+    "refreshed": 0,
     "priority": [
-      "ALEL2",
-      "PG2",
-      "AL20",
-      "AL4",
-      "ALB3"
+      "ALB1",
+      "AL9",
+      "EL2",
+      "ALC1"
     ],
     "fresh": [
-      "EL2",
+      "PG2",
       "FF5",
-      "AL9",
+      "AL4",
       "AL18",
-      "ALB1",
+      "AL20",
       "ALB2",
-      "ALC1",
-      "ALEL1"
+      "ALB3",
+      "ALEL1",
+      "ALEL2"
     ],
     "resting": [],
     "deferred": [
+      "AL9",
+      "EL2",
+      "ALC1",
+      "PLZ1",
+      "ALE1",
+      "LZ2",
+      "ALE2",
+      "LZ3",
+      "ALE3",
+      "LZ4",
+      "ALF1",
       "LZ5",
+      "PLZ2",
       "ALF2",
       "FV13",
       "ALD1",
       "FV14",
       "ALD2",
-      "PLZ2",
-      "LZ1",
       "ALD3",
+      "LZ1",
       "AL1",
+      "PFV1",
       "CGC1",
       "AL2",
       "EL1",
@@ -664,10 +677,10 @@
       "FF1",
       "AL5",
       "FF2",
-      "PFV1",
       "AL6",
       "AL7",
       "FF3",
+      "PFV2",
       "AL8",
       "FF4",
       "AL10",
@@ -675,10 +688,10 @@
       "AL11",
       "FF7",
       "AL12",
-      "PFV2",
       "FF8",
       "AL13",
       "AL14",
+      "PFV3",
       "FF9",
       "AL15",
       "FF10",
@@ -686,10 +699,10 @@
       "FF11",
       "AL17",
       "FF12",
-      "PFV3",
       "AL19",
       "AL21",
       "FF13",
+      "PG1",
       "AL22",
       "FF14",
       "AL23",
@@ -697,32 +710,49 @@
       "AL24",
       "FF16",
       "AL25",
-      "PG1",
       "FF17",
-      "AL26"
+      "AL26",
+      "AL27",
+      "PG3",
+      "FF18",
+      "AL28",
+      "FF19",
+      "AL29",
+      "FF20",
+      "AL30",
+      "FF21",
+      "AL31",
+      "AL32",
+      "FF22",
+      "PG4",
+      "ALA1",
+      "FF23",
+      "ALA2",
+      "FF24",
+      "ALA3",
+      "FV11",
+      "ALC2",
+      "FV12",
+      "ALC3"
     ],
-    "unserved": [],
+    "unserved": [
+      "ALB1"
+    ],
     "extrasDeferred": [],
-    "seconds": 961,
-    "pages": 138,
-    "extras": [
-      "competiciones",
-      "directorio"
-    ],
-    "calendarShows": {
-      "other": 16,
-      "unselected": 3
-    },
-    "groupSelects": {
-      "seen": 35,
-      "of": 35
-    },
+    "seconds": 782,
+    "pages": 11,
+    "blocked": true,
     "rawBackfill": {
-      "read": 15,
+      "read": 0,
       "left": 356
-    }
+    },
+    "pauses": 1,
+    "resumed": 0,
+    "brakeAfter": [
+      0
+    ]
   },
-  "checkedAt": "2026-11-20T02:38:07+00:00",
+  "checkedAt": "2026-11-20T04:33:37+00:00",
   "lastDataChange": "2026-11-20",
   "dataVersion": "20261120b",
   "summary": {
