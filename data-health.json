@@ -584,7 +584,8 @@
     "status": "pending"
   },
   "runHealth": {
-    "ok": true
+    "ok": true,
+    "drySince": "2026-11-21T16:14:04+00:00"
   },
   "activation": {
     "at": "2026-11-17T19:42:39+00:00",
@@ -625,23 +626,23 @@
     "attempts": 1
   },
   "run": {
-    "pass": 126,
+    "pass": 127,
     "groups": 96,
-    "refreshed": 25,
+    "refreshed": 0,
     "priority": [
-      "PG2",
-      "ALB2",
-      "ALEL1",
-      "AL9"
+      "ALEL2",
+      "AL20",
+      "ALB3",
+      "EL2"
     ],
     "fresh": [
-      "EL2",
+      "PG2",
       "FF5",
-      "AL20",
+      "AL9",
       "ALB1",
-      "ALB3",
+      "ALB2",
       "ALC1",
-      "ALEL2"
+      "ALEL1"
     ],
     "resting": [
       "AL2",
@@ -653,84 +654,106 @@
       "AL30"
     ],
     "deferred": [
+      "AL20",
+      "ALB3",
+      "EL2",
+      "ALD1",
       "FV14",
       "ALD2",
-      "PLZ1",
       "LZ1",
       "ALD3",
       "LZ2",
       "ALE1",
+      "PLZ1",
       "ALE2",
       "LZ3",
       "ALE3",
       "LZ4",
-      "PLZ2",
       "ALF1",
       "LZ5",
       "ALF2",
-      "ALC3",
       "FV13",
+      "PLZ2",
+      "ALC3",
       "AL11",
       "FF6",
       "AL12",
       "FF7",
-      "PFV2",
       "AL13",
       "FF8",
       "AL1",
       "CGC1",
+      "PFV2",
       "AL5",
       "EL1",
       "AL6",
       "FF1",
-      "PFV1",
       "AL7",
       "FF2",
       "AL8",
       "FF3",
+      "PFV1",
       "AL10",
       "FF4",
       "AL23",
       "FF15",
       "AL24",
       "FF16",
-      "PG1",
       "AL25",
       "FF17",
       "AL14",
       "FF9",
+      "PG1",
       "AL15",
       "FF10",
       "AL16",
       "FF11",
-      "PFV3",
       "AL17",
       "FF12",
       "AL19",
       "FF13",
+      "PFV3",
       "AL21",
-      "FF14"
+      "FF14",
+      "ALA2",
+      "FF24",
+      "ALA3",
+      "FV11",
+      "ALC2",
+      "FV12",
+      "AL26",
+      "FF18",
+      "PG4",
+      "AL27",
+      "FF19",
+      "AL28",
+      "FF20",
+      "AL31",
+      "FF21",
+      "AL32",
+      "FF22",
+      "PG3",
+      "ALA1",
+      "FF23"
     ],
-    "unserved": [],
-    "extrasDeferred": [
-      "ALD1"
+    "unserved": [
+      "ALEL2"
     ],
-    "seconds": 749,
-    "pages": 108,
+    "extrasDeferred": [],
+    "seconds": 783,
+    "pages": 11,
     "blocked": true,
-    "calendarShows": {
-      "other": 12
-    },
-    "groupSelects": {
-      "seen": 25,
-      "of": 25
-    },
     "rawBackfill": {
       "read": 0,
       "left": 224
-    }
+    },
+    "pauses": 1,
+    "resumed": 0,
+    "brakeAfter": [
+      0
+    ]
   },
-  "checkedAt": "2026-11-21T15:20:14+00:00",
+  "checkedAt": "2026-11-21T16:15:57+00:00",
   "lastDataChange": "2026-11-21",
   "dataVersion": "20261121i",
   "summary": {
