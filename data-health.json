@@ -138,7 +138,7 @@
       "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54976988&CodGrupo=55234218",
       "status": "ok",
       "message": "0 jornadas leídas: 0 partidos nuevos, 0 actualizados, 0 resultados",
-      "checkedAt": "2026-11-21T16:51:26+00:00"
+      "checkedAt": "2026-11-21T22:15:45+00:00"
     },
     "FF6": {
       "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54976988&CodGrupo=55234221",
@@ -486,7 +486,7 @@
       "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54977117&CodGrupo=55335278",
       "status": "ok",
       "message": "2 jornadas leídas: 0 partidos nuevos, 0 actualizados, 0 resultados",
-      "checkedAt": "2026-11-21T16:51:40+00:00"
+      "checkedAt": "2026-11-21T22:15:52+00:00"
     },
     "ALB2": {
       "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54977117&CodGrupo=55335288",
@@ -503,8 +503,8 @@
     "ALC1": {
       "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54977125&CodGrupo=55335290",
       "status": "ok",
-      "message": "2 jornadas leídas: 0 partidos nuevos, 1 actualizados, 1 resultados; 16 goleadores, 1/1 actas",
-      "checkedAt": "2026-11-21T16:52:09+00:00"
+      "message": "2 jornadas leídas: 0 partidos nuevos, 1 actualizados, 1 resultados; 21 goleadores, 1/1 actas",
+      "checkedAt": "2026-11-21T22:16:21+00:00"
     },
     "ALC2": {
       "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54977125&CodGrupo=55335291",
@@ -625,26 +625,25 @@
     "attempts": 1
   },
   "run": {
-    "pass": 133,
+    "pass": 134,
     "groups": 96,
-    "refreshed": 38,
+    "refreshed": 3,
     "priority": [
-      "ALEL2",
-      "AL20",
-      "ALB3",
-      "EL2",
-      "PG2",
-      "ALB2",
-      "ALEL1",
-      "AL9"
-    ],
-    "fresh": [
       "FF5",
       "ALB1",
       "ALC1"
     ],
+    "fresh": [
+      "PG2",
+      "EL2",
+      "AL9",
+      "AL20",
+      "ALB2",
+      "ALB3",
+      "ALEL1",
+      "ALEL2"
+    ],
     "resting": [
-      "AL2",
       "AL3",
       "AL4",
       "AL18",
@@ -653,78 +652,111 @@
       "AL30"
     ],
     "deferred": [
+      "AL2",
+      "AL31",
+      "FF21",
+      "AL32",
+      "FF22",
+      "ALA1",
+      "FF23",
+      "PG3",
+      "ALA2",
+      "FF24",
+      "ALA3",
       "FV11",
       "ALC2",
       "FV12",
-      "PG4",
       "AL26",
       "FF18",
       "AL27",
       "FF19",
+      "PG4",
       "AL28",
       "FF20",
       "ALD3",
       "LZ1",
-      "PLZ1",
       "ALE1",
       "LZ2",
       "ALE2",
       "LZ3",
+      "PLZ1",
       "ALE3",
       "LZ4",
       "ALF1",
-      "LZ5",
       "ALF2",
-      "PLZ2",
-      "FV13",
+      "LZ5",
       "ALC3",
-      "FV14",
+      "FV13",
       "ALD1",
+      "PLZ2",
+      "FV14",
       "ALD2",
-      "CGC1",
       "AL1",
-      "EL1",
-      "PFV1",
+      "CGC1",
       "AL5",
-      "FF1",
+      "EL1",
       "AL6",
-      "FF2",
+      "FF1",
+      "PFV1",
       "AL7",
-      "FF3",
+      "FF2",
       "AL8",
-      "FF4",
+      "FF3",
       "AL10",
-      "PFV2",
-      "FF6",
+      "FF4",
       "AL11",
-      "FF7",
+      "FF6",
       "AL12",
+      "FF7",
+      "PFV2",
       "AL13",
-      "FF8"
+      "FF8",
+      "AL14",
+      "FF9",
+      "AL15",
+      "FF10",
+      "AL16",
+      "FF11",
+      "PFV3",
+      "AL17",
+      "FF12",
+      "AL19",
+      "FF13",
+      "AL21",
+      "FF14",
+      "AL23",
+      "FF15",
+      "AL24",
+      "FF16",
+      "PG1",
+      "AL25",
+      "FF17"
     ],
     "unserved": [],
     "extrasDeferred": [],
-    "seconds": 959,
-    "pages": 137,
-    "extras": [
-      "competiciones",
-      "directorio"
-    ],
+    "seconds": 826,
+    "pages": 25,
+    "blocked": true,
     "calendarShows": {
-      "other": 12
+      "other": 2
     },
     "groupSelects": {
-      "seen": 38,
-      "of": 38
+      "seen": 3,
+      "of": 3
     },
     "rawBackfill": {
-      "read": 12,
+      "read": 0,
       "left": 212
-    }
+    },
+    "pauses": 1,
+    "resumed": 0,
+    "brakeAfter": [
+      15
+    ]
   },
-  "checkedAt": "2026-11-21T21:38:08+00:00",
+  "checkedAt": "2026-11-21T22:31:07+00:00",
   "lastDataChange": "2026-11-21",
-  "dataVersion": "20261121l",
+  "dataVersion": "20261121m",
   "summary": {
     "ok": 96,
     "rejected": 0,
