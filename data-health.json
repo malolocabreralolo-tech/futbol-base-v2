@@ -584,7 +584,8 @@
     "status": "pending"
   },
   "runHealth": {
-    "ok": true
+    "ok": true,
+    "drySince": "2026-11-22T13:04:11+00:00"
   },
   "activation": {
     "at": "2026-11-17T19:42:39+00:00",
@@ -625,40 +626,38 @@
     "attempts": 1
   },
   "run": {
-    "pass": 143,
+    "pass": 144,
     "groups": 96,
-    "refreshed": 16,
+    "refreshed": 0,
     "priority": [
-      "ALB2",
-      "ALB1",
-      "AL4",
-      "ALEL2",
-      "AL20",
       "ALB3",
-      "EL2",
-      "FF5",
-      "ALC1"
+      "AL18",
+      "PG2",
+      "ALEL1",
+      "AL9",
+      "ALB2"
     ],
     "hot": {
-      "ALB1": "resultado",
-      "ALB2": "resultado"
+      "ALB3": "resultado"
     },
     "fresh": [
-      "PG2",
-      "AL9",
-      "ALEL1"
+      "EL2",
+      "FF5",
+      "AL20",
+      "ALB1",
+      "ALC1",
+      "ALEL2"
     ],
     "resting": [
       "AL1",
       "AL2",
       "AL3",
+      "AL4",
       "AL6",
       "AL7",
       "AL8",
       "AL10",
-      "AL13",
       "AL16",
-      "AL18",
       "AL19",
       "AL21",
       "AL22",
@@ -667,82 +666,88 @@
       "AL25",
       "AL27",
       "AL28",
-      "AL30"
+      "AL29"
     ],
     "deferred": [
-      "LZ5",
-      "ALE3",
-      "FV13",
+      "AL18",
+      "PG2",
+      "ALEL1",
+      "AL9",
+      "ALB2",
+      "AL13",
+      "AL30",
       "AL11",
-      "PLZ1",
-      "FV14",
-      "AL12",
-      "LZ1",
-      "AL14",
-      "AL15",
-      "LZ2",
       "FF1",
-      "PFV1",
       "FF2",
+      "AL12",
       "FF3",
-      "AL17",
+      "AL14",
       "FF4",
+      "PFV1",
+      "AL15",
       "FF6",
+      "AL17",
       "FF7",
-      "PFV2",
-      "FF8",
-      "CGC1",
       "AL5",
+      "FF8",
+      "AL31",
+      "CGC1",
+      "PFV2",
+      "AL32",
       "EL1",
       "FF11",
-      "AL31",
-      "PFV3",
-      "FF12",
-      "AL32",
-      "FF13",
-      "FF14",
       "ALA1",
-      "FF15",
+      "FF12",
+      "FF13",
       "ALA2",
-      "FF16",
-      "PG1",
-      "FF17",
+      "FF14",
+      "PFV3",
+      "FF15",
       "ALA3",
+      "FF16",
+      "FF17",
       "FF9",
       "AL26",
+      "PG1",
       "FF10",
       "FF20",
       "ALC3",
-      "PG3",
       "FF21",
       "ALD1",
       "FF22",
+      "PG3",
       "FF23",
       "ALD2",
       "FF24",
       "ALD3",
       "FV11",
-      "PG4",
       "FV12",
       "ALE1",
+      "PG4",
       "FF18",
+      "FF19",
       "ALC2",
-      "FF19"
+      "FV14",
+      "ALE2",
+      "LZ1",
+      "PLZ1",
+      "LZ2",
+      "ALE3",
+      "LZ3",
+      "ALF1",
+      "LZ4",
+      "LZ5",
+      "ALF2",
+      "PLZ2",
+      "FV13"
     ],
-    "unserved": [],
-    "extrasDeferred": [
-      "ALE2"
+    "unserved": [
+      "ALB3"
     ],
-    "seconds": 885,
-    "pages": 79,
+    "extrasDeferred": [],
+    "seconds": 783,
+    "pages": 11,
     "blocked": true,
-    "calendarShows": {
-      "other": 11
-    },
-    "groupSelects": {
-      "seen": 16,
-      "of": 16
-    },
     "rawBackfill": {
       "read": 0,
       "left": 212
@@ -750,10 +755,10 @@
     "pauses": 1,
     "resumed": 0,
     "brakeAfter": [
-      75
+      0
     ]
   },
-  "checkedAt": "2026-11-22T12:11:47+00:00",
+  "checkedAt": "2026-11-22T13:05:49+00:00",
   "lastDataChange": "2026-11-22",
   "dataVersion": "20261122e",
   "summary": {
