@@ -245,8 +245,8 @@
     "PG2": {
       "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54977022&CodGrupo=55247208",
       "status": "ok",
-      "message": "7 jornadas leídas: 0 partidos nuevos, 0 actualizados, 0 resultados; 74 goleadores",
-      "checkedAt": "2026-11-23T11:13:35+00:00"
+      "message": "7 jornadas leídas: 0 partidos nuevos, 0 actualizados, 0 resultados",
+      "checkedAt": "2026-11-23T16:56:43+00:00"
     },
     "PG3": {
       "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54977022&CodGrupo=55247221",
@@ -485,8 +485,8 @@
     "ALB1": {
       "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54977117&CodGrupo=55335278",
       "status": "ok",
-      "message": "2 jornadas leídas: 0 partidos nuevos, 0 actualizados, 0 resultados; 30 goleadores",
-      "checkedAt": "2026-11-23T11:12:04+00:00"
+      "message": "2 jornadas leídas: 0 partidos nuevos, 0 actualizados, 0 resultados",
+      "checkedAt": "2026-11-23T16:55:52+00:00"
     },
     "ALB2": {
       "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54977117&CodGrupo=55335288",
@@ -503,8 +503,8 @@
     "ALC1": {
       "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54977125&CodGrupo=55335290",
       "status": "ok",
-      "message": "2 jornadas leídas: 0 partidos nuevos, 0 actualizados, 0 resultados; 21 goleadores",
-      "checkedAt": "2026-11-23T11:13:00+00:00"
+      "message": "2 jornadas leídas: 0 partidos nuevos, 0 actualizados, 0 resultados",
+      "checkedAt": "2026-11-23T16:56:15+00:00"
     },
     "ALC2": {
       "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54977125&CodGrupo=55335291",
@@ -624,31 +624,64 @@
     ],
     "attempts": 1
   },
+  "newCompetitions": [
+    {
+      "id": "54977143",
+      "name": "LIGA BENJAMIN GRAN CANARIA FASE A",
+      "firstSeen": "2026-11-23"
+    },
+    {
+      "id": "54977148",
+      "name": "LIGA BENJAMIN GRAN CANARIA FASE B",
+      "firstSeen": "2026-11-23"
+    },
+    {
+      "id": "54977153",
+      "name": "LIGA BENJAMIN GRAN CANARIA FASE C",
+      "firstSeen": "2026-11-23"
+    },
+    {
+      "id": "55337393",
+      "name": "LIGA BENJAMIN GRAN CANARIA FASE D",
+      "firstSeen": "2026-11-23"
+    },
+    {
+      "id": "55337394",
+      "name": "LIGA BENJAMIN GRAN CANARIA FASE E",
+      "firstSeen": "2026-11-23"
+    },
+    {
+      "id": "55337395",
+      "name": "LIGA BENJAMIN GRAN CANARIA FASE F",
+      "firstSeen": "2026-11-23"
+    }
+  ],
   "run": {
-    "pass": 164,
+    "pass": 165,
     "groups": 96,
     "refreshed": 3,
     "priority": [
-      "ALB3",
-      "ALEL2",
-      "FF5"
+      "ALB1",
+      "ALC1",
+      "PG2"
     ],
     "fresh": [
-      "PG2",
       "EL2",
-      "ALB1",
+      "FF5",
       "ALB2",
-      "ALC1",
-      "ALEL1"
+      "ALB3",
+      "ALEL1",
+      "ALEL2"
     ],
     "resting": [
       "AL1",
       "AL2",
+      "AL3",
       "AL4",
       "AL6",
-      "AL7",
       "AL8",
       "AL9",
+      "AL10",
       "AL12",
       "AL13",
       "AL14",
@@ -660,85 +693,88 @@
       "AL20",
       "AL21",
       "AL22",
-      "AL23",
       "AL24",
+      "AL25",
       "AL27",
-      "AL28",
       "AL29",
       "AL30",
       "AL32"
     ],
     "deferred": [
-      "AL3",
-      "AL10",
-      "AL25",
+      "AL7",
+      "AL23",
+      "AL28",
+      "FF12",
+      "ALA3",
+      "PFV3",
+      "FF13",
+      "ALC2",
+      "FF14",
+      "ALC3",
+      "FF15",
+      "ALD1",
+      "FF16",
+      "ALA2",
+      "PG1",
+      "FF17",
+      "ALD3",
+      "FF9",
+      "ALE1",
+      "FF10",
+      "ALE2",
+      "FF11",
+      "FF21",
+      "PG3",
+      "FF22",
+      "FF23",
+      "ALE3",
+      "FF24",
+      "FV11",
+      "PG4",
+      "FV12",
+      "FF18",
+      "ALD2",
+      "FF19",
+      "FF20",
+      "LZ1",
+      "PLZ1",
+      "ALF1",
+      "LZ2",
+      "LZ3",
+      "LZ4",
+      "ALF2",
+      "LZ5",
+      "PLZ2",
+      "FV13",
+      "ALA1",
+      "FV14",
+      "FF8",
+      "AL5",
+      "CGC1",
+      "PFV2",
+      "EL1",
+      "FF1",
       "AL11",
       "FF2",
       "FF3",
+      "PFV1",
       "AL26",
       "FF4",
-      "AL31",
       "FF6",
-      "ALA1",
-      "PFV1",
-      "FF7",
-      "AL5",
-      "FF8",
-      "ALA3",
-      "CGC1",
-      "ALC2",
-      "EL1",
-      "ALC3",
-      "FF1",
-      "PFV2",
-      "FF12",
-      "FF13",
-      "ALD1",
-      "FF14",
-      "FF15",
-      "PFV3",
-      "FF16",
-      "FF17",
-      "ALA2",
-      "FF9",
-      "FF10",
-      "FF11",
-      "PG1",
-      "FF21",
-      "ALD3",
-      "FF22",
-      "FF23",
-      "ALE1",
-      "FF24",
-      "PG3",
-      "FV11",
-      "ALE2",
-      "FV12",
-      "FF18",
-      "FF19",
-      "PG4",
-      "ALE3",
-      "FF20",
-      "LZ1",
-      "ALD2",
-      "LZ2",
-      "LZ3",
-      "PLZ1",
-      "ALF1",
-      "LZ4",
-      "LZ5",
-      "FV13",
-      "ALF2",
-      "FV14",
-      "PLZ2"
+      "AL31",
+      "FF7"
     ],
     "unserved": [],
     "extrasDeferred": [],
-    "seconds": 837,
-    "pages": 19,
+    "seconds": 787,
+    "pages": 27,
+    "extras": [
+      "competiciones",
+      "directorio"
+    ],
     "blocked": true,
     "calendarShows": {
-      "other": 1
+      "other": 3
     },
     "groupSelects": {
       "seen": 3,
@@ -751,12 +787,12 @@
     "pauses": 1,
     "resumed": 0,
     "brakeAfter": [
-      8
+      18
     ]
   },
-  "checkedAt": "2026-11-23T15:16:36+00:00",
+  "checkedAt": "2026-11-23T17:10:49+00:00",
   "lastDataChange": "2026-11-23",
-  "dataVersion": "20261123",
+  "dataVersion": "20261123b",
   "summary": {
     "ok": 96,
     "rejected": 0,
