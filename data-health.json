@@ -583,8 +583,41 @@
     "name": "2027-2028",
     "status": "pending"
   },
+  "newCompetitions": [
+    {
+      "id": "54977143",
+      "name": "LIGA BENJAMIN GRAN CANARIA FASE A",
+      "firstSeen": "2026-11-23"
+    },
+    {
+      "id": "54977148",
+      "name": "LIGA BENJAMIN GRAN CANARIA FASE B",
+      "firstSeen": "2026-11-23"
+    },
+    {
+      "id": "54977153",
+      "name": "LIGA BENJAMIN GRAN CANARIA FASE C",
+      "firstSeen": "2026-11-23"
+    },
+    {
+      "id": "55337393",
+      "name": "LIGA BENJAMIN GRAN CANARIA FASE D",
+      "firstSeen": "2026-11-23"
+    },
+    {
+      "id": "55337394",
+      "name": "LIGA BENJAMIN GRAN CANARIA FASE E",
+      "firstSeen": "2026-11-23"
+    },
+    {
+      "id": "55337395",
+      "name": "LIGA BENJAMIN GRAN CANARIA FASE F",
+      "firstSeen": "2026-11-23"
+    }
+  ],
   "runHealth": {
-    "ok": true
+    "ok": true,
+    "drySince": "2026-11-23T19:08:50+00:00"
   },
   "activation": {
     "at": "2026-11-23T17:17:19+00:00",
@@ -631,53 +664,21 @@
     ],
     "attempts": 1
   },
-  "newCompetitions": [
-    {
-      "id": "54977143",
-      "name": "LIGA BENJAMIN GRAN CANARIA FASE A",
-      "firstSeen": "2026-11-23"
-    },
-    {
-      "id": "54977148",
-      "name": "LIGA BENJAMIN GRAN CANARIA FASE B",
-      "firstSeen": "2026-11-23"
-    },
-    {
-      "id": "54977153",
-      "name": "LIGA BENJAMIN GRAN CANARIA FASE C",
-      "firstSeen": "2026-11-23"
-    },
-    {
-      "id": "55337393",
-      "name": "LIGA BENJAMIN GRAN CANARIA FASE D",
-      "firstSeen": "2026-11-23"
-    },
-    {
-      "id": "55337394",
-      "name": "LIGA BENJAMIN GRAN CANARIA FASE E",
-      "firstSeen": "2026-11-23"
-    },
-    {
-      "id": "55337395",
-      "name": "LIGA BENJAMIN GRAN CANARIA FASE F",
-      "firstSeen": "2026-11-23"
-    }
-  ],
   "run": {
-    "pass": 165,
+    "pass": 166,
     "groups": 96,
-    "refreshed": 3,
+    "refreshed": 0,
     "priority": [
-      "ALB1",
-      "ALC1",
-      "PG2"
+      "EL2",
+      "ALEL1",
+      "ALB2"
     ],
     "fresh": [
-      "EL2",
+      "PG2",
       "FF5",
-      "ALB2",
+      "ALB1",
       "ALB3",
-      "ALEL1",
+      "ALC1",
       "ALEL2"
     ],
     "resting": [
@@ -686,6 +687,7 @@
       "AL3",
       "AL4",
       "AL6",
+      "AL7",
       "AL8",
       "AL9",
       "AL10",
@@ -700,93 +702,85 @@
       "AL20",
       "AL21",
       "AL22",
+      "AL23",
       "AL24",
       "AL25",
       "AL27",
+      "AL28",
       "AL29",
       "AL30",
       "AL32"
     ],
     "deferred": [
-      "AL7",
-      "AL23",
-      "AL28",
-      "FF12",
-      "ALA3",
-      "PFV3",
-      "FF13",
-      "ALC2",
-      "FF14",
-      "ALC3",
-      "FF15",
-      "ALD1",
-      "FF16",
-      "ALA2",
-      "PG1",
-      "FF17",
+      "ALEL1",
+      "ALB2",
       "ALD3",
-      "FF9",
-      "ALE1",
-      "FF10",
-      "ALE2",
-      "FF11",
       "FF21",
-      "PG3",
       "FF22",
+      "ALE1",
       "FF23",
-      "ALE3",
+      "ALE2",
+      "PG3",
       "FF24",
+      "ALE3",
       "FV11",
-      "PG4",
-      "FV12",
-      "FF18",
       "ALD2",
+      "FV12",
+      "ALF1",
+      "FF18",
+      "ALF2",
       "FF19",
+      "PG4",
+      "ALA1",
       "FF20",
       "LZ1",
-      "PLZ1",
-      "ALF1",
       "LZ2",
       "LZ3",
+      "PLZ1",
       "LZ4",
-      "ALF2",
       "LZ5",
-      "PLZ2",
       "FV13",
-      "ALA1",
+      "PLZ2",
       "FV14",
       "FF8",
       "AL5",
       "CGC1",
-      "PFV2",
       "EL1",
-      "FF1",
       "AL11",
+      "PFV2",
+      "FF1",
       "FF2",
-      "FF3",
-      "PFV1",
       "AL26",
+      "FF3",
       "FF4",
-      "FF6",
       "AL31",
-      "FF7"
+      "FF6",
+      "PFV1",
+      "FF7",
+      "ALD1",
+      "FF17",
+      "FF9",
+      "ALA2",
+      "FF10",
+      "PG1",
+      "FF11",
+      "ALA3",
+      "FF12",
+      "FF13",
+      "ALC2",
+      "FF14",
+      "FF15",
+      "ALC3",
+      "PFV3",
+      "FF16"
     ],
-    "unserved": [],
+    "unserved": [
+      "EL2"
+    ],
     "extrasDeferred": [],
-    "seconds": 787,
-    "pages": 27,
-    "extras": [
-      "competiciones",
-      "directorio"
-    ],
+    "seconds": 783,
+    "pages": 11,
     "blocked": true,
-    "calendarShows": {
-      "other": 3
-    },
-    "groupSelects": {
-      "seen": 3,
-      "of": 3
-    },
     "rawBackfill": {
       "read": 0,
       "left": 198
@@ -794,10 +788,10 @@
     "pauses": 1,
     "resumed": 0,
     "brakeAfter": [
-      18
+      0
     ]
   },
-  "checkedAt": "2026-11-23T17:10:49+00:00",
+  "checkedAt": "2026-11-23T19:11:06+00:00",
   "lastDataChange": "2026-11-23",
   "dataVersion": "20261123b",
   "summary": {
