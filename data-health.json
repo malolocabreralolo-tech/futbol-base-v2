@@ -595,49 +595,8 @@
     "drySince": "2026-11-23T19:08:50+00:00"
   },
   "activation": {
-    "at": "2026-11-23T21:27:41+00:00",
-    "activated": [
-      {
-        "competition": "54977143",
-        "name": "LIGA BENJAMIN GRAN CANARIA FASE A",
-        "codes": [
-          "A1",
-          "A2"
-        ]
-      },
-      {
-        "competition": "54977148",
-        "name": "LIGA BENJAMIN GRAN CANARIA FASE B",
-        "codes": [
-          "B1",
-          "B2"
-        ]
-      },
-      {
-        "competition": "54977153",
-        "name": "LIGA BENJAMIN GRAN CANARIA FASE C",
-        "codes": [
-          "C1",
-          "C2"
-        ]
-      },
-      {
-        "competition": "55337393",
-        "name": "LIGA BENJAMIN GRAN CANARIA FASE D",
-        "codes": [
-          "D1",
-          "D2"
-        ]
-      },
-      {
-        "competition": "55337394",
-        "name": "LIGA BENJAMIN GRAN CANARIA FASE E",
-        "codes": [
-          "E1",
-          "E2"
-        ]
-      }
-    ],
+    "at": "2026-11-23T23:03:11+00:00",
+    "activated": [],
     "failed": [
       {
         "competition": "55337395",
@@ -646,14 +605,9 @@
       }
     ],
     "tried": [
-      "54977143",
-      "54977148",
-      "54977153",
-      "55337393",
-      "55337394",
       "55337395"
     ],
-    "attempts": 3
+    "attempts": 1
   },
   "run": {
     "pass": 168,
