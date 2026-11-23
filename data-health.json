@@ -137,8 +137,8 @@
     "FF5": {
       "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54976988&CodGrupo=55234218",
       "status": "ok",
-      "message": "0 jornadas leídas: 0 partidos nuevos, 0 actualizados, 0 resultados; 44 goleadores",
-      "checkedAt": "2026-11-23T11:12:39+00:00"
+      "message": "0 jornadas leídas: 0 partidos nuevos, 0 actualizados, 0 resultados",
+      "checkedAt": "2026-11-23T15:01:29+00:00"
     },
     "FF6": {
       "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54976988&CodGrupo=55234221",
@@ -497,8 +497,8 @@
     "ALB3": {
       "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54977117&CodGrupo=55335289",
       "status": "ok",
-      "message": "2 jornadas leídas: 0 partidos nuevos, 0 actualizados, 0 resultados; 25 goleadores",
-      "checkedAt": "2026-11-23T11:10:45+00:00"
+      "message": "2 jornadas leídas: 0 partidos nuevos, 0 actualizados, 0 resultados",
+      "checkedAt": "2026-11-23T15:00:53+00:00"
     },
     "ALC1": {
       "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54977125&CodGrupo=55335290",
@@ -563,8 +563,8 @@
     "ALEL2": {
       "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54976940&CodGrupo=55317330",
       "status": "ok",
-      "message": "0 jornadas leídas: 0 partidos nuevos, 0 actualizados, 0 resultados; 194 goleadores",
-      "checkedAt": "2026-11-23T11:11:15+00:00"
+      "message": "0 jornadas leídas: 0 partidos nuevos, 0 actualizados, 0 resultados",
+      "checkedAt": "2026-11-23T15:01:16+00:00"
     },
     "ALF1": {
       "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=55335272&CodGrupo=55335309",
@@ -625,32 +625,30 @@
     "attempts": 1
   },
   "run": {
-    "pass": 163,
+    "pass": 164,
     "groups": 96,
-    "refreshed": 4,
+    "refreshed": 3,
     "priority": [
-      "AL20",
-      "EL2",
-      "ALEL1",
-      "ALB2"
+      "ALB3",
+      "ALEL2",
+      "FF5"
     ],
     "fresh": [
       "PG2",
-      "FF5",
+      "EL2",
       "ALB1",
-      "ALB3",
+      "ALB2",
       "ALC1",
-      "ALEL2"
+      "ALEL1"
     ],
     "resting": [
       "AL1",
       "AL2",
-      "AL3",
       "AL4",
+      "AL6",
       "AL7",
       "AL8",
       "AL9",
-      "AL10",
       "AL12",
       "AL13",
       "AL14",
@@ -659,11 +657,11 @@
       "AL17",
       "AL18",
       "AL19",
+      "AL20",
       "AL21",
       "AL22",
       "AL23",
       "AL24",
-      "AL25",
       "AL27",
       "AL28",
       "AL29",
@@ -671,78 +669,80 @@
       "AL32"
     ],
     "deferred": [
-      "AL6",
-      "ALF2",
-      "LZ4",
-      "PLZ2",
-      "ALF1",
-      "LZ5",
+      "AL3",
+      "AL10",
+      "AL25",
       "AL11",
-      "FV13",
-      "AL26",
-      "FV14",
-      "AL31",
-      "PLZ1",
-      "LZ1",
-      "ALA1",
-      "LZ2",
-      "AL5",
-      "ALA3",
-      "LZ3",
       "FF2",
-      "PFV1",
       "FF3",
+      "AL26",
       "FF4",
+      "AL31",
       "FF6",
+      "ALA1",
+      "PFV1",
       "FF7",
+      "AL5",
       "FF8",
-      "PFV2",
+      "ALA3",
       "CGC1",
-      "EL1",
-      "FF1",
-      "FF12",
       "ALC2",
-      "PFV3",
-      "FF13",
-      "FF14",
+      "EL1",
       "ALC3",
-      "FF15",
-      "FF16",
+      "FF1",
+      "PFV2",
+      "FF12",
+      "FF13",
       "ALD1",
+      "FF14",
+      "FF15",
+      "PFV3",
+      "FF16",
       "FF17",
-      "PG1",
-      "FF9",
       "ALA2",
+      "FF9",
       "FF10",
       "FF11",
-      "ALD3",
+      "PG1",
       "FF21",
-      "PG3",
+      "ALD3",
       "FF22",
-      "ALE1",
       "FF23",
+      "ALE1",
       "FF24",
-      "ALE2",
+      "PG3",
       "FV11",
+      "ALE2",
       "FV12",
-      "PG4",
-      "ALE3",
       "FF18",
       "FF19",
+      "PG4",
+      "ALE3",
+      "FF20",
+      "LZ1",
       "ALD2",
-      "FF20"
+      "LZ2",
+      "LZ3",
+      "PLZ1",
+      "ALF1",
+      "LZ4",
+      "LZ5",
+      "FV13",
+      "ALF2",
+      "FV14",
+      "PLZ2"
     ],
     "unserved": [],
     "extrasDeferred": [],
-    "seconds": 798,
-    "pages": 21,
+    "seconds": 837,
+    "pages": 19,
     "blocked": true,
     "calendarShows": {
-      "other": 2
+      "other": 1
     },
     "groupSelects": {
-      "seen": 4,
-      "of": 4
+      "seen": 3,
+      "of": 3
     },
     "rawBackfill": {
       "read": 0,
@@ -751,10 +751,10 @@
     "pauses": 1,
     "resumed": 0,
     "brakeAfter": [
-      11
+      8
     ]
   },
-  "checkedAt": "2026-11-23T13:20:41+00:00",
+  "checkedAt": "2026-11-23T15:16:36+00:00",
   "lastDataChange": "2026-11-23",
   "dataVersion": "20261123",
   "summary": {
