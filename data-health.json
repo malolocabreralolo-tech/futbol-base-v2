@@ -17,8 +17,8 @@
     "EL2": {
       "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54976988&CodGrupo=55331350",
       "status": "ok",
-      "message": "1 jornadas leídas: 0 partidos nuevos, 0 actualizados, 0 resultados",
-      "checkedAt": "2026-11-22T22:04:37+00:00"
+      "message": "1 jornadas leídas: 0 partidos nuevos, 0 actualizados, 0 resultados; 152 goleadores",
+      "checkedAt": "2026-11-23T11:11:37+00:00"
     },
     "FF1": {
       "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54976988&CodGrupo=55233602",
@@ -137,8 +137,8 @@
     "FF5": {
       "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54976988&CodGrupo=55234218",
       "status": "ok",
-      "message": "0 jornadas leídas: 0 partidos nuevos, 0 actualizados, 0 resultados",
-      "checkedAt": "2026-11-22T22:55:46+00:00"
+      "message": "0 jornadas leídas: 0 partidos nuevos, 0 actualizados, 0 resultados; 44 goleadores",
+      "checkedAt": "2026-11-23T11:12:39+00:00"
     },
     "FF6": {
       "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54976988&CodGrupo=55234221",
@@ -245,8 +245,8 @@
     "PG2": {
       "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54977022&CodGrupo=55247208",
       "status": "ok",
-      "message": "7 jornadas leídas: 0 partidos nuevos, 0 actualizados, 0 resultados",
-      "checkedAt": "2026-11-22T23:45:38+00:00"
+      "message": "7 jornadas leídas: 0 partidos nuevos, 0 actualizados, 0 resultados; 74 goleadores",
+      "checkedAt": "2026-11-23T11:13:35+00:00"
     },
     "PG3": {
       "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54977022&CodGrupo=55247221",
@@ -485,26 +485,26 @@
     "ALB1": {
       "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54977117&CodGrupo=55335278",
       "status": "ok",
-      "message": "2 jornadas leídas: 0 partidos nuevos, 0 actualizados, 0 resultados",
-      "checkedAt": "2026-11-22T22:55:23+00:00"
+      "message": "2 jornadas leídas: 0 partidos nuevos, 0 actualizados, 0 resultados; 30 goleadores",
+      "checkedAt": "2026-11-23T11:12:04+00:00"
     },
     "ALB2": {
       "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54977117&CodGrupo=55335288",
       "status": "ok",
-      "message": "2 jornadas leídas: 0 partidos nuevos, 0 actualizados, 0 resultados",
-      "checkedAt": "2026-11-22T23:47:02+00:00"
+      "message": "2 jornadas leídas: 0 partidos nuevos, 0 actualizados, 0 resultados; 28 goleadores",
+      "checkedAt": "2026-11-23T11:15:07+00:00"
     },
     "ALB3": {
       "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54977117&CodGrupo=55335289",
       "status": "ok",
-      "message": "2 jornadas leídas: 0 partidos nuevos, 0 actualizados, 0 resultados",
-      "checkedAt": "2026-11-22T22:03:42+00:00"
+      "message": "2 jornadas leídas: 0 partidos nuevos, 0 actualizados, 0 resultados; 25 goleadores",
+      "checkedAt": "2026-11-23T11:10:45+00:00"
     },
     "ALC1": {
       "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54977125&CodGrupo=55335290",
       "status": "ok",
-      "message": "2 jornadas leídas: 0 partidos nuevos, 0 actualizados, 0 resultados",
-      "checkedAt": "2026-11-22T22:55:59+00:00"
+      "message": "2 jornadas leídas: 0 partidos nuevos, 0 actualizados, 0 resultados; 21 goleadores",
+      "checkedAt": "2026-11-23T11:13:00+00:00"
     },
     "ALC2": {
       "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54977125&CodGrupo=55335291",
@@ -557,14 +557,14 @@
     "ALEL1": {
       "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54976940&CodGrupo=55317325",
       "status": "ok",
-      "message": "0 jornadas leídas: 0 partidos nuevos, 0 actualizados, 0 resultados",
-      "checkedAt": "2026-11-22T23:46:36+00:00"
+      "message": "0 jornadas leídas: 0 partidos nuevos, 0 actualizados, 0 resultados; 225 goleadores",
+      "checkedAt": "2026-11-23T11:14:45+00:00"
     },
     "ALEL2": {
       "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54976940&CodGrupo=55317330",
       "status": "ok",
-      "message": "0 jornadas leídas: 0 partidos nuevos, 0 actualizados, 0 resultados",
-      "checkedAt": "2026-11-22T22:04:10+00:00"
+      "message": "0 jornadas leídas: 0 partidos nuevos, 0 actualizados, 0 resultados; 194 goleadores",
+      "checkedAt": "2026-11-23T11:11:15+00:00"
     },
     "ALF1": {
       "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=55335272&CodGrupo=55335309",
@@ -584,12 +584,7 @@
     "status": "pending"
   },
   "runHealth": {
-    "ok": false,
-    "reasons": [
-      "la federación no sirve ningún grupo desde hace 7 h (de 70 previstos en esta pasada)"
-    ],
-    "since": "2026-11-23T09:30:39+00:00",
-    "drySince": "2026-11-23T01:54:17+00:00"
+    "ok": true
   },
   "activation": {
     "at": "2026-11-17T19:42:39+00:00",
@@ -630,9 +625,9 @@
     "attempts": 1
   },
   "run": {
-    "pass": 161,
+    "pass": 162,
     "groups": 96,
-    "refreshed": 0,
+    "refreshed": 9,
     "priority": [
       "ALB3",
       "ALEL2",
@@ -647,7 +642,6 @@
     "fresh": [],
     "resting": [
       "AL1",
-      "AL2",
       "AL3",
       "AL4",
       "AL6",
@@ -659,13 +653,14 @@
       "AL13",
       "AL14",
       "AL15",
+      "AL16",
       "AL17",
       "AL18",
       "AL19",
       "AL20",
+      "AL21",
       "AL22",
       "AL23",
-      "AL24",
       "AL25",
       "AL27",
       "AL28",
@@ -674,83 +669,80 @@
       "AL32"
     ],
     "deferred": [
-      "ALEL2",
-      "EL2",
-      "ALB1",
-      "FF5",
-      "ALC1",
-      "PG2",
-      "ALEL1",
-      "ALB2",
-      "AL16",
-      "AL21",
-      "ALC3",
-      "FF15",
-      "FF16",
-      "ALD1",
-      "FF17",
-      "ALA2",
-      "PG1",
-      "FF9",
-      "ALA3",
-      "FF10",
-      "ALC2",
-      "FF11",
-      "ALE2",
-      "FF12",
-      "ALE3",
-      "FF13",
-      "PFV3",
-      "ALD2",
-      "FF14",
-      "FF24",
-      "ALD3",
-      "FV11",
-      "FV12",
+      "AL2",
+      "AL24",
       "PG4",
+      "FF24",
+      "ALE2",
+      "FV11",
+      "ALE3",
+      "FV12",
+      "ALD2",
       "FF18",
+      "ALD3",
       "FF19",
+      "PG3",
       "ALE1",
       "FF20",
-      "FF21",
-      "FF22",
-      "PG3",
-      "FF23",
-      "LZ4",
       "ALF2",
+      "FF21",
+      "ALF1",
+      "FF22",
+      "AL11",
+      "FF23",
+      "PLZ2",
+      "LZ4",
       "LZ5",
       "FV13",
-      "ALF1",
-      "PLZ2",
       "FV14",
+      "PLZ1",
       "LZ1",
-      "AL11",
       "LZ2",
       "LZ3",
-      "PLZ1",
-      "AL26",
+      "PFV1",
       "FF2",
+      "AL26",
       "FF3",
       "FF4",
       "AL31",
       "FF6",
-      "PFV1",
       "FF7",
+      "PFV2",
       "ALA1",
       "FF8",
       "CGC1",
       "AL5",
       "EL1",
-      "PFV2",
-      "FF1"
+      "FF1",
+      "ALA3",
+      "PFV3",
+      "FF12",
+      "FF13",
+      "ALC2",
+      "FF14",
+      "FF15",
+      "ALC3",
+      "FF16",
+      "PG1",
+      "FF17",
+      "ALD1",
+      "FF9",
+      "FF10",
+      "ALA2",
+      "FF11"
     ],
-    "unserved": [
-      "ALB3"
-    ],
+    "unserved": [],
     "extrasDeferred": [],
     "seconds": 782,
-    "pages": 11,
+    "pages": 49,
     "blocked": true,
+    "calendarShows": {
+      "other": 6
+    },
+    "groupSelects": {
+      "seen": 9,
+      "of": 9
+    },
     "rawBackfill": {
       "read": 0,
       "left": 198
@@ -758,12 +750,12 @@
     "pauses": 1,
     "resumed": 0,
     "brakeAfter": [
-      0
+      43
     ]
   },
-  "checkedAt": "2026-11-23T09:32:17+00:00",
-  "lastDataChange": "2026-11-22",
-  "dataVersion": "20261122h",
+  "checkedAt": "2026-11-23T11:25:23+00:00",
+  "lastDataChange": "2026-11-23",
+  "dataVersion": "20261123",
   "summary": {
     "ok": 96,
     "rejected": 0,
