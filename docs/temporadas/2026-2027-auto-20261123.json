@@ -1,0 +1,95 @@
+{
+  "season": "2026-2027",
+  "groups": [
+    {
+      "id": "A1",
+      "cat": "benjamin",
+      "name": "Grupo 1",
+      "phase": "Segunda Fase A",
+      "island": "grancanaria",
+      "fullName": "BENJAMIN SEGUNDA FASE A - GRUPO 1",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54977143&CodGrupo=55337618"
+    },
+    {
+      "id": "A2",
+      "cat": "benjamin",
+      "name": "Grupo 2",
+      "phase": "Segunda Fase A",
+      "island": "grancanaria",
+      "fullName": "BENJAMIN SEGUNDA FASE A - GRUPO 2",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54977143&CodGrupo=55337619"
+    },
+    {
+      "id": "B1",
+      "cat": "benjamin",
+      "name": "Grupo 1",
+      "phase": "Segunda Fase B",
+      "island": "grancanaria",
+      "fullName": "BENJAMIN SEGUNDA FASE B - GRUPO 1",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54977148&CodGrupo=55337759"
+    },
+    {
+      "id": "B2",
+      "cat": "benjamin",
+      "name": "Grupo 2",
+      "phase": "Segunda Fase B",
+      "island": "grancanaria",
+      "fullName": "BENJAMIN SEGUNDA FASE B - GRUPO 2",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54977148&CodGrupo=55337760"
+    },
+    {
+      "id": "C1",
+      "cat": "benjamin",
+      "name": "Grupo 1",
+      "phase": "Segunda Fase C",
+      "island": "grancanaria",
+      "fullName": "BENJAMIN SEGUNDA FASE C - GRUPO 1",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54977153&CodGrupo=55337769"
+    },
+    {
+      "id": "C2",
+      "cat": "benjamin",
+      "name": "Grupo 2",
+      "phase": "Segunda Fase C",
+      "island": "grancanaria",
+      "fullName": "BENJAMIN SEGUNDA FASE C - GRUPO 2",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54977153&CodGrupo=55337790"
+    },
+    {
+      "id": "D1",
+      "cat": "benjamin",
+      "name": "Grupo 1",
+      "phase": "Segunda Fase D",
+      "island": "grancanaria",
+      "fullName": "BENJAMIN SEGUNDA FASE D - GRUPO 1",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=55337393&CodGrupo=55337800"
+    },
+    {
+      "id": "D2",
+      "cat": "benjamin",
+      "name": "Grupo 2",
+      "phase": "Segunda Fase D",
+      "island": "grancanaria",
+      "fullName": "BENJAMIN SEGUNDA FASE D - GRUPO 2",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=55337393&CodGrupo=55337823"
+    },
+    {
+      "id": "E1",
+      "cat": "benjamin",
+      "name": "Grupo 1",
+      "phase": "Segunda Fase E",
+      "island": "grancanaria",
+      "fullName": "BENJAMIN SEGUNDA FASE E - GRUPO 1",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=55337394&CodGrupo=55337824"
+    },
+    {
+      "id": "E2",
+      "cat": "benjamin",
+      "name": "Grupo 2",
+      "phase": "Segunda Fase E",
+      "island": "grancanaria",
+      "fullName": "BENJAMIN SEGUNDA FASE E - GRUPO 2",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=55337394&CodGrupo=55337832"
+    }
+  ]
+}

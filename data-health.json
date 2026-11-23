@@ -585,31 +585,6 @@
   },
   "newCompetitions": [
     {
-      "id": "54977143",
-      "name": "LIGA BENJAMIN GRAN CANARIA FASE A",
-      "firstSeen": "2026-11-23"
-    },
-    {
-      "id": "54977148",
-      "name": "LIGA BENJAMIN GRAN CANARIA FASE B",
-      "firstSeen": "2026-11-23"
-    },
-    {
-      "id": "54977153",
-      "name": "LIGA BENJAMIN GRAN CANARIA FASE C",
-      "firstSeen": "2026-11-23"
-    },
-    {
-      "id": "55337393",
-      "name": "LIGA BENJAMIN GRAN CANARIA FASE D",
-      "firstSeen": "2026-11-23"
-    },
-    {
-      "id": "55337394",
-      "name": "LIGA BENJAMIN GRAN CANARIA FASE E",
-      "firstSeen": "2026-11-23"
-    },
-    {
       "id": "55337395",
       "name": "LIGA BENJAMIN GRAN CANARIA FASE F",
       "firstSeen": "2026-11-23"
@@ -620,34 +595,50 @@
     "drySince": "2026-11-23T19:08:50+00:00"
   },
   "activation": {
-    "at": "2026-11-23T19:16:28+00:00",
-    "activated": [],
-    "failed": [
+    "at": "2026-11-23T21:27:41+00:00",
+    "activated": [
       {
         "competition": "54977143",
         "name": "LIGA BENJAMIN GRAN CANARIA FASE A",
-        "reason": "la descarga no está completa: falta la lista de grupos de la federación"
+        "codes": [
+          "A1",
+          "A2"
+        ]
       },
       {
         "competition": "54977148",
         "name": "LIGA BENJAMIN GRAN CANARIA FASE B",
-        "reason": "la descarga no está completa: falta la lista de grupos de la federación"
+        "codes": [
+          "B1",
+          "B2"
+        ]
       },
       {
         "competition": "54977153",
         "name": "LIGA BENJAMIN GRAN CANARIA FASE C",
-        "reason": "la descarga no está completa: falta la lista de grupos de la federación"
+        "codes": [
+          "C1",
+          "C2"
+        ]
       },
       {
         "competition": "55337393",
         "name": "LIGA BENJAMIN GRAN CANARIA FASE D",
-        "reason": "la descarga no está completa: falta la lista de grupos de la federación"
+        "codes": [
+          "D1",
+          "D2"
+        ]
       },
       {
         "competition": "55337394",
         "name": "LIGA BENJAMIN GRAN CANARIA FASE E",
-        "reason": "la descarga no está completa: falta la lista de grupos de la federación"
-      },
+        "codes": [
+          "E1",
+          "E2"
+        ]
+      }
+    ],
+    "failed": [
       {
         "competition": "55337395",
         "name": "LIGA BENJAMIN GRAN CANARIA FASE F",
@@ -662,7 +653,7 @@
       "55337394",
       "55337395"
     ],
-    "attempts": 2
+    "attempts": 3
   },
   "run": {
     "pass": 167,
