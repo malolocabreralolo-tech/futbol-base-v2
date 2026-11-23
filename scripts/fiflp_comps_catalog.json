@@ -4169,7 +4169,7 @@
   },
   "2026-2027": {
     "season_code": "22",
-    "total": 66,
+    "total": 72,
     "relevant": [
       {
         "id": "54977176",
@@ -4224,12 +4224,32 @@
         "name": "ELIMINATORIAS COPA CADETE INSULAR DE LANZAROTE"
       },
       {
-        "id": "55331982",
-        "name": "COPA BENJAMÍN GRAN CANARIA"
-      },
-      {
         "id": "54976988",
         "name": "LIGA BENJAMIN GRAN CANARIA FASE PREVIA"
+      },
+      {
+        "id": "54977143",
+        "name": "LIGA BENJAMIN GRAN CANARIA FASE A"
+      },
+      {
+        "id": "54977148",
+        "name": "LIGA BENJAMIN GRAN CANARIA FASE B"
+      },
+      {
+        "id": "54977153",
+        "name": "LIGA BENJAMIN GRAN CANARIA FASE C"
+      },
+      {
+        "id": "55337393",
+        "name": "LIGA BENJAMIN GRAN CANARIA FASE D"
+      },
+      {
+        "id": "55337394",
+        "name": "LIGA BENJAMIN GRAN CANARIA FASE E"
+      },
+      {
+        "id": "55337395",
+        "name": "LIGA BENJAMIN GRAN CANARIA FASE F"
       },
       {
         "id": "54976982",
@@ -4238,6 +4258,10 @@
       {
         "id": "54977017",
         "name": "LIGA BENJAMIN F-7 DE FUERTEVENTURA 1ª FASE"
+      },
+      {
+        "id": "55331982",
+        "name": "COPA BENJAMÍN GRAN CANARIA"
       },
       {
         "id": "54977051",
@@ -4490,12 +4514,32 @@
         "name": "LIGA ALEVIN FUTBOL SALA GRAN CANARIA"
       },
       {
-        "id": "55331982",
-        "name": "COPA BENJAMÍN GRAN CANARIA"
-      },
-      {
         "id": "54976988",
         "name": "LIGA BENJAMIN GRAN CANARIA FASE PREVIA"
+      },
+      {
+        "id": "54977143",
+        "name": "LIGA BENJAMIN GRAN CANARIA FASE A"
+      },
+      {
+        "id": "54977148",
+        "name": "LIGA BENJAMIN GRAN CANARIA FASE B"
+      },
+      {
+        "id": "54977153",
+        "name": "LIGA BENJAMIN GRAN CANARIA FASE C"
+      },
+      {
+        "id": "55337393",
+        "name": "LIGA BENJAMIN GRAN CANARIA FASE D"
+      },
+      {
+        "id": "55337394",
+        "name": "LIGA BENJAMIN GRAN CANARIA FASE E"
+      },
+      {
+        "id": "55337395",
+        "name": "LIGA BENJAMIN GRAN CANARIA FASE F"
       },
       {
         "id": "54976982",
@@ -4504,6 +4548,10 @@
       {
         "id": "54977017",
         "name": "LIGA BENJAMIN F-7 DE FUERTEVENTURA 1ª FASE"
+      },
+      {
+        "id": "55331982",
+        "name": "COPA BENJAMÍN GRAN CANARIA"
       },
       {
         "id": "54977051",
