@@ -35704,5 +35704,1601 @@
         ]
       }
     ]
+  },
+  {
+    "competition_id": "55337395",
+    "competition_name": "LIGA BENJAMIN GRAN CANARIA FASE F",
+    "cat": "benjamin",
+    "island": "grancanaria",
+    "phase": "LIGA BENJAMIN GRAN CANARIA FASE F",
+    "group_id": "55337845",
+    "group_name": "GRUPO 1",
+    "standings": [],
+    "jornadas": [
+      {
+        "num": "1",
+        "date": "29-11-2026",
+        "matches": [
+          {
+            "home": "VELEZ LOS, C.D. U.D.",
+            "away": "UNION MARINA, C.F.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "27-11-2026",
+            "time": "17:30",
+            "venue": "MONTAÑA LOS VELEZ",
+            "referee": ""
+          },
+          {
+            "home": "CORAZON DE MARIA, C.D. \"C\"",
+            "away": "GUIA, U.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "28-11-2026",
+            "time": "09:00",
+            "venue": "COLEGIO CLARET",
+            "referee": ""
+          },
+          {
+            "home": "UNION VECINDARIO ATLETICO \"B\"",
+            "away": "PILETAS, A.D. U.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "28-11-2026",
+            "time": "09:00",
+            "venue": "CAMPO MUNICIPAL ANEXO DE VECINDARIO",
+            "referee": ""
+          },
+          {
+            "home": "MAJORERAS-GUAYADEQUE, C.F. LAS",
+            "away": "VALSEQUILLO, U.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "28-11-2026",
+            "time": "09:00",
+            "venue": "CAPELLANIA",
+            "referee": ""
+          },
+          {
+            "home": "PUERTOS DE L.P., C.E.F. \"B\"",
+            "away": "CASTILLO C.F.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "28-11-2026",
+            "time": "13:30",
+            "venue": "MANUEL NARANJO SOSA 2",
+            "referee": ""
+          },
+          {
+            "home": "TELDE, U.D. \"C\"",
+            "away": "SANTIDAD BANOT, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "29-11-2026",
+            "time": "10:30",
+            "venue": "PABLO HERNANDEZ",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "2",
+        "date": "13-12-2026",
+        "matches": [
+          {
+            "home": "UNION MARINA, C.F.",
+            "away": "TELDE, U.D. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "11-12-2026",
+            "time": "17:30",
+            "venue": "MANUEL MARTIN \"NAÑO\"",
+            "referee": ""
+          },
+          {
+            "home": "CASTILLO C.F.",
+            "away": "MAJORERAS-GUAYADEQUE, C.F. LAS",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "11-12-2026",
+            "time": "17:30",
+            "venue": "CASTILLO DEL ROMERAL",
+            "referee": ""
+          },
+          {
+            "home": "GUIA, U.D.",
+            "away": "PUERTOS DE L.P., C.E.F. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "11-12-2026",
+            "time": "18:00",
+            "venue": "GUIA",
+            "referee": ""
+          },
+          {
+            "home": "VALSEQUILLO, U.D. \"B\"",
+            "away": "VELEZ LOS, C.D. U.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "12-12-2026",
+            "time": "09:00",
+            "venue": "VALSEQUILLO - ANEXO F8",
+            "referee": ""
+          },
+          {
+            "home": "PILETAS, A.D. U.D.",
+            "away": "CORAZON DE MARIA, C.D. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "12-12-2026",
+            "time": "10:00",
+            "venue": "PILETAS",
+            "referee": ""
+          },
+          {
+            "home": "SANTIDAD BANOT, C.D.",
+            "away": "UNION VECINDARIO ATLETICO \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "12-12-2026",
+            "time": "10:30",
+            "venue": "JAVIER ARMAS REYES (F8)",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "3",
+        "date": "20-12-2026",
+        "matches": [
+          {
+            "home": "VELEZ LOS, C.D. U.D.",
+            "away": "CASTILLO C.F.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "18-12-2026",
+            "time": "17:30",
+            "venue": "MONTAÑA LOS VELEZ",
+            "referee": ""
+          },
+          {
+            "home": "GUIA, U.D.",
+            "away": "PILETAS, A.D. U.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "18-12-2026",
+            "time": "18:00",
+            "venue": "GUIA",
+            "referee": ""
+          },
+          {
+            "home": "CORAZON DE MARIA, C.D. \"C\"",
+            "away": "SANTIDAD BANOT, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "18-12-2026",
+            "time": "18:45",
+            "venue": "COLEGIO CLARET",
+            "referee": ""
+          },
+          {
+            "home": "UNION VECINDARIO ATLETICO \"B\"",
+            "away": "UNION MARINA, C.F.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "19-12-2026",
+            "time": "09:00",
+            "venue": "CAMPO MUNICIPAL ANEXO DE VECINDARIO",
+            "referee": ""
+          },
+          {
+            "home": "TELDE, U.D. \"C\"",
+            "away": "VALSEQUILLO, U.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "19-12-2026",
+            "time": "09:00",
+            "venue": "PABLO HERNANDEZ",
+            "referee": ""
+          },
+          {
+            "home": "PUERTOS DE L.P., C.E.F. \"B\"",
+            "away": "MAJORERAS-GUAYADEQUE, C.F. LAS",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "19-12-2026",
+            "time": "13:30",
+            "venue": "MANUEL NARANJO SOSA 2",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "4",
+        "date": "10-01-2027",
+        "matches": [
+          {
+            "home": "UNION MARINA, C.F.",
+            "away": "CORAZON DE MARIA, C.D. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "08-01-2027",
+            "time": "17:30",
+            "venue": "MANUEL MARTIN \"NAÑO\"",
+            "referee": ""
+          },
+          {
+            "home": "CASTILLO C.F.",
+            "away": "TELDE, U.D. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "08-01-2027",
+            "time": "17:30",
+            "venue": "CASTILLO DEL ROMERAL",
+            "referee": ""
+          },
+          {
+            "home": "VALSEQUILLO, U.D. \"B\"",
+            "away": "UNION VECINDARIO ATLETICO \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "09-01-2027",
+            "time": "09:00",
+            "venue": "VALSEQUILLO - ANEXO F8",
+            "referee": ""
+          },
+          {
+            "home": "MAJORERAS-GUAYADEQUE, C.F. LAS",
+            "away": "VELEZ LOS, C.D. U.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "09-01-2027",
+            "time": "09:00",
+            "venue": "CAPELLANIA",
+            "referee": ""
+          },
+          {
+            "home": "PILETAS, A.D. U.D.",
+            "away": "PUERTOS DE L.P., C.E.F. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "09-01-2027",
+            "time": "10:00",
+            "venue": "PILETAS",
+            "referee": ""
+          },
+          {
+            "home": "SANTIDAD BANOT, C.D.",
+            "away": "GUIA, U.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "09-01-2027",
+            "time": "10:30",
+            "venue": "JAVIER ARMAS REYES (F8)",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "5",
+        "date": "17-01-2027",
+        "matches": [
+          {
+            "home": "GUIA, U.D.",
+            "away": "UNION MARINA, C.F.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "15-01-2027",
+            "time": "18:00",
+            "venue": "GUIA",
+            "referee": ""
+          },
+          {
+            "home": "CORAZON DE MARIA, C.D. \"C\"",
+            "away": "VALSEQUILLO, U.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "16-01-2027",
+            "time": "09:00",
+            "venue": "COLEGIO CLARET",
+            "referee": ""
+          },
+          {
+            "home": "UNION VECINDARIO ATLETICO \"B\"",
+            "away": "CASTILLO C.F.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "16-01-2027",
+            "time": "09:00",
+            "venue": "CAMPO MUNICIPAL ANEXO DE VECINDARIO",
+            "referee": ""
+          },
+          {
+            "home": "PUERTOS DE L.P., C.E.F. \"B\"",
+            "away": "VELEZ LOS, C.D. U.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "16-01-2027",
+            "time": "09:00",
+            "venue": "MANUEL NARANJO SOSA 1",
+            "referee": ""
+          },
+          {
+            "home": "PILETAS, A.D. U.D.",
+            "away": "SANTIDAD BANOT, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "16-01-2027",
+            "time": "10:00",
+            "venue": "PILETAS",
+            "referee": ""
+          },
+          {
+            "home": "TELDE, U.D. \"C\"",
+            "away": "MAJORERAS-GUAYADEQUE, C.F. LAS",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "17-01-2027",
+            "time": "10:30",
+            "venue": "PABLO HERNANDEZ",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "6",
+        "date": "24-01-2027",
+        "matches": [
+          {
+            "home": "UNION MARINA, C.F.",
+            "away": "PILETAS, A.D. U.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "22-01-2027",
+            "time": "17:30",
+            "venue": "MANUEL MARTIN \"NAÑO\"",
+            "referee": ""
+          },
+          {
+            "home": "CASTILLO C.F.",
+            "away": "CORAZON DE MARIA, C.D. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "22-01-2027",
+            "time": "17:30",
+            "venue": "CASTILLO DEL ROMERAL",
+            "referee": ""
+          },
+          {
+            "home": "VELEZ LOS, C.D. U.D.",
+            "away": "TELDE, U.D. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "22-01-2027",
+            "time": "17:30",
+            "venue": "MONTAÑA LOS VELEZ",
+            "referee": ""
+          },
+          {
+            "home": "VALSEQUILLO, U.D. \"B\"",
+            "away": "GUIA, U.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "23-01-2027",
+            "time": "09:00",
+            "venue": "VALSEQUILLO - ANEXO F8",
+            "referee": ""
+          },
+          {
+            "home": "MAJORERAS-GUAYADEQUE, C.F. LAS",
+            "away": "UNION VECINDARIO ATLETICO \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "23-01-2027",
+            "time": "09:00",
+            "venue": "CAPELLANIA",
+            "referee": ""
+          },
+          {
+            "home": "SANTIDAD BANOT, C.D.",
+            "away": "PUERTOS DE L.P., C.E.F. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "23-01-2027",
+            "time": "10:30",
+            "venue": "JAVIER ARMAS REYES (F8)",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "7",
+        "date": "31-01-2027",
+        "matches": [
+          {
+            "home": "GUIA, U.D.",
+            "away": "CASTILLO C.F.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "29-01-2027",
+            "time": "18:00",
+            "venue": "GUIA",
+            "referee": ""
+          },
+          {
+            "home": "CORAZON DE MARIA, C.D. \"C\"",
+            "away": "MAJORERAS-GUAYADEQUE, C.F. LAS",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "30-01-2027",
+            "time": "09:00",
+            "venue": "COLEGIO CLARET",
+            "referee": ""
+          },
+          {
+            "home": "UNION VECINDARIO ATLETICO \"B\"",
+            "away": "VELEZ LOS, C.D. U.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "30-01-2027",
+            "time": "09:00",
+            "venue": "CAMPO MUNICIPAL ANEXO DE VECINDARIO",
+            "referee": ""
+          },
+          {
+            "home": "PILETAS, A.D. U.D.",
+            "away": "VALSEQUILLO, U.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "30-01-2027",
+            "time": "09:30",
+            "venue": "PILETAS",
+            "referee": ""
+          },
+          {
+            "home": "SANTIDAD BANOT, C.D.",
+            "away": "UNION MARINA, C.F.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "30-01-2027",
+            "time": "10:30",
+            "venue": "JAVIER ARMAS REYES (F8)",
+            "referee": ""
+          },
+          {
+            "home": "PUERTOS DE L.P., C.E.F. \"B\"",
+            "away": "TELDE, U.D. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "30-01-2027",
+            "time": "10:30",
+            "venue": "MANUEL NARANJO SOSA 1",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "8",
+        "date": "07-02-2027",
+        "matches": [
+          {
+            "home": "UNION MARINA, C.F.",
+            "away": "PUERTOS DE L.P., C.E.F. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "05-02-2027",
+            "time": "17:30",
+            "venue": "MANUEL MARTIN \"NAÑO\"",
+            "referee": ""
+          },
+          {
+            "home": "CASTILLO C.F.",
+            "away": "PILETAS, A.D. U.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "05-02-2027",
+            "time": "17:30",
+            "venue": "CASTILLO DEL ROMERAL",
+            "referee": ""
+          },
+          {
+            "home": "VELEZ LOS, C.D. U.D.",
+            "away": "CORAZON DE MARIA, C.D. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "05-02-2027",
+            "time": "17:30",
+            "venue": "MONTAÑA LOS VELEZ",
+            "referee": ""
+          },
+          {
+            "home": "VALSEQUILLO, U.D. \"B\"",
+            "away": "SANTIDAD BANOT, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "06-02-2027",
+            "time": "09:00",
+            "venue": "VALSEQUILLO - ANEXO F8",
+            "referee": ""
+          },
+          {
+            "home": "TELDE, U.D. \"C\"",
+            "away": "UNION VECINDARIO ATLETICO \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "06-02-2027",
+            "time": "10:30",
+            "venue": "PABLO HERNANDEZ",
+            "referee": ""
+          },
+          {
+            "home": "MAJORERAS-GUAYADEQUE, C.F. LAS",
+            "away": "GUIA, U.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "06-02-2027",
+            "time": "16:00",
+            "venue": "CAPELLANIA",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "9",
+        "date": "14-02-2027",
+        "matches": [
+          {
+            "home": "UNION MARINA, C.F.",
+            "away": "VALSEQUILLO, U.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "12-02-2027",
+            "time": "17:30",
+            "venue": "MANUEL MARTIN \"NAÑO\"",
+            "referee": ""
+          },
+          {
+            "home": "GUIA, U.D.",
+            "away": "VELEZ LOS, C.D. U.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "12-02-2027",
+            "time": "18:00",
+            "venue": "GUIA",
+            "referee": ""
+          },
+          {
+            "home": "PUERTOS DE L.P., C.E.F. \"B\"",
+            "away": "UNION VECINDARIO ATLETICO \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "13-02-2027",
+            "time": "09:00",
+            "venue": "MANUEL NARANJO SOSA 1",
+            "referee": ""
+          },
+          {
+            "home": "PILETAS, A.D. U.D.",
+            "away": "MAJORERAS-GUAYADEQUE, C.F. LAS",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "13-02-2027",
+            "time": "10:00",
+            "venue": "PILETAS",
+            "referee": ""
+          },
+          {
+            "home": "SANTIDAD BANOT, C.D.",
+            "away": "CASTILLO C.F.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "13-02-2027",
+            "time": "10:30",
+            "venue": "JAVIER ARMAS REYES (F8)",
+            "referee": ""
+          },
+          {
+            "home": "CORAZON DE MARIA, C.D. \"C\"",
+            "away": "TELDE, U.D. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "13-02-2027",
+            "time": "10:30",
+            "venue": "COLEGIO CLARET",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "10",
+        "date": "21-02-2027",
+        "matches": [
+          {
+            "home": "CASTILLO C.F.",
+            "away": "UNION MARINA, C.F.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "19-02-2027",
+            "time": "17:30",
+            "venue": "CASTILLO DEL ROMERAL",
+            "referee": ""
+          },
+          {
+            "home": "VELEZ LOS, C.D. U.D.",
+            "away": "PILETAS, A.D. U.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "19-02-2027",
+            "time": "17:30",
+            "venue": "MONTAÑA LOS VELEZ",
+            "referee": ""
+          },
+          {
+            "home": "MAJORERAS-GUAYADEQUE, C.F. LAS",
+            "away": "SANTIDAD BANOT, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "20-02-2027",
+            "time": "09:00",
+            "venue": "CAPELLANIA",
+            "referee": ""
+          },
+          {
+            "home": "TELDE, U.D. \"C\"",
+            "away": "GUIA, U.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "20-02-2027",
+            "time": "09:00",
+            "venue": "PABLO HERNANDEZ",
+            "referee": ""
+          },
+          {
+            "home": "UNION VECINDARIO ATLETICO \"B\"",
+            "away": "CORAZON DE MARIA, C.D. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "20-02-2027",
+            "time": "09:00",
+            "venue": "CAMPO MUNICIPAL ANEXO DE VECINDARIO",
+            "referee": ""
+          },
+          {
+            "home": "PUERTOS DE L.P., C.E.F. \"B\"",
+            "away": "VALSEQUILLO, U.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "20-02-2027",
+            "time": "10:30",
+            "venue": "MANUEL NARANJO SOSA 1",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "11",
+        "date": "28-02-2027",
+        "matches": [
+          {
+            "home": "UNION MARINA, C.F.",
+            "away": "MAJORERAS-GUAYADEQUE, C.F. LAS",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "26-02-2027",
+            "time": "17:30",
+            "venue": "MANUEL MARTIN \"NAÑO\"",
+            "referee": ""
+          },
+          {
+            "home": "GUIA, U.D.",
+            "away": "UNION VECINDARIO ATLETICO \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "26-02-2027",
+            "time": "18:00",
+            "venue": "GUIA",
+            "referee": ""
+          },
+          {
+            "home": "VALSEQUILLO, U.D. \"B\"",
+            "away": "CASTILLO C.F.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "27-02-2027",
+            "time": "09:00",
+            "venue": "VALSEQUILLO - ANEXO F8",
+            "referee": ""
+          },
+          {
+            "home": "PILETAS, A.D. U.D.",
+            "away": "TELDE, U.D. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "27-02-2027",
+            "time": "09:30",
+            "venue": "PILETAS",
+            "referee": ""
+          },
+          {
+            "home": "SANTIDAD BANOT, C.D.",
+            "away": "VELEZ LOS, C.D. U.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "27-02-2027",
+            "time": "10:30",
+            "venue": "JAVIER ARMAS REYES (F8)",
+            "referee": ""
+          },
+          {
+            "home": "CORAZON DE MARIA, C.D. \"C\"",
+            "away": "PUERTOS DE L.P., C.E.F. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "27-02-2027",
+            "time": "12:00",
+            "venue": "COLEGIO CLARET",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "12",
+        "date": "07-03-2027",
+        "matches": [
+          {
+            "home": "UNION MARINA, C.F.",
+            "away": "VELEZ LOS, C.D. U.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "05-03-2027",
+            "time": "17:30",
+            "venue": "MANUEL MARTIN \"NAÑO\"",
+            "referee": ""
+          },
+          {
+            "home": "CASTILLO C.F.",
+            "away": "PUERTOS DE L.P., C.E.F. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "05-03-2027",
+            "time": "17:30",
+            "venue": "CASTILLO DEL ROMERAL",
+            "referee": ""
+          },
+          {
+            "home": "GUIA, U.D.",
+            "away": "CORAZON DE MARIA, C.D. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "05-03-2027",
+            "time": "18:00",
+            "venue": "GUIA",
+            "referee": ""
+          },
+          {
+            "home": "PILETAS, A.D. U.D.",
+            "away": "UNION VECINDARIO ATLETICO \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "06-03-2027",
+            "time": "10:00",
+            "venue": "PILETAS",
+            "referee": ""
+          },
+          {
+            "home": "VALSEQUILLO, U.D. \"B\"",
+            "away": "MAJORERAS-GUAYADEQUE, C.F. LAS",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "06-03-2027",
+            "time": "12:30",
+            "venue": "VALSEQUILLO - ANEXO F8",
+            "referee": ""
+          },
+          {
+            "home": "SANTIDAD BANOT, C.D.",
+            "away": "TELDE, U.D. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "06-03-2027",
+            "time": "13:30",
+            "venue": "JAVIER ARMAS REYES (F8)",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "13",
+        "date": "14-03-2027",
+        "matches": [
+          {
+            "home": "VELEZ LOS, C.D. U.D.",
+            "away": "VALSEQUILLO, U.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "12-03-2027",
+            "time": "17:30",
+            "venue": "MONTAÑA LOS VELEZ",
+            "referee": ""
+          },
+          {
+            "home": "CORAZON DE MARIA, C.D. \"C\"",
+            "away": "PILETAS, A.D. U.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "13-03-2027",
+            "time": "09:00",
+            "venue": "COLEGIO CLARET",
+            "referee": ""
+          },
+          {
+            "home": "UNION VECINDARIO ATLETICO \"B\"",
+            "away": "SANTIDAD BANOT, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "13-03-2027",
+            "time": "09:00",
+            "venue": "CAMPO MUNICIPAL ANEXO DE VECINDARIO",
+            "referee": ""
+          },
+          {
+            "home": "MAJORERAS-GUAYADEQUE, C.F. LAS",
+            "away": "CASTILLO C.F.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "13-03-2027",
+            "time": "09:00",
+            "venue": "CAPELLANIA",
+            "referee": ""
+          },
+          {
+            "home": "PUERTOS DE L.P., C.E.F. \"B\"",
+            "away": "GUIA, U.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "13-03-2027",
+            "time": "10:30",
+            "venue": "MANUEL NARANJO SOSA 1",
+            "referee": ""
+          },
+          {
+            "home": "TELDE, U.D. \"C\"",
+            "away": "UNION MARINA, C.F.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "13-03-2027",
+            "time": "10:30",
+            "venue": "PABLO HERNANDEZ",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "14",
+        "date": "21-03-2027",
+        "matches": [
+          {
+            "home": "UNION MARINA, C.F.",
+            "away": "UNION VECINDARIO ATLETICO \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "19-03-2027",
+            "time": "17:30",
+            "venue": "MANUEL MARTIN \"NAÑO\"",
+            "referee": ""
+          },
+          {
+            "home": "CASTILLO C.F.",
+            "away": "VELEZ LOS, C.D. U.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "19-03-2027",
+            "time": "17:30",
+            "venue": "CASTILLO DEL ROMERAL",
+            "referee": ""
+          },
+          {
+            "home": "MAJORERAS-GUAYADEQUE, C.F. LAS",
+            "away": "PUERTOS DE L.P., C.E.F. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "20-03-2027",
+            "time": "09:00",
+            "venue": "CAPELLANIA",
+            "referee": ""
+          },
+          {
+            "home": "PILETAS, A.D. U.D.",
+            "away": "GUIA, U.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "20-03-2027",
+            "time": "10:00",
+            "venue": "PILETAS",
+            "referee": ""
+          },
+          {
+            "home": "VALSEQUILLO, U.D. \"B\"",
+            "away": "TELDE, U.D. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "20-03-2027",
+            "time": "12:30",
+            "venue": "VALSEQUILLO - ANEXO F8",
+            "referee": ""
+          },
+          {
+            "home": "SANTIDAD BANOT, C.D.",
+            "away": "CORAZON DE MARIA, C.D. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "20-03-2027",
+            "time": "13:30",
+            "venue": "JAVIER ARMAS REYES (F8)",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "15",
+        "date": "04-04-2027",
+        "matches": [
+          {
+            "home": "VELEZ LOS, C.D. U.D.",
+            "away": "MAJORERAS-GUAYADEQUE, C.F. LAS",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "02-04-2027",
+            "time": "17:30",
+            "venue": "MONTAÑA LOS VELEZ",
+            "referee": ""
+          },
+          {
+            "home": "GUIA, U.D.",
+            "away": "SANTIDAD BANOT, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "02-04-2027",
+            "time": "18:00",
+            "venue": "GUIA",
+            "referee": ""
+          },
+          {
+            "home": "CORAZON DE MARIA, C.D. \"C\"",
+            "away": "UNION MARINA, C.F.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "03-04-2027",
+            "time": "09:00",
+            "venue": "COLEGIO CLARET",
+            "referee": ""
+          },
+          {
+            "home": "PUERTOS DE L.P., C.E.F. \"B\"",
+            "away": "PILETAS, A.D. U.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "03-04-2027",
+            "time": "10:30",
+            "venue": "MANUEL NARANJO SOSA 1",
+            "referee": ""
+          },
+          {
+            "home": "TELDE, U.D. \"C\"",
+            "away": "CASTILLO C.F.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "03-04-2027",
+            "time": "10:30",
+            "venue": "PABLO HERNANDEZ",
+            "referee": ""
+          },
+          {
+            "home": "UNION VECINDARIO ATLETICO \"B\"",
+            "away": "VALSEQUILLO, U.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "04-04-2027",
+            "time": "10:30",
+            "venue": "CAMPO MUNICIPAL ANEXO DE VECINDARIO",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "16",
+        "date": "11-04-2027",
+        "matches": [
+          {
+            "home": "UNION MARINA, C.F.",
+            "away": "GUIA, U.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "09-04-2027",
+            "time": "17:30",
+            "venue": "MANUEL MARTIN \"NAÑO\"",
+            "referee": ""
+          },
+          {
+            "home": "CASTILLO C.F.",
+            "away": "UNION VECINDARIO ATLETICO \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "09-04-2027",
+            "time": "17:30",
+            "venue": "CASTILLO DEL ROMERAL",
+            "referee": ""
+          },
+          {
+            "home": "VELEZ LOS, C.D. U.D.",
+            "away": "PUERTOS DE L.P., C.E.F. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "09-04-2027",
+            "time": "17:30",
+            "venue": "MONTAÑA LOS VELEZ",
+            "referee": ""
+          },
+          {
+            "home": "MAJORERAS-GUAYADEQUE, C.F. LAS",
+            "away": "TELDE, U.D. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "10-04-2027",
+            "time": "09:00",
+            "venue": "CAPELLANIA",
+            "referee": ""
+          },
+          {
+            "home": "SANTIDAD BANOT, C.D.",
+            "away": "PILETAS, A.D. U.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "10-04-2027",
+            "time": "10:30",
+            "venue": "JAVIER ARMAS REYES (F8)",
+            "referee": ""
+          },
+          {
+            "home": "VALSEQUILLO, U.D. \"B\"",
+            "away": "CORAZON DE MARIA, C.D. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "10-04-2027",
+            "time": "12:30",
+            "venue": "VALSEQUILLO - ANEXO F8",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "17",
+        "date": "18-04-2027",
+        "matches": [
+          {
+            "home": "GUIA, U.D.",
+            "away": "VALSEQUILLO, U.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "16-04-2027",
+            "time": "18:00",
+            "venue": "GUIA",
+            "referee": ""
+          },
+          {
+            "home": "PUERTOS DE L.P., C.E.F. \"B\"",
+            "away": "SANTIDAD BANOT, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "17-04-2027",
+            "time": "09:00",
+            "venue": "MANUEL NARANJO SOSA 1",
+            "referee": ""
+          },
+          {
+            "home": "CORAZON DE MARIA, C.D. \"C\"",
+            "away": "CASTILLO C.F.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "17-04-2027",
+            "time": "09:00",
+            "venue": "COLEGIO CLARET",
+            "referee": ""
+          },
+          {
+            "home": "UNION VECINDARIO ATLETICO \"B\"",
+            "away": "MAJORERAS-GUAYADEQUE, C.F. LAS",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "17-04-2027",
+            "time": "09:00",
+            "venue": "CAMPO MUNICIPAL ANEXO DE VECINDARIO",
+            "referee": ""
+          },
+          {
+            "home": "PILETAS, A.D. U.D.",
+            "away": "UNION MARINA, C.F.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "17-04-2027",
+            "time": "10:00",
+            "venue": "PILETAS",
+            "referee": ""
+          },
+          {
+            "home": "TELDE, U.D. \"C\"",
+            "away": "VELEZ LOS, C.D. U.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "18-04-2027",
+            "time": "10:30",
+            "venue": "PABLO HERNANDEZ",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "18",
+        "date": "25-04-2027",
+        "matches": [
+          {
+            "home": "UNION MARINA, C.F.",
+            "away": "SANTIDAD BANOT, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "23-04-2027",
+            "time": "17:30",
+            "venue": "MANUEL MARTIN \"NAÑO\"",
+            "referee": ""
+          },
+          {
+            "home": "CASTILLO C.F.",
+            "away": "GUIA, U.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "23-04-2027",
+            "time": "17:30",
+            "venue": "CASTILLO DEL ROMERAL",
+            "referee": ""
+          },
+          {
+            "home": "VELEZ LOS, C.D. U.D.",
+            "away": "UNION VECINDARIO ATLETICO \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "23-04-2027",
+            "time": "17:30",
+            "venue": "MONTAÑA LOS VELEZ",
+            "referee": ""
+          },
+          {
+            "home": "MAJORERAS-GUAYADEQUE, C.F. LAS",
+            "away": "CORAZON DE MARIA, C.D. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "24-04-2027",
+            "time": "09:00",
+            "venue": "CAPELLANIA",
+            "referee": ""
+          },
+          {
+            "home": "TELDE, U.D. \"C\"",
+            "away": "PUERTOS DE L.P., C.E.F. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "24-04-2027",
+            "time": "10:30",
+            "venue": "PABLO HERNANDEZ",
+            "referee": ""
+          },
+          {
+            "home": "VALSEQUILLO, U.D. \"B\"",
+            "away": "PILETAS, A.D. U.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "24-04-2027",
+            "time": "12:30",
+            "venue": "VALSEQUILLO - ANEXO F8",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "19",
+        "date": "09-05-2027",
+        "matches": [
+          {
+            "home": "GUIA, U.D.",
+            "away": "MAJORERAS-GUAYADEQUE, C.F. LAS",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "07-05-2027",
+            "time": "18:00",
+            "venue": "GUIA",
+            "referee": ""
+          },
+          {
+            "home": "PUERTOS DE L.P., C.E.F. \"B\"",
+            "away": "UNION MARINA, C.F.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "08-05-2027",
+            "time": "09:00",
+            "venue": "MANUEL NARANJO SOSA 1",
+            "referee": ""
+          },
+          {
+            "home": "CORAZON DE MARIA, C.D. \"C\"",
+            "away": "VELEZ LOS, C.D. U.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "08-05-2027",
+            "time": "09:00",
+            "venue": "COLEGIO CLARET",
+            "referee": ""
+          },
+          {
+            "home": "PILETAS, A.D. U.D.",
+            "away": "CASTILLO C.F.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "08-05-2027",
+            "time": "09:30",
+            "venue": "PILETAS",
+            "referee": ""
+          },
+          {
+            "home": "SANTIDAD BANOT, C.D.",
+            "away": "VALSEQUILLO, U.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "08-05-2027",
+            "time": "10:30",
+            "venue": "JAVIER ARMAS REYES (F8)",
+            "referee": ""
+          },
+          {
+            "home": "UNION VECINDARIO ATLETICO \"B\"",
+            "away": "TELDE, U.D. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "09-05-2027",
+            "time": "09:00",
+            "venue": "CAMPO MUNICIPAL ANEXO DE VECINDARIO",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "20",
+        "date": "16-05-2027",
+        "matches": [
+          {
+            "home": "CASTILLO C.F.",
+            "away": "SANTIDAD BANOT, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "14-05-2027",
+            "time": "17:30",
+            "venue": "CASTILLO DEL ROMERAL",
+            "referee": ""
+          },
+          {
+            "home": "VELEZ LOS, C.D. U.D.",
+            "away": "GUIA, U.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "14-05-2027",
+            "time": "17:30",
+            "venue": "MONTAÑA LOS VELEZ",
+            "referee": ""
+          },
+          {
+            "home": "VALSEQUILLO, U.D. \"B\"",
+            "away": "UNION MARINA, C.F.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "15-05-2027",
+            "time": "09:00",
+            "venue": "VALSEQUILLO - ANEXO F8",
+            "referee": ""
+          },
+          {
+            "home": "MAJORERAS-GUAYADEQUE, C.F. LAS",
+            "away": "PILETAS, A.D. U.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "15-05-2027",
+            "time": "09:00",
+            "venue": "CAPELLANIA",
+            "referee": ""
+          },
+          {
+            "home": "UNION VECINDARIO ATLETICO \"B\"",
+            "away": "PUERTOS DE L.P., C.E.F. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "15-05-2027",
+            "time": "09:00",
+            "venue": "CAMPO MUNICIPAL ANEXO DE VECINDARIO",
+            "referee": ""
+          },
+          {
+            "home": "TELDE, U.D. \"C\"",
+            "away": "CORAZON DE MARIA, C.D. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "15-05-2027",
+            "time": "10:30",
+            "venue": "PABLO HERNANDEZ",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "21",
+        "date": "23-05-2027",
+        "matches": [
+          {
+            "home": "UNION MARINA, C.F.",
+            "away": "CASTILLO C.F.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "21-05-2027",
+            "time": "17:30",
+            "venue": "MANUEL MARTIN \"NAÑO\"",
+            "referee": ""
+          },
+          {
+            "home": "GUIA, U.D.",
+            "away": "TELDE, U.D. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "21-05-2027",
+            "time": "18:00",
+            "venue": "GUIA",
+            "referee": ""
+          },
+          {
+            "home": "VALSEQUILLO, U.D. \"B\"",
+            "away": "PUERTOS DE L.P., C.E.F. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "22-05-2027",
+            "time": "09:00",
+            "venue": "VALSEQUILLO - ANEXO F8",
+            "referee": ""
+          },
+          {
+            "home": "PILETAS, A.D. U.D.",
+            "away": "VELEZ LOS, C.D. U.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "22-05-2027",
+            "time": "10:00",
+            "venue": "PILETAS",
+            "referee": ""
+          },
+          {
+            "home": "CORAZON DE MARIA, C.D. \"C\"",
+            "away": "UNION VECINDARIO ATLETICO \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "22-05-2027",
+            "time": "10:30",
+            "venue": "COLEGIO CLARET",
+            "referee": ""
+          },
+          {
+            "home": "SANTIDAD BANOT, C.D.",
+            "away": "MAJORERAS-GUAYADEQUE, C.F. LAS",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "22-05-2027",
+            "time": "12:00",
+            "venue": "JAVIER ARMAS REYES (F8)",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "22",
+        "date": "30-05-2027",
+        "matches": [
+          {
+            "home": "CASTILLO C.F.",
+            "away": "VALSEQUILLO, U.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "29-05-2027",
+            "time": "09:00",
+            "venue": "CASTILLO DEL ROMERAL",
+            "referee": ""
+          },
+          {
+            "home": "MAJORERAS-GUAYADEQUE, C.F. LAS",
+            "away": "UNION MARINA, C.F.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "29-05-2027",
+            "time": "09:00",
+            "venue": "CAPELLANIA",
+            "referee": ""
+          },
+          {
+            "home": "VELEZ LOS, C.D. U.D.",
+            "away": "SANTIDAD BANOT, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "29-05-2027",
+            "time": "09:00",
+            "venue": "MONTAÑA LOS VELEZ",
+            "referee": ""
+          },
+          {
+            "home": "TELDE, U.D. \"C\"",
+            "away": "PILETAS, A.D. U.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "29-05-2027",
+            "time": "09:00",
+            "venue": "PABLO HERNANDEZ",
+            "referee": ""
+          },
+          {
+            "home": "UNION VECINDARIO ATLETICO \"B\"",
+            "away": "GUIA, U.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "29-05-2027",
+            "time": "09:00",
+            "venue": "CAMPO MUNICIPAL ANEXO DE VECINDARIO",
+            "referee": ""
+          },
+          {
+            "home": "PUERTOS DE L.P., C.E.F. \"B\"",
+            "away": "CORAZON DE MARIA, C.D. \"C\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "29-05-2027",
+            "time": "09:00",
+            "venue": "MANUEL NARANJO SOSA 2",
+            "referee": ""
+          }
+        ]
+      }
+    ]
   }
 ]
