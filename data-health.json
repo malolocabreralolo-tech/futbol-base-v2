@@ -589,31 +589,26 @@
     "name": "2027-2028",
     "status": "pending"
   },
-  "newCompetitions": [
-    {
-      "id": "55337395",
-      "name": "LIGA BENJAMIN GRAN CANARIA FASE F",
-      "firstSeen": "2026-11-23"
-    }
-  ],
   "runHealth": {
     "ok": true,
     "drySince": "2026-11-24T10:19:39+00:00"
   },
   "activation": {
-    "at": "2026-11-24T08:40:22+00:00",
-    "activated": [],
-    "failed": [
+    "at": "2026-11-24T10:28:44+00:00",
+    "activated": [
       {
         "competition": "55337395",
         "name": "LIGA BENJAMIN GRAN CANARIA FASE F",
-        "reason": "la descarga no está completa: falta la lista de grupos de la federación"
+        "codes": [
+          "F1"
+        ]
       }
     ],
+    "failed": [],
     "tried": [
       "55337395"
     ],
-    "attempts": 6
+    "attempts": 7
   },
   "run": {
     "pass": 174,
