@@ -48,7 +48,7 @@ def test_los_dominios_del_minimo_son_rehacibles():
     rehacibles = {d.nombre for d in reconstruir.DOMINIOS if d.rehacible}
     assert {"app", "torneos", "actas_bot"} <= rehacibles
     assert {d.nombre for d in reconstruir.DOMINIOS} == {
-        "app", "torneos", "actas_bot", "actas", "goleadores", "detalle", "portal"}
+        "app", "torneos", "actas_bot", "actas", "goleadores", "detalle", "portal", "mygol"}
     for d in reconstruir.DOMINIOS:
         assert d.tablas and d.originales, d.nombre
         assert all(list(ROOT.glob(g)) for g in d.originales), d.nombre
