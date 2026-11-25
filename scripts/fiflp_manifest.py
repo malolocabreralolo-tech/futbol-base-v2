@@ -18,7 +18,20 @@ histórico entre temporadas y el cambio de fase de Mi equipo los traten igual:
     ... ELIMINATORIAS (de Gran Canaria)      -> EL1.. (benjamín), PEL1.. (prebenjamín),
                                                 ALEL1.. (alevín)  «Eliminatorias» (copa en la web)
 
-Alevín, solo de Gran Canaria (docs/alevin.md; todos los códigos empiezan por AL):
+Infantil, cadete y juvenil, y el alevín de Lanzarote y Fuerteventura (scripts/convenio.py, comprobado
+contra el catálogo entero: CATEGORÍA + NIVEL + ISLA + FASE + TIPO + número):
+
+    LIGA <nivel> <CATEGORÍA> <isla>          -> <CAT><nivel><isla>1..  «<Nivel> <isla>» (INFPG1.. «Preferente GC»)
+    LIGA <CATEGORÍA> <isla> (sin nivel)      -> <CAT>U<isla>1..        «<Isla>» (INFUL1.. «Lanzarote Fase 1»)
+    LIGA <CATEGORÍA> INTERINSULAR / DIVISION DE HONOR / AUTONOMICA -> JUVI1.., JUVH1.., CADA1.. (isla interinsular)
+    COPA [CABILDO|DELEGACION|CAMPEONES] …    -> <liga>C1.. / <liga>CD1.. / <CAT>U<isla>CK1..  «Copa …»
+    FASE DE ASCENSO A …                      -> <destino>A1..   «Fase de Ascenso a …»
+    ELIMINATORIAS DE ASCENSO A … / ELIMINATORIAS COPA … -> <destino o copa>E1..  «Eliminatorias …»
+    FINAL / SEMIFINAL …                      -> <liga o copa>F1.. / S1..  «Final Liga …», «Final Copa …»
+    LIGA ALEVIN LANZAROTE|FUERTEVENTURA …    -> ALUL1.., AL1L1.., ALPL1.., ALUF1.. (solo con
+                                                categorias.ALEVIN_ISLAS; si no, no se publica)
+
+Alevín de Gran Canaria (docs/alevin.md; todos los códigos empiezan por AL):
 
     LIGA ALEVIN GRAN CANARIA FASE PREVIA     -> AL1..   «Primera Fase GC»
     LIGA ALEVIN ... FASE LIGA X / SEGUNDA FASE X -> ALX1.. «Segunda Fase X»
@@ -28,7 +41,8 @@ Alevín, solo de Gran Canaria (docs/alevin.md; todos los códigos empiezan por A
 
 Una competición que no encaje aborta: mejor parar que inventar una fase que la
 web clasificaría como «otra-…». También alevín de Lanzarote o Fuerteventura y
-fútbol sala (categorias.category_of), que no se publican.
+fútbol sala (categorias.category_of), que no se publican, y una competición de las
+categorías nuevas sin convenio (convenio.SinConvenio: «competición sin convenio de código: …»).
 
     python3 scripts/fiflp_manifest.py scripts/fiflp_islas_22_raw.json 2026-2027 \\
         --team "Las Mesas" --cat prebenjamin > temporada-2026-2027.json
@@ -73,21 +87,34 @@ def segunda_fase(n):
     return None
 
 
-# Las categorías con convenio de código aquí. Infantil, cadete y juvenil se conocen (categorias.category_of)
-# pero aún no tienen el suyo: sin esto caerían en el de benjamín («LIGA INFANTIL LANZAROTE FASE 1» → LZ1,
-# el código de un grupo de benjamín).
-CON_CONVENIO = ("benjamin", "prebenjamin", "alevin")
-
-
 def category(name):
-    """'benjamin', 'prebenjamin' o 'alevin' de una competición; ValueError si no se publica."""
+    """La clave de la web de la categoría de una competición ('benjamin', 'prebenjamin', 'alevin',
+    'infantil', 'cadete' o 'juvenil'); ValueError si no se publica."""
     from categorias import category_of
     cat = category_of(name)
     if not cat:
         raise ValueError(f"no se publica (fútbol sala, alevín de otra isla o sin categoría): {name}")
-    if cat.lower() not in CON_CONVENIO:
-        raise ValueError(f"competición sin convenio de código: {name}")
     return cat.lower()
+
+
+def _convenio_nuevo(name):
+    """El Convenio de scripts/convenio.py de una competición de las categorías nuevas (infantil, cadete,
+    juvenil o alevín de Lanzarote y Fuerteventura), o None si es de las de siempre. Sin convenio,
+    ValueError con el texto que espera activar_auto.SIN_CONVENIO."""
+    import convenio
+    if not convenio.aplica(name):
+        return None
+    try:
+        return convenio.convenio(name)
+    except convenio.SinConvenio:
+        raise ValueError(f"competición sin convenio de código: {name}") from None
+
+
+def _isla_de_prefijo(prefix):
+    """La isla de un grupo de benjamín, prebenjamín o alevín de Gran Canaria por su prefijo (lo de antes del
+    convenio de las categorías nuevas)."""
+    return ("lanzarote" if prefix in ("LZ", "LZS", "PLZ") else
+            "fuerteventura" if prefix in ("FV1", "FV2", "PFV") else "grancanaria")
 
 
 def _alevin_meta(name, n):
@@ -106,11 +133,28 @@ def _alevin_meta(name, n):
     raise ValueError(f"competición sin convenio de código: {name}")
 
 
-def comp_meta(name):
-    """(prefijo de código, fase publicada) de una competición de FIFLP."""
+def meta(name):
+    """(prefijo de código, fase publicada, isla) de una competición de FIFLP: la de scripts/convenio.py
+    para infantil, cadete, juvenil y el alevín de Lanzarote y Fuerteventura (si se publica:
+    categorias.ALEVIN_ISLAS); lo de siempre, con la isla por el prefijo, para las demás."""
     n = fold(name)
     if "SALA" in n:
         raise ValueError(f"fútbol sala no se publica: {name}")
+    category(name)                               # lo que no se publica, fuera (también el alevín de islas)
+    nuevo = _convenio_nuevo(name)
+    if nuevo:
+        return nuevo.prefijo, nuevo.fase, nuevo.isla
+    prefix, phase = _meta_de_siempre(name, n)
+    return prefix, phase, _isla_de_prefijo(prefix)
+
+
+def comp_meta(name):
+    """(prefijo de código, fase publicada) de una competición de FIFLP (meta, sin la isla)."""
+    return meta(name)[:2]
+
+
+def _meta_de_siempre(name, n):
+    """(prefijo, fase) de benjamín, prebenjamín y alevín de Gran Canaria (`n`: el nombre sin tildes)."""
     cat = category(name)
     if cat == "alevin":
         return _alevin_meta(name, n)
@@ -170,27 +214,27 @@ def build(raw, season, season_code, names=None, only=None, taken=()):
     raw = [g for g in raw if g.get("jornadas") or g.get("standings")]     # sin calendario todavía: fuera
     # Los grupos de eliminatoria de una liga, numerados tras los de su prefijo que la temporada ya tiene, por
     # orden de CodGrupo: la federación no los numera.
+    # Las de las categorías nuevas, con el prefijo de su liga más EL y su fase (convenio.eliminatoria_de_liga).
     elim = {}
     for g in sorted((g for g in raw if eliminatoria_de_liga(g)), key=lambda g: int(str(g["group_id"]))):
-        prefix = ELIMINATORIAS[category(g["competition_name"])]
-        used = [int(m.group(1)) for c in seen | set(elim.values()) for m in [re.fullmatch(rf"{prefix}(\d+)", c)] if m]
-        elim[id(g)] = f"{prefix}{max(used, default=0) + 1}"
+        prefix, phase, island = _eliminatoria(g["competition_name"])
+        used = [int(m.group(1)) for c in seen | {e[0] for e in elim.values()}
+                for m in [re.fullmatch(rf"{prefix}(\d+)", c)] if m]
+        elim[id(g)] = (f"{prefix}{max(used, default=0) + 1}", phase, island)
     rows = []
     for g in raw:
         if id(g) in elim:
-            code = elim[id(g)]
-            prefix, phase, n = code.rstrip("0123456789"), "Eliminatorias", int(code[len(code.rstrip("0123456789")):])
+            code, phase, island = elim[id(g)]
+            prefix, n = code.rstrip("0123456789"), int(code[len(code.rstrip("0123456789")):])
         else:
-            (prefix, phase), n = comp_meta(g["competition_name"]), group_number(g["group_name"])
+            (prefix, phase, island), n = meta(g["competition_name"]), group_number(g["group_name"])
             code = f"{prefix}{n}"
-        rows.append((prefix, phase, n, code, g))
-    for prefix, phase, n, code, g in sorted(rows, key=lambda r: r[:3]):
+        rows.append((prefix, phase, n, code, island, g))
+    for prefix, phase, n, code, island, g in sorted(rows, key=lambda r: r[:3]):
         if code in seen:
             raise ValueError(f"código repetido: {code}")
         seen.add(code)
         cat = category(g["competition_name"])
-        island = ("lanzarote" if prefix in ("LZ", "LZS", "PLZ") else
-                  "fuerteventura" if prefix in ("FV1", "FV2", "PFV") else "grancanaria")
         label = " ".join(g["group_name"].split()) if id(g) in elim else group_label(g["group_name"])
         groups.append({
             "id": code, "cat": cat, "name": label, "phase": phase, "island": island,
@@ -206,15 +250,29 @@ def build(raw, season, season_code, names=None, only=None, taken=()):
 COPA_O_ELIMINATORIA = re.compile(r"\bCOPA\b|ELIMINATORIA")
 
 
+def _eliminatoria(comp_name):
+    """(prefijo, fase, isla) de los grupos de eliminatoria publicados dentro de una liga: en las categorías
+    nuevas, los de su liga más EL (convenio.eliminatoria_de_liga: INFPGEL, «Eliminatorias Preferente GC»);
+    en las de siempre, los de su categoría (EL, PEL, ALEL; «Eliminatorias»), de Gran Canaria."""
+    import convenio
+    nuevo = _convenio_nuevo(comp_name)
+    if nuevo:
+        return tuple(convenio.eliminatoria_de_liga(nuevo))[:3]
+    return ELIMINATORIAS[category(comp_name)], "Eliminatorias", "grancanaria"
+
+
 def eliminatoria_de_liga(g):
     """¿Es `g` (un grupo del raw) un grupo de eliminatoria publicado dentro de una liga? (Como en la Fase
     Previa de benjamín y la de alevín: «Eliminatoria de Primeros y Segundos» y «… de Terceros y
     Cuartos».) Llevan el código y la fase de las eliminatorias de su categoría (EL, PEL, ALEL; «Eliminatorias»),
-    solo en Gran Canaria: en Lanzarote o Fuerteventura, ValueError, como sus competiciones de eliminatorias."""
+    solo en Gran Canaria: en Lanzarote o Fuerteventura, ValueError, como sus competiciones de eliminatorias.
+    En las categorías nuevas, el prefijo de su liga, que ya lleva la isla, más EL (_eliminatoria)."""
     comp = fold(g["competition_name"])
     if "ELIMINATORIA" not in fold(g.get("group_name")) or COPA_O_ELIMINATORIA.search(comp):
         return False
-    comp_meta(g["competition_name"])                 # la competición, con convenio
+    meta(g["competition_name"])                      # la competición, con convenio
+    if _convenio_nuevo(g["competition_name"]):
+        return True
     if "LANZAROTE" in comp or "FUERTEVENTURA" in comp:
         raise ValueError(f"competición sin convenio de código: {g['competition_name']} / {' '.join(g['group_name'].split())}")
     return True
@@ -251,7 +309,8 @@ def main():
     ap.add_argument("season")
     ap.add_argument("--team", help="parte del nombre del equipo inicial (al activar una temporada)")
     ap.add_argument("--comps", default="", help="solo estas competiciones (ids separados por coma): fase nueva con --add")
-    ap.add_argument("--cat", default="prebenjamin", choices=["benjamin", "prebenjamin", "alevin"])
+    from categorias import DB_NAME
+    ap.add_argument("--cat", default="prebenjamin", choices=list(DB_NAME))
     args = ap.parse_args()
     raw = json.load(open(args.raw, encoding="utf-8"))
     if args.comps:

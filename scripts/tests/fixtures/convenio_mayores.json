@@ -1,0 +1,830 @@
+{
+ "LIGA PRIMERA INFANTIL DE GRAN CANARIA": [
+  "INF1G",
+  "Primera GC",
+  "grancanaria",
+  "liga"
+ ],
+ "LIGA PRIMERA INFANTIL DE LANZAROTE": [
+  "INF1L",
+  "Primera Lanzarote",
+  "lanzarote",
+  "liga"
+ ],
+ "COPA CABILDO DE LANZAROTE PRIMERA INFANTIL": [
+  "INF1LC",
+  "Copa Cabildo Primera Lanzarote",
+  "lanzarote",
+  "copa"
+ ],
+ "FINAL COPA CABILDO DE LANZAROTE PRIMERA INFANTIL": [
+  "INF1LCF",
+  "Final Copa Cabildo Primera Lanzarote",
+  "lanzarote",
+  "final"
+ ],
+ "FINAL COPA CABILDO DE LANZAROTE PRIMERA INFANTILL": [
+  "INF1LCF",
+  "Final Copa Cabildo Primera Lanzarote",
+  "lanzarote",
+  "final"
+ ],
+ "SEMIFINAL COPA CABILDO DE LANZAROTE PRIMERA INFANTIL": [
+  "INF1LCS",
+  "Semifinal Copa Cabildo Primera Lanzarote",
+  "lanzarote",
+  "final"
+ ],
+ "FINAL LIGA PRIMERA INFANTIL LANZAROTE": [
+  "INF1LF",
+  "Final Liga Primera Lanzarote",
+  "lanzarote",
+  "final"
+ ],
+ "LIGA INFANTIL PREFERENTE DE GRAN CANARIA": [
+  "INFPG",
+  "Preferente GC",
+  "grancanaria",
+  "liga"
+ ],
+ "INFANTIL PREFERENTE DE GRAN CANARIA FASE FINAL": [
+  "INFPGF",
+  "Final Liga Preferente GC",
+  "grancanaria",
+  "final"
+ ],
+ "LIGA INFANTIL PREFERENTE DE GRAN CANARIA FASE ORO": [
+  "INFPGFO",
+  "Preferente GC Fase Oro",
+  "grancanaria",
+  "liga"
+ ],
+ "LIGA INFANTIL PREFERENTE DE GRAN CANARIA FASE PLATA": [
+  "INFPGFP",
+  "Preferente GC Fase Plata",
+  "grancanaria",
+  "liga"
+ ],
+ "LIGA INFANTIL PREFERENTE DE LANZAROTE": [
+  "INFPL",
+  "Preferente Lanzarote",
+  "lanzarote",
+  "liga"
+ ],
+ "LIGA PREFERENTE INFANTIL LANZAROTE": [
+  "INFPL",
+  "Preferente Lanzarote",
+  "lanzarote",
+  "liga"
+ ],
+ "COPA CABILDO DE LANZAROTE PREFERENTE INFANTIL": [
+  "INFPLC",
+  "Copa Cabildo Preferente Lanzarote",
+  "lanzarote",
+  "copa"
+ ],
+ "FINAL COPA CABILDO DE LANZAROTE PREFERENTE INFANTIL": [
+  "INFPLCF",
+  "Final Copa Cabildo Preferente Lanzarote",
+  "lanzarote",
+  "final"
+ ],
+ "LIGA INFANTIL DE FUERTEVENTURA": [
+  "INFUF",
+  "Fuerteventura",
+  "fuerteventura",
+  "liga"
+ ],
+ "LIGA INFANTIL DE FUERTEVENTURA 1ª FASE": [
+  "INFUF",
+  "Fuerteventura Fase 1",
+  "fuerteventura",
+  "liga"
+ ],
+ "LIGA INFANTIL DE FUERTEVENTURA PRIMERA FASE": [
+  "INFUF",
+  "Fuerteventura Fase 1",
+  "fuerteventura",
+  "liga"
+ ],
+ "LIGA INFANTIL FUERTEVENTURA": [
+  "INFUF",
+  "Fuerteventura",
+  "fuerteventura",
+  "liga"
+ ],
+ "COPA INFANTIL FUERTEVENTURA": [
+  "INFUFC",
+  "Copa Fuerteventura",
+  "fuerteventura",
+  "copa"
+ ],
+ "COPA DELEGACION INFANTIL FUERTEVENTURA": [
+  "INFUFCD",
+  "Copa Delegación Fuerteventura",
+  "fuerteventura",
+  "copa"
+ ],
+ "FINAL COPA INFANTIL FUERTEVENTURA": [
+  "INFUFCF",
+  "Final Copa Fuerteventura",
+  "fuerteventura",
+  "final"
+ ],
+ "FINAL LIGA INFANTIL FUERTEVENTURA": [
+  "INFUFF",
+  "Final Liga Fuerteventura",
+  "fuerteventura",
+  "final"
+ ],
+ "LIGA INFANTIL FUERTEVENTURA 2ª FASE": [
+  "INFUFSF",
+  "Fuerteventura Fase 2",
+  "fuerteventura",
+  "liga"
+ ],
+ "LIGA INFANTIL GRAN CANARIA": [
+  "INFUG",
+  "Gran Canaria",
+  "grancanaria",
+  "liga"
+ ],
+ "COPA CAMPEONES INFANTIL": [
+  "INFUGCK",
+  "Copa de Campeones",
+  "grancanaria",
+  "copa"
+ ],
+ "COPA DE CAMPEONES INFANTIL GRAN CANARIA": [
+  "INFUGCK",
+  "Copa de Campeones",
+  "grancanaria",
+  "copa"
+ ],
+ "LIGA INFANTIL LANZAROTE FASE 1": [
+  "INFUL",
+  "Lanzarote Fase 1",
+  "lanzarote",
+  "liga"
+ ],
+ "COPA CABILDO DE LANZAROTE INFANTIL": [
+  "INFULC",
+  "Copa Cabildo Lanzarote",
+  "lanzarote",
+  "copa"
+ ],
+ "COPA DELEGACION INFANTIL LANZAROTE": [
+  "INFULCD",
+  "Copa Delegación Lanzarote",
+  "lanzarote",
+  "copa"
+ ],
+ "FINAL COPA DELEGACION INFANTIL LANZAROTE": [
+  "INFULCDF",
+  "Final Copa Delegación Lanzarote",
+  "lanzarote",
+  "final"
+ ],
+ "SEMIFINAL COPA DELEGACION INFANTIL LANZAROTE": [
+  "INFULCDS",
+  "Semifinal Copa Delegación Lanzarote",
+  "lanzarote",
+  "final"
+ ],
+ "FINAL COPA CABILDO DE LANZAROTE INFANTIL": [
+  "INFULCF",
+  "Final Copa Cabildo Lanzarote",
+  "lanzarote",
+  "final"
+ ],
+ "SEMIFINAL COPA CABILDO DE LANZAROTE INFANTIL": [
+  "INFULCS",
+  "Semifinal Copa Cabildo Lanzarote",
+  "lanzarote",
+  "final"
+ ],
+ "LIGA INFANTIL DE LANZAROTE FASE 2": [
+  "INFULSF",
+  "Lanzarote Fase 2",
+  "lanzarote",
+  "liga"
+ ],
+ "LIGA PRIMERA CADETE DE GRAN CANARIA": [
+  "CAD1G",
+  "Primera GC",
+  "grancanaria",
+  "liga"
+ ],
+ "COPA FIFLP CADETE PRIMERA": [
+  "CAD1GC",
+  "Copa Primera GC",
+  "grancanaria",
+  "copa"
+ ],
+ "LIGA PRIMERA CADETE DE LANZAROTE": [
+  "CAD1L",
+  "Primera Lanzarote",
+  "lanzarote",
+  "liga"
+ ],
+ "LIGA CADETE AUTONÓMICA": [
+  "CADA",
+  "Autonómica",
+  "interinsular",
+  "liga"
+ ],
+ "FASE DE ASCENSO A CADETE AUTONÓMICO": [
+  "CADAA",
+  "Fase de Ascenso a Autonómica",
+  "interinsular",
+  "ascenso"
+ ],
+ "LIGA CADETE INTERINSULAR": [
+  "CADI",
+  "Interinsular",
+  "interinsular",
+  "liga"
+ ],
+ "LIGA CADETE INTERINSULAR DE LAS PALMAS": [
+  "CADI",
+  "Interinsular",
+  "interinsular",
+  "liga"
+ ],
+ "FASE DE ASCENSO A CADETE INTERINSULAR": [
+  "CADIA",
+  "Fase de Ascenso a Interinsular",
+  "interinsular",
+  "ascenso"
+ ],
+ "ELIMINATORIAS DE ASCENSO A CADETE INTERINSULAR (LANZAROTE)": [
+  "CADILE",
+  "Eliminatorias de Ascenso a Interinsular Lanzarote",
+  "lanzarote",
+  "eliminatorias"
+ ],
+ "FASE DE ASCENSO A CADETE INTERINSULAR (LANZAROTE-FUERTEVENTURA)": [
+  "CADIXA",
+  "Fase de Ascenso a Interinsular Lanzarote-Fuerteventura",
+  "interinsular",
+  "ascenso"
+ ],
+ "ELIMINATORIAS DE ASCENSO A CADETE INTERINSULAR (LANZAROTE-FUERTEVENTURA)": [
+  "CADIXE",
+  "Eliminatorias de Ascenso a Interinsular Lanzarote-Fuerteventura",
+  "interinsular",
+  "eliminatorias"
+ ],
+ "LIGA CADETE INSULAR B DE LANZAROTE": [
+  "CADNBL",
+  "Insular B Lanzarote",
+  "lanzarote",
+  "liga"
+ ],
+ "COPA CABILDO DE LANZAROTE CADETE INSULAR B": [
+  "CADNBLC",
+  "Copa Cabildo Insular B Lanzarote",
+  "lanzarote",
+  "copa"
+ ],
+ "FINAL COPA CABILDO DE LANZAROTE CADETE INSULAR B": [
+  "CADNBLCF",
+  "Final Copa Cabildo Insular B Lanzarote",
+  "lanzarote",
+  "final"
+ ],
+ "LIGA CADETE INSULAR DE FUERTEVENTURA": [
+  "CADNF",
+  "Insular Fuerteventura",
+  "fuerteventura",
+  "liga"
+ ],
+ "FASE ASCENSO CADETE INSULAR DE FUERTEVENTURA": [
+  "CADNFA",
+  "Fase de Ascenso a Insular Fuerteventura",
+  "fuerteventura",
+  "ascenso"
+ ],
+ "LIGA CADETE INSULAR DE GRAN CANARIA": [
+  "CADNG",
+  "Insular GC",
+  "grancanaria",
+  "liga"
+ ],
+ "LIGA CADETE INSULAR GRAN CANARIA": [
+  "CADNG",
+  "Insular GC",
+  "grancanaria",
+  "liga"
+ ],
+ "LIGA CADETE INSULAR GRAN CANARIA 1ª FASE": [
+  "CADNG",
+  "Insular GC Fase 1",
+  "grancanaria",
+  "liga"
+ ],
+ "COPA CADETE INSULAR GRAN CANARIA": [
+  "CADNGC",
+  "Copa Insular GC",
+  "grancanaria",
+  "copa"
+ ],
+ "COPA CADETE INSULAR GRAN CANARIA ELIMINATORIAS": [
+  "CADNGCE",
+  "Eliminatorias Copa Insular GC",
+  "grancanaria",
+  "eliminatorias"
+ ],
+ "LIGA CADETE INSULAR DE LANZAROTE": [
+  "CADNL",
+  "Insular Lanzarote",
+  "lanzarote",
+  "liga"
+ ],
+ "COPA CABILDO DE LANZAROTE CADETE INSULAR": [
+  "CADNLC",
+  "Copa Cabildo Insular Lanzarote",
+  "lanzarote",
+  "copa"
+ ],
+ "COPA CADETE INSULAR DE LANZAROTE": [
+  "CADNLC",
+  "Copa Insular Lanzarote",
+  "lanzarote",
+  "copa"
+ ],
+ "ELIMINATORIAS COPA CADETE INSULAR DE LANZAROTE": [
+  "CADNLCE",
+  "Eliminatorias Copa Insular Lanzarote",
+  "lanzarote",
+  "eliminatorias"
+ ],
+ "FINAL COPA CABILDO DE LANZAROTE CADETE INSULAR": [
+  "CADNLCF",
+  "Final Copa Cabildo Insular Lanzarote",
+  "lanzarote",
+  "final"
+ ],
+ "FINAL COPA CADETE INSULAR LANZAROTE": [
+  "CADNLCF",
+  "Final Copa Insular Lanzarote",
+  "lanzarote",
+  "final"
+ ],
+ "CADETE PREFERENTE GRAN CANARIA": [
+  "CADPG",
+  "Preferente GC",
+  "grancanaria",
+  "liga"
+ ],
+ "LIGA CADETE PREFERENTE DE GRAN CANARIA": [
+  "CADPG",
+  "Preferente GC",
+  "grancanaria",
+  "liga"
+ ],
+ "LIGA CADETE PREFERENTE GRAN CANARIA": [
+  "CADPG",
+  "Preferente GC",
+  "grancanaria",
+  "liga"
+ ],
+ "FASE DE ASCENSO A CADETE PREFERENTE": [
+  "CADPGA",
+  "Fase de Ascenso a Preferente GC",
+  "grancanaria",
+  "ascenso"
+ ],
+ "LIGA CADETE PREFERENTE DE LANZAROTE": [
+  "CADPL",
+  "Preferente Lanzarote",
+  "lanzarote",
+  "liga"
+ ],
+ "LIGA CADETE PREFERENTE LANZAROTE": [
+  "CADPL",
+  "Preferente Lanzarote",
+  "lanzarote",
+  "liga"
+ ],
+ "LIGA PREFERENTE CADETE LANZAROTE": [
+  "CADPL",
+  "Preferente Lanzarote",
+  "lanzarote",
+  "liga"
+ ],
+ "COPA CABILDO DE LANZAROTE CADETE PREFERENTE": [
+  "CADPLC",
+  "Copa Cabildo Preferente Lanzarote",
+  "lanzarote",
+  "copa"
+ ],
+ "COPA CADETE PREFERENTE DE LANZAROTE": [
+  "CADPLC",
+  "Copa Preferente Lanzarote",
+  "lanzarote",
+  "copa"
+ ],
+ "ELIMINATORIAS COPA CADETE PREFERENTE DE LANZAROTE": [
+  "CADPLCE",
+  "Eliminatorias Copa Preferente Lanzarote",
+  "lanzarote",
+  "eliminatorias"
+ ],
+ "FINAL COPA CABILDO DE LANZAROTE CADETE PREFERENTE": [
+  "CADPLCF",
+  "Final Copa Cabildo Preferente Lanzarote",
+  "lanzarote",
+  "final"
+ ],
+ "LIGA CADETE FUERTEVENTURA": [
+  "CADUF",
+  "Fuerteventura",
+  "fuerteventura",
+  "liga"
+ ],
+ "COPA CADETE FUERTEVENTURA": [
+  "CADUFC",
+  "Copa Fuerteventura",
+  "fuerteventura",
+  "copa"
+ ],
+ "COPA DELEGACION CADETE FUERTEVENTURA": [
+  "CADUFCD",
+  "Copa Delegación Fuerteventura",
+  "fuerteventura",
+  "copa"
+ ],
+ "FINAL COPA CADETE FUERTEVENTURA": [
+  "CADUFCF",
+  "Final Copa Fuerteventura",
+  "fuerteventura",
+  "final"
+ ],
+ "COPA CAMPEON DE CAMPEONES CADETE FUERTEVENTURA": [
+  "CADUFCK",
+  "Copa de Campeones",
+  "fuerteventura",
+  "copa"
+ ],
+ "FINAL LIGA CADETE FUERTEVENTURA": [
+  "CADUFF",
+  "Final Liga Fuerteventura",
+  "fuerteventura",
+  "final"
+ ],
+ "COPA DELEGACION CADETE LANZAROTE": [
+  "CADULCD",
+  "Copa Delegación Lanzarote",
+  "lanzarote",
+  "copa"
+ ],
+ "FINAL COPA DELEGACION CADETE LANZAROTE": [
+  "CADULCDF",
+  "Final Copa Delegación Lanzarote",
+  "lanzarote",
+  "final"
+ ],
+ "LIGA PRIMERA JUVENIL DE GRAN CANARIA": [
+  "JUV1G",
+  "Primera GC",
+  "grancanaria",
+  "liga"
+ ],
+ "LIGA PRIMERA JUVENIL GRAN CANARIA": [
+  "JUV1G",
+  "Primera GC",
+  "grancanaria",
+  "liga"
+ ],
+ "FASE ASCENSO A PRIMERA JUVENIL GRAN CANARIA": [
+  "JUV1GA",
+  "Fase de Ascenso a Primera GC",
+  "grancanaria",
+  "ascenso"
+ ],
+ "FASE DE ASCENSO A PRIMERA JUVENIL GRAN CANARIA": [
+  "JUV1GA",
+  "Fase de Ascenso a Primera GC",
+  "grancanaria",
+  "ascenso"
+ ],
+ "LIGA SEGUNDA JUVENIL DE GRAN CANARIA": [
+  "JUV2G",
+  "Segunda GC",
+  "grancanaria",
+  "liga"
+ ],
+ "LIGA SEGUNDA JUVENIL GRAN CANARIA": [
+  "JUV2G",
+  "Segunda GC",
+  "grancanaria",
+  "liga"
+ ],
+ "LIGA DIVISION DE HONOR JUVENIL": [
+  "JUVH",
+  "División de Honor",
+  "interinsular",
+  "liga"
+ ],
+ "LIGA DIVISION DE HONOR JUVENIL GRUPO 6": [
+  "JUVH",
+  "División de Honor",
+  "interinsular",
+  "liga"
+ ],
+ "FASE ASCENSO A DIVISION DE HONOR JUVENIL": [
+  "JUVHA",
+  "Fase de Ascenso a División de Honor",
+  "interinsular",
+  "ascenso"
+ ],
+ "FASE DE ASCENSO A DIVISION DE HONOR JUVENIL": [
+  "JUVHA",
+  "Fase de Ascenso a División de Honor",
+  "interinsular",
+  "ascenso"
+ ],
+ "SEGUNDA FASE DIVISION DE HONOR JUVENIL GRUPO 6-SUBGRUPO C": [
+  "JUVHSFC",
+  "División de Honor Fase 2 C",
+  "interinsular",
+  "liga"
+ ],
+ "SEGUNDA FASE DIVISION DE HONOR JUVENIL GRUPO 6-SUBGRUPO D": [
+  "JUVHSFD",
+  "División de Honor Fase 2 D",
+  "interinsular",
+  "liga"
+ ],
+ "LIGA JUVENIL INTERINSULAR": [
+  "JUVI",
+  "Interinsular",
+  "interinsular",
+  "liga"
+ ],
+ "LIGA JUVENIL INTERINSULAR DE LAS PALMAS": [
+  "JUVI",
+  "Interinsular",
+  "interinsular",
+  "liga"
+ ],
+ "- FASE DE ASCENSO A JUVENIL INTERINSULAR": [
+  "JUVIA",
+  "Fase de Ascenso a Interinsular",
+  "interinsular",
+  "ascenso"
+ ],
+ "FASE DE ASCENSO A JUVENIL INTERINSULAR": [
+  "JUVIA",
+  "Fase de Ascenso a Interinsular",
+  "interinsular",
+  "ascenso"
+ ],
+ "FASE DE ASCENSO A JUVENIL INTERINSULAR FUERTEVENTURA": [
+  "JUVIFA",
+  "Fase de Ascenso a Interinsular Fuerteventura",
+  "fuerteventura",
+  "ascenso"
+ ],
+ "ELIMINATORIAS DE ASCENSO A JUVENIL INTERINSULAR (LANZAROTE)": [
+  "JUVILE",
+  "Eliminatorias de Ascenso a Interinsular Lanzarote",
+  "lanzarote",
+  "eliminatorias"
+ ],
+ "FASE DE ASCENSO A JUVENIL INTERINSULAR (LANZAROTE-FUERTEVENTURA)": [
+  "JUVIXA",
+  "Fase de Ascenso a Interinsular Lanzarote-Fuerteventura",
+  "interinsular",
+  "ascenso"
+ ],
+ "FASE DE ASCENSO A JUVENIL INTERINSULAR - LANZAROTE/FUERTEVENTURA": [
+  "JUVIXA",
+  "Fase de Ascenso a Interinsular Lanzarote-Fuerteventura",
+  "interinsular",
+  "ascenso"
+ ],
+ "ELIMINATORIAS DE ASCENSO A JUVENIL INTERINSULAR (LANZAROTE-FUERTEVENTURA)": [
+  "JUVIXE",
+  "Eliminatorias de Ascenso a Interinsular Lanzarote-Fuerteventura",
+  "interinsular",
+  "eliminatorias"
+ ],
+ "LIGA JUVENIL PREFERENTE DE FUERTEVENTURA": [
+  "JUVPF",
+  "Preferente Fuerteventura",
+  "fuerteventura",
+  "liga"
+ ],
+ "LIGA JUVENIL PREFERENTE FUERTEVENTURA": [
+  "JUVPF",
+  "Preferente Fuerteventura",
+  "fuerteventura",
+  "liga"
+ ],
+ "COPA JUVENIL PREFERENTE FUERTEVENTURA": [
+  "JUVPFC",
+  "Copa Preferente Fuerteventura",
+  "fuerteventura",
+  "copa"
+ ],
+ "FINAL COPA JUVENIL PREFERENTE FUERTEVENTURA": [
+  "JUVPFCF",
+  "Final Copa Preferente Fuerteventura",
+  "fuerteventura",
+  "final"
+ ],
+ "LIGA JUVENIL PREFERENTE DE GRAN CANARIA": [
+  "JUVPG",
+  "Preferente GC",
+  "grancanaria",
+  "liga"
+ ],
+ "LIGA JUVENIL PREFERENTE GRAN CANARIA": [
+  "JUVPG",
+  "Preferente GC",
+  "grancanaria",
+  "liga"
+ ],
+ "LIGA PREFERENTE JUVENIL DE GRAN CANARIA": [
+  "JUVPG",
+  "Preferente GC",
+  "grancanaria",
+  "liga"
+ ],
+ "FASE DE ASCENSO A JUVENIL PREFERENTE GRAN CANARIA": [
+  "JUVPGA",
+  "Fase de Ascenso a Preferente GC",
+  "grancanaria",
+  "ascenso"
+ ],
+ "LIGA JUVENIL PREFERENTE DE LANZAROTE": [
+  "JUVPL",
+  "Preferente Lanzarote",
+  "lanzarote",
+  "liga"
+ ],
+ "LIGA JUVENIL PREFERENTE LANZAROTE": [
+  "JUVPL",
+  "Preferente Lanzarote",
+  "lanzarote",
+  "liga"
+ ],
+ "COPA FIFLP JUVENIL TERRITORIAL": [
+  "JUVTC",
+  "Copa Territorial",
+  "interinsular",
+  "copa"
+ ],
+ "LIGA PRIMERA ALEVIN F-8 DE LANZAROTE": [
+  "AL1L",
+  "Primera Lanzarote",
+  "lanzarote",
+  "liga"
+ ],
+ "COPA CABILDO DE LANZAROTE PRIMERA ALEVIN FUTBOL-8": [
+  "AL1LC",
+  "Copa Cabildo Primera Lanzarote",
+  "lanzarote",
+  "copa"
+ ],
+ "FINAL COPA CABILDO DE LANZAROTE PRIMERA ALEVIN FUTBOL-8": [
+  "AL1LCF",
+  "Final Copa Cabildo Primera Lanzarote",
+  "lanzarote",
+  "final"
+ ],
+ "SEMIFINAL COPA CABILDO DE LANZAROTE PRIMERA ALEVIN FUTBOL-8": [
+  "AL1LCS",
+  "Semifinal Copa Cabildo Primera Lanzarote",
+  "lanzarote",
+  "final"
+ ],
+ "FINAL LIGA PRIMERA ALEVIN LANZAROTE": [
+  "AL1LF",
+  "Final Liga Primera Lanzarote",
+  "lanzarote",
+  "final"
+ ],
+ "LIGA ALEVÍN PREFERENTE FÚTBOL-8 DE LANZAROTE": [
+  "ALPL",
+  "Preferente Lanzarote",
+  "lanzarote",
+  "liga"
+ ],
+ "LIGA PREFERENTE ALEVIN F-8 DE LANZAROTE": [
+  "ALPL",
+  "Preferente Lanzarote",
+  "lanzarote",
+  "liga"
+ ],
+ "COPA CABILDO DE LANZAROTE PREFERENTE ALEVIN FUTBOL-8": [
+  "ALPLC",
+  "Copa Cabildo Preferente Lanzarote",
+  "lanzarote",
+  "copa"
+ ],
+ "FINAL COPA CABILDO DE LANZAROTE PREFERENTE ALEVIN FUTBOL-8": [
+  "ALPLCF",
+  "Final Copa Cabildo Preferente Lanzarote",
+  "lanzarote",
+  "final"
+ ],
+ "SUPERLIGA ALEVIN FUERTEVENTURA": [
+  "ALSF",
+  "Superliga Fuerteventura",
+  "fuerteventura",
+  "liga"
+ ],
+ "FINAL SUPERLIGA ALEVIN FUERTEVENTURA": [
+  "ALSFF",
+  "Final Liga Superliga Fuerteventura",
+  "fuerteventura",
+  "final"
+ ],
+ "LIGA ALEVIN F-8 DE FUERTEVENTURA": [
+  "ALUF",
+  "Fuerteventura",
+  "fuerteventura",
+  "liga"
+ ],
+ "LIGA ALEVIN F-8 DE FUERTEVENTURA PRIMERA FASE": [
+  "ALUF",
+  "Fuerteventura Fase 1",
+  "fuerteventura",
+  "liga"
+ ],
+ "LIGA ALEVIN F-8 FUERTEVENTURA": [
+  "ALUF",
+  "Fuerteventura",
+  "fuerteventura",
+  "liga"
+ ],
+ "LIGA ALEVIN FUERTEVENTURA F7 1ª FASE": [
+  "ALUF",
+  "Fuerteventura Fase 1",
+  "fuerteventura",
+  "liga"
+ ],
+ "COPA ALEVIN F-8 FUERTEVENTURA": [
+  "ALUFC",
+  "Copa Fuerteventura",
+  "fuerteventura",
+  "copa"
+ ],
+ "FINAL COPA ALEVIN FUERTEVENTURA": [
+  "ALUFCF",
+  "Final Copa Fuerteventura",
+  "fuerteventura",
+  "final"
+ ],
+ "FINAL LIGA ALEVIN FUERTEVENTURA": [
+  "ALUFF",
+  "Final Liga Fuerteventura",
+  "fuerteventura",
+  "final"
+ ],
+ "2ª FASE LIGA ALEVIN FUERTEVENTURA": [
+  "ALUFSF",
+  "Fuerteventura Fase 2",
+  "fuerteventura",
+  "liga"
+ ],
+ "LIGA ALEVIN FUERTEVENTURA 2ª FASE": [
+  "ALUFSF",
+  "Fuerteventura Fase 2",
+  "fuerteventura",
+  "liga"
+ ],
+ "LIGA ALEVIN LANZAROTE FASE 1": [
+  "ALUL",
+  "Lanzarote Fase 1",
+  "lanzarote",
+  "liga"
+ ],
+ "COPA DELEGACION ALEVIN LANZAROTE": [
+  "ALULCD",
+  "Copa Delegación Lanzarote",
+  "lanzarote",
+  "copa"
+ ],
+ "FINAL COPA DELEGACION ALEVIN LANZAROTE": [
+  "ALULCDF",
+  "Final Copa Delegación Lanzarote",
+  "lanzarote",
+  "final"
+ ],
+ "SEMIFINAL COPA DELEGACION ALEVIN LANZAROTE": [
+  "ALULCDS",
+  "Semifinal Copa Delegación Lanzarote",
+  "lanzarote",
+  "final"
+ ],
+ "LIGA ALEVIN LANZAROTE FASE 2": [
+  "ALULSF",
+  "Lanzarote Fase 2",
+  "lanzarote",
+  "liga"
+ ]
+}

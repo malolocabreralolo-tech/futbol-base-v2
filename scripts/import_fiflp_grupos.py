@@ -44,7 +44,8 @@ from db import (get_or_create_category, get_or_create_group, get_or_create_seaso
                 delete_group_matches)
 from import_fiflp_cups_2324 import clean_team_name  # noqa: E402
 from import_fiflp_goleadores import match_group, _category  # noqa: E402
-from categorias import category_of  # noqa: E402
+from categorias import MAYORES, category_of, es_alevin_de_islas  # noqa: E402
+import convenio  # noqa: E402
 from import_fiflp_islas import COMP_META  # noqa: E402
 from fiflp_manifest import segunda_fase  # noqa: E402
 import import_fiflp_actas  # noqa: E402
@@ -262,11 +263,18 @@ def meta_by_name(comp_name):
     en alevín, los de docs/alevin.md (prefijo AL: _alevin_meta); None si no es de las
     conocidas (fútbol sala, alevín de otra isla, o un formato nuevo). Las finales y
     semifinales, las de su competición base con F o S detrás. Para las temporadas
-    archivadas y para alevín (comp_meta)."""
+    archivadas y para alevín (comp_meta). Infantil, cadete, juvenil y el alevín de Lanzarote y
+    Fuerteventura (si se publica: categorias.ALEVIN_ISLAS), con scripts/convenio.py; None si no
+    tienen convenio."""
     n = _fold(comp_name)
     category = category_of(comp_name)
-    # Infantil, cadete y juvenil se conocen pero no tienen convenio aquí: con el de benjamín, «LIGA PRIMERA
-    # INFANTIL DE LANZAROTE» de una temporada archivada saldría LZ1, un código de benjamín.
+    if category and convenio.aplica(comp_name):
+        try:
+            c = convenio.convenio(comp_name)
+        except convenio.SinConvenio:
+            return None
+        return c.prefijo, c.fase, c.isla
+    # Lo de siempre (benjamín, prebenjamín y alevín de Gran Canaria); otra categoría, nunca con su convenio.
     if "SALA" in n or category not in ELIMINATORIAS:
         return None
     pre = "PREBENJAMIN" in n.replace(" ", "")
@@ -327,7 +335,8 @@ def meta_by_name(comp_name):
 def comp_meta(conn, comp, siblings, comp_name="", by_name=False):
     """(prefijo, fase, isla) de una competición: la de un grupo hermano ya en la
     base (su código menos el número de su grupo), la de EXTRA_META o la de
-    COMP_META y, con `by_name` (las temporadas archivadas) o si es de alevín, la de
+    COMP_META y, con `by_name` (las temporadas archivadas) o si es de alevín o de una
+    categoría nueva (infantil, cadete, juvenil o alevín de Lanzarote y Fuerteventura), la de
     su nombre (meta_by_name); None si no se sabe."""
     for entry, gid in siblings:
         row = conn.execute("SELECT code, phase, island FROM groups WHERE id=?", (gid,)).fetchone()
@@ -339,8 +348,10 @@ def comp_meta(conn, comp, siblings, comp_name="", by_name=False):
     if comp in COMP_META:
         prefix, phase = COMP_META[comp]
         return prefix, phase, _iso_island(prefix)
-    # Alevín, en cualquier temporada: no tiene hermanos de futbolaspalmas ni EXTRA_META.
-    return meta_by_name(comp_name) if by_name or category_of(comp_name) == "ALEVIN" else None
+    # Alevín y las categorías nuevas, en cualquier temporada: no tienen hermanos de futbolaspalmas ni EXTRA_META.
+    category = category_of(comp_name)
+    by_name = by_name or category == "ALEVIN" or category in MAYORES or es_alevin_de_islas(comp_name)
+    return meta_by_name(comp_name) if by_name else None
 
 
 def actas_complete(folder, season):

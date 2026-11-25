@@ -310,15 +310,15 @@ def test_excluded(name, expected):
 def test_conocer_una_categoria_no_le_da_codigo_ni_lote():
     """Infantil, cadete y juvenil se conocen, pero los que dan código y lote no las tratan como benjamín
     («LIGA PRIMERA INFANTIL DE LANZAROTE» saldría LZ1, un código de benjamín, y sus actas irían al raw de
-    benjamín y prebenjamín): sin convenio ni lote propios, lo de antes (sin código, sin lote)."""
+    benjamín y prebenjamín): su código es el de su convenio (scripts/convenio.py) y, sin lote propio, ninguno."""
     import actas_lotes
     import fiflp_manifest
     import import_fiflp_grupos
-    for name in ("LIGA PRIMERA INFANTIL DE LANZAROTE", "LIGA CADETE INSULAR DE LANZAROTE",
-                 "ELIMINATORIAS COPA CADETE PREFERENTE DE LANZAROTE", "LIGA JUVENIL PREFERENTE LANZAROTE"):
-        assert import_fiflp_grupos.meta_by_name(name) is None
-        with pytest.raises(ValueError, match="sin convenio"):
-            fiflp_manifest.comp_meta(name)
+    for name, prefijo in (("LIGA PRIMERA INFANTIL DE LANZAROTE", "INF1L"), ("LIGA CADETE INSULAR DE LANZAROTE", "CADNL"),
+                          ("ELIMINATORIAS COPA CADETE PREFERENTE DE LANZAROTE", "CADPLCE"),
+                          ("LIGA JUVENIL PREFERENTE LANZAROTE", "JUVPL")):
+        assert import_fiflp_grupos.meta_by_name(name)[0] == prefijo
+        assert fiflp_manifest.comp_meta(name)[0] == prefijo
         assert actas_lotes.lote_of_name(name) is None
     # Y una tanda o un encargo de actas con ellas para antes de bajar nada: sus actas, nunca al raw de siempre.
     for cat in categorias.MAYORES:

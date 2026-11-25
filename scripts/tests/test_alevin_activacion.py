@@ -254,7 +254,10 @@ def test_el_manifiesto_filtrado_no_aborta_por_otra_competicion(tmp_path, monkeyp
 def test_the_manifest_cli_accepts_alevin_as_team_category():
     text = (ROOT / "scripts" / "fiflp_manifest.py").read_text(encoding="utf-8")
     arg = text.index('add_argument("--cat"')
-    assert '"alevin"' in text[arg:text.index("\n", arg)]
+    # Sus valores, las claves de categorias.DB_NAME (alevín entre ellas).
+    assert "choices=list(DB_NAME)" in text[arg:text.index("\n", arg)]
+    from categorias import DB_NAME
+    assert "alevin" in DB_NAME
 
 
 # ── Activación ───────────────────────────────────────────────────────────────
