@@ -11,9 +11,9 @@
 import { Html } from './html.js';
 import { isPlayerKey, parseRoute, routeHref, translateLegacy } from './links.js';
 import { CATEGORIES, CAT_WORDS, LAZY_CATS, competitions, findGroup, findMatch, findRound, seasonLabel } from './model.js';
-import { defaultCategory, myTeamIn, routeIsMine, sameClub } from './myteam.js';
+import { defaultCategory, myTeamIn, routeIsMine, sameClub, seasonChangeCats } from './myteam.js';
 import { skeleton, errorScreen, routeNotice, routeTitle, updateTabbar } from './shell.js';
-import { lazyNeeds, normalizeTeamName, seasonNeeds } from './state.js';
+import { lazyCatOfCode, lazyCatsOf, lazyNeeds, normalizeTeamName, seasonNeeds } from './state.js';
 import { forecastOptions } from './ui.js';
 import { projectionApplies, standingsStart } from './proyeccion.js';
 
@@ -43,9 +43,10 @@ export const SESSION_KEY = 'fb2:destino';
 const FORM_CONTROLS = new Set(['INPUT', 'SELECT', 'TEXTAREA', 'BUTTON']);
 // Parámetros de valor cerrado: el que no está en su lista se quita, sin aviso, como una vista de Tabla
 // que no existe. Con una isla (`i`) desconocida Ligas saldría vacía, y con otro `to` sus grupos
-// enlazarían a otra pantalla. Las categorías, las de la app (alevín incluido).
+// enlazarían a otra pantalla. Las categorías, las de la app (alevín incluido); las islas, con «interinsular»
+// (las competiciones de varias islas de infantil, cadete y juvenil: «Otras ligas» de la División de Honor).
 const CLOSED = {
-  ligas: { c: CATEGORIES, i: ['grancanaria', 'lanzarote', 'fuerteventura'], to: ['tabla', 'jornada'] },
+  ligas: { c: CATEGORIES, i: ['grancanaria', 'lanzarote', 'fuerteventura', 'interinsular'], to: ['tabla', 'jornada'] },
   goleadores: { c: CATEGORIES },
   records: { c: CATEGORIES },
 };
@@ -73,14 +74,9 @@ function identity(ctx) {
 // grupo que no está, que puede ser de una de ellas, antes de darlo por perdido, y Jornada y Tabla de mi
 // equipo cuando este se resuelve con una de ellas; o para pintarse (needsLazy).
 
-// La categoría perezosa de un código de grupo por su prefijo (scripts/convenio.py: INF, CAD y JUV; los de
-// alevín, AL…), o null si el código no la dice.
-const LAZY_PREFIXES = [['INF', 'infantil'], ['CAD', 'cadete'], ['JUV', 'juvenil'], ['AL', 'alevin']];
-function lazyCatOf(id) {
-  const code = String(id || '').toUpperCase();
-  const hit = LAZY_PREFIXES.find(([prefix]) => code.startsWith(prefix));
-  return hit ? hit[1] : null;
-}
+// Las perezosas que tiene la temporada `s` según data-seasons.js (lazyCatsOf de state.js): las que se piden
+// cuando la ruta no dice cuál busca. Con la base de hoy, alevín, como antes de las nuevas.
+const seasonCats = (ctx, s) => lazyCatsOf(ctx.datasets && ctx.datasets.seasons, s);
 
 // ¿Está sin pedir la categoría perezosa `cat` de la temporada `s`? La de la del portal es
 // datasets.lazy[cat] y la de una pasada, datasets.seasonLazy[cat][s] (el registro de app.js): sin pedir
@@ -101,8 +97,11 @@ function wantsOf(ctx, cats, s, soft, skipTried = false) {
 }
 
 // ¿Espera mi equipo a una perezosa de la temporada del portal para resolverse? → [{ cat, season, soft }]
-// - Si es de una de ellas: sin ella, X por error (soft: false, la caja de error si no llega).
-// - Si es de otra temporada: el paso 1 de resolveMyTeam busca en todas las categorías, y sin alevín daría
+// La portada no carga nada nuevo, salvo que mi equipo sea de una perezosa: entonces, esa, y ninguna otra.
+// - Si es de una de ellas: sin ella, X por error (soft: false, la caja de error si no llega). También en un
+//   cambio de temporada: el paso 1 de resolveMyTeam busca en la suya y en las de la carga inicial
+//   (seasonChangeCats de myteam.js), nunca en las otras perezosas.
+// - Si es de benjamín o prebenjamín y de otra temporada: el paso 1 busca también en alevín, y sin él daría
 //   «ok» en silencio y, al cargarlo, la pregunta. No es «una vez al año»: un
 //   cambio de temporada nunca se guarda solo (myTeamToSave), así que, mientras la familia no lo confirme,
 //   se espera en cada carga en frío de toda la temporada (con el SW, data-alevin.js sale del precache,
@@ -114,14 +113,17 @@ function mineWaits(ctx) {
   const portal = ctx.portal.season;
   if (!mine || !mine.name) return [];
   if (LAZY_CATS.includes(mine.cat)) return wantsOf(ctx, [mine.cat], portal, false);
-  return mine.season !== portal ? wantsOf(ctx, ['alevin'], portal, true, true) : [];
+  if (mine.season === portal) return [];
+  return wantsOf(ctx, seasonChangeCats(mine.cat).filter((cat) => LAZY_CATS.includes(cat)), portal, true, true);
 }
 
 // Un grupo `id` que no está en la temporada `s`: lo que falta de la categoría de su prefijo (o de `cat`,
-// la de la ruta) o, si no se sabe, de todas, soft (que, si no llegan, dan el grupo por perdido).
+// la de la ruta) o, si no se sabe, de las que tiene la temporada (seasonCats). Nunca soft: si no llegan, la
+// caja de error de la que falta, nunca un falso «No encontramos el grupo» (con la base de hoy, alevín, como
+// antes de las nuevas).
 function groupWants(ctx, id, s, cat = null) {
-  const own = cat || lazyCatOf(id);
-  return own ? wantsOf(ctx, [own], s, false) : wantsOf(ctx, LAZY_CATS, s, true, true);
+  const own = cat || lazyCatOfCode(id);
+  return wantsOf(ctx, own ? [own] : seasonCats(ctx, s), s, false);
 }
 
 const SCORER_SCREENS = new Set(['goleadores', 'records']);
@@ -132,8 +134,8 @@ const SCORER_SCREENS = new Set(['goleadores', 'records']);
  * cargar los datos de <categoría>», nunca una pantalla a medias que lo calle:
  * - la portada, y la categoría por defecto de Goleadores y Récords, si mi equipo la espera (mineWaits);
  * - `c=<perezosa>` (o, en Goleadores y Récords, una perezosa como categoría por defecto), de la temporada `s`;
- * - Explorar y Ligas sin `c`, que enseñan todas las categorías (soft);
- * - un grupo de la ruta que no está: la de su prefijo (AL, INF, CAD, JUV) o, si no se sabe, todas (soft).
+ * - Explorar y Ligas sin `c`, que enseñan todas las categorías: las que tiene la temporada (seasonCats), soft;
+ * - un grupo de la ruta que no está: la de su prefijo (AL, INF, CAD, JUV) o, si no se sabe, las de la temporada.
  * La portada de un equipo de benjamín o prebenjamín nunca pide nada: tiene que abrir en 3 s. */
 export function needsLazy(route, ctx) {
   const screen = route?.screen ?? '';
@@ -147,7 +149,7 @@ export function needsLazy(route, ctx) {
   }
   const cat = params.c || (byDefault ? defaultCategory(ctx.resolution, ctx.portal.defaultTeam) : null);
   if (LAZY_CATS.includes(cat) && (screen === 'ligas' || SCORER_SCREENS.has(screen))) return wantsOf(ctx, [cat], s, false);
-  if (screen === 'explorar' || (screen === 'ligas' && !params.c)) return wantsOf(ctx, LAZY_CATS, s, true);
+  if (screen === 'explorar' || (screen === 'ligas' && !params.c)) return wantsOf(ctx, seasonCats(ctx, s), s, true);
   if (params.g && ctx.model && ctx.model.season(s) && !findGroup(ctx.model, s, params.g)) return groupWants(ctx, params.g, s);
   return [];
 }
@@ -159,8 +161,8 @@ export function needsAlevin(route, ctx) {
 }
 
 // Un grupo `g` que no está en la temporada `s`: con su categoría perezosa sin pedir (la de su prefijo, la
-// `cat` de la ruta o, si no se sabe, todas), la ruta queda pendiente de ella (puede ser un grupo de un
-// enlace compartido o de «Vistos hace poco»); si ya está, `lost`.
+// `cat` de la ruta o, si no se sabe, las de la temporada), la ruta queda pendiente de ella (puede ser un
+// grupo de un enlace compartido o de «Vistos hace poco»); si ya está, `lost`.
 const missingGroup = (params, ctx, lost, cat = null) => {
   const wants = groupWants(ctx, params.g, params.s, cat);
   return wants.length ? { params, lazy: wants } : lost();
@@ -276,9 +278,10 @@ function competitionParams(raw, params, ctx) {
     .find((e) => e.key === raw.f && e.groups.some((g) => g.kind === 'league'));
   if (!entry) {
     const lost = () => redirect('ligas', { s, c: raw.c, to: 'jornada' }, `No encontramos la competición ${raw.f} en la temporada ${seasonLabel(params.s)}`);
-    // La de una perezosa (o, sin `c`, la que puede serlo: todas, soft), como un grupo que no está: antes, ella.
+    // La de una perezosa (o, sin `c`, las que puede ser: las de la temporada), como un grupo que no está:
+    // antes, ella.
     if (raw.c && !LAZY_CATS.includes(raw.c)) return lost();
-    const wants = raw.c ? wantsOf(ctx, [raw.c], params.s, false) : wantsOf(ctx, LAZY_CATS, params.s, true, true);
+    const wants = wantsOf(ctx, raw.c ? [raw.c] : seasonCats(ctx, params.s), params.s, false);
     return wants.length ? { params, lazy: wants } : lost();
   }
   if (raw.c !== entry.cat) return redirect('jornada', { ...raw, c: entry.cat });

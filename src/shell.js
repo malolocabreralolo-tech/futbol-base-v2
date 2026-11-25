@@ -148,14 +148,19 @@ export async function retryBlock(section, id, button, load, paint) {
   return fresh;
 }
 
-// El aviso de Explorar y de Ligas sin categoría cuando no llegaron los datos de alevín (ctx.alevinFailed
-// del router): la pantalla se pinta con las otras categorías y lo dice, sin la
-// alerta de la caja de error, que es para lo que no se puede pintar. «Reintentar» lo atiende el router
-// (data-action="retry") y vuelve a pedirlo.
-export function alevinFailedBox() {
-  // Las que se ven seguro: las de la carga inicial (las otras perezosas pueden no haber llegado tampoco).
-  const others = listEs(CATEGORIES.filter((cat) => !LAZY_CATS.includes(cat)).map((cat) => CAT_WORDS[cat]));
-  return html`<div class="block"><div class="box partial-box" role="status"><p class="partial-text">No se pudieron cargar los datos de alevín: se ven ${others}.</p><div class="buttons"><button class="button" type="button" data-action="retry">Reintentar</button></div></div></div>`;
+// El aviso de Explorar y de Ligas sin categoría cuando no llegaron los datos de las perezosas `cats`
+// (ctx.lazyFailed del router, en el orden de LAZY_CATS): la pantalla se pinta con las otras categorías y lo
+// dice, sin la alerta de la caja de error, que es para lo que no se puede pintar. «Reintentar» lo atiende el
+// router (data-action="retry") y vuelve a pedirlas. «No se pudieron cargar los datos de cadete y juvenil: se
+// ven las demás categorías.» Solo alevín, si lo que se ve son las de la carga inicial (`shown`, las
+// categorías que la pantalla enseña; sin él, se supone), el texto de siempre: «… de alevín: se ven benjamín
+// y prebenjamín.»
+export function lazyFailedBox(cats, shown = null) {
+  const failed = LAZY_CATS.filter((cat) => cats.includes(cat));
+  const eager = CATEGORIES.filter((cat) => !LAZY_CATS.includes(cat));
+  const onlyEager = !shown || shown.every((cat) => eager.includes(cat));
+  const others = failed.length === 1 && failed[0] === 'alevin' && onlyEager ? listEs(eager.map((cat) => CAT_WORDS[cat])) : 'las demás categorías';
+  return html`<div class="block"><div class="box partial-box" role="status"><p class="partial-text">No se pudieron cargar los datos de ${listEs(failed.map((cat) => CAT_WORDS[cat]))}: se ven ${others}.</p><div class="buttons"><button class="button" type="button" data-action="retry">Reintentar</button></div></div></div>`;
 }
 
 // La pantalla entera cuando falla una carga o el pintado: su h1 y la caja de error.

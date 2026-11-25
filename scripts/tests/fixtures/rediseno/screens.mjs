@@ -10,7 +10,7 @@ import { startContext } from '../../../../src/app.js';
 import { routeHref } from '../../../../src/links.js';
 import { activeTab, parentOf } from '../../../../src/router.js';
 import { STORE_KEY } from '../../../../src/store.js';
-import { alevinData, lazyData } from '../../../../src/state.js';
+import { LAZY, alevinData, lazyData } from '../../../../src/state.js';
 import { LAZY_CATS } from '../../../../src/model.js';
 
 // Las categorías perezosas ya pedidas y vacías (data-<cat>.js sin grupos y un 404 en cada
@@ -20,6 +20,23 @@ export function lazyEmpty(past = []) {
     lazy: Object.fromEntries(LAZY_CATS.map((cat) => [cat, lazyData(cat, {})])),
     seasonLazy: Object.fromEntries(LAZY_CATS.map((cat) => [cat, Object.fromEntries(past.map((name) => [name, {}]))])),
   };
+}
+
+/* Una perezosa de la temporada del portal ya pedida, con grupos inventados: lazyData(cat, …) con sus grupos
+ * crudos (la forma de BENJAMIN: el primero de `teams`, líder) y su HISTORY (una jornada: el primero contra el
+ * segundo, el tercero contra el cuarto…, ya jugada). groups: [{ id, phase, island?, fullName?, name?, teams }].
+ * Para infantil, cadete y juvenil, que las fixtures congeladas no traen. */
+export function lazyWith(cat, groups, { day = '2025-10-11' } = {}) {
+  const names = LAZY[cat].consts;
+  const raws = groups.map(({ id, phase, island = 'grancanaria', fullName = '', name = 'Grupo 1', teams }) => ({
+    id, name, fullName, phase, island, url: null, jornada: 'Jornada 1', standingsKind: 'source', matches: [],
+    standings: teams.map((team, i) => [i + 1, team, i % 2 ? 0 : 3, 1, i % 2 ? 0 : 1, 0, i % 2 ? 1 : 0, i % 2 ? 0 : 2, i % 2 ? 2 : 0, i % 2 ? -2 : 2]),
+  }));
+  const history = Object.fromEntries(groups.map(({ id, teams }) => [id, {
+    'Jornada 1': teams.filter((_, i) => i % 2 === 0).map((home, k) => [day, home, teams[2 * k + 1], 2, 0, null, '10:00', null])
+      .filter((row) => row[2]),
+  }]));
+  return lazyData(cat, { [names.groups]: raws, [names.stats]: { groups: raws.length, teams: 0 }, [names.history]: history });
 }
 
 export const PORTAL_SEASON = '2025-2026';

@@ -100,11 +100,12 @@ test('test_ensure_lazy: las siete constantes de data-cadete.js; un vuelo; un 404
   assert.throws(() => state.lazyNeeds('senior', PORTAL, {}, PORTAL), TypeError, 'una categoría que no es perezosa');
 }));
 
-test('test_temporada_pasada: loadLazySeasons pide las cuatro de la temporada; un 404 es «sin esa categoría»; devuelve solo los fallos', quiet(async () => {
+test('test_temporada_pasada: loadLazySeasons pide las de la temporada que dice data-seasons.js; un 404 es «sin esa categoría»; devuelve solo los fallos', quiet(async () => {
   requests.length = 0;
   files[`data-season-${PAST}-cadete.js`] = `const SEASON_2025_2026_CADETE=${JSON.stringify({ name: PAST, cadete: [raw('CADNG1', 'Insular GC', '')] })};\n`;
   files[`data-season-${PAST}-juvenil.js`] = 503;
-  const datasets = { seasonRaw: {}, lazy: {}, seasonLazy: {} };
+  const seasons = [{ name: PORTAL, current: true }, { name: PAST, current: false, lazy: ['infantil', 'cadete', 'juvenil'] }];
+  const datasets = { seasons, seasonRaw: {}, lazy: {}, seasonLazy: {} };
   const failed = await state.loadLazySeasons(datasets, [PAST], PORTAL);
   assert.deepEqual(requests.map((url) => url.replace(/\?.*$/, '')).sort(), [
     `./data-season-${PAST}-alevin.js`, `./data-season-${PAST}-cadete.js`, `./data-season-${PAST}-infantil.js`, `./data-season-${PAST}-juvenil.js`]);
@@ -120,15 +121,30 @@ test('test_temporada_pasada: loadLazySeasons pide las cuatro de la temporada; un
   assert.deepEqual(requests.map((url) => url.replace(/\?.*$/, '')), [`./data-season-${PAST}-juvenil.js`]);
   // La de alevín de antes, con su firma de antes: las temporadas que no llegaron.
   assert.deepEqual(await state.loadAlevinSeasons(datasets, [PAST], PORTAL), []);
+  // Una temporada cuya entrada de SEASONS no dice ninguna (las de hoy: sin `lazy`): solo alevín, como siempre;
+  // las demás, «sin esa categoría» sin pedirlas (decenas de 404 en la Trayectoria).
+  requests.length = 0;
+  const today = { seasons: [{ name: PORTAL, current: true }, { name: '2024-2025', current: false }], seasonRaw: {}, lazy: {}, seasonLazy: {} };
+  assert.deepEqual(await state.loadLazySeasons(today, ['2024-2025'], PORTAL), []);
+  assert.deepEqual(requests.map((url) => url.replace(/\?.*$/, '')), ['./data-season-2024-2025-alevin.js']);
+  assert.deepEqual([today.seasonLazy.infantil, today.seasonLazy.cadete, today.seasonLazy.juvenil], [{ '2024-2025': {} }, { '2024-2025': {} }, { '2024-2025': {} }]);
+  // lazyCatsOf: alevín siempre y las que diga; nada de lo que no es perezosa.
+  assert.deepEqual(state.lazyCatsOf(seasons, PAST), ['alevin', 'infantil', 'cadete', 'juvenil']);
+  assert.deepEqual(state.lazyCatsOf([{ name: PAST, lazy: ['juvenil', 'senior', 'alevin'] }], PAST), ['alevin', 'juvenil']);
+  assert.deepEqual(state.lazyCatsOf(null, PAST), ['alevin']);
   await assert.rejects(state.lazyNeeds('infantil', '2024-2025', datasets, PORTAL, { ensureSeason: async () => null })[0],
     { message: 'infantil de la temporada 2024/25' });
   await assert.rejects(state.lazyNeeds('cadete', PORTAL, { lazy: {} }, PORTAL, { ensure: async () => null })[0], { message: 'cadete' });
 }));
 
 // El contexto mínimo del router: la temporada del portal con benjamín y lo perezoso que se diga.
-function ctxWith(lazy = {}, seasonLazy = {}) {
+// declared: las perezosas de cada temporada en SEASONS (su `lazy`; sin él, solo alevín, como con la base de hoy).
+const ALL = ['alevin', 'infantil', 'cadete', 'juvenil'];
+function ctxWith(lazy = {}, seasonLazy = {}, declared = null) {
+  const seasons = [{ name: PORTAL, current: true }, { name: PAST, current: false }]
+    .map((entry) => (declared ? { ...entry, lazy: declared } : entry));
   const datasets = { benjamin: [raw('FF1', 'Primera Fase GC', 'BENJAMIN PRIMERA FASE GC - GRUPO 1')], prebenjamin: [], history: {},
-    seasons: [{ name: PORTAL, current: true }, { name: PAST, current: false }], seasonRaw: {}, lazy, seasonLazy };
+    seasons, seasonRaw: {}, lazy, seasonLazy };
   const model = createModel(datasets, { portalSeason: PORTAL, buildClubIndex });
   return { portal: { season: PORTAL, defaultTeam: { name: 'Club Uno', cat: 'benjamin', groupId: 'FF1' } }, model, datasets,
     resolution: { status: 'ok', name: 'Club Uno', cat: 'benjamin', group: model.group(PORTAL, 'FF1') }, myTeam: null };
@@ -138,30 +154,43 @@ const need = (hash, ctx) => needsLazy(parseRoute(hash), ctx);
 
 test('test_lazy_needs_y_fallos: needsLazy de cada ruta', () => {
   const none = ctxWith();
+  const all = ctxWith({}, {}, ALL);
   assert.deepEqual(need('#/ligas?c=juvenil&s=2026-2027', none), [{ cat: 'juvenil', season: PORTAL, soft: false }]);
-  assert.deepEqual(need('#/explorar', none), LAZY_CATS.map((cat) => ({ cat, season: PORTAL, soft: true })));
-  assert.deepEqual(need('#/ligas', none), LAZY_CATS.map((cat) => ({ cat, season: PORTAL, soft: true })));
+  // Explorar y Ligas sin `c`: las que dice data-seasons.js de la temporada (con la base de hoy, alevín).
+  assert.deepEqual(need('#/explorar', none), [{ cat: 'alevin', season: PORTAL, soft: true }]);
+  assert.deepEqual(need('#/ligas', none), [{ cat: 'alevin', season: PORTAL, soft: true }]);
+  assert.deepEqual(need('#/explorar', all), LAZY_CATS.map((cat) => ({ cat, season: PORTAL, soft: true })));
+  assert.deepEqual(need('#/ligas', all), LAZY_CATS.map((cat) => ({ cat, season: PORTAL, soft: true })));
+  assert.deepEqual(need('#/explorar', ctxWith({}, {}, ['cadete'])), [{ cat: 'alevin', season: PORTAL, soft: true }, { cat: 'cadete', season: PORTAL, soft: true }]);
   assert.deepEqual(need('#/goleadores?c=infantil', none), [{ cat: 'infantil', season: PORTAL, soft: false }]);
   assert.deepEqual(need('#/records?c=cadete', none), [{ cat: 'cadete', season: PORTAL, soft: false }]);
   assert.deepEqual(need('#/tabla?g=CADNG2&s=2026-2027', none), [{ cat: 'cadete', season: PORTAL, soft: false }]);
   assert.deepEqual(need('#/tabla?g=JUVPL1', none), [{ cat: 'juvenil', season: PORTAL, soft: false }]);
   assert.deepEqual(need('#/tabla?g=AL3', none), [{ cat: 'alevin', season: PORTAL, soft: false }]);
-  assert.deepEqual(need('#/tabla?g=XQ9', none), LAZY_CATS.map((cat) => ({ cat, season: PORTAL, soft: true })), 'un código que no dice su categoría');
+  // Un código que no dice su categoría: las de la temporada, sin soft (si no llegan, su caja de error, nunca un
+  // falso «No encontramos el grupo»): con la base de hoy, alevín, como antes de las nuevas.
+  assert.deepEqual(need('#/tabla?g=XQ9', none), [{ cat: 'alevin', season: PORTAL, soft: false }], 'un código que no dice su categoría');
+  assert.deepEqual(need('#/tabla?g=XQ9', all), LAZY_CATS.map((cat) => ({ cat, season: PORTAL, soft: false })));
   assert.deepEqual(need('#/tabla?g=FF1', none), [], 'un grupo que está no espera a nada');
   assert.deepEqual(need('#/', none), [], 'la portada de un equipo de benjamín no pide nada');
   assert.deepEqual(need('#/ligas?c=benjamin', none), []);
   // Mi equipo, la de su categoría.
-  const mine = { ...ctxWith(), myTeam: { name: 'Club Uno', season: PORTAL, cat: 'infantil', groupId: 'INFPG1' } };
+  const mine = { ...ctxWith({}, {}, ALL), myTeam: { name: 'Club Uno', season: PORTAL, cat: 'infantil', groupId: 'INFPG1' } };
   assert.deepEqual(need('#/', mine), [{ cat: 'infantil', season: PORTAL, soft: false }]);
+  // En un cambio de temporada, también solo la suya; uno de benjamín, alevín (soft), como siempre: nunca las demás.
+  assert.deepEqual(need('#/', { ...mine, myTeam: { ...mine.myTeam, season: PAST } }), [{ cat: 'infantil', season: PORTAL, soft: false }]);
+  assert.deepEqual(need('#/', { ...mine, myTeam: { name: 'Club Uno', season: PAST, cat: 'benjamin', groupId: 'FF1' } }), [{ cat: 'alevin', season: PORTAL, soft: true }]);
+  assert.deepEqual(need('#/', { ...mine, myTeam: { name: 'Club Uno', season: PORTAL, cat: 'benjamin', groupId: 'FF1' } }), []);
   // Ya cargadas, nada; una temporada pasada, su data-season-<S>-<cat>.js.
-  assert.deepEqual(need('#/explorar', ctxWith(loadedAll())), []);
-  assert.deepEqual(need(`#/explorar?s=${PAST}`, ctxWith(loadedAll())), LAZY_CATS.map((cat) => ({ cat, season: PAST, soft: true })));
+  assert.deepEqual(need('#/explorar', ctxWith(loadedAll(), {}, ALL)), []);
+  assert.deepEqual(need(`#/explorar?s=${PAST}`, ctxWith(loadedAll(), {}, ALL)), LAZY_CATS.map((cat) => ({ cat, season: PAST, soft: true })));
+  assert.deepEqual(need(`#/explorar?s=${PAST}`, ctxWith(loadedAll())), [{ cat: 'alevin', season: PAST, soft: true }]);
   const pastLoaded = Object.fromEntries(LAZY_CATS.map((cat) => [cat, { [PAST]: {} }]));
-  assert.deepEqual(need(`#/explorar?s=${PAST}`, ctxWith(loadedAll(), pastLoaded)), []);
+  assert.deepEqual(need(`#/explorar?s=${PAST}`, ctxWith(loadedAll(), pastLoaded, ALL)), []);
 });
 
 test('test_lazy_needs_y_fallos: con data-juvenil.js caído, Explorar se pinta con las demás y lo dice en ctx.lazyFailed', quiet(async () => {
-  const ctx = ctxWith();
+  const ctx = ctxWith({}, {}, ALL);
   const asked = [];
   // La carga de verdad (lazyNeeds) con cargadores que fallan en juvenil.
   const loadLazy = (cat, season, data, portalSeason) => {

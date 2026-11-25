@@ -5,10 +5,10 @@ import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { fixture } from './fixtures/rediseno/load.mjs';
-import { currentAt, datasetsFrom as baseDatasets, seasonLineups } from './fixtures/rediseno/simulate.mjs';
+import { archive, currentAt, datasetsFrom as baseDatasets, seasonLineups } from './fixtures/rediseno/simulate.mjs';
 import { actaFor, createModel, findMatch } from '../../src/model.js';
 import { ensureLineups, loadSeasons } from '../../src/state.js';
-import { ctxFor } from './fixtures/rediseno/screens.mjs';
+import { ctxFor, datasetsFor as lazyDatasets, lazyWith } from './fixtures/rediseno/screens.mjs';
 import { fakeSection } from './fixtures/rediseno/fake-browser.mjs';
 import {
   partidoNeeds, pastSeasons, previousBlock, previousMeetings, previousPanelContent, screen,
@@ -630,4 +630,70 @@ test('«Reintentar» de los Goles sin la cronología: la vuelve a pedir y pinta 
   } finally {
     globalThis.fetch = saved;
   }
+});
+
+// ── Infantil, cadete y juvenil (parte E2, tarea 4) ───────────────────────
+//
+// Un partido de cadete de la temporada (CADNG2, equipos inventados), con lazyWith.
+const CAD_TEAMS = ['Club Cadete Uno', 'Club Cadete Dos'];
+const CAD_NOW = lazyWith('cadete', [{ id: 'CADNG2', phase: 'Insular GC', fullName: 'LIGA CADETE INSULAR GRAN CANARIA - GRUPO 2', teams: CAD_TEAMS }]);
+// El cadete de 2024-25, con un partido entre los dos (data-season-2024-2025-cadete.js).
+const CAD_PAST = {
+  name: '2024-2025',
+  cadete: [{ id: 'CADNG1', name: 'Grupo 1', phase: 'Insular GC', island: 'grancanaria', current_jornada: '1',
+    standings: [[1, CAD_TEAMS[1], 3, 1, 1, 0, 0, 1, 0, 1], [2, CAD_TEAMS[0], 0, 1, 0, 0, 1, 0, 1, -1]],
+    jornadas: { 1: [['2024-10-05', CAD_TEAMS[1], CAD_TEAMS[0], 1, 0, null, '10:00', null]] } }],
+};
+// SEASONS con `lazy`: 2024-25 tuvo cadete; 2023-24, no (no se pide).
+const CAD_SEASONS = [{ name: '2025-2026', current: true, lazy: ['cadete'] }, { name: '2024-2025', current: false, lazy: ['cadete'] },
+  { name: '2023-2024', current: false }];
+const cadeteCtx = () => ctxFor('partido', {}, { today: TODAY, datasets: lazyDatasets({
+  seasons: CAD_SEASONS, lazy: { cadete: CAD_NOW }, seasonLazy: { cadete: {} },
+  seasonRaw: { '2024-2025': archive('2024-2025'), '2023-2024': archive('2023-2024') } }) });
+
+test('test_partido_temporadas_anteriores_cadete: pide el cadete de las temporadas pasadas que lo tienen; sin él, la caja de error de hoy', async () => {
+  const panel = async (serve) => {
+    const asked = [];
+    const ctx = cadeteCtx();
+    const group = ctx.model.group('2025-2026', 'CADNG2');
+    const match = group.rounds[0].matches[0];
+    const out = await previousPanelContent(ctx, match, group, {}, {
+      ensureSeason: async (cat, name) => { asked.push(`${cat} ${name}`); return serve(name); },
+    });
+    return { out: text(out), asked };
+  };
+  const found = await panel(() => CAD_PAST);
+  assert.deepEqual(found.asked, ['cadete 2024-2025'], 'ni alevín ni el cadete de 2023-24, que no tuvo');
+  assert.match(found.out, /^2024\/25 · Cadete, Insular, Grupo 1 J1, 5 oct Club Cadete Dos – Club Cadete Uno .*1–0$/);
+  const failed = await panel(() => null);
+  assert.match(failed.out, /^No se pudieron cargar los datos de las temporadas anteriores\. Reintentar$/);
+});
+
+test('Partido de cadete: needs pide su data-matchdetail-cadete.js (no el de siempre) y los Goles salen de él; si no llega, la caja de error de los Goles', async () => {
+  const calls = [];
+  const loaders = {
+    ensureMatchDetail: async () => { calls.push('cronología'); return {}; },
+    ensureMatchDetailLazy: async (cat) => { calls.push(`cronología ${cat}`); return { [`${CAD_TEAMS[0]}|${CAD_TEAMS[1]}|2-0`]: { s: '2025-2026', gr: 'CADNG2', g: [[12, 'PRUEBA, UNO', '1-0', 'h', 'r'], [70, 'PRUEBA, DOS', '2-0', 'h', 'r']] } }; },
+    ensureLineups: async (s, g) => { calls.push(`actas ${s} ${g}`); return {}; },
+    ensureSeasonData: async () => null,
+  };
+  const ds = { seasons: [{ name: '2025-2026', current: true, detail: true }], seasonRaw: {}, lineups: {}, matchDetail: null };
+  await Promise.all(partidoNeeds({ s: '2025-2026', g: 'CADNG2' }, ds, loaders));
+  assert.deepEqual(calls, ['cronología cadete', 'actas 2025-2026 CADNG2']);
+  calls.length = 0;
+  await Promise.all(partidoNeeds({ s: '2025-2026', g: 'PG2' }, ds, loaders));
+  assert.deepEqual(calls, ['cronología', 'actas 2025-2026 PG2'], 'uno de prebenjamín, como siempre');
+  // Los Goles del partido, minuto a minuto.
+  const ctx = cadeteCtx();
+  ctx.datasets.lineups['2025-2026/CADNG2'] = {};
+  const params = { s: '2025-2026', g: 'CADNG2', r: 'Jornada 1', h: CAD_TEAMS[0], a: CAD_TEAMS[1] };
+  ctx.datasets.matchDetailLazy = { cadete: await loaders.ensureMatchDetailLazy('cadete') };
+  const out = String(screen.render({ ...ctx, params, route: { screen: 'partido', params } }));
+  assert.match(out, /<h2 class="block-title">Goles<\/h2><p class="block-context">minuto a minuto<\/p>/);
+  assert.match(text(out), /Uno Prueba 12' 1–0 Dos Prueba 70' 2–0/);
+  // Sin él (null: no llegó), la caja de error de los Goles, con su «Reintentar»; el resto, pintado.
+  ctx.datasets.matchDetailLazy = { cadete: null };
+  const failed = String(screen.render({ ...ctx, params, route: { screen: 'partido', params } }));
+  assert.match(text(failed), /Goles No se pudieron cargar los datos de la cronología de goles\. Reintentar/);
+  assert.match(failed, /<h2 class="block-title">Alineaciones<\/h2>/);
 });

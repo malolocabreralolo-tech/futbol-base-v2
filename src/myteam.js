@@ -1,7 +1,7 @@
 // Identidad de club y «mi equipo» a través de temporadas y fases.
 // Módulo puro: recibe los datos por parámetro y no lee ningún global de datos.
 import { normalizeForTeamsMapping, shieldFile } from './state.js';
-import { CATEGORIES, matchState, retiredTeams, groupFinished, teamFixtures, phaseLevel, topPhase } from './model.js';
+import { CATEGORIES, LAZY_CATS, matchState, retiredTeams, groupFinished, teamFixtures, phaseLevel, topPhase } from './model.js';
 
 // Nombres de torneos y de la federación que no se pueden unir por escudo ni por clave base.
 // Además del de la Maspalomas, los de 2025-26 que cambian de la Primera Fase a la siguiente
@@ -200,6 +200,17 @@ function choose(candidates, myTeam) {
   return { status: 'ask', candidates };
 }
 
+/* Dónde busca el paso 1 (un cambio de temporada) a un equipo de `cat`: primero en la suya, después en las de la
+ * carga inicial (benjamín y prebenjamín) y, si es de una de ellas, en alevín (el paso natural de benjamín a
+ * alevín: por eso el router espera al alevín en un cambio de temporada, soft). Nunca en otra perezosa: la
+ * portada no las carga (mineWaits de router.js), y si buscara en las que hubiera cargado otra pantalla, la
+ * respuesta cambiaría al visitar Explorar (un club con equipo de benjamín y de juvenil, la misma fila de
+ * teams, pasaría de «ok» a la pregunta). Con las tres de antes, las mismas y en el mismo orden. */
+export function seasonChangeCats(cat) {
+  const eager = CATEGORIES.filter(c => !LAZY_CATS.includes(c) && c !== cat);
+  return [cat, ...eager, ...(LAZY_CATS.includes(cat) ? [] : ['alevin'])];
+}
+
 export function resolveMyTeam(myTeam, season, index, todayISO) {
   if (!myTeam || !myTeam.name || !season) return { status: 'absent' };
   if (myTeam.season === season.name) {
@@ -212,10 +223,9 @@ export function resolveMyTeam(myTeam, season, index, todayISO) {
     // Paso 2: el grupo guardado ya no sirve; se busca solo en su categoría.
     return choose(clubCandidates(season, [myTeam.cat], myTeam.name, index, todayISO), myTeam);
   }
-  // Paso 1: cambio de temporada; se busca en las tres categorías, primero en la suya (el paso natural de
-  // benjamín a alevín: por eso el router espera al alevín en un cambio de temporada).
-  const cats = [myTeam.cat, ...CATEGORIES.filter(cat => cat !== myTeam.cat)];
-  return choose(clubCandidates(season, cats, myTeam.name, index, todayISO), myTeam);
+  // Paso 1: cambio de temporada; se busca primero en la suya y después en las que espera la portada
+  // (seasonChangeCats).
+  return choose(clubCandidates(season, seasonChangeCats(myTeam.cat), myTeam.name, index, todayISO), myTeam);
 }
 
 // Lo que se guarda tras resolver: el myTeam nuevo, {name, season, cat, groupId},

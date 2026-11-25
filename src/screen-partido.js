@@ -19,7 +19,8 @@ import {
 } from './model.js';
 import { countdownLabel, dayMonth, matchHref, playerHref, shareAndAnnounce, venueDetails, venueUrl, weekdayDate } from './links.js';
 import {
-  ensureLineups, ensureMatchDetail, ensureSeasonData, lineupsKey, loadAlevinSeasons, loadLazySeasons, loadSeasons, normalizeTeamName,
+  ensureLineups, ensureMatchDetail, ensureMatchDetailLazy, ensureSeasonData, hasOwnMatchDetail, lazyCatOfCode, lazyLoaders, lineupsKey,
+  loadLazySeasons, loadSeasons, normalizeTeamName,
 } from './state.js';
 import { errorBox, retryBlock } from './shell.js';
 import { forecastMatch, topScores } from './pronostico.js';
@@ -29,7 +30,7 @@ const PREVIOUS_ID = 'partido-anteriores';
 // Los bloques que pueden fallar en el primer pintado, con su «Reintentar».
 const GOALS_ID = 'goles';
 const LINEUPS_ID = 'alineaciones';
-const LOADERS = { ensureMatchDetail, ensureLineups, ensureSeasonData };
+const LOADERS = { ensureMatchDetail, ensureMatchDetailLazy, ensureLineups, ensureSeasonData };
 
 // ── Textos y fechas ──────────────────────────────────────────────────────
 
@@ -207,9 +208,16 @@ function withDetail(seasons, season) {
   return (seasons || []).some((entry) => entry && entry.name === season && entry.detail === true);
 }
 
+// La cronología del partido: la de su data-matchdetail-<cat>.js en infantil, cadete y juvenil
+// (datasets.matchDetailLazy[cat]: undefined sin pedir y null si no llegó), y si no, la de
+// data-matchdetail.js si la temporada la tiene (una sin `detail` no tiene cronología: {}, se sigue con el acta).
+function detailOf(match, group, datasets) {
+  if (hasOwnMatchDetail(group.cat)) return (datasets.matchDetailLazy || {})[group.cat];
+  return withDetail(datasets.seasons, match.season) ? datasets.matchDetail : {};
+}
+
 function goalsBlock(match, group, ctx) {
-  // Una temporada sin `detail` no tiene cronología: se sigue con el acta.
-  const detail = withDetail(ctx.datasets.seasons, match.season) ? ctx.datasets.matchDetail : {};
+  const detail = detailOf(match, group, ctx.datasets);
   const lineups = (ctx.datasets.lineups || {})[lineupsKey(match.season, match.groupId)];
   // Sin data-matchdetail.js no se sabe si hay cronología de futbolaspalmas, que
   // manda sobre el acta: caja de error, nunca el acta en su lugar.
@@ -452,7 +460,8 @@ export function render(ctx) {
   return screenHtml(html`${head}<div class="pt-cols"><div class="pt-main">${main}</div><div class="pt-aside">${side}</div></div>`);
 }
 
-// Cargas perezosas: la cronología (si la temporada la tiene), las
+// Cargas perezosas: la cronología (si la temporada la tiene; la de un grupo de infantil, cadete o juvenil, la
+// de su data-matchdetail-<cat>.js, por el prefijo de su código, en todas), las
 // actas del grupo del partido y, si es pasada, la temporada. Los cargadores devuelven null si
 // fallan. La cronología y las actas son opcionales: el bloque que las necesita
 // pinta la caja de error y el resto se pinta. La temporada es imprescindible:
@@ -464,7 +473,14 @@ export function partidoNeeds(params, datasets, loaders = LOADERS) {
   const g = params && params.g;
   if (!datasets.lineups) datasets.lineups = {};
   if (!datasets.seasonRaw) datasets.seasonRaw = {};
-  const loads = withDetail(seasons, s) ? [loaders.ensureMatchDetail().then((data) => { datasets.matchDetail = data; })] : [];
+  const own = lazyCatOfCode(g);
+  const loads = [];
+  if (hasOwnMatchDetail(own)) {
+    const detail = datasets.matchDetailLazy || (datasets.matchDetailLazy = {});
+    if (detail[own] == null) loads.push(loaders.ensureMatchDetailLazy(own).then((data) => { detail[own] = data; }));
+  } else if (withDetail(seasons, s)) {
+    loads.push(loaders.ensureMatchDetail().then((data) => { datasets.matchDetail = data; }));
+  }
   if (g) loads.push(loaders.ensureLineups(s, g).then((data) => { datasets.lineups[lineupsKey(s, g)] = data; }));
   const listed = seasons.find((x) => x.name === s);
   if (listed && !listed.current && !datasets.seasonRaw[s]) {
@@ -480,15 +496,16 @@ export function partidoNeeds(params, datasets, loaders = LOADERS) {
 // o de un dato mal formado que llegue después (por ejemplo, el RangeError de rowToMatch con una
 // temporada con una fila mal formada) se convierte en la caja de error del propio panel, con su
 // «Reintentar», en vez de dejar la promesa rechazada sin nadie que la atienda. Pura (no toca el
-// DOM): se prueba sin navegador. En un partido de alevín, también el alevín de cada temporada
-// anterior (su data-season-<S>-alevin.js; un 404 es esa temporada sin alevín): el data-season-<S>.js
-// no lo trae. `alevinLoaders`, los cargadores de alevinNeeds (las pruebas pasan otros).
-export async function previousPanelContent(ctx, match, group, alevinLoaders = {}) {
+// DOM): se prueba sin navegador. En un partido de una categoría perezosa, también la suya de cada temporada
+// anterior (su data-season-<S>-<cat>.js; un 404 es esa temporada sin ella): el data-season-<S>.js no la trae.
+// Alevín, de todas, como siempre; infantil, cadete y juvenil, de las que la tienen según data-seasons.js
+// (loadLazySeasons). `alevinLoaders`, los cargadores de alevinNeeds, y `loaders`, los de lazyNeeds (las
+// pruebas pasan otros).
+export async function previousPanelContent(ctx, match, group, alevinLoaders = {}, loaders = {}) {
   try {
     const names = pastSeasons(ctx.datasets.seasons, match.season);
     await loadSeasons(ctx.datasets, names);
-    if (group.cat === 'alevin') await loadAlevinSeasons(ctx.datasets, names, ctx.portal.season, alevinLoaders);
-    else if (LAZY_CATS.includes(group.cat)) await loadLazySeasons(ctx.datasets, names, ctx.portal.season, [group.cat]);
+    if (LAZY_CATS.includes(group.cat)) await loadLazySeasons(ctx.datasets, names, ctx.portal.season, [group.cat], lazyLoaders(alevinLoaders, loaders));
     return previousBlock(ctx, match, group);
   } catch (err) {
     console.error('[partido] temporadas anteriores', err);
@@ -538,8 +555,11 @@ function retryMatchBlock(section, ctx, id, button) {
   if (!match) return null;
   const data = ctx.datasets;
   const lineups = data.lineups || (data.lineups = {});
+  const own = hasOwnMatchDetail(group.cat) ? group.cat : null;
+  const detail = data.matchDetailLazy || (data.matchDetailLazy = {});
   const load = () => Promise.all([
-    id === GOALS_ID && data.matchDetail == null && withDetail(data.seasons, match.season) ? LOADERS.ensureMatchDetail().then((d) => { data.matchDetail = d; }) : null,
+    id === GOALS_ID && own && detail[own] == null ? LOADERS.ensureMatchDetailLazy(own).then((d) => { detail[own] = d; }) : null,
+    id === GOALS_ID && !own && data.matchDetail == null && withDetail(data.seasons, match.season) ? LOADERS.ensureMatchDetail().then((d) => { data.matchDetail = d; }) : null,
     lineups[lineupsKey(match.season, match.groupId)] == null
       ? LOADERS.ensureLineups(match.season, match.groupId).then((d) => { lineups[lineupsKey(match.season, match.groupId)] = d; })
       : null,

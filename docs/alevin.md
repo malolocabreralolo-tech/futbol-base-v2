@@ -44,6 +44,8 @@ El canal federación → base → JS está preparado para alevín de Gran Canari
    ```
 
    `alevin` tiene el formato de la clave `benjamin` de `data-season-<S>.js`. El fichero solo existe si la temporada tiene grupos alevín (`generate_js` borra el de una que ya no tiene); la web trata su 404 como «sin alevín».
+
+   Lo mismo para infantil, cadete y juvenil (`data-<cat>.js`, `data-season-<S>-<cat>.js`; `generate_js.LAZY`). Para que la web no los pida a ciegas en cada temporada (la Trayectoria de un equipo las recorre todas), la entrada de `data-seasons.js` de una temporada que tenga alguna de las tres dice cuáles tiene: `{"name": "2026-2027", "current": true, "lazy": ["alevin", "infantil"]}` (`generate_js.season_lazy_keys`). Sin ninguna de las tres no lleva la clave, así que con solo alevín sale igual que antes; alevín la web lo pide siempre, como hasta ahora (`state.lazyCatsOf`). Lo que la ruta nombra (`c=cadete`, un grupo `CAD…`) se pide igual.
 6. **Actas:** `data-lineups-<S>-<código>.js`, como siempre (los códigos `AL…` no chocan con ninguno).
 
 ## Quién decide la categoría

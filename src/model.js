@@ -1026,7 +1026,7 @@ export function timelineFor(match, matchDetail, lineups) {
 
 /* ── Registro de datos y modelo ───────────────────────────────────────────
  *
- * datasets = { ...readGlobals(), seasonRaw: {}, matchDetail: null, lineups: {}, health: undefined,
+ * datasets = { ...readGlobals(), seasonRaw: {}, matchDetail: null, matchDetailLazy: {}, lineups: {}, health: undefined,
  * lazy: { alevin: undefined, infantil: undefined, cadete: undefined, juvenil: undefined },
  * seasonLazy: { alevin: {}, infantil: {}, cadete: {}, juvenil: {} } }: los globales inmediatos y lo que
  * traen los cargadores perezosos de state.js (health: undefined sin pedir y null si falló). El modelo

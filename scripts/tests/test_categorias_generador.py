@@ -266,3 +266,48 @@ def test_alevin_igual_byte_a_byte(tmp_path):
     if conn is not dst:
         conn.close()
     dst.close()
+
+
+def test_data_seasons_dice_sus_perezosas(tmp_path, monkeypatch, seis):
+    """data-seasons.js dice qué perezosas tiene cada temporada (`lazy`, en el orden de LAZY), para que la web pida
+    solo esas (la Trayectoria, Explorar de una temporada pasada…), y solo cuando alguna no es alevín: así, con la
+    base de hoy, sale igual byte a byte."""
+    files = generate(monkeypatch, *site(tmp_path))
+    seasons = const(files["data-seasons.js"], "SEASONS")
+    assert [(s["name"], s.get("lazy")) for s in seasons] == [("2026-2027", ["alevin", "infantil"]), ("2025-2026", ["cadete"])]
+    assert list(seasons[0]) == ["name", "current", "detail", "lazy"], "detrás de lo de siempre"
+    # Con el EN_WEB de hoy (o sin grupos de las nuevas), ninguna `lazy`: alevín solo no la escribe.
+    import categorias
+    monkeypatch.setattr(categorias, "EN_WEB", ("BENJAMIN", "PREBENJAMIN", "ALEVIN"))
+    (tmp_path / "hoy").mkdir()
+    files = generate(monkeypatch, *site(tmp_path / "hoy"))
+    assert all("lazy" not in s for s in const(files["data-seasons.js"], "SEASONS"))
+    assert '"lazy"' not in files["data-seasons.js"]
+
+
+def test_data_seasons_de_la_base_real(tmp_path):
+    """Sobre una copia de la base real (la de hoy o la de después: la copia que ve la web): cada temporada lleva
+    `lazy` si y solo si tiene grupos de infantil, cadete o juvenil, y entonces con todas sus perezosas."""
+    if not DB_PATH.exists():
+        pytest.skip("futbolbase.db no está")
+    import generate_js
+    import vista_web
+    copia = tmp_path / "fb.db"
+    src = sqlite3.connect(f"file:{DB_PATH}?mode=ro", uri=True)
+    dst = sqlite3.connect(str(copia))
+    src.backup(dst)
+    src.close()
+    conn = vista_web.copia_web(dst)
+    lean, _ = generate_js.generate_seasons_js(conn, {})
+    seasons = json.loads(lean[len("const SEASONS="):-2])
+    tiene = {}
+    for name, cat in conn.execute("""SELECT DISTINCT s.name, upper(c.name) FROM groups g JOIN seasons s ON s.id=g.season_id
+                                     JOIN categories c ON c.id=g.category_id"""):
+        if cat in generate_js.LAZY:
+            tiene.setdefault(name, set()).add(generate_js.LAZY[cat][0])
+    for s in seasons:
+        suyas = [v[0] for v in generate_js.LAZY.values() if v[0] in tiene.get(s["name"], set())]
+        assert s.get("lazy") == (suyas if set(suyas) - {"alevin"} else None), s["name"]
+    if conn is not dst:
+        conn.close()
+    dst.close()

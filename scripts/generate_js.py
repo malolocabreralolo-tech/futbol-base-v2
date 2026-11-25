@@ -1896,8 +1896,10 @@ def generate_seasons_js(conn, details=None):
 
     # Lean version for the eager-loaded data-seasons.js
     with_detail = detail_seasons(_match_details(conn) if details is None else details)
-    lean_list = [{"name": n, "current": bool(c), **({"detail": True} if n in with_detail else {})}
-                 for _, n, c in seasons]
+    lazy_of = season_lazy_keys(conn)
+    lean_list = [{"name": n, "current": bool(c), **({"detail": True} if n in with_detail else {}),
+                  **({"lazy": lazy_of[sid]} if sid in lazy_of else {})}
+                 for sid, n, c in seasons]
 
     # Full version (with group data) used by generate_per_season_files
     seasons_list = []
@@ -1931,6 +1933,22 @@ def generate_seasons_js(conn, details=None):
         seasons_list.append(entry)
 
     return "const SEASONS=" + js_val(lean_list) + ";\n", seasons_list
+
+
+def season_lazy_keys(conn):
+    """{season_id: [claves]}: las categorías perezosas (LAZY, en su orden) con algún grupo esa temporada, para el
+    `lazy` de su entrada de data-seasons.js. La web pide solo esas (la Trayectoria de un equipo recorre todas las
+    temporadas: con las cuatro a ciegas serían decenas de 404). Solo las temporadas con alguna que no sea alevín:
+    alevín la web lo pide siempre, como antes de las nuevas, y así, sin ellas, data-seasons.js sale igual byte a
+    byte. Solo lo que está en categorias.EN_WEB."""
+    en_web = _en_web()
+    found = {}
+    for sid, cat in conn.execute("""SELECT DISTINCT g.season_id, upper(c.name) FROM groups g
+                                    JOIN categories c ON c.id = g.category_id"""):
+        if cat in LAZY and cat in en_web:
+            found.setdefault(sid, set()).add(cat)
+    return {sid: [LAZY[cat][0] for cat in LAZY if cat in cats]
+            for sid, cats in found.items() if cats - {ALEVIN}}
 
 
 def archive_groups(conn, season_id, season_name, cat_name):

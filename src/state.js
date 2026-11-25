@@ -271,6 +271,25 @@ export async function ensureMatchDetail() {
   return _matchDetailPromise;
 }
 
+/* La cronología de goles de infantil, cadete y juvenil: data-matchdetail-<cat>.js, const MATCH_DETAIL_<S>
+ * (generate_js.generate_matchdetail_lazy_js, con la forma de MATCH_DETAIL), aparte para que sus actas de
+ * fútbol 11 no hagan crecer data-matchdetail.js para todos. Se pide al abrir un partido de esa categoría
+ * (partidoNeeds). Como ensureMatchDetail: un vuelo por categoría, el texto leído con readConsts (nunca el
+ * global) y null si falla, sin memorizarlo, para reintentar; el partido se pinta sin la cronología. */
+const MATCH_DETAIL_CATS = { infantil: 'INF', cadete: 'CAD', juvenil: 'JUV' };
+const _matchDetailLazy = {};
+const _matchDetailLazyPromise = {};
+export function ensureMatchDetailLazy(cat) {
+  if (!Object.hasOwn(MATCH_DETAIL_CATS, cat)) return Promise.resolve(null);
+  return lazyConst(_matchDetailLazy, _matchDetailLazyPromise, cat, {
+    file: `data-matchdetail-${cat}.js`, name: `MATCH_DETAIL_${MATCH_DETAIL_CATS[cat]}`,
+    // Siempre se publica (vacío si no hay nada): un 404 es la web de antes de la categoría, sin cronología.
+    missing: () => ({}), valid: (value) => isObject(value),
+  });
+}
+// Las categorías con data-matchdetail-<cat>.js propio (las demás, en data-matchdetail.js).
+export const hasOwnMatchDetail = (cat) => Object.hasOwn(MATCH_DETAIL_CATS, cat);
+
 // Season data cache — loaded lazily per historical season.
 const _seasonCache = {};
 const _seasonPromise = {};
@@ -519,6 +538,27 @@ const lazyOf = (cat) => {
   return LAZY[cat];
 };
 
+// La categoría perezosa de un código de grupo por su prefijo (scripts/convenio.py: INF, CAD y JUV; los de
+// alevín, AL…), o null si el código no la dice (los de benjamín y prebenjamín, o uno escrito a mano).
+const LAZY_PREFIXES = [['INF', 'infantil'], ['CAD', 'cadete'], ['JUV', 'juvenil'], ['AL', 'alevin']];
+export function lazyCatOfCode(id) {
+  const code = String(id || '').toUpperCase();
+  const hit = LAZY_PREFIXES.find(([prefix]) => code.startsWith(prefix));
+  return hit ? hit[1] : null;
+}
+
+/* Las perezosas que tiene la temporada `name`, según su entrada de SEASONS (data-seasons.js, `lazy`: solo
+ * sale cuando alguna no es alevín; generate_js.season_lazy_keys), en el orden de LAZY: alevín siempre (la web
+ * lo pide como antes de las nuevas: un 404 es «sin alevín») y las que diga. Lo que la web pide cuando no sabe
+ * qué categoría busca (Explorar y Ligas sin `c`, un grupo cuyo código no la dice, la Trayectoria, las
+ * temporadas anteriores de un partido): así no pide a ciegas las cuatro de cada temporada (decenas de 404), y
+ * con la base de hoy pide lo mismo que antes. Lo que la ruta nombra (`c=cadete`, un grupo CAD…) se pide igual. */
+export function lazyCatsOf(seasons, name) {
+  const entry = (Array.isArray(seasons) ? seasons : []).find((s) => s && s.name === name);
+  const declared = entry && Array.isArray(entry.lazy) ? entry.lazy : [];
+  return Object.keys(LAZY).filter((cat) => cat === 'alevin' || declared.includes(cat));
+}
+
 /* Una categoría perezosa de la temporada del portal con los nombres del registro de datos
  * (datasets.lazy[cat]) a partir de las constantes de su data-<cat>.js (`consts`, por defecto las de
  * LAZY[cat]): { groups, stats, history, gol, estados, equipos } y, en infantil, cadete y juvenil, campos.
@@ -638,12 +678,31 @@ export function alevinNeeds(name, datasets, portalSeason, { ensure = ensureAlevi
 // categoría» y cuenta como cargado) y devuelve las que no llegaron, [{ cat, season }] en el orden de
 // `names` y, en cada una, de `cats` ([] si están todas): un fallo no se memoriza y la llamada siguiente
 // las vuelve a pedir. Como loadSeasons, para el cara a cara de un partido y la Trayectoria, que sin ellas
-// dirían de menos. `loaders`, los de lazyNeeds.
+// dirían de menos. Solo las que la temporada tiene (lazyCatsOf de datasets.seasons): las demás quedan
+// «sin esa categoría», como un 404, sin pedirlas. `loaders`, los de lazyNeeds.
 export async function loadLazySeasons(datasets, names, portalSeason, cats = Object.keys(LAZY), loaders = {}) {
-  const pairs = names.flatMap((season) => cats.map((cat) => ({ cat, season })));
+  const has = (cat, season) => lazyCatsOf(datasets.seasons, season).includes(cat);
+  for (const season of names) {
+    for (const cat of cats.filter((c) => !has(c, season))) {
+      if (season === portalSeason) { if (!datasets.lazy || datasets.lazy[cat] === undefined) (datasets.lazy ||= {})[cat] = lazyData(cat, {}); }
+      else if (!Object.hasOwn((datasets.seasonLazy || {})[cat] || {}, season)) ((datasets.seasonLazy ||= {})[cat] ||= {})[season] = {};
+    }
+  }
+  const pairs = names.flatMap((season) => cats.filter((cat) => has(cat, season)).map((cat) => ({ cat, season })));
   const done = await Promise.all(pairs.map(({ cat, season }) => Promise.all(lazyNeeds(cat, season, datasets, portalSeason, loaders))
     .then(() => true, () => false)));
   return pairs.filter((_, i) => !done[i]);
+}
+
+// Los cargadores de lazyNeeds ({ ensure(cat), ensureSeason(cat, season) }) con los de alevín de antes
+// ({ ensure(), ensureSeason(season) }, los de alevinNeeds) para alevín y `others` para las demás (las pruebas
+// pasan los suyos; sin ellos, los de siempre).
+export function lazyLoaders(alevin = {}, others = {}) {
+  const { ensure = ensureLazy, ensureSeason = ensureSeasonLazy } = others;
+  return {
+    ensure: (cat) => (cat === 'alevin' && alevin.ensure ? alevin.ensure() : ensure(cat)),
+    ensureSeason: (cat, season) => (cat === 'alevin' && alevin.ensureSeason ? alevin.ensureSeason(season) : ensureSeason(cat, season)),
+  };
 }
 
 // loadAlevinSeasons de antes: las temporadas (no los pares) cuyo alevín no llegó. `loaders`, los de alevinNeeds.

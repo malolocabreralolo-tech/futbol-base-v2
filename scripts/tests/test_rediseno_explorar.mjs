@@ -7,13 +7,15 @@ import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
 import { fixture } from './fixtures/rediseno/load.mjs';
 import { archive, nextSeasonRaw } from './fixtures/rediseno/simulate.mjs';
-import { ctxFor, datasetsFor, cssRules, PORTAL_SEASON } from './fixtures/rediseno/screens.mjs';
+import { ctxFor, datasetsFor, cssRules, lazyWith, PORTAL_SEASON } from './fixtures/rediseno/screens.mjs';
 import { fakeBrowser } from './fixtures/rediseno/fake-browser.mjs';
 import { screen, searchView } from '../../src/screen-explorar.js';
 import { SCREEN_MAP } from '../../src/screens.js';
 import { startRouter } from '../../src/router.js';
 import { createModel, competitions, groupSummary, phaseLevel, searchKey, searchTeams, topPhase } from '../../src/model.js';
 import { searchBox, seasonPicker, linkRow } from '../../src/ui.js';
+import { lazyData, lazyNeeds } from '../../src/state.js';
+import { trajectoryContent } from '../../src/team-extras.js';
 
 const s = (h) => String(h);
 const text = (h) => s(h).replace(/<[^>]*>/g, ' ').replace(/&quot;/g, '"').replace(/&#39;/g, "'")
@@ -626,4 +628,77 @@ test('registro: Explorar es la pantalla de #/explorar; y el CSS: solo clases que
     ...[{ me: BUSCAR_ME }, { me: null }, {}].map((buscar) => s(screen.render(withPlayers({ q: 'mesa' }, buscar))))].join('');
   const used = new Set(html.match(/class="[^"]+"/g).flatMap((m) => m.slice(7, -1).split(/\s+/)));
   assert.deepEqual([...used].filter((c) => !rules.classes.has(c)), []);
+});
+
+// ── Infantil, cadete y juvenil (parte E2, tarea 4) ───────────────────────
+//
+// Grupos inventados (lazyWith): las fixtures congeladas no traen ninguna de las nuevas.
+const INF = lazyWith('infantil', [{ id: 'INFPG1', phase: 'Preferente GC', fullName: 'LIGA INFANTIL PREFERENTE DE GRAN CANARIA - GRUPO 1', teams: ['Club Infantil Uno', 'Club Infantil Dos'] }]);
+const CAD = lazyWith('cadete', [{ id: 'CADNG1', phase: 'Insular GC', fullName: 'LIGA CADETE INSULAR GRAN CANARIA - GRUPO 1', teams: ['Club Cadete Uno', 'Club Cadete Dos'] }]);
+const partialOf = (out) => (out.match(/<p class="partial-text">([^<]*)<\/p>/) || [])[1] || null;
+
+test('test_explorar_con_una_perezosa_caida: con infantil y cadete y sin juvenil, sus ligas y un aviso que nombra juvenil, con «Reintentar»', () => {
+  const failed = (cats) => {
+    const ctx = ctxWith({}, {}, { lazy: { infantil: INF, cadete: CAD, juvenil: undefined } });
+    ctx.lazyFailed = cats;
+    return s(screen.render(ctx));
+  };
+  const out = failed(['juvenil']);
+  const ligas = blockOf(out, 'Ligas');
+  assert.match(ligas, /<h3 class="link-head">Infantil<\/h3>.*<h3 class="link-head">Cadete<\/h3>/);
+  assert.deepEqual(rows(ligas, 'link-row').filter(([href]) => /c=(infantil|cadete)/.test(href)).map(([href]) => href), [
+    `#/ligas?s=${PORTAL_SEASON}&c=infantil&f=preferente`, `#/ligas?s=${PORTAL_SEASON}&c=cadete&f=insular`]);
+  assert.equal(partialOf(out), 'No se pudieron cargar los datos de juvenil: se ven las demás categorías.');
+  assert.doesNotMatch(out, /datos de alevín/);
+  assert.match(out, /<div class="box partial-box" role="status"><p class="partial-text">[^<]*<\/p><div class="buttons"><button class="button" type="button" data-action="retry">Reintentar<\/button><\/div><\/div>/);
+  assert.equal(partialOf(failed(['cadete', 'juvenil'])), 'No se pudieron cargar los datos de cadete y juvenil: se ven las demás categorías.');
+  // Solo alevín, con las de hoy: el texto de siempre.
+  const today = ctxWith({}, {}, { lazy: { alevin: undefined } });
+  today.lazyFailed = ['alevin'];
+  assert.equal(partialOf(s(screen.render(today))), 'No se pudieron cargar los datos de alevín: se ven benjamín y prebenjamín.');
+  assert.equal(partialOf(render({})), null, 'sin fallos, sin aviso');
+});
+
+test('test_explorar_con_una_perezosa_caida: en el router, Explorar pide las que dice data-seasons.js y avisa de juvenil, que no llega', async () => {
+  const asked = [];
+  const ensure = async (cat) => { asked.push(cat); return cat === 'juvenil' ? null : cat === 'infantil' ? INF : cat === 'cadete' ? CAD : lazyData(cat, {}); };
+  const loadLazy = (cat, season, data, portal) => lazyNeeds(cat, season, data, portal, { ensure });
+  const seasons = [{ name: PORTAL_SEASON, current: true, lazy: ['infantil', 'cadete', 'juvenil'] }, { name: '2024-2025', current: false }];
+  const datasets = datasetsFor({ seasons, lazy: { alevin: undefined, infantil: undefined, cadete: undefined, juvenil: undefined } });
+  const b = fakeBrowser('#/explorar');
+  const router = startRouter({ screens: SCREEN_MAP, root: b.root, getContext: () => ctxFor('', {}, { datasets }), window: b.win, loadLazy });
+  await router.idle();
+  assert.deepEqual(asked.sort(), ['alevin', 'cadete', 'infantil', 'juvenil']);
+  const out = b.root.innerHTML;
+  assert.equal(partialOf(out), 'No se pudieron cargar los datos de juvenil: se ven las demás categorías.');
+  assert.match(out, /c=infantil&amp;f=preferente/);
+  // Con las de hoy (SEASONS sin `lazy`), solo alevín, como siempre.
+  asked.length = 0;
+  const today = datasetsFor({ lazy: { alevin: undefined, infantil: undefined, cadete: undefined, juvenil: undefined } });
+  const b2 = fakeBrowser('#/explorar');
+  const r2 = startRouter({ screens: SCREEN_MAP, root: b2.root, getContext: () => ctxFor('', {}, { datasets: today }), window: b2.win, loadLazy });
+  await r2.idle();
+  assert.deepEqual(asked, ['alevin']);
+  assert.equal(partialOf(b2.root.innerHTML), null);
+});
+
+test('test_un_club_en_dos_categorias: Arucas en benjamín y en JUV2G1 (juvenil): dos veces en el buscador, su ficha de juvenil y su trayectoria con los dos', async () => {
+  const JUV = lazyWith('juvenil', [{ id: 'JUV2G1', phase: 'Segunda GC', fullName: 'LIGA SEGUNDA JUVENIL GRAN CANARIA - GRUPO 1', teams: ['Arucas', 'Club Juvenil Dos'] }]);
+  const data = { lazy: { juvenil: JUV } };
+  // Arucas, el de benjamín en su fase más alta (A1: jugó la Primera Fase en FF5), y el de juvenil, seguidos.
+  const found = rows(s(searchView(ctxWith({}, {}, data), 'Arucas').list), 'search-result').filter(([href]) => href.endsWith('&t=Arucas'));
+  assert.deepEqual(found, [
+    [`#/equipo?s=${PORTAL_SEASON}&g=A1&t=Arucas`, 'Arucas Benjamín, Segunda Fase A, Grupo 1'],
+    [`#/equipo?s=${PORTAL_SEASON}&g=JUV2G1&t=Arucas`, 'Arucas Juvenil, Segunda, Grupo 1'],
+  ]);
+  // La ficha de juvenil: su calendario, sin los partidos de benjamín.
+  const ficha = s(SCREEN_MAP.equipo.render(ctxFor('equipo', { s: PORTAL_SEASON, g: 'JUV2G1', t: 'Arucas' }, { datasets: datasetsFor(data) })));
+  assert.match(ficha, /Club Juvenil Dos/);
+  assert.doesNotMatch(ficha, /Corazón Mª C|Acodetti B/, 'los rivales de benjamín no');
+  // La trayectoria del club: los dos grupos de la temporada, cada uno en su categoría.
+  const ctx = ctxFor('equipo', { s: PORTAL_SEASON, g: 'JUV2G1', t: 'Arucas' }, { datasets: datasetsFor(data) });
+  const traj = s(await trajectoryContent(ctx, 'Arucas', async (name) => archive(name)));
+  const now = traj.slice(0, traj.indexOf('<h3 class="traj-season">2024/25</h3>'));
+  assert.match(now, /<span class="traj-team">Arucas<\/span><span class="traj-group">Benjamín, Segunda Fase A, Grupo 1<\/span>/);
+  assert.match(now, /<span class="traj-team">Arucas<\/span><span class="traj-group">Juvenil, Segunda, Grupo 1<\/span>/);
 });

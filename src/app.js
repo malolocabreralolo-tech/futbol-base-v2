@@ -52,9 +52,10 @@ export function start(doc, win, config = PORTAL, { now = () => new Date() } = {}
   // respuesta: la de la red se vuelve a pedir pasados 10 minutos y la copia del SW, pasados 30 s y sin
   // esperarla (healthNeeds). Las categorías perezosas (alevín, infantil, cadete y juvenil: LAZY_CATS),
   // nunca en REQUIRED: lazy[cat], undefined hasta que el router la pide (data-<cat>.js), y
-  // seasonLazy[cat], la de cada temporada pasada (data-season-<S>-<cat>.js).
+  // seasonLazy[cat], la de cada temporada pasada (data-season-<S>-<cat>.js). matchDetailLazy[cat], la
+  // cronología de infantil, cadete y juvenil (data-matchdetail-<cat>.js), al abrir uno de sus partidos.
   const datasets = {
-    ...readGlobals(), seasonRaw: {}, matchDetail: null, lineups: {}, health: undefined,
+    ...readGlobals(), seasonRaw: {}, matchDetail: null, matchDetailLazy: {}, lineups: {}, health: undefined,
     lazy: Object.fromEntries(LAZY_CATS.map((cat) => [cat, undefined])),
     seasonLazy: Object.fromEntries(LAZY_CATS.map((cat) => [cat, {}])),
   };
