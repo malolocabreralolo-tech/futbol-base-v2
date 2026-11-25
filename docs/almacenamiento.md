@@ -199,6 +199,63 @@ un programa que la tuviera abierta seguiría escribiendo en la vieja.
 Tres, publicables por separado. Las describen las tareas 2, 3 y 7 del plan
 `docs/superpowers/plans/2026-11-25-ampliacion-d-almacenamiento.md`, que completan esta sección.
 
-1. Sombra (tarea 2).
+1. Sombra (tarea 2): abajo.
 2. Cambio de fuente de verdad (tarea 3).
 3. `futbolbase.db` fuera de git (tarea 7).
+
+### Fase 1: en sombra
+
+La fuente de verdad sigue siendo `futbolbase.db`, en git como hasta ahora. Las piezas se generan al lado y
+se suben con ella, para ver durante unos días que salen siempre iguales antes de fiarse de ellas. **Nada de lo
+nuevo puede dejar al bot sin publicar**: si algo de las piezas falla, la pasada publica igual que hoy.
+
+En cada pasada del bot (`update.yml`) y en cada activación con datos (`activar.yml`), justo después de «Base
+sana», el paso **«Piezas de la base (en sombra)»**:
+
+1. `python3 scripts/piezas.py partir`: pone `base/` al día con la base de esta pasada (solo las piezas que
+   cambian).
+2. `python3 scripts/piezas.py verificar`: monta las piezas en un temporal y comprueba que son la base, fila a
+   fila. En el registro: `piezas iguales a la base: 30 tablas; la mayor, comun.db (10,6 MB); en total 31,9 MB`.
+3. Si cualquiera de las dos falla (o se cuelga: 5 min de plazo), `base/` vuelve a lo que hay en `main` (las
+   piezas nuevas y los diarios de una cortada, fuera), el paso sale en rojo con su motivo en el registro y la
+   pasada **sigue** (`continue-on-error`): pruebas, commit y lo demás, como hoy.
+
+Al subir («Commit y push si hay cambios» y «Subir la activación»), `base/` va **con la base y solo con ella**:
+dentro de la misma puerta (si no cambió nada publicado ni hay marca de `update_fiflp`, no se sube ni la base ni
+las piezas) y solo si el paso de las piezas salió bien. Con las piezas en rojo, la pasada sube la base y lo
+demás, y `base/` en `main` se queda como estaba (la pasada siguiente lo pone al día). Si las pruebas fallan tras
+activar, «Publicar el fallo» devuelve también `base/` a lo de `main`.
+
+La primera pasada con datos sube `base/` entera (unos 32 MB: la común y una pieza por temporada); las
+siguientes, solo la pieza que cambia y `piezas.json`, que se comprimen en git a unos KB.
+
+`tests.yml` (cada día y en cada push que toque la base o `base/`) añade dos cosas al job de Python:
+
+- `PIEZAS_REAL=1` en la suite: la base de verdad partida y vuelta a montar en una copia
+  (`test_piezas_real.py`).
+- **«Las piezas son la base»**: `python3 scripts/piezas.py comparar --db futbolbase.db --piezas base`. Es el aviso
+  de que la sombra se ha desviado: las piezas que subió la última pasada, montadas, tienen que ser la base que
+  subió. En rojo, se mira el registro de la última pasada con datos (el paso de las piezas dice por qué). Antes
+  de que la primera pasada suba `base/`, no hay nada que comparar y sale en verde con un aviso.
+
+Cómo se mira que va bien:
+
+- En el registro de cada pasada con datos, la línea `piezas iguales a la base: …`
+  (`gh run view <id> -R malolocabreralolo-tech/futbol-base-v2 --log | grep "piezas iguales"`).
+- `git show --stat origin/main -- base/` tras una pasada con datos: las piezas que cambiaron.
+- `tests.yml` en verde cada día, con «Las piezas son la base».
+- Antes de pasar a la fase 2, las últimas pasadas una a una (en un clon limpio):
+
+```bash
+for c in $(git log -n 12 --format=%H origin/main -- futbolbase.db); do
+  d=$(mktemp -d); git archive "$c" base futbolbase.db | tar -x -C "$d"
+  python3 scripts/piezas.py comparar --db "$d/futbolbase.db" --piezas "$d/base" > /dev/null || echo "DISTINTO $c"
+  rm -rf "$d"
+done
+```
+
+Sin ninguna línea `DISTINTO`, se puede seguir. Vuelta atrás: `git revert` de los commits de esta fase (con el
+bot sin nada en marcha); las piezas que haya en `base/` se quedan sin uso.
+
+Lo que cuesta: en cada pasada, unos 15 s del paso de las piezas (partir sin cambios, 3,4 s; verificar, 10,7 s)
+y unos 25 s más de la suite (`test_piezas.py`); con todas las actas, alrededor de 1,5 min del paso.
