@@ -80,7 +80,7 @@ def test_primero_los_goleadores_de_todas_las_temporadas():
 def test_despues_las_actas_de_la_mas_reciente():
     e = H.estado_vacio()
     for k in ("goleadores:2025-2026", "goleadores:2024-2025"):
-        e["trabajos"][k] = {"estado": "promovido", "pendientes": 0, "no_disponible": 0}
+        e["trabajos"][k] = {"estado": "promovido", "pendientes": 0, "no_disponible": 0, "categorias": ["alevin"]}
     a = H.siguiente(PLAN, e, MIERCOLES, env={})
     assert (a["trabajo"], a["temporadas"], a["lote"]) == ("actas", ["21"], "alevin")
     assert a["partes"] == ["actas:2025-2026:alevin"] and a["comps"][0] != a["comps"][-1]
@@ -91,7 +91,8 @@ def test_despues_las_actas_de_la_mas_reciente():
 
 def test_lo_completo_se_prueba_antes_de_seguir_bajando():
     e = H.estado_vacio()
-    e["trabajos"]["goleadores:2025-2026"] = {"estado": "completo", "pendientes": 0, "no_disponible": 1}
+    e["trabajos"]["goleadores:2025-2026"] = {"estado": "completo", "pendientes": 0, "no_disponible": 1,
+                                             "categorias": ["alevin"]}
     assert H.siguiente(PLAN, e, MIERCOLES, env={}) == {"accion": "probar", "trabajos": ["goleadores:2025-2026"]}
     # A 40 min de una ventana no se prueba (la importación del bot caería en ella): se sigue bajando otra cosa.
     a = H.siguiente(PLAN, e, T("2026-11-27T17:00:00Z"), env={})
@@ -102,7 +103,7 @@ def test_se_prueba_una_temporada_cada_vez_con_los_campos():
     plan = {**PLAN, "trabajos": ["goleadores", "detalle"]}
     e = H.estado_vacio()
     for k in ("goleadores:2024-2025", "detalle:2024-2025", "campos", "goleadores:2025-2026"):
-        e["trabajos"][k] = {"estado": "completo", "pendientes": 0, "no_disponible": 0}
+        e["trabajos"][k] = {"estado": "completo", "pendientes": 0, "no_disponible": 0, "categorias": ["alevin"]}
     assert H.siguiente(plan, e, MIERCOLES, env={}) == {"accion": "probar",
                                                        "trabajos": ["goleadores:2025-2026", "campos"]}
     e["trabajos"]["goleadores:2025-2026"]["estado"] = "promovido"
@@ -135,8 +136,84 @@ def test_nada_cuando_no_toca():
     assert H.siguiente(PLAN, lleno, MIERCOLES, env={})["motivo"] == "tope del día"
     hecho = H.estado_vacio()
     for k in H.trabajos_del_plan(PLAN):
-        hecho["trabajos"][k] = {"estado": "promovido", "pendientes": 0, "no_disponible": 0}
+        hecho["trabajos"][k] = {"estado": "promovido", "pendientes": 0, "no_disponible": 0, "categorias": ["alevin"]}
     assert H.siguiente(PLAN, hecho, MIERCOLES, env={})["motivo"] == "terminado"
+
+
+def _descarga(trabajo, temporadas, categorias, partes):
+    accion = {"accion": "descargar", "trabajo": trabajo, "temporadas": temporadas, "categorias": categorias,
+              "dia": "2026-11-25", "inicio": "2026-11-25T10:00:00+00:00", "partes": list(partes)}
+    resumen = {"pedidas": 50, "servidas": 50, "muertas": 0, "esperas": 0, "frenos": 0, "frenos_tras": [],
+               "parada": None, "nube": "azure", "runner_rechazado": False, "partes": partes}
+    return accion, resumen
+
+
+ENTERA = {"completo": True, "pendientes": 0, "no_disponible": 0}
+
+
+def test_otra_categoria_sobre_una_temporada_ya_promovida_se_baja():
+    """I2 de la revisión: los goleadores, el detalle, el calendario y los escudos de una temporada son un fichero
+    para todas las categorías, y su trabajo uno por temporada. Su estado guarda las categorías que tiene enteras:
+    lo promovido para alevín no es lo de benjamín (ni lo de infantil, después)."""
+    e = H.estado_vacio()
+    e["trabajos"]["goleadores:2025-2026"] = {"estado": "promovido", "pendientes": 0, "no_disponible": 0,
+                                             "categorias": ["alevin"],
+                                             "huellas": {"fiflp_goleadores_2025-2026_raw.json": "v"}}
+    e["trabajos"]["actas:2025-2026:siempre"] = {"estado": "promovido", "pendientes": 0, "no_disponible": 0}
+    plan = H.encargar(None, "21", "benjamin", "goleadores,actas", "", MIERCOLES)
+    a = H.siguiente(plan, e, MIERCOLES, env={})
+    assert (a["accion"], a["trabajo"], a["temporadas"], a["categorias"]) == (
+        "descargar", "goleadores", ["21"], ["benjamin", "prebenjamin"])
+    assert a["partes"] == ["goleadores:2025-2026"]
+    assert "2025-26 · goleadores: pendiente (hecho solo para alevín)." in H.estado_legible(plan, e, MIERCOLES)
+    # Bajado lo de benjamín (otro contenido): completo con las tres (lo de alevín sigue entero en el
+    # fichero), y a probar.
+    accion, resumen = _descarga("goleadores", ["21"], a["categorias"], {"goleadores:2025-2026": ENTERA})
+    e = H.registrar(e, accion, resumen, MIERCOLES, huellas=lambda k: {"fiflp_goleadores_2025-2026_raw.json": "n"})
+    assert e["trabajos"]["goleadores:2025-2026"]["estado"] == "completo"
+    assert e["trabajos"]["goleadores:2025-2026"]["categorias"] == ["benjamin", "prebenjamin", "alevin"]
+    assert H.siguiente(plan, e, MIERCOLES, env={}) == {"accion": "probar", "trabajos": ["goleadores:2025-2026"]}
+    # Un encargo de alevín después: ya está.
+    e = H.registrar_prueba(e, ["goleadores:2025-2026"], {"verde": True}, MIERCOLES)
+    alevin = H.encargar(None, "21", "alevin", "goleadores", "", MIERCOLES)
+    assert H.siguiente(alevin, e, MIERCOLES, env={})["motivo"] == "terminado"
+
+
+def test_lo_que_no_trae_nada_nuevo_de_otra_categoria_se_queda_promovido():
+    """Una categoría sin nada en esa temporada (la descarga lo da entero sin escribir): se queda promovido, ya
+    con ella, y no se vuelve a pedir."""
+    e = H.estado_vacio()
+    e["trabajos"]["detalle:2024-2025"] = {"estado": "promovido", "pendientes": 0, "no_disponible": 0,
+                                          "categorias": ["alevin"], "huellas": {RAW_DETALLE: "d1"}}
+    plan = H.encargar(None, "20", "benjamin", "detalle", "", MIERCOLES)
+    accion, resumen = _descarga("detalle", ["20"], ["benjamin", "prebenjamin"],
+                                {"detalle:2024-2025": ENTERA, "campos": ENTERA})
+    e = H.registrar(e, accion, resumen, MIERCOLES, huellas=lambda k: {RAW_DETALLE: None} if k != "campos" else {})
+    assert e["trabajos"]["detalle:2024-2025"]["estado"] == "promovido"
+    assert e["trabajos"]["detalle:2024-2025"]["categorias"] == ["benjamin", "prebenjamin", "alevin"]
+    # Los campos no son de ninguna categoría (las fichas de todos los campos que salen): sin «categorias».
+    assert "categorias" not in e["trabajos"]["campos"] and e["trabajos"]["campos"]["estado"] == "completo"
+
+
+def test_cambiar_de_categorias_a_medias_no_da_por_hecho_lo_que_falta():
+    """Un trabajo pendiente de alevín (cortado) y un encargo nuevo de benjamín: la parte que da el descargador es
+    la de benjamín; completo solo para benjamín, y lo de alevín sigue por bajar en su encargo."""
+    e = H.estado_vacio()
+    accion, resumen = _descarga("goleadores", ["21"], ["alevin"], {
+        "goleadores:2025-2026": {"completo": False, "pendientes": 7, "no_disponible": 0}})
+    e = H.registrar(e, accion, resumen, MIERCOLES)
+    assert e["trabajos"]["goleadores:2025-2026"]["estado"] == "pendiente"
+    assert not e["trabajos"]["goleadores:2025-2026"].get("categorias")
+    accion, resumen = _descarga("goleadores", ["21"], ["benjamin", "prebenjamin"], {"goleadores:2025-2026": ENTERA})
+    e = H.registrar(e, accion, resumen, MIERCOLES)
+    assert e["trabajos"]["goleadores:2025-2026"]["categorias"] == ["benjamin", "prebenjamin"]
+    e = H.registrar_prueba(e, ["goleadores:2025-2026"], {"verde": True}, MIERCOLES)
+    alevin = H.encargar(None, "21", "alevin", "goleadores,escudos", "", MIERCOLES)
+    a = H.siguiente(alevin, e, MIERCOLES, env={})
+    assert (a["trabajo"], a["categorias"]) == ("goleadores", ["alevin"])     # y los escudos, después de él
+    # Un «fallo» no se reabre con otras categorías: el fichero que falló está en la cuarentena (reintentar).
+    e["trabajos"]["goleadores:2025-2026"]["estado"] = "fallo"
+    assert H.siguiente(alevin, e, MIERCOLES, env={})["motivo"] == "terminado"
 
 
 def test_los_trabajos_del_plan():
@@ -156,7 +233,8 @@ def test_los_trabajos_del_plan():
 def test_las_fases_de_un_fichero_van_en_orden():
     plan = {**PLAN, "temporadas": ["21"], "trabajos": ["goleadores", "escudos"]}
     e = H.estado_vacio()
-    e["trabajos"]["goleadores:2025-2026"] = {"estado": "fallo", "pendientes": 0, "no_disponible": 0}
+    e["trabajos"]["goleadores:2025-2026"] = {"estado": "fallo", "pendientes": 0, "no_disponible": 0,
+                                             "categorias": ["alevin"]}
     assert H.siguiente(plan, e, MIERCOLES, env={})["motivo"] == "terminado"       # escudos espera a goleadores
     e["trabajos"]["goleadores:2025-2026"]["estado"] = "promovido"
     assert H.siguiente(plan, e, MIERCOLES, env={})["trabajo"] == "escudos"
@@ -474,7 +552,7 @@ def test_los_registros_no_crecen_sin_tope():
 def _estado_de_ejemplo():
     e = {**H.estado_vacio(), "dia": {"fecha": "2026-11-25", "paginas": 340, "freno": None}}
     e["trabajos"] = {
-        "goleadores:2025-2026": {"estado": "promovido", "pendientes": 0, "no_disponible": 0},
+        "goleadores:2025-2026": {"estado": "promovido", "pendientes": 0, "no_disponible": 0, "categorias": ["alevin"]},
         "actas:2025-2026:alevin": {"estado": "pendiente", "pendientes": 1204, "no_disponible": 0},
         "actas:2023-2024:alevin": {"estado": "fallo", "pendientes": 0, "no_disponible": 0},
     }
@@ -586,7 +664,8 @@ def test_la_orden_de_la_prueba_y_del_encargo(tmp_path, monkeypatch, capsys):
     assert _main(["encargar", "--temporadas", "21", "--categorias", "alevin", "--trabajos", "goleadores",
                   "--calendario", ""], tmp_path, monkeypatch)[0] == 0
     estado = H.estado_vacio()
-    estado["trabajos"]["goleadores:2025-2026"] = {"estado": "completo", "pendientes": 0, "no_disponible": 0}
+    estado["trabajos"]["goleadores:2025-2026"] = {"estado": "completo", "pendientes": 0, "no_disponible": 0,
+                                                  "categorias": ["alevin"]}
     carpeta.joinpath("estado.json").write_text(json.dumps(estado))
     code, out = _main(["siguiente", "--salud", str(salud)], tmp_path, monkeypatch)
     assert "accion=probar\n" in out and "trabajos=goleadores:2025-2026\n" in out

@@ -43,7 +43,8 @@ Las reglas del carril, y el porqué de cada número:
 Los ficheros del carril (en carpeta(): HISTORICO_CARPETA o cuarentena.CARPETA):
   plan.json    el encargo (solo lo escribe el job del encargo: encargar, parar, reanudar, reintentar);
   estado.json  lo que lleva hecho (solo lo escribe el carril): el día, los días frenados, cada trabajo
-               (pendiente, completo, fallo, promovido), las ejecuciones y las pruebas. De aquí leerá «Datos y
+               (pendiente, completo, fallo, promovido; las huellas de lo que se probó y, los de un fichero de
+               todas las categorías, las que tiene enteras), las ejecuciones y las pruebas. De aquí leerá «Datos y
                fuentes» (no de data-health.json, que reescribe el bot: dos escritores chocarían al rebasar).
 
   python3 scripts/historico.py siguiente | descargar --accion F --resumen F | registrar --accion F [--resumen F]
@@ -95,6 +96,12 @@ RELANZAR_SI_RUNNER_RECHAZADO = 0
 # trayectorias), detrás; y las dos fases que reescriben un fichero ya promovido (cuarentena.FAMILIA), al final.
 TRABAJOS = ("goleadores", "actas", "detalle", "calendario", "escudos")
 ESTADOS = ("pendiente", "completo", "fallo", "promovido")
+# Los trabajos de un fichero por temporada para TODAS las categorías (fiflp_goleadores_<S>_raw.json,
+# fiflp_detalle_<S>_raw.json): su clave no lleva la categoría (se prueba y se promueve el fichero entero), así que
+# su estado guarda las categorías que tiene enteras («categorias»). Lo hecho para alevín no es lo de benjamín ni lo
+# de infantil sobre la misma temporada (_estado_de). Las actas van por lote (en su clave, cada uno con su fichero)
+# y los campos son de todos los campos que salen, de cualquier categoría.
+COMPARTIDOS = ("goleadores", "detalle", "calendario", "escudos")
 # La temporada en curso: sus goleadores y su calendario los lee el bot; el carril, solo sus actas y su detalle.
 EN_CURSO = "22"
 # Los registros de estado.json, con tope (es un fichero del repositorio, se sube en cada ejecución).
@@ -303,19 +310,36 @@ def trabajos_del_plan(plan):
     return out
 
 
-def _estado_de(estado, clave):
-    return ((estado.get("trabajos") or {}).get(clave) or {}).get("estado") or "pendiente"
+def _falta_para(estado, clave, plan):
+    """Las categorías del encargo que un trabajo de fichero compartido (COMPARTIDOS) aún no tiene enteras: las de
+    plan["categorias"] que no están en las suyas («categorias» del estado). [] si las tiene todas, si no es de
+    fichero compartido o sin plan."""
+    if plan is None or clave.split(":")[0] not in COMPARTIDOS:
+        return []
+    suyas = set(((estado.get("trabajos") or {}).get(clave) or {}).get("categorias") or [])
+    return [c for c in plan.get("categorias") or [] if c not in suyas]
 
 
-def _listo(estado, clave, claves):
+def _estado_de(estado, clave, plan=None):
+    """El estado de un trabajo para el encargo `plan`: el apuntado, salvo un «completo» o un «promovido» de
+    fichero compartido al que le falta alguna categoría del encargo (_falta_para): para él, «pendiente» (lo de
+    las otras categorías no está bajado). Un «fallo» sigue siendo «fallo» con otras categorías: el fichero que
+    falló está en la cuarentena, y bajar encima sería probarlo otra vez sin saber por qué rompía (reintentar)."""
+    est = ((estado.get("trabajos") or {}).get(clave) or {}).get("estado") or "pendiente"
+    if est in ("completo", "promovido") and _falta_para(estado, clave, plan):
+        return "pendiente"
+    return est
+
+
+def _listo(estado, clave, claves, plan=None):
     """Una fase de un fichero (cuarentena.FAMILIA: escudos y calendario) solo empieza con la anterior del mismo
-    fichero promovida: si no, escribiría en la copia de la cuarentena de la anterior antes de probarla. Si la
-    anterior no es del encargo ni se ha tocado nunca, sobre lo publicado."""
+    fichero promovida (para las categorías del encargo): si no, escribiría en la copia de la cuarentena de la
+    anterior antes de probarla. Si la anterior no es del encargo ni se ha tocado nunca, sobre lo publicado."""
     anterior = FAMILIA.get(clave.split(":")[0])
     if anterior is None:
         return True
     previa = f"{anterior}:{_temporada(clave)}"
-    if _estado_de(estado, previa) == "promovido":
+    if _estado_de(estado, previa, plan) == "promovido":
         return True
     return previa not in claves and previa not in (estado.get("trabajos") or {})
 
@@ -333,8 +357,9 @@ def _suelto(estado, clave):
 
 
 def _a_probar(plan, estado, clave):
-    """Completo (sin probar), o «fallo» con su prueba anterior a plan["reintentar_desde"] (reintentar)."""
-    est = _estado_de(estado, clave)
+    """Completo (sin probar, y con las categorías del encargo), o «fallo» con su prueba anterior a
+    plan["reintentar_desde"] (reintentar)."""
+    est = _estado_de(estado, clave, plan)
     if est == "completo":
         return True
     desde = _instante(plan.get("reintentar_desde"))
@@ -422,7 +447,7 @@ def siguiente(plan, estado, now, env=None, salud=None):
         return _nada("tope del día")
     if _freno_hoy(estado, now) or freno_del_bot(salud, now):
         return _nada("freno de verdad hoy")
-    pendientes = [k for k in claves if _estado_de(estado, k) == "pendiente" and _listo(estado, k, claves)]
+    pendientes = [k for k in claves if _estado_de(estado, k, plan) == "pendiente" and _listo(estado, k, claves, plan)]
     for tipo in TRABAJOS:
         suyos = [k for k in pendientes if _tipo(k) == tipo]
         if not suyos:
@@ -526,8 +551,10 @@ def registrar(estado, accion, resumen, now, salud=None, huellas=None):
     de sus ficheros en la cuarentena haya cambiado desde su prueba (`huellas(clave)`, {nombre: sha1 o None}, contra
     las que guardó registrar_prueba: _cambiado). No basta con que el fichero esté: tras una prueba en rojo se queda
     en la cuarentena, y un «fallo» volvería solo a «completo» y se probaría otra vez (los campos, que recorre cada
-    descarga del detalle, arrastraban así a cada temporada). Sin resumen (el descargador no llegó a escribirlo), la
-    ejecución con "pedidas": None y un aviso."""
+    descarga del detalle, arrastraban así a cada temporada). Un trabajo de fichero compartido (COMPARTIDOS) suma a
+    sus «categorias» las de la acción cuando su parte vuelve entera (la calculó el descargador con ellas; lo de las
+    de antes sigue entero en el fichero: nadie lo borra); pendiente, se queda con las que tenía. Sin resumen (el
+    descargador no llegó a escribirlo), la ejecución con "pedidas": None y un aviso."""
     estado = copy.deepcopy(estado)
     estado.setdefault("trabajos", {})
     rechazado = bool(resumen and resumen.get("runner_rechazado"))
@@ -545,9 +572,12 @@ def registrar(estado, accion, resumen, now, salud=None, huellas=None):
                     not _cambiado(previo, huellas(clave) if huellas else {}):
                 nuevo = antes
             # Sobre lo de antes: las huellas de su última prueba no se pierden con una descarga.
-            estado["trabajos"][clave] = {**previo, "estado": nuevo, "pendientes": int(parte.get("pendientes") or 0),
-                                         "no_disponible": int(parte.get("no_disponible") or 0),
-                                         "actualizado": _iso(now)}
+            estado["trabajos"][clave] = datos = {
+                **previo, "estado": nuevo, "pendientes": int(parte.get("pendientes") or 0),
+                "no_disponible": int(parte.get("no_disponible") or 0), "actualizado": _iso(now)}
+            if clave.split(":")[0] in COMPARTIDOS and parte.get("completo") and nuevo != "fallo":
+                suyas = set(previo.get("categorias") or []) | set(accion.get("categorias") or [])
+                datos["categorias"] = [c for c in DB_NAME if c in suyas]
         if resumen.get("parada") == "freno" or int(resumen.get("frenos") or 0) > 0:
             _frenar_dia(estado, accion.get("dia"), "carril")
     r = resumen or {}
@@ -607,7 +637,8 @@ def _lista(texto):
 
 
 def encargar(plan, temporadas, categorias, trabajos, calendario, now):
-    """El plan nuevo (sustituye al de antes; lo ya promovido en el estado no se vuelve a bajar). ValueError si una
+    """El plan nuevo (sustituye al de antes; lo ya promovido en el estado para sus categorías no se vuelve a bajar:
+    _estado_de). ValueError si una
     temporada no está en SEASON_NAME, una categoría no existe, un trabajo no está en TRABAJOS, la temporada en curso
     lleva otro trabajo que actas o detalle (sus goleadores y su calendario los lee el bot) o el calendario pide una
     temporada que no está en `temporadas`. Con benjamín o prebenjamín, las dos: comparten el lote de siempre."""
@@ -683,11 +714,14 @@ def _medidas(prueba):
             f"{float(prueba.get('segundos') or 0):.0f} s")
 
 
-def _linea_trabajo(estado, clave):
+def _linea_trabajo(estado, clave, plan=None):
     datos = (estado.get("trabajos") or {}).get(clave)
-    est = _estado_de(estado, clave)
+    est = _estado_de(estado, clave, plan)
     if datos is None:
         return f"{_etiqueta(clave)}: pendiente."
+    if est == "pendiente" and datos.get("estado") in ("completo", "promovido"):
+        # Hecho para otras categorías (el fichero es de todas): le faltan las del encargo.
+        return f"{_etiqueta(clave)}: pendiente (hecho solo para {_categorias_legibles(datos.get('categorias') or [])})."
     if est == "promovido":
         prueba = _ultima_prueba(estado, clave)
         if prueba and prueba.get("verde"):
@@ -767,7 +801,7 @@ def estado_legible(plan, estado, now, env=None):
         usadas = int(dia.get("paginas") or 0) if dia.get("fecha") == fecha_de(now) else 0
         lineas.append(f"Hoy ({hoy}): {_miles(usadas)} de {_miles(paginas_dia(env))} páginas.")
     if plan:
-        lineas += [_linea_trabajo(estado, k) for k in trabajos_del_plan(plan)]
+        lineas += [_linea_trabajo(estado, k, plan) for k in trabajos_del_plan(plan)]
     if estado.get("ejecuciones"):
         lineas.append("Última ejecución: " + _linea_ejecucion(estado["ejecuciones"][-1]))
     if estado.get("pruebas"):

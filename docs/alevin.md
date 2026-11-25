@@ -140,7 +140,7 @@ El encargo corre su job (sube `scripts/historico/plan.json`) y en seguida el car
 4. Las ejecuciones de actas (páginas servidas, frenadas o no) hasta «2025-26 · actas alevín: en la base».
 5. El tamaño de la base tras la promoción de las actas. Lo previsto: unos 1,7 KB por acta, ~3-4 MB por temporada de alevín. Si pasa de lo previsto o de 80 MB, parar (`-f accion=parar`) y esperar a la parte D.
 
-Solo entonces, el resto (lo ya promovido no se vuelve a bajar):
+Solo entonces, el resto (lo ya promovido para alevín no se vuelve a bajar):
 
 ```bash
 gh workflow run historico.yml -R malolocabreralolo-tech/futbol-base-v2 --ref main -f accion=encargar -f temporadas=21,20,19,18,17,16,15 -f categorias=alevin -f trabajos=goleadores,actas,detalle,escudos
