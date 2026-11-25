@@ -296,6 +296,8 @@ Actas: además de lo de siempre, el lector guarda todo el cuerpo técnico (`staf
 
 `fetch_fp_app.py` (en el bot, tras la federación; futbolaspalmas sí contesta desde casa) lee la API de `directo.php`: `get_full_calendar&liga_id=N`, `get_live_data&liga_id=N` (tabla con la equipación de cada equipo, sanciones y qué significa cada puesto) y `get_live_data&liga_id=HOY&fecha_ver=AAAA-MM-DD` (todos los partidos de un día: estado, goleadores con minuto y nombre de pila, hora real, árbitros, técnicos y mapa). `import_fp_app.py` lo guarda en `fp_ligas`, `fp_teams`, `fp_matches` y `fp_goals`, y en las tablas de siempre solo completa: el resultado de un partido finalizado que no lo tiene y la hora que falte; nunca cambia un marcador. Los goles de la app ponen nombre en la cronología a los niños que la federación no publica.
 
+Cada liga de la app va al grupo de la base de su categoría con el que comparte al menos el 60 % de los equipos de la plantilla **más grande** de las dos, sin empate. Hasta el 24/11/2026 se medía sobre la más pequeña, y con la segunda fase de benjamín no valía: cada grupo de la segunda (12 equipos) cabe entero en la eliminatoria de la primera (48), así que la liga de un grupo de la segunda casó una pasada con la eliminatoria (la base aún no tenía su grupo) y después empataba con su grupo y se quedaba sin ninguno (9 de 11), y las eliminatorias perdían el suyo (la A-B, sin grupo; la C-D, en el C2). Una liga sin grupo guarda igual sus equipos y partidos (sin equipo ni partido de la base).
+
 ## Temporadas antiguas del portal (Wayback)
 
 futbolaspalmas.com guardaba de 2012-13 a 2020-21 una página por grupo con su calendario y su clasificación, y el Wayback Machine la archivó. `fetch_wayback_portal.py` baja la mejor captura de cada grupo (la lista revisada, con su temporada, código y captura, está en `scripts/wayback_portal_sources.json`; las páginas quedan en una caché fuera del repositorio, `~/.cache/futbol-base/wayback`) y la lee con `wayback_portal.py` (tres formatos: la página de grupo de 2015-16 a 2018-19, con la clasificación en tabla o en divs; `calendarioN.php` de 2013-14 y 2014-15, donde un campo «R» marca un resultado administrativo; y la tabla «CLASIFICACION» de 2012-13 a 2014-15). Deja `scripts/wayback_portal_<S>_raw.json`. La temporada se deduce de las fechas de los partidos, nunca de la captura. No hay goleadores: se cargaban por AJAX y no se archivaron.
@@ -383,9 +385,10 @@ límite: una pasada cada vez, en fila.
 ### La espera del freno (`fiflp_carga.Federacion`, desde el 15/10/2026)
 
 Cuando frena —una página vacía, o la página que dejaría a la federación bloqueada (la tercera seguida sin
-cargar): con un 503 o un 429, sin más; si no (un 500, un corte), solo si la federación tampoco sirve otra
-página: la última que cargó o, si aún no ha cargado ninguna, la de competiciones de la temporada, que existe
-siempre (si carga, la racha es de URLs muertas: ni espera ni bloqueo, y esos grupos, como error)—:
+cargar): con un 503 o un 429, sin más; si no (una vacía, un 500, un corte), solo si la federación tampoco
+sirve otra página: la última que cargó o, si aún no ha cargado ninguna, la de competiciones de la temporada,
+que existe siempre (si carga, es esta página o la racha es de URLs muertas: ni espera ni bloqueo, y esos
+grupos, como error; desde el 25/11/2026 también para una página vacía, abajo, «Noviembre de 2026»)—:
 
 - **Sin reintento de la vacía**. Antes se reintentaba tras 60 s (`EMPTY_WAIT`), y salía vacía siempre: el
   bloqueo dura minutos. Era un minuto y una petición perdidos en cada freno.
@@ -414,8 +417,16 @@ siempre (si carga, la racha es de URLs muertas: ni espera ni bloqueo, y esos gru
   «sin», sin tope.
 - **Sin ralentizar al volver** (antes, el intervalo ×1,5 y hasta ×2): el cupo es de páginas, no de ritmo, y
   cada segundo de más es plazo perdido. El intervalo de 7 s se mantiene, por cortesía.
-- Si el sondeo no carga sin estar vacío (un 500, un corte) y la última página que cargó sí, la federación
-  sirve y esta página no: se sigue, y esta no carga.
+- Si el sondeo no carga (vacío o no: un 500, un corte) y la última página que cargó sí, la federación sirve
+  y esta página no: se sigue, y esta no carga (cuenta como página muerta, `dead`). Hasta el 25/11/2026 solo
+  se preguntaba si el sondeo no salía vacío, y una página vacía siempre se sondeaba hasta el tope o el plazo.
+  Cuesta una petición más por sondeo vacío (y una al frenar): el experimento midió que los sondeos no
+  alargan el bloqueo.
+- **El runner rechazado** (desde el 25/11/2026): si frena antes de que la federación haya servido ninguna
+  página en la pasada y el runner no es de Azure (`fiflp_carga.nube`, por el fabricante de la máquina), ni
+  la espera ni los sondeos: «la federación no sirve a este runner desde la primera página (nube: aws): nada
+  en esta pasada» (`Federacion.refused_runner`, `run.refusedRunner`). En Azure, o con alguna página ya
+  servida, la espera de siempre.
 - Lo demás, igual: un 503 o un 429 es señal del freno aunque la página cargue tras sus reintentos; el
   navegador cerrado no es el freno (ni señal ni espera; el grupo, error); y ninguna página empieza pasado el
   plazo, contando la espera del intervalo.
@@ -508,4 +519,27 @@ ordenar, 4,1 / 4,3 / 0; las dos, 2,2 / 2,4 / 74; no releer, 2,7 / 6,8 / 36; con 
 cada 8 h, 3,3 / 6,9 / 28. Los máximos de una semana se quedaban cortos.)
 
 Para cruzar frenos con IPs, `update.yml` imprime la IP pública del runner antes del paso del bot (paso
-«IP pública del runner», `api.ipify.org`, 5 s como mucho; nunca para el job y no va a `data-health.json`).
+«IP pública del runner», `api.ipify.org`, 5 s como mucho; nunca para el job y no va a `data-health.json`),
+y desde el 25/11/2026 también su nube («Nube del runner: Microsoft Corporation» o «Amazon EC2», de
+`/sys/class/dmi/id/sys_vendor`), que el bot guarda en `run.cloud`.
+
+### Noviembre de 2026: AWS y las páginas muertas
+
+El estudio del 25/11/2026 (840 registros de v1 y v2, sin pedir nada a la federación: [freno-2026-11.md](freno-2026-11.md))
+encontró que el cupo de octubre no se ha vuelto a ver en Azure desde el 21/10, y que las pasadas paradas de
+noviembre son dos cosas distintas, ninguna un cupo:
+
+- **Los runners de GitHub en AWS** (desde el 13/11, cerca de la mitad de los jobs): la federación les sirve
+  vacío desde la primera petición, siempre (183 de 183, también a v1, con 91 IPs; en Azure, 0 de 187). Esperar
+  eran 13 min y ~10 sondeos para nada: ahora la pasada acaba al momento (arriba, «El runner rechazado»). No se
+  relanza para que caiga en Azure: sería esquivar el bloqueo (decisión del dueño, pendiente).
+- **Las páginas muertas** (desde el 21/11, en v2): actas de alevín (ALD1, ALE2) cuya página sale vacía siempre.
+  El bot las tomaba por el freno, sondeaba la misma página 9-12 min y, sin gastarles intento, volvían las
+  primeras en cada pasada (`catch_up`). Ahora una página vacía solo es el freno si la federación tampoco sirve
+  otra (`Federacion.dead`, `run.deadPages`), y un acta así gasta su intento (`update_fiflp._read_actas`): con
+  sus 4 deja de pedirse.
+
+Lo prueban `test_fiflp_carga.py` (la vacía con la federación sirviendo, la vacía con la otra vacía también, el
+sondeo vacío cuando el freno ya pasó, el runner rechazado y `nube`), `test_fiflp_actas_federacion.py` (el acta
+muerta gasta su intento y no para las demás) y `test_bot_freno.py` (la pasada entera con dos actas muertas, y
+el runner de AWS, con lo que queda en `run`).

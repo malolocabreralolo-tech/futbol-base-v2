@@ -1,17 +1,20 @@
-// Pantalla Explorar: el selector de temporada, el buscador de equipos, «Vistos hace poco», las ligas por
-// categoría, las copas y los torneos, y «Más». Es un destino principal. render(ctx) es pura y pinta los
-// resultados de la `q` de la dirección (un enlace directo, Atrás o una recarga); mount filtra al escribir con
-// la misma función (searchView), repinta solo la lista y apunta la búsqueda con nav.update, sin volver a
-// pintar la pantalla: el cursor no salta y Atrás no recorre cada letra. La temporada de la ruta la carga el
-// router; el foco del ancla #buscar lo pone el router, nunca mount.
+// Pantalla Explorar: el selector de temporada, el buscador de equipos y de jugadores, «Vistos hace poco»,
+// las ligas por categoría, las copas y los torneos, y «Más». Es un destino principal. render(ctx) es pura y
+// pinta los resultados de la `q` de la dirección (un enlace directo, Atrás o una recarga); mount filtra al
+// escribir con la misma función (searchView), repinta solo la lista y apunta la búsqueda con nav.update,
+// sin volver a pintar la pantalla: el cursor no salta y Atrás no recorre cada letra. La temporada de la
+// ruta la carga el router; el foco del ancla #buscar lo pone el router, nunca mount. Los jugadores salen
+// del índice de búsqueda (data-buscar-<xy>.js), perezoso: lo pide needs con la `q` de la dirección y
+// mount al escribir.
 import { html } from './html.js';
 import { screenHead, block, countLabel, crest, empty, notice, searchBox, seasonPicker, linkRow, listEs } from './ui.js';
 import { alevinFailedBox, errorBox } from './shell.js';
 import {
-  CATEGORIES, CAT_NAMES, CAT_SHORT, competitionKey, competitions, findGroup, groupSummary, searchKey, searchTeams, seasonLabel,
+  CATEGORIES, CAT_NAMES, CAT_SHORT, bornText, competitionKey, competitions, findGroup, groupSummary, playerName,
+  playerSearchPrefix, searchKey, searchPlayers, searchTeams, seasonLabel,
 } from './model.js';
-import { canaryDateTime, dayMonth, monthName, routeHref, teamHref } from './links.js';
-import { healthNeeds } from './state.js';
+import { canaryDateTime, dayMonth, monthName, playerHref, routeHref, teamHref } from './links.js';
+import { ensureBuscar, healthNeeds } from './state.js';
 
 const PICKER_ID = 'temporada';
 const shieldsOf = ctx => (ctx.datasets && ctx.datasets.shields) || {};
@@ -26,30 +29,90 @@ function resultRow(entry, { cup, shields }) {
   return html`<li><a class="search-result" href="${href}">${crest(name, { size: 32, shields })}<span class="search-result-text"><span class="search-result-name">${name}</span><span class="search-result-label">${group.label}</span></span></a></li>`;
 }
 
-/* Los resultados de `q` en la temporada de la ruta: la lista (Html) y la frase de la región de estado,
- * que dice cuántos hay a los lectores de pantalla mientras se escribe. Sin búsqueda, nada; con menos de
- * 2 letras, un aviso; sin resultados, un vacío que lo dice. La usan render (la q de la dirección) y
- * mount (lo que se escribe): el mismo resultado por los dos caminos. */
+// Los jugadores de una búsqueda que se pintan; los demás, en una línea que pide escribir más.
+export const PLAYER_LIMIT = 30;
+const PLAYERS_FAILED = 'No hemos podido cargar los jugadores.';
+
+/* Los jugadores de `text`, del trozo del índice de su prefijo (ctx.datasets.buscar: { <prefijo>: entradas
+ * | null }, sin la clave mientras no ha llegado): { state, total, list }. state: 'none' (la búsqueda no
+ * tiene ninguna palabra que cuente: «de la»), 'loading', 'failed' (null: no llegó) u 'ok'. Los jugadores
+ * no dependen de la temporada elegida: el índice es de todas. */
+function playersOf(ctx, text) {
+  const prefix = playerSearchPrefix(text);
+  if (!prefix) return { state: 'none', total: 0, list: [] };
+  const buscar = (ctx.datasets && ctx.datasets.buscar) || {};
+  if (!Object.hasOwn(buscar, prefix)) return { state: 'loading', total: 0, list: [] };
+  if (!Array.isArray(buscar[prefix])) return { state: 'failed', total: 0, list: [] };
+  return { state: 'ok', ...searchPlayers(buscar[prefix], text, PLAYER_LIMIT) };
+}
+
+// Un jugador: a su ficha, con su nombre y, debajo, su último equipo, esa temporada y su año de nacimiento
+// (el índice no dice si es seguro: siempre «(estimado)»; sin año, nada).
+function playerRow(player) {
+  const href = playerHref(player.id);
+  if (!href) return '';
+  const detail = [player.team, player.season ? seasonLabel(player.season) : '', bornText(player.years)].filter(Boolean).join(' · ');
+  return html`<li><a class="search-result" href="${href}"><span class="search-result-text"><span class="search-result-name">${playerName(player.name)}</span><span class="search-result-label">${detail}</span></span></a></li>`;
+}
+
+// El bloque «Jugadores»: buscándolos, el aviso de que no llegaron (con «Reintentar», que atiende mount),
+// o la lista; sin ninguno, no sale (los equipos ya lo dicen, o el vacío de searchView).
+function playersBlock(players) {
+  if (players.state === 'loading') return block('Jugadores', notice(null, 'Buscando jugadores…'));
+  if (players.state === 'failed') {
+    return block('Jugadores', html`<div class="box" role="alert"><p class="error-text">${PLAYERS_FAILED}</p><div class="buttons"><button class="button is-main" type="button" data-action="reintentar-jugadores">Reintentar</button></div></div>`);
+  }
+  if (!players.total) return '';
+  const more = players.total > players.list.length ? notice(null, `y ${players.total - players.list.length} más: escribe más letras`) : '';
+  return block('Jugadores', html`<ul class="box search-list">${players.list.map(playerRow)}</ul>${more}`,
+    { context: countLabel(players.total, 'jugador', 'jugadores') });
+}
+
+// La frase de la región de estado: «3 equipos y 12 jugadores encontrados», «1 jugador encontrado»…;
+// mientras llegan los jugadores, la de los equipos (o «Buscando jugadores…» sin ninguno) y, si no llegaron,
+// también lo dice.
+function statusText(teams, players) {
+  const found = players.state === 'ok' ? players.total : 0;
+  let text = teams && found ? `${countLabel(teams, 'equipo', 'equipos')} y ${countLabel(found, 'jugador', 'jugadores')} encontrados`
+    : teams ? countLabel(teams, 'equipo encontrado', 'equipos encontrados')
+      : found ? countLabel(found, 'jugador encontrado', 'jugadores encontrados') : '';
+  if (players.state === 'loading' && !text) text = 'Buscando jugadores…';
+  if (players.state === 'failed') text = text ? `${text}. ${PLAYERS_FAILED}` : PLAYERS_FAILED;
+  return text;
+}
+
+/* Los resultados de `q`: los equipos de la temporada de la ruta y, detrás, los jugadores de todas. La
+ * lista (Html) y la frase de la región de estado, que dice cuántos hay a los lectores de pantalla mientras
+ * se escribe. Sin búsqueda, nada; con menos de 2 letras, un aviso; sin equipos ni jugadores (con el índice
+ * ya llegado), un vacío que lo dice, sin la temporada, que no vale para los jugadores. La usan render (la q
+ * de la dirección) y mount (lo que se escribe, y otra vez cuando llega el índice): el mismo resultado por
+ * los dos caminos. */
 export function searchView(ctx, q) {
   const text = String(q ?? '');
   if (!text.trim()) return { list: html``, status: '' };
   const s = seasonOf(ctx);
   if (searchKey(text).length < 2) {
-    const hint = 'Escribe al menos 2 letras del nombre del equipo.';
+    const hint = 'Escribe al menos 2 letras del nombre del equipo o del jugador.';
     return { list: notice(null, hint), status: hint };
   }
   const { leagues, cups } = searchTeams(ctx.model, s, text);
   const total = leagues.length + cups.length;
-  if (!total) {
-    const none = `No encontramos ningún equipo con «${text.trim()}» en la temporada ${seasonLabel(s)}.`;
+  const players = playersOf(ctx, text);
+  if (!total && (players.state === 'none' || (players.state === 'ok' && !players.total))) {
+    const none = `No encontramos ningún equipo ni ningún jugador con «${text.trim()}».`;
     return { list: empty(none), status: none };
   }
   const shields = shieldsOf(ctx);
   const list = (entries, cup) => html`<ul class="box search-list">${entries.map(entry => resultRow(entry, { cup, shields }))}</ul>`;
   return {
-    list: html`${leagues.length ? block('Resultados', list(leagues, false), { context: countLabel(leagues.length, 'equipo', 'equipos') }) : ''}${cups.length ? block('En copas y torneos', list(cups, true), { context: countLabel(cups.length, 'equipo', 'equipos') }) : ''}`,
-    status: countLabel(total, 'equipo encontrado', 'equipos encontrados'),
+    list: html`${leagues.length ? block('Resultados', list(leagues, false), { context: countLabel(leagues.length, 'equipo', 'equipos') }) : ''}${cups.length ? block('En copas y torneos', list(cups, true), { context: countLabel(cups.length, 'equipo', 'equipos') }) : ''}${playersBlock(players)}`,
+    status: statusText(total, players),
   };
+}
+
+// Pide el trozo del índice de `prefix` y lo deja en datasets.buscar (null si no llegó). Nunca rechaza.
+function loadBuscar(prefix, datasets) {
+  return ensureBuscar(prefix).then((entries) => { (datasets.buscar ||= {})[prefix] = entries; });
 }
 
 // ── Vistos hace poco ────────────────────────────────────────────────────
@@ -130,8 +193,8 @@ function checkedText(health, today) {
   return at.day === today ? 'comprobado hoy' : `comprobado el ${dayMonth(at.day)}`;
 }
 
-// Más: Temporadas anteriores, Récords, Goleadores, Datos y fuentes y Ajustes. Récords y
-// Goleadores llevan la temporada elegida.
+// Más: Temporadas anteriores, Récords, Goleadores, los mejores de cada año, Datos y fuentes y Ajustes.
+// Récords y Goleadores llevan la temporada elegida; el ranking no depende de ella.
 function moreBlock(ctx, s) {
   const seasons = (ctx.datasets && ctx.datasets.seasons) || [];
   const oldest = seasons.length > 1 ? seasons[seasons.length - 1].name : null;
@@ -139,6 +202,7 @@ function moreBlock(ctx, s) {
     linkRow(routeHref('temporadas'), 'Temporadas anteriores', { context: oldest ? `desde ${seasonLabel(oldest)}` : null }),
     linkRow(routeHref('records', { s }), 'Récords y estadísticas'),
     linkRow(routeHref('goleadores', { s }), 'Goleadores'),
+    linkRow(routeHref('ranking'), 'Los mejores de cada año', { context: 'por año de nacimiento' }),
     linkRow(routeHref('fuentes'), 'Datos y fuentes', { context: checkedText(ctx.health, ctx.today) }),
     linkRow(routeHref('ajustes'), 'Ajustes', { context: 'mi equipo y datos' }),
   ];
@@ -160,7 +224,7 @@ function render(ctx) {
   const { list, status } = searchView(ctx, ctx.params.q);
   // Sin los datos de alevín (el router no los pudo cargar): lo demás, con su aviso y «Reintentar».
   const partial = ctx.alevinFailed ? alevinFailedBox() : '';
-  return html`<section data-screen="explorar">${head}${partial}${searchBox({ id: 'buscar', value: ctx.params.q || '', label: 'Buscar un equipo' })}<p class="vh" role="status" id="buscar-estado">${status}</p><div class="search-results" id="resultados" data-results>${list}</div>${recentBlock(ctx)}${leaguesBlock(ctx, s)}${cupsBlock(ctx, s)}${moreBlock(ctx, s)}</section>`;
+  return html`<section data-screen="explorar">${head}${partial}${searchBox({ id: 'buscar', value: ctx.params.q || '', label: 'Buscar un equipo o un jugador' })}<p class="vh" role="status" id="buscar-estado">${status}</p><div class="search-results" id="resultados" data-results>${list}</div>${recentBlock(ctx)}${leaguesBlock(ctx, s)}${cupsBlock(ctx, s)}${moreBlock(ctx, s)}</section>`;
 }
 
 /* Al escribir: la lista (Html de html``, que escapa cada dato) y la región de estado con searchView, y
@@ -168,17 +232,45 @@ function render(ctx) {
  * desplazamiento se quedan). Sin temporizadores: un update que llegara después de navegar reescribiría
  * la ruta nueva. Intro no envía el formulario. El botón de la cabecera abre y cierra la lista de
  * temporadas; Escape la cierra. Las escuchas van en elementos de la sección, que se sustituye en cada
- * pintado: nunca se acumulan. */
+ * pintado: nunca se acumulan.
+ * Los jugadores: si lo escrito busca en un trozo del índice que no se ha pedido, se pide (uno por prefijo,
+ * aunque se siga escribiendo) y, cuando llega, se repinta la lista solo si el cuadro sigue en la página y
+ * lo que tiene escrito busca en ese mismo trozo (si ya busca en otro, su lista es otra). Un trozo que no
+ * llegó (null) no se vuelve a pedir al escribir: para eso está «Reintentar». */
 function mount(root, ctx, nav) {
   const input = root.querySelector('#buscar');
   const results = root.querySelector('#resultados');
   const status = root.querySelector('#buscar-estado');
   if (input && results) {
-    input.addEventListener('input', () => {
+    const datasets = ctx.datasets || {};
+    const asked = new Set();
+    const paint = () => {
       const view = searchView(ctx, input.value);
       results.innerHTML = String(view.list);
       if (status) status.textContent = view.status;
+    };
+    const ask = (prefix) => {
+      if (!prefix || asked.has(prefix) || (datasets.buscar && Object.hasOwn(datasets.buscar, prefix))) return;
+      asked.add(prefix);
+      loadBuscar(prefix, datasets).then(() => {
+        asked.delete(prefix);
+        if ((!root.contains || root.contains(input)) && playerSearchPrefix(input.value) === prefix) paint();
+      });
+    };
+    input.addEventListener('input', () => {
+      paint();
+      ask(playerSearchPrefix(input.value));
       if (nav && typeof nav.update === 'function') nav.update({ ...ctx.params, q: input.value.trim() ? input.value : '' });
+    });
+    // «Reintentar» del bloque de jugadores: vuelve a «Buscando jugadores…» y pide otra vez su trozo.
+    results.addEventListener('click', (event) => {
+      const retry = event.target && event.target.closest ? event.target.closest('[data-action="reintentar-jugadores"]') : null;
+      const prefix = playerSearchPrefix(input.value);
+      if (!retry || !prefix) return;
+      event.preventDefault();
+      if (datasets.buscar) delete datasets.buscar[prefix];
+      paint();
+      ask(prefix);
     });
     if (input.form) input.form.addEventListener('submit', event => event.preventDefault());
   }
@@ -204,10 +296,16 @@ export const screen = {
   id: 'explorar',
   // Todo sale de los datos inmediatos y de la temporada de la ruta, que carga el router.
   // data-health.json solo pone la fecha de «Datos y fuentes»: se pide como en la portada
-  // (healthNeeds) y nunca rechaza; sin él, la fila va sin fecha.
+  // (healthNeeds) y nunca rechaza; sin él, la fila va sin fecha. Con una `q` en la dirección (un enlace
+  // directo, Atrás o una recarga), el trozo del índice de jugadores de su prefijo, si no está o si falló
+  // (null), como la ficha del jugador; tampoco rechaza: si no llega, la lista lo dice.
   needs: (params, datasets) => {
-    const load = healthNeeds(datasets);
-    return load ? [load] : [];
+    const loads = [];
+    const health = healthNeeds(datasets);
+    if (health) loads.push(health);
+    const prefix = params && params.q ? playerSearchPrefix(params.q) : null;
+    if (prefix && !(datasets.buscar && datasets.buscar[prefix])) loads.push(loadBuscar(prefix, datasets));
+    return loads;
   },
   render,
   mount,

@@ -373,7 +373,7 @@ export async function ensureLineups(season, group) {
  * 36 módulo JUGADORES_SHARDS (caben enteras en un número: 36^9 < 2^53). null si no es una clave. Como
  * ensureLineups: un vuelo por trozo, null si falla (sin guardarlo, para reintentar) y el texto
  * parseado, nunca el global. */
-export const JUGADORES_SHARDS = 16;
+export const JUGADORES_SHARDS = 64;
 export function jugadoresShard(id) {
   const key = String(id ?? '');
   if (!isPlayerKey(key)) return null;
@@ -402,6 +402,70 @@ export async function ensureJugadores(shard) {
     }
   })();
   return _jugadoresPromise[shard];
+}
+
+/* Los ficheros perezosos de una sola constante (el índice de búsqueda de jugadores y el ranking por año
+ * de nacimiento), con el patrón de ensureJugadores: un vuelo por clave, el texto leído con readConsts
+ * (nunca el global), un 404 que da `missing()` y se memoriza (el fichero no existe porque no hay nada que
+ * publicar) y un fallo, o un texto sin la constante (sin conexión y sin su copia, el SW responde con
+ * index.html), null sin memorizarse, para reintentar. valid(valor) dice si la constante tiene su forma. */
+function lazyConst(cache, flights, key, { file, name, missing, valid }) {
+  if (cache[key] !== undefined) return Promise.resolve(cache[key]);
+  if (flights[key]) return flights[key];
+  flights[key] = (async () => {
+    try {
+      const r = await fetchData(file);
+      if (r.status === 404) { cache[key] = missing(); return cache[key]; }
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const value = readConsts(await r.text())[name];
+      if (!valid(value)) throw new Error(name + ' not parseable');
+      cache[key] = value;
+      return value;
+    } catch (e) {
+      console.warn(`[state] ${file} failed:`, e.message);
+      return null;
+    } finally {
+      delete flights[key];
+    }
+  })();
+  return flights[key];
+}
+
+/* El índice de búsqueda de jugadores de un prefijo (dos letras de la a a la z; model.playerSearchPrefix):
+ * data-buscar-<xy>.js, const BUSCAR_<XY> = [[clave, nombre, último equipo, última temporada, [años]]]
+ * (generate_js.buscar_files). Solo se publican los prefijos con algún jugador: un 404 es «ningún jugador
+ * con ese prefijo», [], no un fallo. Lo que no es un prefijo, [] sin pedir nada. */
+const _buscar = {};
+const _buscarPromise = {};
+export function ensureBuscar(prefix) {
+  const xy = String(prefix ?? '');
+  if (!/^[a-z]{2}$/.test(xy)) return Promise.resolve([]);
+  return lazyConst(_buscar, _buscarPromise, xy, {
+    file: `data-buscar-${xy}.js`, name: `BUSCAR_${xy.toUpperCase()}`, missing: () => [], valid: Array.isArray,
+  });
+}
+
+/* El ranking por año de nacimiento (generate_js.ranking_files): data-ranking.js, const RANKING =
+ * { temporada, anios: { "<año>": [entradas en "t", entradas en "h"] } }, lo que dice qué años hay; y
+ * data-ranking-<año>.js, const RANKING_<año> = { t: [...], h: [...] }, las dos listas de ese año. Como el
+ * índice de búsqueda (lazyConst): un vuelo por fichero, null si falla, sin memorizarlo. Un 404 es que no
+ * se ha publicado nada: un ranking sin años, o un año sin nadie. */
+const _ranking = {};
+const _rankingPromise = {};
+const isObject = (value) => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+export function ensureRanking() {
+  return lazyConst(_ranking, _rankingPromise, 'RANKING', {
+    file: 'data-ranking.js', name: 'RANKING', missing: () => ({ temporada: null, anios: {} }),
+    valid: (value) => isObject(value) && isObject(value.anios),
+  });
+}
+export function ensureRankingYear(year) {
+  const y = String(year ?? '');
+  if (!/^\d{4}$/.test(y)) return Promise.resolve({ t: [], h: [] });
+  return lazyConst(_ranking, _rankingPromise, `RANKING_${y}`, {
+    file: `data-ranking-${y}.js`, name: `RANKING_${y}`, missing: () => ({ t: [], h: [] }),
+    valid: (value) => isObject(value) && Array.isArray(value.t) && Array.isArray(value.h),
+  });
 }
 
 /* ──────────────────────────────────────────────────────────────────────

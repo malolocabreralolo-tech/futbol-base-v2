@@ -75,12 +75,15 @@ jobs:
       # Diagnóstico del freno de la federación (15/10/2026): la IP pública del runner, que cambia de una
       # ejecución a otra, para cruzar los frenos del log (esperas del freno, «no sirve páginas») con las IPs.
       # Solo en el log (no va a data-health.json), sin secretos ni datos del usuario, y nunca para el job:
-      # 5 s como mucho y, sin respuesta, «desconocida».
+      # 5 s como mucho y, sin respuesta, «desconocida». Y la nube (25/11/2026): el fabricante de la máquina
+      # («Microsoft Corporation» en Azure, «Amazon EC2» en AWS), porque la federación no sirve a los runners
+      # de AWS desde el 13/11/2026 (docs/freno-2026-11.md); el bot lo lee igual (fiflp_carga.nube, run.cloud).
       - name: IP pública del runner
         continue-on-error: true
         timeout-minutes: 1
         run: |
           echo "IP pública del runner: $(curl -s --max-time 5 https://api.ipify.org || echo desconocida)"
+          echo "Nube del runner: $(cat /sys/class/dmi/id/sys_vendor 2>/dev/null || echo desconocida)"
 
       - name: Actualizar datos desde futbolaspalmas.com y la federación
         id: scrape
@@ -103,6 +106,23 @@ jobs:
         if: steps.scrape.outcome == 'success'
         run: python3 scripts/base_sana.py --salud
 
+      # Parte D, fase 1 (docs/almacenamiento.md): la base, partida en sus piezas (base/) y comprobada en cada
+      # pasada, en sombra: la fuente de verdad sigue siendo futbolbase.db. Si algo falla aquí, la pasada publica
+      # igual y solo no sube las piezas (vuelven a las de main; -x quita también el diario de una pieza cortada,
+      # que al abrirla desharía sobre la de main una transacción de otra). 5 min de plazo (hoy tarda ~15 s;
+      # con todas las actas, ~1,5 min): colgado, se comería el del job y la pasada no publicaría.
+      - name: Piezas de la base (en sombra)
+        id: piezas
+        if: steps.base.outcome == 'success'
+        continue-on-error: true
+        timeout-minutes: 5
+        run: |
+          python3 scripts/piezas.py partir && python3 scripts/piezas.py verificar || {
+            git checkout -q HEAD -- base/ 2>/dev/null || true
+            git clean -fdqx -- base/
+            exit 1
+          }
+
       # Los push del bot (GITHUB_TOKEN) NO disparan tests.yml (anti-recursión
       # de GitHub), así que las suites tienen que correr AQUÍ, sobre los datos
       # recién generados y ANTES del commit: si fallan, el job sale rojo y no
@@ -119,6 +139,8 @@ jobs:
 
       - name: Commit y push si hay cambios
         if: success() && steps.scrape.outcome == 'success'
+        env:
+          PIEZAS: ${{ steps.piezas.outcome }}
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
@@ -131,6 +153,9 @@ jobs:
           git add 'data-*.js' index.html sw.js
           if ! git diff --cached --quiet || [ -f "$RUNNER_TEMP/base-cambiada" ]; then
             git add futbolbase.db
+            # Sus piezas (base/), con ella y solo si salieron iguales a ella (paso «Piezas de la base»). Si
+            # añadirlas fallara, se suben la base y lo demás sin ellas.
+            if [ "$PIEZAS" = success ]; then git add -A base/ || { git reset -q -- base/; echo "las piezas no se suben en esta pasada"; }; fi
             # El raw de la app de futbolaspalmas (qué días ya están leídos) va con los datos que ha dado.
             git add 'scripts/fp_app_*_raw.json' 2>/dev/null || true
           fi

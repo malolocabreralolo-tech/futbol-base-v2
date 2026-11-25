@@ -29,6 +29,10 @@ al que afecta. Solo lo que sigue siendo verdad: la historia de cómo se llegó a
 - **Goleadores se pinta por páginas** (200, o 30 con una búsqueda): benjamín pasa de 2.000 jugadores y pintarlos de una vez congela el móvil. `src/screen-goleadores.js`.
 - **Todo HTML sale de `html```, que escapa cada dato.** `src/html.js`.
 - **«Borrar datos» no quita la marca de que ya se leyó v1**, para que lo de v1 no vuelva. `src/store.js`.
+- **El año de nacimiento se estima y nunca se enseña como dato**: siempre con «(estimado)», «2016 o 2017» o «entre … y …»; sin la marca, solo el confirmado a mano (`scripts/anios_confirmados.json`). `scripts/nacimiento.py`, `src/model.js` (`birthText`), `docs/ranking.md`.
+- **El ranking de los mejores de cada año sale solo de las actas**: es donde cada gol y cada partido están atados a una ficha; los goleadores de la federación no tienen id y unos 4.700 goles van sin nombre. Favorece a quien marca, y la web lo explica en «Cómo se calcula». `scripts/ranking.py`, `src/screen-ranking.js`, `docs/ranking.md`.
+- **El buscador de jugadores no depende de la temporada elegida**: los equipos se buscan en la temporada de Explorar y los jugadores en todas (el índice `data-buscar-<xy>.js` es de todas). `src/screen-explorar.js`, `src/model.js` (`searchPlayers`).
+- **Un año que no está en el ranking se enseña vacío** («Todavía no hay ningún jugador de 2008 con partidos suficientes.»), no el más reciente: la ficha enlaza a cada año posible del niño sin cargar el ranking, y abrir otro año confundiría. Sin `y` en la dirección, sí el más reciente con alguien en la vista. **El buscador dice siempre «(estimado)»**: el índice de búsqueda trae los años pero no si están confirmados. `src/screen-ranking.js` (`chosenYear`), `src/screen-explorar.js`.
 
 ## El service worker y la puesta al día
 
@@ -74,6 +78,7 @@ al que afecta. Solo lo que sigue siendo verdad: la historia de cómo se llegó a
 
 - **Solo los workflows del grupo `update-data` suben datos (`data-*.js`) o base (`futbolbase.db`)**, uno detrás de otro, sin cancelar el que corre. `.github/workflows/update.yml`, `activar.yml`. Otros cinco suben solo originales a `scripts/` (`actas-federacion.yml`, `goleadores-federacion.yml`, `detalle-federacion.yml`, `discover-fiflp.yml`, `fetch-fiflp-islas.yml`).
 - **`dist/` solo se empaqueta en el PC, al publicar**; ni el bot ni la activación lo hacen, y `--check` no necesita node. `scripts/codigo.py`, `scripts/publicar.py`.
+- **El código de las fichas en 64 trozos y los datos se publican juntos**: al publicar se regeneran `dist/` y los datos (`generate_js.py`) en el mismo commit. La web de 64 trozos no puede salir con datos de 16 (abriría el trozo que no es), ni al revés. `scripts/publicar.py`, `scripts/generate_js.py` (`JUGADORES_SHARDS`), `src/state.js`.
 - **Una publicación sube la versión sin mover la fecha «Última actualización»**, que es la de los datos. `scripts/publicar.py`, `scripts/generate_js.py` (`bump_cache_version`).
 - **Al rebasar una rama sobre `main` solo cuentan tres marcas** (las `?v=`, «Última actualización» y `CACHE_NAME`), que el bot sube siempre a la vez, y el bloque del precache de `sw.js`, que el bot también reescribe y se rehace con `python3 scripts/precache.py`. `scripts/sync_versions.py`.
 

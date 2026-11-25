@@ -73,11 +73,9 @@ Hoy la web solo tiene prebenjamín y benjamín (con alineaciones desde 2019-20) 
   rondará los 65 MB; con infantil, cadete y juvenil (unas 70.000 actas de fútbol 11) pasará de 200 MB.
   GitHub no admite ficheros de más de 100 MB y Pages no publica más de 1 GB (hoy el árbol publicado ocupa
   324 MB, con los originales y la base dentro).
-- **Freno de la federación**: va por rachas. Sin él (del 21/10 al 13/11) el bot leía entre 1.200 y 2.700
-  páginas al día; con él (desde el 14/11, y a peor) unas 200, y la mayoría de las pasadas se frenan desde
-  la primera página. Ninguno de los descargadores por tandas sabe tratarlo: dan por buena una página
-  vacía. Bajar 70.000 actas es cuestión de días sin freno y de meses con él. Detalle en
-  [docs/ampliacion-mapa.md](../../ampliacion-mapa.md).
+- **Freno de la federación**: en Azure no hay cupo desde el 21/10. Lo de noviembre son los runners en AWS (la
+  federación no les sirve nada desde el 13/11) y actas vacías siempre que el bot tomaba por el freno (desde el
+  21/11). Ninguna tanda trata aún ni lo uno ni lo otro: [docs/freno-2026-11.md](../../freno-2026-11.md).
 - **El Archivo de Internet** no tiene las páginas de la federación (ni las de MyGol).
 - **MyGol** (`https://tusligascanarias.mygol.es/api`): la liga de escuelas está de 2022-23 a hoy, unos
   5.400 partidos; cada partido trae los niños de los dos equipos (identificador propio de cada temporada, nombre, apellidos)

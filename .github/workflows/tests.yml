@@ -12,6 +12,7 @@ on:
       - 'scripts/empaquetar/**'
       - 'dist/**'
       - 'futbolbase.db'
+      - 'base/**'
       - 'data-*.js'
       - 'src/**'
       - 'index.html'
@@ -39,6 +40,7 @@ on:
       - 'scripts/empaquetar/**'
       - 'dist/**'
       - 'futbolbase.db'
+      - 'base/**'
       - 'data-*.js'
       - 'src/**'
       - 'index.html'
@@ -90,8 +92,21 @@ jobs:
         run: python3 -m pytest scripts/tests/test_publicar.py scripts/tests/test_empaquetar.py scripts/tests/test_precache.py scripts/tests/test_season_preparation.py scripts/tests/test_index_bot_contract.py -q
       - name: Install esbuild (empaquetado de dist/)
         run: npm ci --prefix scripts/empaquetar
+      # PIEZAS_REAL: la base de verdad partida y vuelta a montar (test_piezas_real.py, sobre una copia; ~20 s).
       - name: Run Python tests
+        env:
+          PIEZAS_REAL: '1'
         run: python -m pytest scripts/tests/ -v
+      # Parte D, fase 1 (docs/almacenamiento.md): el aviso diario de que la sombra se ha desviado. Las piezas que
+      # subió la última pasada (base/), montadas, tienen que ser futbolbase.db fila a fila; si no, rojo aquí,
+      # aunque el bot siga publicando. Hasta que la primera pasada con datos las suba no hay nada que comparar.
+      - name: Las piezas son la base
+        run: |
+          if [ ! -f base/piezas.json ]; then
+            echo "::warning::Todavía no hay piezas en base/: las sube la primera pasada del bot con datos."
+            exit 0
+          fi
+          python3 scripts/piezas.py comparar --db futbolbase.db --piezas base
       # Qué se rehace desde los originales (scripts/reconstruir.py, docs/reconstruccion.md), sobre copias de la
       # base: minutos, por eso aquí aparte; la suite que pasa el bot en cada pasada la salta sin RECONSTRUIR.
       - name: Reconstrucción desde los originales

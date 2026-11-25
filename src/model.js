@@ -842,6 +842,34 @@ export function playerName(raw) {
   return text;
 }
 
+/* El año de nacimiento en palabras, uno solo para la ficha, el buscador y el ranking: el "y" de
+ * data-jugadores (de uno a tres años, que estima scripts/nacimiento.py por las categorías jugadas) y su
+ * "yc" (confirmed: el año es seguro). Lo estimado se dice siempre estimado: «2018 (estimado)», «2018 o
+ * 2019 (estimado)», «entre 2008 y 2010 (estimado)»; solo un año confirmado va sin la marca, «2018».
+ * Con más de un año nunca es seguro, aunque llegue confirmed. Sin años, ''. */
+export function birthText(years, confirmed = false) {
+  const list = (Array.isArray(years) ? years : []).map(Number).filter(Number.isInteger).sort((a, b) => a - b);
+  if (!list.length) return '';
+  if (list.length === 1) return confirmed ? `${list[0]}` : `${list[0]} (estimado)`;
+  if (list.length === 2) return `${list[0]} o ${list[1]} (estimado)`;
+  return `entre ${list[0]} y ${list[list.length - 1]} (estimado)`;
+}
+
+// «nacido en 2018 (estimado)» o «nacido entre 2008 y 2010 (estimado)», en minúscula (el buscador lo pone
+// tras el equipo y la temporada; la ficha, con mayúscula, al principio); '' sin años.
+export function bornText(years, confirmed = false) {
+  const text = birthText(years, confirmed);
+  if (!text) return '';
+  return text.startsWith('entre ') ? `nacido ${text}` : `nacido en ${text}`;
+}
+
+/* El nombre de una categoría para la pantalla: el de CAT_NAMES y, si la app no la tiene (las fichas y el
+ * ranking ya traen infantil, cadete o juvenil), la palabra con la inicial en mayúscula. */
+export function categoryName(cat) {
+  const word = String(cat ?? '');
+  return Object.hasOwn(CAT_NAMES, word) ? CAT_NAMES[word] : word.charAt(0).toUpperCase() + word.slice(1);
+}
+
 const CLUB_ACRONYM = String.raw`(?:U\.?D\.?|C\.?D\.?A?|A\.?D\.?|R\.?C\.?|C\.?F\.?|S\.?D\.?|F\.?C\.?|Real Club|REAL CLUB)`;
 const LEADING_ACRONYMS = new RegExp(String.raw`^(?:${CLUB_ACRONYM}\s+)+`);
 const TRAILING_ACRONYMS = new RegExp(String.raw`(?:\s+${CLUB_ACRONYM})+$`);
@@ -1369,6 +1397,50 @@ function shortLabel(group) {
  * cifra en un espacio («Las Mesas Hu.» → «las mesas hu»). */
 export function searchKey(text) {
   return foldText(text).replace(/[^a-z0-9]+/g, ' ').trim();
+}
+
+/* ─── Buscador de jugadores ───
+ * El índice va troceado por las dos primeras letras de cada palabra del nombre (data-buscar-<xy>.js,
+ * generate_js.buscar_files): la búsqueda pide el trozo de su primera palabra, y por eso las palabras se
+ * sacan EXACTAMENTE como _palabras y prefijos_de de Python (si no, una búsqueda iría a un fichero que no
+ * es): NFD y fuera las marcas («ñ» → «n»), minúsculas, y lo que no es una letra de la a a la z separa
+ * palabras. No cuentan las de una letra ni las partículas. Las pruebas comparan las dos con la misma tabla
+ * y con nombres difíciles que calcula Python (test_rediseno_model_nombres.mjs). */
+const NAME_PARTICLES = new Set(['de', 'del', 'la', 'las', 'los', 'y', 'da', 'do']);
+const nameWords = text => String(text ?? '').normalize('NFD').replace(/\p{M}/gu, '').toLowerCase()
+  .split(/[^a-z]+/).filter(Boolean);
+const countedWords = text => nameWords(text).filter(w => w.length > 1 && !NAME_PARTICLES.has(w));
+
+// Los prefijos de un nombre, cada uno una vez y en el orden en que salen: prefijos_de de Python.
+export function playerPrefixes(name) {
+  return [...new Set(countedWords(name).map(w => w.slice(0, 2)))];
+}
+
+// El trozo del índice de una búsqueda: el prefijo de su primera palabra que cuenta, o null sin ninguna.
+export function playerSearchPrefix(q) {
+  return playerPrefixes(q)[0] ?? null;
+}
+
+/* Los jugadores de un trozo del índice (entries: [[clave, nombre, último equipo, última temporada,
+ * [años]]]) que casan con `q`: cada palabra de q que cuenta es el principio de alguna palabra del nombre,
+ * en cualquier orden («garcia jo» encuentra «GARCÍA PÉREZ, JOSÉ»; «arcia», no). De la última temporada
+ * más reciente a la más antigua y, dentro, por nombre. { total, list }: list, como mucho `limit`, de
+ * { id, name, team, season, years }. Las palabras de cada nombre se sacan una vez por trozo (cada tecla
+ * vuelve a buscar en el mismo). */
+const playerWords = new WeakMap();
+export function searchPlayers(entries, q, limit = 30) {
+  const words = countedWords(q);
+  const list = Array.isArray(entries) ? entries : [];
+  if (!words.length || !list.length) return { total: 0, list: [] };
+  if (!playerWords.has(list)) playerWords.set(list, list.map(e => (Array.isArray(e) ? nameWords(e[1]) : [])));
+  const keyed = playerWords.get(list);
+  const hits = list.filter((e, i) => Array.isArray(e) && words.every(w => keyed[i].some(n => n.startsWith(w))));
+  const season = e => String(e[3] ?? '');
+  hits.sort((a, b) => (season(a) < season(b) ? 1 : season(a) > season(b) ? -1 : 0) || byName(String(a[1] ?? ''), String(b[1] ?? '')));
+  return {
+    total: hits.length,
+    list: hits.slice(0, limit).map(([id, name, team, last, years]) => ({ id, name, team, season: last, years: Array.isArray(years) ? years : [] })),
+  };
 }
 
 /* Los equipos de una temporada o de los torneos, una sola vez: [{ name, key, bare, group }], de la

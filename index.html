@@ -14,7 +14,7 @@
   <link rel="apple-touch-icon" href="./icons/icon-180.png">
   <link rel="icon" type="image/png" href="./icons/icon-192.png">
   <link rel="manifest" href="./manifest.json">
-  <link rel="stylesheet" href="./dist/acta-fc0638d7.css">
+  <link rel="stylesheet" href="./dist/acta-924d6e1a.css">
 </head>
 <body>
   <a class="skip-link" href="#contenido">Saltar al contenido</a>
@@ -26,13 +26,13 @@
 
   <!-- Datos inmediatos: los siete que lee la portada. Con defer se ejecutan en este orden al terminar
        el análisis, y el módulo del arranque, detrás: sus globales ya están cuando arranca app.js. -->
-  <script defer src="./data-benjamin.js?v=20261125"></script>
-  <script defer src="./data-prebenjamin.js?v=20261125"></script>
-  <script defer src="./data-history.js?v=20261125"></script>
-  <script defer src="./data-goleadores.js?v=20261125"></script>
-  <script defer src="./data-shields.js?v=20261125"></script>
-  <script defer src="./data-seasons.js?v=20261125"></script>
-  <script defer src="./data-maspalomas-cup-2026.js?v=20261125"></script>
+  <script defer src="./data-benjamin.js?v=20261125e"></script>
+  <script defer src="./data-prebenjamin.js?v=20261125e"></script>
+  <script defer src="./data-history.js?v=20261125e"></script>
+  <script defer src="./data-goleadores.js?v=20261125e"></script>
+  <script defer src="./data-shields.js?v=20261125e"></script>
+  <script defer src="./data-seasons.js?v=20261125e"></script>
+  <script defer src="./data-maspalomas-cup-2026.js?v=20261125e"></script>
   <script type="module">
     // El código, de dist/ (con la huella de su contenido en el nombre: nunca una versión mezclada con otra).
     // Si el arranque falla (sin conexión, con una página nueva de la red cuyo paquete todavía no está
@@ -40,7 +40,7 @@
     // para siempre. Es texto fijo, sin datos.
     (async () => {
       try {
-        const { start } = await import('./dist/app-64f418c9.js');
+        const { start } = await import('./dist/app-7bf101c9.js');
         start(document, window);
       } catch (error) {
         console.error('[arranque]', error);

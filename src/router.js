@@ -31,10 +31,11 @@ const VIEWS = ['puntos', 'goles', 'forma', 'casa', 'fuera', 'todas', PROJECTION_
 // grupo en Jornada y en Tabla (la tira de grupos y «Mi grupo»), también de un grupo a «Todos» y de
 // vuelta (c y f), que se recorre como las jornadas: Atrás no repasa cada grupo visto, sino que vuelve a
 // donde se estaba antes de recorrerlos, y el foco se queda en la ficha pulsada (mismo id). En Tabla, `t`
-// va con la vista del pronóstico (el equipo resaltado): de ella a la clasificación se quitan los dos.
-const REPLACE_ONLY = { jornada: ['r', 'g', 'c', 'f'], tabla: ['v', 'g', 't'], explorar: ['q'], goleadores: ['q'] };
+// va con la vista del pronóstico (el equipo resaltado): de ella a la clasificación se quitan los dos. En
+// el ranking, el año y la vista (su fila de años y sus dos pestañas), igual.
+const REPLACE_ONLY = { jornada: ['r', 'g', 'c', 'f'], tabla: ['v', 'g', 't'], explorar: ['q'], goleadores: ['q'], ranking: ['y', 'v'] };
 // Pantallas que se abren desde Explorar: su «‹» sin historial lleva a #/explorar.
-const UNDER_EXPLORE = new Set(['equipo', 'copa', 'goleadores', 'ligas', 'temporadas', 'records', 'fuentes', 'ajustes', 'jugador']);
+const UNDER_EXPLORE = new Set(['equipo', 'copa', 'goleadores', 'ligas', 'temporadas', 'records', 'fuentes', 'ajustes', 'jugador', 'ranking']);
 const MAX_REDIRECTS = 5;
 // El último destino principal, en la sesión (app.js lo borra con «Borrar datos»).
 export const SESSION_KEY = 'fb2:destino';
@@ -139,6 +140,11 @@ export function resolveParams(route, ctx) {
   if (NO_PARAMS.has(screen)) return { params: {} };
   // Jugador: solo su clave (isPlayerKey); su ficha no depende de ninguna temporada.
   if (screen === 'jugador') return { params: isPlayerKey(raw.id) ? { id: raw.id } : {} };
+  // Ranking: tampoco. El año, si es de cuatro cifras, y la vista, solo `h` (toda la trayectoria): la de
+  // esta temporada es la de por defecto y no se escribe. Lo demás se quita, sin aviso, como en la ficha.
+  // Qué año se ve si no hay `y`, o si el año no tiene a nadie, lo dice la pantalla, que es la que carga
+  // data-ranking.js.
+  if (screen === 'ranking') return { params: { ...(/^\d{4}$/.test(raw.y ?? '') ? { y: raw.y } : {}), ...(raw.v === 'h' ? { v: 'h' } : {}) } };
   const portal = ctx.portal.season;
   if (raw.s && raw.s !== portal && !knownSeason(ctx, raw.s)) {
     return redirect(screen, omit(raw, 's'), `No existe la temporada ${seasonLabel(raw.s)}; te enseñamos la actual`);

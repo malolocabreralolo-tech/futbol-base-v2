@@ -1,0 +1,1 @@
+const BUSCAR_UQ = [["226224","BELLO GALAZ, UQUEN","Atco. Isleta","2023-2024",[2014,2015]]];

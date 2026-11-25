@@ -1,0 +1,1 @@
+const BUSCAR_GN = [["54752833","NGOM GNINGUE, MOHAMED","CD Cerruda C","2026-2027",[2016]]];

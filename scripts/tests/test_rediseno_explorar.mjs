@@ -24,6 +24,19 @@ const ctxWith = (params, options = {}, data = {}) => ctxFor('explorar', { s: POR
 const render = (params, options, data) => s(screen.render(ctxWith(params, options, data)));
 const modelWith = (data = {}) => ctxWith({}, {}, data).model;
 const names = (entries) => entries.map((e) => `${e.name} [${e.group.id}]`);
+// El ctx de Explorar con el índice de jugadores ya pedido: buscar es { <prefijo>: entradas | null }.
+const withPlayers = (params, buscar, options = {}, data = {}) => {
+  const ctx = ctxWith(params, options, data);
+  ctx.datasets.buscar = buscar;
+  return ctx;
+};
+// data-buscar-me.js inventado: [clave, nombre, último equipo, última temporada, [años]].
+const BUSCAR_ME = [
+  ['1001', 'MESA SUAREZ, LUIS', 'Las Mesas Hu.', '2025-2026', [2017]],
+  ['1002', 'MEDINA MESA, ANA', 'Club Uno', '2024-2025', [2016, 2017]],
+  ['n0k3z9q2e5', 'MELIAN, PABLO', 'Club Dos', '2025-2026', []],
+  ['1004', 'MENDEZ DE LA ROSA, IVAN', 'Club Tres', '2023-2024', [2008, 2009, 2010]],
+];
 // El bloque de título `title` del HTML de la pantalla.
 const blockOf = (out, title) => (out.match(new RegExp(`<section class="block"><div class="block-head"><h2 class="block-title">${title}</h2>.*?</section>`)) || [''])[0];
 // Las filas de enlace de clase `cls`: [href, texto], sin las iniciales de los monogramas (aria-hidden).
@@ -233,7 +246,8 @@ test('Explorar: su h1, el selector de temporada con SEASONS, el buscador vacío 
   assert.equal((out.match(/<h1[ >]/g) || []).length, 1);
   assert.deepEqual(rows(out, 'season-option'), [['#/explorar?s=2025-2026', '2025/26'], ['#/explorar?s=2024-2025', '2024/25'], ['#/explorar?s=2023-2024', '2023/24']]);
   assert.match(out, /<a class="season-option" href="#\/explorar\?s=2025-2026" aria-current="true">/);
-  assert.match(out, /<input class="search-input" id="buscar" type="search" value="" placeholder="Buscar un equipo"/);
+  assert.match(out, /<label class="vh" for="buscar">Buscar un equipo o un jugador<\/label>/);
+  assert.match(out, /<input class="search-input" id="buscar" type="search" value="" placeholder="Buscar un equipo o un jugador"/);
   assert.match(out, /<\/form><p class="vh" role="status" id="buscar-estado"><\/p><div class="search-results" id="resultados" data-results><\/div>/);
   assert.equal(blockOf(out, 'Vistos hace poco'), '', 'sin fichas vistas, el bloque no sale');
   const ligas = blockOf(out, 'Ligas');
@@ -262,6 +276,7 @@ test('Copas y torneos: la Copa de Campeones con sus campeones y la Maspalomas Cu
     ['#/temporadas', 'Temporadas anteriores desde 2023/24'],
     ['#/records?s=2025-2026', 'Récords y estadísticas'],
     ['#/goleadores?s=2025-2026', 'Goleadores'],
+    ['#/ranking', 'Los mejores de cada año por año de nacimiento'],
     ['#/fuentes', 'Datos y fuentes comprobado hoy'],
     ['#/ajustes', 'Ajustes mi equipo y datos'],
   ]);
@@ -294,15 +309,161 @@ test('el buscador pinta la q de la dirección, la misma lista que al escribir (s
 
 test('el buscador dice lo que pasa: con menos de 2 letras, sin resultados y con texto que hay que escapar', () => {
   const one = render({ q: 'h' });
-  assert.match(one, /<div class="search-results" id="resultados" data-results><p class="notice">Escribe al menos 2 letras del nombre del equipo\.<\/p><\/div>/);
-  const none = render({ q: 'zzz' });
-  assert.match(none, /<p class="empty">No encontramos ningún equipo con «zzz» en la temporada 2025\/26\.<\/p>/);
-  assert.match(none, /id="buscar-estado">No encontramos ningún equipo con «zzz» en la temporada 2025\/26\.<\/p>/);
-  const odd = render({ q: '<img src=x>' });
+  assert.match(one, /<div class="search-results" id="resultados" data-results><p class="notice">Escribe al menos 2 letras del nombre del equipo o del jugador\.<\/p><\/div>/);
+  // Sin equipos ni jugadores (con el índice de jugadores ya llegado): sin la temporada, que no vale para los jugadores.
+  const none = s(screen.render(withPlayers({ q: 'zzz' }, { zz: [] })));
+  assert.match(none, /<p class="empty">No encontramos ningún equipo ni ningún jugador con «zzz»\.<\/p>/);
+  assert.match(none, /id="buscar-estado">No encontramos ningún equipo ni ningún jugador con «zzz»\.<\/p>/);
+  const odd = s(screen.render(withPlayers({ q: '<img src=x>' }, { im: [] })));
   assert.match(odd, /value="&lt;img src=x&gt;"/);
-  assert.match(odd, /con «&lt;img src=x&gt;» en la temporada/);
+  assert.match(odd, /ningún jugador con «&lt;img src=x&gt;»\./);
   assert.doesNotMatch(odd, /<img src=x>/);
   assert.deepEqual(searchView(ctxWith({}), '   '), { list: searchView(ctxWith({}), '').list, status: '' });
+});
+
+// ── Jugadores (data-buscar-<xy>.js): en todas las temporadas, tras los equipos ──────────────────────
+
+// Los equipos de una búsqueda en la temporada del portal, para comparar con lo que pinta la pantalla.
+const teamCount = (q) => { const r = searchTeams(modelWith(), PORTAL_SEASON, q); return r.leagues.length + r.cups.length; };
+
+test('buscador: con el índice de jugadores, el bloque «Jugadores» tras los equipos; cada uno a su ficha, con su último equipo y su año', () => {
+  const ctx = withPlayers({ q: 'mesa' }, { me: BUSCAR_ME });
+  const out = s(screen.render(ctx));
+  const view = searchView(ctx, 'mesa');
+  assert.ok(out.includes(`<div class="search-results" id="resultados" data-results>${view.list}</div>`), 'render y mount pintan lo mismo');
+  // Los equipos siguen, y los jugadores van detrás.
+  const teams = teamCount('mesa');
+  assert.ok(teams > 0);
+  assert.ok(out.indexOf('<h2 class="block-title">Resultados</h2>') < out.indexOf('<h2 class="block-title">Jugadores</h2>'));
+  const block = blockOf(out, 'Jugadores');
+  assert.match(block, /<p class="block-context">2 jugadores<\/p>/);
+  assert.deepEqual(rows(block, 'search-result'), [
+    ['#/jugador?id=1001', 'Luis Mesa Suarez Las Mesas Hu. · 2025/26 · nacido en 2017 (estimado)'],
+    ['#/jugador?id=1002', 'Ana Medina Mesa Club Uno · 2024/25 · nacido en 2016 o 2017 (estimado)'],
+  ]);
+  assert.equal(view.status, `${teams} equipos y 2 jugadores encontrados`);
+  // Sin año, nada; con tres, «entre»; y en cualquier temporada elegida (los jugadores no dependen de ella).
+  const other = withPlayers({ s: '2024-2025', q: 'melian' }, { me: BUSCAR_ME }, {}, { seasonRaw: ARCHIVE });
+  assert.deepEqual(rows(blockOf(s(screen.render(other)), 'Jugadores'), 'search-result'), [['#/jugador?id=n0k3z9q2e5', 'Pablo Melian Club Dos · 2025/26']]);
+  assert.equal(searchView(other, 'melian').status, '1 jugador encontrado');
+  assert.deepEqual(rows(searchView(other, 'mendez').list.toString(), 'search-result'), [['#/jugador?id=1004', 'Ivan Mendez De La Rosa Club Tres · 2023/24 · nacido entre 2008 y 2010 (estimado)']]);
+  // Ningún jugador: solo los equipos, sin el bloque.
+  const hu = withPlayers({ q: 'hurac' }, { hu: [] });
+  assert.equal(blockOf(s(screen.render(hu)), 'Jugadores'), '');
+  assert.equal(searchView(hu, 'hurac').status, '8 equipos encontrados');
+});
+
+test('buscador: más de 30 jugadores, los 30 primeros y «y N más: escribe más letras»', () => {
+  const many = Array.from({ length: 35 }, (_, i) => [String(2000 + i), `MESA LOPEZ, NOMBRE${i}`, 'Club Uno', '2025-2026', [2017]]);
+  const view = searchView(withPlayers({}, { me: many }), 'mesa lopez');
+  const block = blockOf(s(view.list), 'Jugadores');
+  assert.equal(rows(block, 'search-result').length, 30);
+  assert.match(block, /<p class="block-context">35 jugadores<\/p>/);
+  assert.match(block, /<p class="notice">y 5 más: escribe más letras<\/p>/);
+  assert.equal(view.status, '35 jugadores encontrados');
+});
+
+test('buscador: mientras llega el índice, «Buscando jugadores…»; si falla, el aviso y «Reintentar»; los equipos, siempre', () => {
+  const teams = teamCount('mesa');
+  // Sin la clave: aún no pedido (o en vuelo).
+  const waiting = searchView(withPlayers({}, {}), 'mesa');
+  assert.match(blockOf(s(waiting.list), 'Resultados'), /search-result/);
+  assert.match(blockOf(s(waiting.list), 'Jugadores'), /<p class="notice">Buscando jugadores…<\/p>/);
+  assert.equal(waiting.status, `${teams} equipos encontrados`);
+  assert.equal(s(searchView(withPlayers({}, {}), 'mesa').list), s(searchView(ctxWith({}), 'mesa').list), 'sin datasets.buscar, igual');
+  // Sin equipos, tampoco el vacío: todavía puede haber jugadores.
+  const alone = searchView(withPlayers({}, {}), 'melian');
+  assert.doesNotMatch(s(alone.list), /No encontramos/);
+  assert.match(s(alone.list), /Buscando jugadores…/);
+  assert.equal(alone.status, 'Buscando jugadores…');
+  // Falló: el aviso con su botón, que atiende el mount; los equipos siguen.
+  const failed = searchView(withPlayers({}, { me: null }), 'mesa');
+  assert.match(blockOf(s(failed.list), 'Resultados'), /search-result/);
+  assert.match(blockOf(s(failed.list), 'Jugadores'), /<p class="error-text">No hemos podido cargar los jugadores\.<\/p><div class="buttons"><button class="button is-main" type="button" data-action="reintentar-jugadores">Reintentar<\/button>/);
+  assert.equal(failed.status, `${teams} equipos encontrados. No hemos podido cargar los jugadores.`);
+  assert.doesNotMatch(s(searchView(withPlayers({}, { me: null }), 'melian').list), /No encontramos/);
+});
+
+test('needs: con `q` en la dirección, el índice de su prefijo (una vez; otra si falló), sin rechazar nunca', async (t) => {
+  const asked = serveBuscar(t, { ro: [['1003', 'ROSA, LEO', 'Club Uno', '2025-2026', []]] });
+  const datasets = { health: fixture('health') };
+  assert.deepEqual(screen.needs({ q: 'h' }, datasets), [], 'menos de dos letras: nada');
+  assert.deepEqual(screen.needs({ q: 'de la' }, datasets), [], 'solo partículas: nada');
+  const loads = screen.needs({ q: 'de la Rosa' }, datasets);
+  assert.equal(loads.length, 1);
+  await Promise.all(loads);
+  assert.deepEqual(datasets.buscar, { ro: [['1003', 'ROSA, LEO', 'Club Uno', '2025-2026', []]] });
+  assert.deepEqual(screen.needs({ q: 'rosa' }, datasets), [], 'ya está');
+  assert.deepEqual(asked.map((url) => url.replace(/\?.*$/, '')), ['./data-buscar-ro.js']);
+  // Un fallo (null) se vuelve a pedir en la visita siguiente, como la ficha del jugador.
+  datasets.buscar.ro = null;
+  datasets.buscar.xq = null;
+  const again = screen.needs({ q: 'xq' }, datasets);
+  assert.equal(again.length, 1);
+  await Promise.all(again);
+  assert.deepEqual(datasets.buscar.xq, [], 'un 404: ningún jugador');
+});
+
+test('mount: el índice que llega repinta la lista si lo escrito sigue en ese prefijo; «Reintentar» lo vuelve a pedir', async (t) => {
+  let fail = true;
+  const asked = [];
+  t.mock.method(globalThis, 'fetch', async (url) => {
+    asked.push(String(url));
+    if (fail) throw new TypeError('Failed to fetch');
+    return { ok: true, status: 200, text: async () => `const BUSCAR_ME = ${JSON.stringify(BUSCAR_ME)};\n` };
+  });
+  const quiet = console.warn;
+  console.warn = () => {};
+  try {
+    const datasets = datasetsFor();
+    const b = fakeBrowser('#/explorar');
+    const router = startRouter({ screens: { ...SCREEN_MAP }, root: b.root, getContext: () => ctxFor('', {}, { datasets }), window: b.win });
+    await router.idle();
+    const input = b.doc.getElementById('buscar');
+    const results = b.root.querySelector('#resultados');
+    const status = b.root.querySelector('#buscar-estado');
+    const type = (value) => { input.value = value; for (const fn of input.listeners.input || []) fn({ target: input }); };
+    type('mesa');
+    assert.match(results.innerHTML, /Buscando jugadores…/);
+    await tick();
+    assert.equal(datasets.buscar.me, null, 'falló');
+    assert.match(results.innerHTML, /No hemos podido cargar los jugadores\./);
+    assert.match(results.innerHTML, /<h2 class="block-title">Resultados<\/h2>/, 'los equipos siguen');
+    // Escribir más en el mismo prefijo no lo vuelve a pedir: para eso está «Reintentar».
+    type('mesa s');
+    await tick();
+    assert.equal(asked.length, 1);
+    fail = false;
+    const retry = { closest: (sel) => (sel === '[data-action="reintentar-jugadores"]' ? retry : null) };
+    let prevented = false;
+    for (const fn of results.listeners.click || []) fn({ target: retry, preventDefault() { prevented = true; } });
+    assert.ok(prevented);
+    assert.match(results.innerHTML, /Buscando jugadores…/);
+    await tick();
+    assert.equal(asked.length, 2);
+    assert.deepEqual(datasets.buscar.me, BUSCAR_ME);
+    assert.equal(results.innerHTML, String(searchView(withPlayers({}, { me: BUSCAR_ME }), 'mesa s').list));
+    assert.equal(status.textContent, searchView(withPlayers({}, { me: BUSCAR_ME }), 'mesa s').status);
+    // Lo que llega cuando ya se escribe otra cosa (otro prefijo) no pisa la lista.
+    const release = {};
+    t.mock.method(globalThis, 'fetch', (url) => new Promise((resolve) => {
+      asked.push(String(url));
+      release[String(url).match(/data-buscar-([a-z]{2})\.js/)[1]] = () => resolve({ ok: false, status: 404, text: async () => '' });
+    }));
+    type('ruiz');
+    type('zzz');
+    const shown = results.innerHTML;
+    assert.match(shown, /Buscando jugadores…/);
+    release.ru();
+    await tick();
+    assert.deepEqual(datasets.buscar.ru, []);
+    assert.equal(results.innerHTML, shown, 'lo escrito ya no busca en «ru»');
+    release.zz();
+    await tick();
+    assert.match(results.innerHTML, /No encontramos ningún equipo ni ningún jugador con «zzz»/, 'y el de «zz», sí');
+  } finally {
+    console.warn = quiet;
+  }
 });
 
 test('Vistos hace poco: la ficha de cada visto; un torneo abre su Copa; una temporada sin cargar, con su temporada y sin categoría', () => {
@@ -365,7 +526,23 @@ test('needs: data-health.json como mucho cada 10 min y sin rechazar nunca; nada 
   assert.equal(screen.needs({}, datasets).length, 1, 'de hace 11 min: se vuelve a pedir');
 });
 
-test('mount con el router: escribir filtra la lista y apunta la búsqueda con replaceState, sin volver a pintar; Atrás no recorre cada letra', async () => {
+// El servidor de las pruebas: data-buscar-me.js (BUSCAR_ME) y un 404 en cualquier otro prefijo.
+const serveBuscar = (t, files = { me: BUSCAR_ME }) => {
+  const asked = [];
+  t.mock.method(globalThis, 'fetch', async (url) => {
+    asked.push(String(url));
+    const prefix = (String(url).match(/data-buscar-([a-z]{2})\.js/) || [])[1];
+    const entries = prefix && files[prefix];
+    return entries
+      ? { ok: true, status: 200, text: async () => `const BUSCAR_${prefix.toUpperCase()} = ${JSON.stringify(entries)};\n` }
+      : { ok: false, status: 404, text: async () => '' };
+  });
+  return asked;
+};
+const tick = () => new Promise((resolve) => setImmediate(resolve));
+
+test('mount con el router: escribir filtra la lista y apunta la búsqueda con replaceState, sin volver a pintar; Atrás no recorre cada letra', async (t) => {
+  const asked = serveBuscar(t);
   const datasets = datasetsFor();
   const b = fakeBrowser('#/');
   const router = startRouter({ screens: { ...SCREEN_MAP }, root: b.root, getContext: () => ctxFor('', {}, { datasets }), window: b.win });
@@ -382,8 +559,15 @@ test('mount con el router: escribir filtra la lista y apunta la búsqueda con re
   const type = (value) => { input.value = value; for (const fn of input.listeners.input || []) fn({ target: input }); };
   for (const value of ['h', 'hu', 'hur', 'hurac']) type(value);
   assert.equal(b.root.innerHTML, painted, 'la pantalla no se vuelve a pintar: el cursor sigue donde estaba');
-  assert.equal(results.innerHTML, String(searchView(ctxWith({}), 'hurac').list));
+  assert.equal(results.innerHTML, String(searchView(ctxWith({}), 'hurac').list), 'los jugadores, todavía buscándose');
   assert.equal(status.textContent, '8 equipos encontrados');
+  // El índice de «hu», pedido una vez (al escribir «hu»), llega: ningún jugador (un 404), y la lista se repinta.
+  await tick();
+  assert.deepEqual(asked.map((url) => url.replace(/\?.*$/, '')), ['./data-buscar-hu.js']);
+  assert.deepEqual(datasets.buscar, { hu: [] });
+  assert.equal(results.innerHTML, String(searchView(withPlayers({}, { hu: [] }), 'hurac').list));
+  assert.doesNotMatch(results.innerHTML, /Buscando jugadores/);
+  assert.equal(b.root.innerHTML, painted, 'tampoco ahora se vuelve a pintar la pantalla');
   assert.deepEqual(b.entries(), ['#/', '#/explorar?s=2025-2026&q=hurac#buscar'], 'una sola entrada, con su ancla');
   assert.deepEqual(router.current(), { screen: 'explorar', params: { s: PORTAL_SEASON, q: 'hurac' } });
   // Borrar la búsqueda la quita de la dirección.
@@ -400,7 +584,8 @@ test('mount con el router: escribir filtra la lista y apunta la búsqueda con re
   await new Promise((resolve) => setTimeout(resolve, 0));
   await router.idle();
   assert.equal(b.hash(), '#/explorar?s=2025-2026&q=mesas#buscar');
-  assert.ok(b.root.innerHTML.includes(String(searchView(ctxWith({}), 'mesas').list)), 'la q de la dirección, pintada por render');
+  assert.deepEqual(datasets.buscar.me, BUSCAR_ME, 'el índice de «me», pedido al escribir «mesas»');
+  assert.ok(b.root.innerHTML.includes(String(searchView(withPlayers({}, { me: BUSCAR_ME }), 'mesas').list)), 'la q de la dirección, pintada por render');
   b.win.history.back();
   await new Promise((resolve) => setTimeout(resolve, 0));
   await router.idle();
@@ -437,7 +622,8 @@ test('registro: Explorar es la pantalla de #/explorar; y el CSS: solo clases que
   assert.ok(Number(decl('.search-input').match(/font-size:\s*([\d.]+)rem/)[1]) * 16 >= 16, 'iOS no amplía la página al enfocar el buscador');
   assert.doesNotMatch(decl('.season-menu'), /display:/, 'el atributo hidden cierra la lista');
   const recent = [{ s: PORTAL_SEASON, g: 'PG2', t: 'AD Huracán' }, { s: '2023-2024', g: 'SF1', t: 'X' }];
-  const html = [render({ q: 'hurac' }, { recent }, { champions: true }), render({ q: 'h' }), render({ q: 'zzz' })].join('');
+  const html = [render({ q: 'hurac' }, { recent }, { champions: true }), render({ q: 'h' }), render({ q: 'zzz' }),
+    ...[{ me: BUSCAR_ME }, { me: null }, {}].map((buscar) => s(screen.render(withPlayers({ q: 'mesa' }, buscar))))].join('');
   const used = new Set(html.match(/class="[^"]+"/g).flatMap((m) => m.slice(7, -1).split(/\s+/)));
   assert.deepEqual([...used].filter((c) => !rules.classes.has(c)), []);
 });

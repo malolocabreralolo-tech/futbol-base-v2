@@ -30,6 +30,11 @@ datos-fuente/fiflp_cookies.txt
 # SQLite transients (futbolbase.db itself is tracked)
 *.db-wal
 *.db-shm
+# Las piezas de la base (base/, docs/almacenamiento.md): el diario de una pieza que partir dejó a medias no se sube
+# nunca (lo deshace el partir siguiente, y en otra copia rompería la pieza), ni la marca de qué piezas dieron la
+# base montada (scripts/piezas.py la escribe junto a ella: es de cada copia, no del repositorio).
+base/*.db-journal
+/futbolbase.db.piezas
 database.db
 
 # Test cache
