@@ -163,13 +163,13 @@ test('plantilla: la fila del jugador lleva su id de la federación si el acta lo
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
-// TABLA_CLAVES de scripts/tests/test_identidad.py: la clave que da identidad.clave_publica y su trozo de 16.
+// TABLA_CLAVES de scripts/tests/test_identidad.py: la clave que da identidad.clave_publica y su trozo de 64.
 const TABLA_CLAVES = [
-  ['153432', 8], ['55329034', 10], ['214080', 0], ['1000017', 1], ['nisxwgmjvp', 5], ['ns8zin819i', 6],
-  ['nphzk2mnyf', 7], ['njkibiyk9d', 1], ['n22zp0f76w', 8], ['n1ddjsy73e', 10], ['nb6t8ejz2s', 4],
-  ['n8qeq0zomr', 3], ['nccuo4q7lp', 13], ['ni6iou2qm2', 10], ['nc7n9df8hm', 10], ['npp634adwo', 8],
-  ['n06wbfdyqg', 8], ['nogme3ruur', 3], ['nib8aqb17c', 8], ['njzprohv7i', 14], ['nlaihmii3x', 13],
-  ['ns9cly007v', 11],
+  ['153432', 24], ['55329034', 10], ['214080', 0], ['1000017', 17], ['nisxwgmjvp', 37], ['ns8zin819i', 38],
+  ['nphzk2mnyf', 7], ['njkibiyk9d', 17], ['n22zp0f76w', 40], ['n1ddjsy73e', 42], ['nb6t8ejz2s', 20],
+  ['n8qeq0zomr', 51], ['nccuo4q7lp', 61], ['ni6iou2qm2', 58], ['nc7n9df8hm', 58], ['npp634adwo', 40],
+  ['n06wbfdyqg', 24], ['nogme3ruur', 51], ['nib8aqb17c', 24], ['njzprohv7i', 62], ['nlaihmii3x', 45],
+  ['ns9cly007v', 27],
 ];
 
 test('jugadoresShard da lo mismo que identidad.trozo: la tabla de las pruebas de Python', () => {
@@ -186,7 +186,7 @@ test('jugadoresShard da lo mismo que identidad.trozo con 200 claves de identidad
     'from identidad import clave_publica, trozo',
     'claves = [clave_publica(None, f"APELLIDO{i} OTRO, NOMBRE{i % 7}", f"Equipo {i % 13}", 2019 + i % 8) for i in range(100)]',
     'claves += [clave_publica(37 + i * 104729 + i * i * 7919, "", "", 0) for i in range(100)]',
-    'print(json.dumps([[c, trozo(c)] for c in claves]))',
+    'print(json.dumps([[c, trozo(c, 64)] for c in claves]))',
   ].join('\n');
   const run = spawnSync('python3', ['-c', code], { encoding: 'utf8', timeout: 60000 });
   assert.equal(run.status, 0, run.stderr);

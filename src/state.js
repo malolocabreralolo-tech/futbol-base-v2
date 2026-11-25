@@ -373,7 +373,7 @@ export async function ensureLineups(season, group) {
  * 36 módulo JUGADORES_SHARDS (caben enteras en un número: 36^9 < 2^53). null si no es una clave. Como
  * ensureLineups: un vuelo por trozo, null si falla (sin guardarlo, para reintentar) y el texto
  * parseado, nunca el global. */
-export const JUGADORES_SHARDS = 16;
+export const JUGADORES_SHARDS = 64;
 export function jugadoresShard(id) {
   const key = String(id ?? '');
   if (!isPlayerKey(key)) return null;
