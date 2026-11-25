@@ -277,11 +277,21 @@ def test_relanzar_solo_si_la_federacion_sirvio():
     assert H.relanzar(None, bajar, e)                                             # tras una prueba
 
 
+def test_relanzar_si_lo_que_toca_es_una_prueba():
+    # El último grupo que faltaba se lee en una ejecución de dos páginas (25/11/2026): el trabajo queda «bajado,
+    # por probar», y la prueba, que no pide nada a la federación, no espera tres horas al disparo siguiente.
+    probar, e = {"accion": "probar", "trabajos": ["goleadores:2025-2026"]}, H.estado_vacio()
+    assert H.relanzar({"servidas": 2, "runner_rechazado": False}, probar, e)
+    assert H.relanzar({"servidas": 0, "runner_rechazado": False}, probar, e)
+    assert not H.relanzar({"servidas": 2, "runner_rechazado": False}, {"accion": "descargar"}, e)
+
+
 def test_un_runner_rechazado_no_se_relanza(monkeypatch):
     rechazado = {"servidas": 0, "runner_rechazado": True, "parada": "runner"}
     e = H.estado_vacio()
     e["ejecuciones"] = [{"runner_rechazado": True}]                               # la que se acaba de apuntar
     assert not H.relanzar(rechazado, {"accion": "descargar"}, e)
+    assert not H.relanzar(rechazado, {"accion": "probar"}, e)                     # ni para probar: nunca
     monkeypatch.setattr(H, "RELANZAR_SI_RUNNER_RECHAZADO", 2)                     # si el dueño dice que sí
     assert H.relanzar(rechazado, {"accion": "descargar"}, e)
     e["ejecuciones"] = [{"runner_rechazado": True}] * 3

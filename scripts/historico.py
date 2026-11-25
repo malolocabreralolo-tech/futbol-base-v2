@@ -29,7 +29,9 @@ Las reglas del carril, y el porqué de cada número:
     503/429; `frenos` del resumen, no solo `parada`: un freno cortado por el tope da parada «tope»), o si el último
     data-health.json del día dice que el bot en vivo lo ha esperado en Azure (freno_del_bot), no se lee nada más
     ese día; al día siguiente, el tope entero;
-  - RELANZAR solo si la federación sirvió (fiflp_carga.RELANZAR_MIN, 60 páginas: con menos, algo iba mal) y
+  - RELANZAR solo si la federación sirvió (fiflp_carga.RELANZAR_MIN, 60 páginas: con menos, algo iba mal) o si
+    lo que toca después es una prueba (no pide nada a la federación: sin esto, un trabajo que se completa con
+    dos páginas —el último grupo que faltaba— esperaba al disparo siguiente para probarse), y
     nunca por caer en un runner que la federación no sirve (RELANZAR_SI_RUNNER_RECHAZADO = 0): relanzar hasta que
     toque Azure es esquivar un bloqueo, y lo decide el dueño. Lo retoma el disparo programado (cada 3 h: con la
     mitad de los runners en AWS, alguno de los ≤ 8 disparos del día cae en Azure, y uno solo llega al tope);
@@ -630,7 +632,8 @@ def relanzar(resumen, despues, estado):
     """¿Se lanza otra ejecución en seguida? `despues`, siguiente() con el estado ya registrado: nunca si es nada;
     tras una prueba (resumen None), sí; tras un runner rechazado, solo si las ejecuciones rechazadas seguidas al
     final de estado["ejecuciones"] (esta incluida) son como mucho RELANZAR_SI_RUNNER_RECHAZADO (con 0, nunca); tras
-    otra descarga, solo si la federación sirvió RELANZAR_MIN páginas. Si no, lo retoma el disparo programado."""
+    otra descarga, si la federación sirvió RELANZAR_MIN páginas o si lo que toca es una prueba (la prueba no pide
+    nada a la federación: da igual lo poco que se haya leído). Si no, lo retoma el disparo programado."""
     if despues.get("accion") == "nada":
         return False
     if resumen is None:
@@ -642,6 +645,8 @@ def relanzar(resumen, despues, estado):
                 break
             seguidas += 1
         return seguidas <= RELANZAR_SI_RUNNER_RECHAZADO
+    if despues.get("accion") == "probar":
+        return True
     return int(resumen.get("servidas") or 0) >= RELANZAR_MIN
 
 
