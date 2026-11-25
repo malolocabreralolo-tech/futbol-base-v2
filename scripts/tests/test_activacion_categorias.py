@@ -303,9 +303,19 @@ def _distinto(a, b):
         conn.close()
 
 
+def _en_curso(path):
+    """La temporada en curso de la base (la que puebla base_mayores.poblar): la de hoy no está escrita aquí, para que
+    el cambio de temporada (activate_season) no ponga la puerta de pruebas del bot en rojo."""
+    conn = sqlite3.connect(path)
+    try:
+        return conn.execute("SELECT name FROM seasons WHERE is_current=1").fetchone()[0]
+    finally:
+        conn.close()
+
+
 def _quitar(path, *argv, capsys=None):
     import quitar_categoria
-    code = quitar_categoria.main(["--db", str(path), "--temporada", "2026-2027", *argv])
+    code = quitar_categoria.main(["--db", str(path), "--temporada", _en_curso(path), *argv])
     return code, capsys.readouterr().out if capsys else ""
 
 
@@ -412,7 +422,8 @@ def test_quitar_el_alevin_de_lanzarote(tmp_path, nunca, bases_reales):
     assert "ALEVIN/lanzarote" in antes
     assert _quitar(activada, "--categoria", "ALEVIN", "--isla", "lanzarote", "--apply")[0] == 0
     quedan = _por_categoria(activada)
-    assert "ALEVIN/lanzarote" not in quedan and quedan["ALEVIN/grancanaria"] == antes["ALEVIN/grancanaria"]
+    # (Recién empezada una temporada puede no haber aún alevín de Gran Canaria: entonces, tampoco después.)
+    assert "ALEVIN/lanzarote" not in quedan and quedan.get("ALEVIN/grancanaria") == antes.get("ALEVIN/grancanaria")
     _fin_de_pasada(activada)
     assert _distinto(activada, nunca) == []
 
