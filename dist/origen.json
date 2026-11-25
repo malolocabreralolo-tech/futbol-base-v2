@@ -1,7 +1,7 @@
 {
-  "codigo": "bb422269",
-  "app": "dist/app-64f418c9.js",
-  "css": "dist/acta-fc0638d7.css",
+  "codigo": "ce34680d",
+  "app": "dist/app-7bf101c9.js",
+  "css": "dist/acta-924d6e1a.css",
   "externos": [
     "src/config.js"
   ]

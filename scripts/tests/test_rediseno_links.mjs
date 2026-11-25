@@ -9,7 +9,7 @@ import {
 const SEASON = '2025-2026';
 
 test('SCREENS son las pantallas de la tabla de rutas', () => {
-  assert.deepEqual(SCREENS, ['', 'jornada', 'tabla', 'explorar', 'partido', 'equipo', 'ligas', 'copa', 'goleadores', 'temporadas', 'records', 'fuentes', 'ajustes', 'jugador']);
+  assert.deepEqual(SCREENS, ['', 'jornada', 'tabla', 'explorar', 'partido', 'equipo', 'ligas', 'copa', 'goleadores', 'temporadas', 'records', 'fuentes', 'ajustes', 'jugador', 'ranking']);
 });
 
 test('parseRoute lee pantalla y parámetros; lo desconocido es la portada', () => {
@@ -54,6 +54,7 @@ test('ida y vuelta de cada ruta de §4.1, con nombres difíciles', () => {
     ['fuentes', {}],
     ['ajustes', {}],
     ['jugador', { id: '55181078' }],
+    ['ranking', { y: '2018', v: 'h' }],
     ['equipo', { s: SEASON, g: 'FV11', t: 'VET“C” SA-COR' }],
     ['equipo', { s: SEASON, g: 'FF13', t: 'L.Mesas Hu. B' }],
     ['equipo', { s: SEASON, g: 'B2', t: 'MESAS, U.D. LAS "B"' }],

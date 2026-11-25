@@ -1,0 +1,1 @@
+const BUSCAR_YN = [["220468","CUESTA YNCHAUSTI, ENEKO","Muelle Mesa Lz.","2021-2022",[2012,2013]]];

@@ -1,0 +1,1 @@
+const BUSCAR_RT = [["216388","ARENCIBIA 0RTEGA, AYTHAMI","Las Majoreras B","2020-2021",[2011,2012]]];

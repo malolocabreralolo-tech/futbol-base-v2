@@ -126,6 +126,10 @@ tiene las páginas de la federación.
 
 ## 4. Fichas de jugador, hoy
 
+> Esta sección describe el estado de antes de la parte B de la ampliación (noviembre de 2026). Desde
+> entonces las fichas van en 64 trozos (no 16), y ya hay año de nacimiento estimado, buscador de jugadores
+> en Explorar y ranking por año (`docs/ranking.md`).
+
 - Pantalla: `src/screen-jugador.js` (trayectoria por temporada; «Seguir», hasta 12, en la portada). Se llega
   desde el partido, la plantilla del equipo y los seguidos; no desde Goleadores ni Récords. No hay buscador
   de jugadores (`screen-explorar.js:33-48,163` y `model.js:1407` buscan equipos).

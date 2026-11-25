@@ -54,6 +54,10 @@ def _arbol(root):
         "data-season-2023-2024.js": "const SEASON_2023_2024={};\n",
         "data-season-2024-2025-alevin.js": "const SEASON_2024_2025_ALEVIN={};\n",
         "data-lineups-2024-2025-X1.js": "const LINEUPS={};\n",
+        "data-jugadores-3.js": "const JUGADORES_3 = {};\n",
+        "data-buscar-go.js": "const BUSCAR_GO = [];\n",
+        "data-ranking.js": "const RANKING = {};\n",
+        "data-ranking-2017.js": "const RANKING_2017 = {};\n",
         "data-health.json": "{}\n",
     }
     for rel in precache.FIJOS:
@@ -81,6 +85,9 @@ def test_obligatorios_y_opcionales(tmp_path):
     assert opcionales == OPCIONALES
     assert "data-season-2024-2025-alevin.js" not in entries, "el alevín de temporada se baja al usarse"
     assert "data-lineups-2024-2025-X1.js" not in entries, "las actas, también"
+    # Las fichas, el buscador y el ranking: perezosos, se guardan al usarse (ni obligatorios ni opcionales).
+    for ruta in ("data-jugadores-3.js", "data-buscar-go.js", "data-ranking.js", "data-ranking-2017.js"):
+        assert ruta not in entries and ruta not in opcionales, ruta
     assert "data-health.json" not in entries, "la salud va en la caché de la versión, de la red primero"
 
 

@@ -1,0 +1,1 @@
+const BUSCAR_EJ = [["232053","KHANAARO EJJA, ANAS","CD Tite","2025-2026",[2016]],["54883781","EJARI, CHAKIB","Las Majoreras","2026-2027",[2016]]];

@@ -37,6 +37,8 @@ const bodies = {
   'data-season-2023-2024.js': 'const SEASON_2023_2024={"name":"2023-2024","current":false,"benjamin":[],"prebenjamin":[]};',
   'data-lineups-2025-2026-A1.js': 'const LINEUPS_2025_2026_A1={};',
   'data-health.json': null,   // cada prueba de ensureHealth decide
+  // El índice de búsqueda de jugadores de un prefijo (generate_js.buscar_files), con nombres inventados.
+  'data-buscar-ga.js': 'const BUSCAR_GA = [["1001","GARCÍA PÉREZ, JOSÉ","Club Uno","2025-2026",[2016]],["1002","GARCÍA, ANA","Club Dos","2026-2027",[]]];\n',
 };
 globalThis.fetch = async (url) => {
   requests.push(String(url));
@@ -74,13 +76,13 @@ test('nada espera para siempre: cada petición perezosa se corta a los 15 s y la
   console.warn = () => {};
   try {
     const loads = [state.ensureMatchDetail(), state.ensureSeasonData('2022-2023'), state.ensureLineups('2023-2024', 'A1'),
-      state.ensureHealth(), state.ensureAlevin(), state.ensureSeasonAlevin('2022-2023')];
-    assert.equal(hung.length, 6, hung.join(', '));
+      state.ensureHealth(), state.ensureAlevin(), state.ensureSeasonAlevin('2022-2023'), state.ensureBuscar('ti')];
+    assert.equal(hung.length, 7, hung.join(', '));
     t.mock.timers.tick(state.LAZY_TIMEOUT_MS - 1);
     await new Promise((resolve) => setImmediate(resolve));
-    assert.equal(hung.length, 6, 'todavía en vuelo');
+    assert.equal(hung.length, 7, 'todavía en vuelo');
     t.mock.timers.tick(1);
-    assert.deepEqual(await Promise.all(loads), [null, null, null, null, null, null]);
+    assert.deepEqual(await Promise.all(loads), [null, null, null, null, null, null, null]);
   } finally {
     globalThis.fetch = saved;
     console.error = quiet.error;
@@ -123,6 +125,59 @@ test('ensureAlevin: sin data-alevin.js (un 404), alevín vacío y memorizado; co
   assert.deepEqual(requests, ['./data-alevin.js?v=20260923j']);
 });
 
+// El índice de búsqueda de jugadores: data-buscar-<xy>.js, como las fichas (un vuelo por prefijo, el
+// texto parseado y nunca el global). Un 404 es «ningún jugador con ese prefijo» (y se memoriza); un
+// fallo de red, null sin memorizarse, para reintentar.
+test('ensureBuscar: parsea el fichero de su prefijo, con la versión de los datos, y comparte el vuelo', async () => {
+  requests.length = 0;
+  const [a, b] = await Promise.all([state.ensureBuscar('ga'), state.ensureBuscar('ga')]);
+  assert.equal(a, b, 'las dos llamadas comparten el vuelo');
+  assert.deepEqual(a, [['1001', 'GARCÍA PÉREZ, JOSÉ', 'Club Uno', '2025-2026', [2016]], ['1002', 'GARCÍA, ANA', 'Club Dos', '2026-2027', []]]);
+  assert.equal(await state.ensureBuscar('ga'), a, 'cargado una vez, no se vuelve a pedir');
+  assert.deepEqual(requests, ['./data-buscar-ga.js?v=20260923j']);
+});
+
+test('ensureBuscar: un 404 es ningún jugador ([], memorizado); un fallo de red, null y se vuelve a pedir', async () => {
+  requests.length = 0;
+  assert.deepEqual(await state.ensureBuscar('zq'), []);
+  assert.deepEqual(await state.ensureBuscar('zq'), []);
+  assert.deepEqual(requests, ['./data-buscar-zq.js?v=20260923j'], 'el 404 no se vuelve a pedir');
+  const saved = globalThis.fetch;
+  const quiet = console.warn;
+  console.warn = () => {};
+  try {
+    globalThis.fetch = async (url) => { requests.push(String(url)); throw new TypeError('Failed to fetch'); };
+    assert.equal(await state.ensureBuscar('ro'), null);
+    // Sin conexión y sin su copia, el service worker responde con index.html: tampoco es el índice.
+    globalThis.fetch = async (url) => { requests.push(String(url)); return { ok: true, status: 200, text: async () => '<!doctype html>' }; };
+    assert.equal(await state.ensureBuscar('ro'), null);
+  } finally {
+    globalThis.fetch = saved;
+    console.warn = quiet;
+  }
+  bodies['data-buscar-ro.js'] = 'const BUSCAR_RO = [["1003","RODRIGUEZ, LUIS","Club Uno","2025-2026",[2017]]];\n';
+  assert.deepEqual(await state.ensureBuscar('ro'), [['1003', 'RODRIGUEZ, LUIS', 'Club Uno', '2025-2026', [2017]]]);
+  assert.equal(requests.filter((u) => u.startsWith('./data-buscar-ro.js')).length, 3, 'cada fallo se vuelve a pedir');
+  // Lo que no es un prefijo (dos letras de la a a la z) no se pide.
+  requests.length = 0;
+  assert.deepEqual(await state.ensureBuscar('G1'), []);
+  assert.deepEqual(requests, []);
+});
+
+// El ranking por año de nacimiento: sin fichero (404), un ranking sin años y un año sin nadie, memorizados.
+test('ensureRanking y ensureRankingYear: parsean su constante; un 404 es que no hay nada publicado', async () => {
+  requests.length = 0;
+  assert.deepEqual(await state.ensureRanking(), { temporada: null, anios: {} });
+  assert.deepEqual(await state.ensureRankingYear(2016), { t: [], h: [] });
+  bodies['data-ranking-2018.js'] = 'const RANKING_2018 = {"t":[["1001","GOMEZ PEREZ, RAUL","Club Uno","prebenjamin",20,18,40,180,0]],"h":[]};\n';
+  const [a, b] = await Promise.all([state.ensureRankingYear('2018'), state.ensureRankingYear(2018)]);
+  assert.equal(a, b, 'las dos llamadas comparten el vuelo');
+  assert.deepEqual(a, { t: [['1001', 'GOMEZ PEREZ, RAUL', 'Club Uno', 'prebenjamin', 20, 18, 40, 180, 0]], h: [] });
+  assert.deepEqual(await state.ensureRankingYear('18'), { t: [], h: [] }, 'lo que no es un año no se pide');
+  assert.equal(await state.ensureRanking(), await state.ensureRanking());
+  assert.deepEqual(requests, ['./data-ranking.js?v=20260923j', './data-ranking-2016.js?v=20260923j', './data-ranking-2018.js?v=20260923j']);
+});
+
 test('sin el <script> de data-seasons.js, las peticiones van sin ?v=', async () => {
   const saved = scripts['data-seasons.js'];
   delete scripts['data-seasons.js'];
@@ -140,7 +195,7 @@ test('todas las peticiones perezosas pasan por fetchData(): la versión de los d
   assert.equal((src.match(/\bfetch\(/g) || []).length, 1, 'un solo fetch en state.js, el de fetchData');
   assert.match(src, /await fetch\(`\.\/\$\{file\}\$\{dataQuery\(\)\}`, \{ signal: controller\.signal \}\)/);
   const loaders = src.match(/await fetchData\(/g) || [];
-  assert.equal(loaders.length, 7, 'matchdetail, temporadas, actas, fichas de jugador, data-health y el alevín (data-alevin.js y data-season-<S>-alevin.js)');
+  assert.equal(loaders.length, 8, 'matchdetail, temporadas, actas, fichas de jugador, data-health, el alevín (data-alevin.js y data-season-<S>-alevin.js) y los de una constante (lazyConst: el índice de búsqueda y el ranking)');
   assert.doesNotMatch(src, /data-matchdetail-keys\.js"\]/, 'la versión ya no sale de data-matchdetail-keys.js');
 });
 

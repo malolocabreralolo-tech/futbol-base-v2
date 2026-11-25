@@ -1487,6 +1487,50 @@ abbr[title] { text-decoration: none; }
   [data-screen="goleadores"] > :not(.screen-head) { max-width: 720px; }
 }
 
+/* ── Los mejores de cada año: el ranking por año de nacimiento (screen-ranking.js) ──────────────
+ * La fila de años es la tira de grupos de Tabla (.group-strip), que se desliza dentro de su caja; las
+ * vistas, el selector segmentado. La lista es la tabla de la clasificación (.standings) con el jugador en
+ * dos líneas, como los goleadores: el nombre (con «año dudoso» detrás, que nunca se corta) y su equipo y
+ * categoría debajo; todo es el enlace a su ficha, de 44 px o más. A 320 px caben el puesto, el jugador,
+ * los goles y el índice; partidos y titularidades, desde 480 px. */
+.rank-table .st-pos { width: 32px; }
+.rank-table .rank-player { text-align: left; font-weight: 400; }
+.rank-table .sc-goals { width: 48px; }
+.rank-table .rank-pj, .rank-table .rank-tit { width: 38px; }
+.rank-table .rank-idx { width: 54px; }
+.rank-table td.rank-idx { font-weight: 800; color: var(--ink); }
+.rank-link {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  min-height: 44px;
+  padding: 4px 0;
+  color: inherit;
+  text-decoration: none;
+}
+.rank-line { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+.rank-name { min-width: 0; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rank-mark { flex: none; font-size: 0.71875rem; color: var(--mute); }
+.rank-team { font-size: 0.78125rem; color: var(--mute); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* «Cómo se calcula»: un desplegable sin caja, con el resumen de 44 px. */
+.rank-how { margin-top: 16px; }
+.rank-how summary { min-height: 44px; padding: 12px 0; font-weight: 700; color: var(--ink); cursor: pointer; }
+.rank-how p { margin: 0; font-size: 0.84375rem; line-height: 1.5; color: var(--text); }
+
+@media (max-width: 479.98px) {
+  .rank-table .rank-pj, .rank-table .rank-tit { display: none; }
+}
+
+@media (hover: hover) {
+  a.rank-link:hover .rank-name { text-decoration: underline; }
+}
+
+/* Escritorio: seis columnas no necesitan los 1120 px, como los goleadores. */
+@media (min-width: 1024px) {
+  [data-screen="ranking"] > :not(.screen-head) { max-width: 720px; }
+}
+
 /* ── Récords: totales, récords de partido y de equipo y goleadores (spec §4.7; decisión 26 de B3) ── */
 
 .rc-cats { margin-top: 14px; }
