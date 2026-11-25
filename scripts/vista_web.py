@@ -175,6 +175,14 @@ def _quitar(conn, fuera, categorias):
     conn.execute("DROP TABLE temp._fuera_partidos")
 
 
+def quitar_grupos(conn, fuera, categorias):
+    """Lo que copia_web quita de su copia, en la base `conn` que se le dé: los grupos `fuera` (ids) y todo lo que
+    cuelga de ellos (ver el docstring del módulo); de categories, solo las que no están en `categorias` y se quedan
+    sin grupos. Sin transacción propia ni commit: la abre y la cierra quien llama (quitar_categoria.py, la marcha
+    atrás de un paso del director), con las claves ajenas sin comprobar mientras borra (se borra en orden)."""
+    _quitar(conn, list(fuera), tuple(categorias))
+
+
 def copia_web(conn, categorias=None):
     """La base que ve la web (ver el docstring del módulo): `conn` tal cual si no tiene ningún grupo de una
     categoría fuera de `categorias` (por defecto categorias.EN_WEB); si no, una copia en memoria sin ellos."""

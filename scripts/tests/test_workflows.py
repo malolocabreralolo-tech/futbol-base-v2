@@ -1661,13 +1661,13 @@ def test_activar_refreshes_the_catalog_of_the_current_season_only():
     assert step.get("timeout-minutes", 99) <= 15
 
 
-def test_activar_downloads_both_tandas_in_short_attempts():
+def test_activar_downloads_its_tandas_in_short_attempts():
     """Una fase nueva son cientos de páginas y la federación frena: la descarga tiene plazo (ISLAS_HASTA,
     fetch_fiflp_islas.guardar_por_grupo guarda grupo a grupo y para al pasarlo) por debajo del timeout del
     paso, con margen para el último grupo, y nunca para el job (continue-on-error).
     Intentos cortos (20 min de descarga, 30 el paso, 75 el job): un intento ocupa update-data poco más que una
-    pasada. Las dos tandas de la temporada (benjamín y prebenjamín, alevín) con la misma lista: cada una filtra
-    por su categoría."""
+    pasada. Las tandas con algo pendiente (activar_auto.py --tandas: '22', '22al', '22inf', '22cad', '22juv'),
+    todas con la misma lista: cada una filtra por su categoría. Ya no las dos de siempre a fuego."""
     _, job = _activar()
     step = _activar_step("Descargar lo pendiente")
     assert step.get("id") == "descarga" and step.get("continue-on-error") is True
@@ -1675,7 +1675,8 @@ def test_activar_downloads_both_tandas_in_short_attempts():
     assert step["env"]["CODIGO"] == "${{ steps.pendientes.outputs.codigo }}"
     assert step["env"].get("PYTHONUNBUFFERED") == "1"
     run = step["run"]
-    assert 'for TANDA in "$CODIGO" "${CODIGO}al"' in run
+    assert "for TANDA in $(python3 scripts/activar_auto.py --tandas); do" in run
+    assert "${CODIGO}al" not in run and '"$CODIGO" ' not in run
     assert 'ISLAS_SEASON="$TANDA" python3 scripts/fetch_fiflp_islas.py' in run
     minutes = int(re.search(r"ISLAS_HASTA=\$\(\( \$\(date \+%s\) \+ (\d+) \* 60 \)\)", run).group(1))
     assert (minutes, step["timeout-minutes"], job["timeout-minutes"]) == (20, 30, 75)

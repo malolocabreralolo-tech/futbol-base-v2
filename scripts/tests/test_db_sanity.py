@@ -329,12 +329,22 @@ def test_island_ids_are_the_ones_the_frontend_knows(conn):
     importadores de Wayback escribían 'gran_canaria' con guión bajo, así que 66
     grupos —incluidos los 23 de la Primera Fase de la temporada en curso— no
     aparecían en la sección POR ISLA.
+
+    Lo que pinta la web son las categorías de categorias.EN_WEB (lo demás no sale de vista_web.copia_web): en
+    ellas, solo las tres islas. Las categorías nuevas (infantil, cadete, juvenil, que el bot ya puede tener en la
+    base antes de E2) admiten además «interinsular», la del convenio para las ligas de varias islas
+    (activate_season.isla_admitida); la web la aprenderá en su parte (E2).
     """
+    from categorias import EN_WEB, MAYORES
     validas = {"grancanaria", "lanzarote", "fuerteventura"}
-    malas = sorted({r[0] for r in conn.execute(
-        "SELECT DISTINCT island FROM groups WHERE island IS NOT NULL AND island != ''")
-        if r[0] not in validas})
-    assert not malas, f"islas que el frontend no conoce: {malas}"
+    malas = []
+    for island, categoria in conn.execute(
+            """SELECT DISTINCT g.island, upper(coalesce(c.name, '')) FROM groups g
+               LEFT JOIN categories c ON c.id = g.category_id WHERE g.island IS NOT NULL AND g.island != ''"""):
+        admitidas = validas | ({"interinsular"} if categoria in MAYORES and categoria not in EN_WEB else set())
+        if island not in admitidas:
+            malas.append((categoria, island))
+    assert not malas, f"islas que el frontend no conoce: {sorted(malas)}"
 
 
 def _lineup_keys(texto):

@@ -10,14 +10,16 @@ temporada») sin manos: manifiesto (fiflp_manifest.build) → verificación (act
     python3 scripts/activar_auto.py --pendientes    # imprime los ids pendientes, separados por comas
     python3 scripts/activar_auto.py --raw scripts/fiflp_islas_22_raw.json   # un raw para todas
     python3 scripts/activar_auto.py --temporada     # el CodTemporada de la temporada en curso (22 en 2026-27)
+    python3 scripts/activar_auto.py --tandas        # las tandas que descargar para lo pendiente ("22 22inf")
 
 Y la de activar.yml si las suites fallan tras activar (docs/federacion.md, «La activación automática»):
 
     python3 scripts/activar_auto.py --pruebas-fallaron <data-health.json de la ejecución>
 
-Sin --raw, cada competición se busca en el raw de su tanda: scripts/fiflp_islas_<CodTemporada>_raw.json
-(benjamín y prebenjamín) o scripts/fiflp_islas_<CodTemporada>al_raw.json (alevín); la que no está en
-ninguno, en el de su categoría (y falla: la descarga no está completa).
+Sin --raw, cada competición se busca en el raw de su tanda (categorias.TANDAS):
+scripts/fiflp_islas_<CodTemporada><sufijo>_raw.json, con el sufijo '' (benjamín y prebenjamín), 'al' (alevín),
+'inf', 'cad' o 'juv' (infantil, cadete y juvenil, parte E1); la que no está en ninguno, en el de su categoría
+(y falla: la descarga no está completa).
 
 Reglas (docs/temporada-nueva.md, «Activación automática»):
   - Todo o nada por competición, cada una en su transacción: una que falla no toca la base ni impide
@@ -28,6 +30,8 @@ Reglas (docs/temporada-nueva.md, «Activación automática»):
     generar falla, todo vuelve a esa copia (nunca una base cambiada con data-*.js viejos).
   - Una fase que la web no reconoce (sonda_fases.mjs) no deshace la activación: los datos son buenos y
     falta una regla de PHASE_TABLE, que es código; queda en activation.failed y sale con 1.
+  - Nada de una categoría que el bot aún no activa (categorias.ACTIVABLES: la decide el director, paso a paso):
+    queda en activation.failed («categoría que el bot aún no activa») sin tocar nada, y no se descarga (--tandas).
 """
 import argparse
 from datetime import datetime, timezone
@@ -41,9 +45,10 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
+import categorias  # noqa: E402
 import fiflp_manifest as M  # noqa: E402
 from activate_season import add_groups, fiflp_ids, raw_team_names, validate_manifest, verify_sources  # noqa: E402
-from categorias import category_of  # noqa: E402
+from categorias import TANDAS, category_of, sufijo_tanda  # noqa: E402
 from db import get_connection  # noqa: E402
 from escritura import escribir_atomico  # noqa: E402
 from source_health import RETRY_AFTER  # noqa: E402
@@ -58,6 +63,9 @@ VERIFICACION = "verificación: {}"
 FASE_DESCONOCIDA = "fase que la web no reconoce: {}"
 SIN_GENERAR = "no se pudo regenerar la web: {}"
 SIN_SONDA = "no se pudo pasar la sonda de fases: {}"
+# Lo pendiente de una categoría que no está en categorias.ACTIVABLES (a mano en data-health.json, o un grupo nuevo
+# que vio el carril de mayores después de volver atrás el paso del director): no se activa.
+NO_ACTIVABLE = "categoría que el bot aún no activa: {}"
 # El que pone activar.yml (--pruebas-fallaron) cuando las suites fallan tras activar: no se publica nada.
 PRUEBAS = "las pruebas fallaron tras activar"
 
@@ -229,18 +237,74 @@ def activar(raw_path, db_path, comps, root=ROOT, log=print, dry_run=False, names
     return result
 
 
+def _sufijo_de(category):
+    """El sufijo de la tanda de una categoría (categorias.sufijo_tanda); la que no es de ninguna (o None: un nombre
+    que no dice su categoría), el de siempre, el de benjamín y prebenjamín."""
+    try:
+        return sufijo_tanda(category)
+    except KeyError:
+        return ""
+
+
 def raw_de(comp, name, code, root=ROOT, raws=None):
-    """El raw de la tanda de una competición: el de la tanda que la tiene (benjamín y prebenjamín en
-    fiflp_islas_<code>_raw.json, alevín en fiflp_islas_<code>al_raw.json) o, si no está en ninguno, el
-    de su categoría."""
-    paths = [Path(root) / "scripts" / f"fiflp_islas_{code}{suffix}_raw.json" for suffix in ("", "al")]
+    """El raw de la tanda de una competición: el de la tanda que la tiene (fiflp_islas_<code><sufijo>_raw.json,
+    por cada sufijo de categorias.TANDAS: '' benjamín y prebenjamín, 'al' alevín, 'inf', 'cad' y 'juv') o, si no
+    está en ninguno, el de su categoría."""
+    paths = {suffix: Path(root) / "scripts" / f"fiflp_islas_{code}{suffix}_raw.json" for suffix in TANDAS}
     raws = raws if raws is not None else {}
-    for path in paths:
+    for path in paths.values():
         if path not in raws:
             raws[path] = {str(g.get("competition_id")) for g in _read_json(path, [])}
         if comp in raws[path]:
             return path
-    return paths[1] if category_of(name or "") == "ALEVIN" else paths[0]
+    return paths[_sufijo_de(category_of(name or ""))]
+
+
+def categorias_de_la_base(root=ROOT):
+    """{CodCompeticion: categoría} de los grupos de la temporada en curso de la base de `root` (solo lectura); {}
+    sin base. La categoría de un grupo nuevo (newGroups) es la de los de su competición: su competitionName es el
+    nombre de la web y puede no decirla."""
+    path = Path(root) / "futbolbase.db"
+    if not path.exists():
+        return {}
+    conn = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+    try:
+        out = {}
+        for url, cat in conn.execute(
+                """SELECT g.url, upper(c.name) FROM groups g JOIN categories c ON c.id = g.category_id
+                   JOIN seasons s ON s.id = g.season_id WHERE s.is_current = 1 ORDER BY g.id"""):
+            ids = fiflp_ids(url or "")
+            if ids:
+                out.setdefault(ids[0], cat)
+        return out
+    except sqlite3.Error:
+        return {}
+    finally:
+        conn.close()
+
+
+def categoria_pendiente(comp, name, by_comp):
+    """La categoría de una competición pendiente: la de sus grupos de la base (`by_comp`, categorias_de_la_base) o,
+    si no tiene, la de su nombre (category_of); None si no se sabe."""
+    return by_comp.get(comp) or category_of(name or "")
+
+
+def tandas_pendientes(health, code, root=ROOT):
+    """Las tandas ('22', '22al', '22inf'…) con alguna competición pendiente (pendientes(health)) de sus categorías,
+    en el orden de categorias.TANDAS: lo que descarga activar.yml («Descargar lo pendiente»). Una que no dice su
+    categoría, en la de siempre (como raw_de); una de una categoría que el bot aún no activa, en ninguna: no se
+    activaría (NO_ACTIVABLE) y serían páginas de la federación para nada."""
+    comps, names = pendientes(health), nombres(health)
+    if not comps:
+        return []
+    by_comp = categorias_de_la_base(root)
+    wanted = set()
+    for comp in comps:
+        category = categoria_pendiente(comp, names.get(comp), by_comp)
+        if category is not None and category not in categorias.ACTIVABLES:
+            continue
+        wanted.add(_sufijo_de(category))
+    return [f"{code}{suffix}" for suffix in TANDAS if suffix in wanted]
 
 
 def run_sonda(root):
@@ -409,6 +473,8 @@ def main(argv=None, root=ROOT, sonda=run_sonda, generar=regenerar, log=print):
     parser.add_argument("--pendientes", action="store_true", help="imprime los ids pendientes, separados por comas")
     parser.add_argument("--temporada", action="store_true",
                         help="imprime el CodTemporada de la federación de la temporada en curso (la tanda)")
+    parser.add_argument("--tandas", action="store_true",
+                        help="imprime las tandas que descargar para lo pendiente, separadas por espacios")
     parser.add_argument("--pruebas-fallaron", metavar="INFORME", type=Path,
                         help="activar.yml: las suites fallaron tras activar (INFORME, el data-health.json de la ejecución)")
     args = parser.parse_args(argv)
@@ -419,12 +485,18 @@ def main(argv=None, root=ROOT, sonda=run_sonda, generar=regenerar, log=print):
     if args.pendientes:
         print(",".join(comps))
         return 0
-    if args.temporada:
+    if args.temporada or args.tandas:
         conn = get_connection(db_path)
         try:
-            print(season_code(_current(conn)[1]))
+            code = season_code(_current(conn)[1])
         finally:
             conn.close()
+        if args.temporada:
+            print(code)
+        else:
+            tandas = tandas_pendientes(health, code, root)
+            if tandas:
+                print(" ".join(tandas))
         return 0
     if args.pruebas_fallaron is not None:
         pruebas_fallaron(health_path, db_path, args.pruebas_fallaron)
@@ -437,12 +509,21 @@ def main(argv=None, root=ROOT, sonda=run_sonda, generar=regenerar, log=print):
         sid, season = _current(conn)
     finally:
         conn.close()
+    result = {"activated": [], "failed": [], "groups": []}
+    # Lo de una categoría que el bot aún no activa, fuera antes de tocar nada (activar todo lo apuntado lo haría).
+    by_comp = categorias_de_la_base(root)
+    for comp in list(comps):
+        category = categoria_pendiente(comp, names.get(comp), by_comp)
+        if category is not None and category not in categorias.ACTIVABLES:
+            log(f"{names.get(comp) or comp} [{comp}]: {NO_ACTIVABLE.format(category)}")
+            result["failed"].append({"competition": comp, "name": names.get(comp) or comp,
+                                     "reason": NO_ACTIVABLE.format(category)})
+            comps.pop(comp)
     by_raw, seen = {}, {}
     for comp, wanted in comps.items():
         path = Path(args.raw) if args.raw else raw_de(comp, names.get(comp), season_code(season), root, seen)
         by_raw.setdefault(path, {})[comp] = wanted
-    backup = None if args.dry_run else copia(root, db_path)
-    result = {"activated": [], "failed": [], "groups": []}
+    backup = None if args.dry_run or not by_raw else copia(root, db_path)
     for path, subset in sorted(by_raw.items()):
         log(f"{path.name}: {', '.join(subset)}")
         part = activar(path, db_path, subset, root=root, log=log, dry_run=args.dry_run, names=names)
@@ -489,9 +570,10 @@ def main(argv=None, root=ROOT, sonda=run_sonda, generar=regenerar, log=print):
     finally:
         conn.close()
     previous = health.get("activation")
+    tried = sorted(pendientes(health))           # también lo que no se activa por su categoría
     activation = {"at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
                   "activated": [{k: a[k] for k in ("competition", "name", "codes")} for a in result["activated"]],
-                  "failed": result["failed"], "tried": sorted(comps), "attempts": intentos(previous, sorted(comps))}
+                  "failed": result["failed"], "tried": tried, "attempts": intentos(previous, tried)}
     if repetido(previous, activation):
         log("Igual que el intento publicado, de hace menos de un día: data-health.json no cambia.")
     else:
