@@ -1130,7 +1130,8 @@ def _rival_y_puesto(conn):
     (para lo que encaja cada equipo y su puesto, solo los que tienen marcador; uno fuera de
     [0, MAX_SANE_SCORE] es un dato roto y no cuenta). Devuelve
     ([(partido, equipo, peso de un gol de ese equipo en ese partido), ...], {(grupo, equipo): percentil},
-     {(temporada, categoría, equipo): su mejor letra de Segunda Fase}), con las ids de las tablas.
+     {(temporada, categoría, equipo): su mejor letra de Segunda Fase},
+     {(temporada, categoría, equipo): la fase de su mejor liga}), con las ids de las tablas.
 
     El peso (ranking.peso_rival) es el de su rival, con lo que el rival encaja en TODA su temporada de esa
     categoría (primera fase, eliminatorias, segunda fase y copas juntas) y con prudencia
@@ -1140,7 +1141,10 @@ def _rival_y_puesto(conn):
     partido y el id del equipo, para que sea determinista), 1 el primero y 0 el último, lineal por puesto;
     sin percentil los de menos partidos y los de un grupo con menos de dos equipos que cuenten. La mejor
     letra: la más alta (A antes que B) de los grupos «Segunda Fase X» de esa temporada y categoría en los que
-    está el equipo, por su clasificación o por sus partidos, jugados o no (ranking.fase_que_cuenta)."""
+    está el equipo, por su clasificación o por sus partidos, jugados o no (ranking.fase_que_cuenta). La mejor
+    liga, igual pero con la fase entera: la de más nivel (ranking.nivel_fase; a igual nivel, la primera por
+    orden alfabético, para que sea determinista) de los grupos de liga (_is_league_group) con nivel propio
+    (ranking.tiene_nivel) en los que está; es la de las categorías del convenio (_cuenta_su_liga)."""
     import ranking as R
     tabla = {}                       # (grupo, equipo) → [partidos, a favor, en contra, puntos]
     temporada = {}                   # (temporada, categoría, equipo) → [partidos, en contra]
@@ -1188,23 +1192,46 @@ def _rival_y_puesto(conn):
                 pesos.append((mid, equipo, peso))
     # La mejor letra de Segunda Fase de cada equipo: esta temporada los grupos de la Segunda Fase ya tienen
     # equipos y calendario aunque casi no se haya jugado, así que valen la clasificación y los partidos.
-    letra = {gid: (sid, cid, R.letra_segunda_fase(fase))
-             for gid, sid, cid, fase in conn.execute("SELECT id, season_id, category_id, phase FROM groups")}
+    grupos = conn.execute("SELECT id, season_id, category_id, code, phase FROM groups").fetchall()
+    letra = {gid: (sid, cid, R.letra_segunda_fase(fase)) for gid, sid, cid, _code, fase in grupos}
     letra = {gid: v for gid, v in letra.items() if v[2]}
+    # Las ligas con nivel propio (las del convenio de infantil, cadete y juvenil y, en las de hoy, Preferente y
+    # la Segunda Fase): con la clave de orden de la mejor, más nivel primero y a igualdad el nombre.
+    liga = {gid: (sid, cid, (-R.nivel_fase(fase), fase), fase) for gid, sid, cid, code, fase in grupos
+            if R.tiene_nivel(fase) and _is_league_group(code, fase)}
     en_grupo = set()
     for _mid, gid, _sid, _cid, local, visitante, _, _ in partidos:
-        if gid in letra:
+        if gid in letra or gid in liga:
             en_grupo |= {(gid, local), (gid, visitante)}
     if _has_table(conn, "standings"):
         en_grupo |= {(gid, t) for gid, t in conn.execute("SELECT group_id, team_id FROM standings")
-                     if gid in letra}
-    mejor = {}
+                     if gid in letra or gid in liga}
+    mejor, mejor_liga, orden = {}, {}, {}
+    # La clave de orden decide sola (no depende del orden del conjunto).
     for gid, equipo in en_grupo:
-        sid, cid, x = letra[gid]
-        k = (sid, cid, equipo)
-        if k not in mejor or x < mejor[k]:
-            mejor[k] = x
-    return pesos, percentil, mejor
+        if gid in letra:
+            sid, cid, x = letra[gid]
+            k = (sid, cid, equipo)
+            if k not in mejor or x < mejor[k]:
+                mejor[k] = x
+        if gid in liga:
+            sid, cid, clave, fase = liga[gid]
+            k = (sid, cid, equipo)
+            if k not in orden or clave < orden[k]:
+                orden[k], mejor_liga[k] = clave, fase
+    return pesos, percentil, mejor, mejor_liga
+
+
+# Las categorías de las fases del convenio (scripts/convenio.py): un grupo sin nivel propio (una copa, una fase
+# de ascenso, una eliminatoria) cuenta con el nivel de la liga de su equipo esa temporada, no con una letra de
+# Segunda Fase (no la tienen). Infantil, cadete y juvenil siempre; alevín, el de Lanzarote y Fuerteventura (el de
+# Gran Canaria, como benjamín y prebenjamín, sigue con la letra). Es más difícil destacar en un equipo de una
+# liga buena: los goles de la copa de un equipo de la Interinsular valen como de la Interinsular.
+def _cuenta_su_liga(cat, isla):
+    import categorias
+    c = (cat or "").upper()
+    return c in categorias.MAYORES or (
+        c == "ALEVIN" and (isla or "").upper() in categorias.ALEVIN_FUERA)
 
 
 # La liga de escuelas (MyGol, docs/mygol.md) en las fichas: lo que se lee de las tablas mygol_* para cada ficha
@@ -1258,7 +1285,8 @@ def _datos_fichas(conn, confirmados=None):
     temporada y de primer día del grupo (a igualdad, la de la principal antes); la fila del ranking es
     (año de inicio, categoría en minúsculas, fase, partidos, titular, goles, goles por rival, isla,
     percentil, temporada, equipo): las nueve primeras, una ranking.Fila. La fase es la que cuenta para el
-    nivel (ranking.fase_que_cuenta, con la mejor letra de Segunda Fase de su equipo); la de la ficha ("g")
+    nivel (ranking.fase_que_cuenta, con la mejor letra de Segunda Fase de su equipo; en infantil, cadete,
+    juvenil y el alevín de islas, con la fase de su mejor liga: _cuenta_su_liga); la de la ficha ("g")
     sigue siendo la del grupo. Los goles por rival, la suma aparición a aparición de sus goles por el peso
     de su rival en ese partido (_rival_y_puesto), con 4 cifras.
     "anios": {principal: (años, confirmado)}, los de nacimiento.estimar con todas sus filas (y sus
@@ -1281,7 +1309,7 @@ def _datos_fichas(conn, confirmados=None):
             first_day[gid] = iso
     # El peso de cada gol por su rival va en una tabla temporal, para sumarlo en la misma consulta grande
     # (aparición a aparición en Python serían 400.000 vueltas). Sin fila, el gol vale 1.
-    pesos, percentil, mejor = _rival_y_puesto(conn)
+    pesos, percentil, mejor, mejor_liga = _rival_y_puesto(conn)
     abierta = conn.in_transaction            # lo que el que llama tuviera a medias no se confirma aquí
     conn.execute("DROP TABLE IF EXISTS temp._peso_rival")
     conn.execute("CREATE TEMP TABLE _peso_rival (match_id INTEGER, team_id INTEGER, peso REAL, "
@@ -1312,7 +1340,8 @@ def _datos_fichas(conn, confirmados=None):
         por_ficha.setdefault(principal, []).append(
             ((year, first_day.get(gid, "9999"), code, team, len(motivo), motivo),
              [season, code, team, pj, tit, goals, yellow, red, *motivo], (season, code, cat, gname, phase, island),
-             (year, cat, R.fase_que_cuenta(phase, mejor.get((sid, cid, team_id))), pj, tit, goals,
+             (year, cat, R.fase_que_cuenta(phase, (mejor_liga if _cuenta_su_liga(cat, island) else mejor)
+                                           .get((sid, cid, team_id))), pj, tit, goals,
               round(por_rival or 0.0, 4), island, percentil.get((gid, team_id)), season, team)))
     for filas in por_ficha.values():
         filas.sort(key=lambda x: x[0])

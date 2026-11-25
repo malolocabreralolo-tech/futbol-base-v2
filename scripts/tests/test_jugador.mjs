@@ -483,6 +483,25 @@ test('ficha: el «Resumen» dice «Otras» de lo que el trozo no nombra, la cate
   assert.equal(categoryName('juvenil'), 'Juvenil');
 });
 
+// Un niño inventado que empezó en benjamín y llega a juvenil (la parte E: infantil, cadete y juvenil en la
+// web): el «Resumen», de la más alta a la más baja, aunque la ficha las traiga en orden de temporada.
+test('ficha: el «Resumen» con filas de juvenil, cadete y benjamín va en ese orden', () => {
+  const g = {
+    '2019-2020/BX1': ['benjamin', 'Grupo 1', 'Primera Fase GC', 'grancanaria'],
+    '2025-2026/CADI1': ['cadete', 'Grupo 1', 'Interinsular', 'interinsular'],
+    '2026-2027/JUV2G1': ['juvenil', 'Grupo 1', 'Segunda GC', 'grancanaria'],
+  };
+  const shards = RAUL_SHARD({ n: 'GOMEZ PEREZ, RAUL', y: [2010], c: [
+    ['2019-2020', 'BX1', 'Club Uno', 10, 10, 8, 0, 0],
+    ['2025-2026', 'CADI1', 'Club Uno', 12, 11, 6, 1, 0],
+    ['2026-2027', 'JUV2G1', 'Club Uno', 5, 5, 2, 0, 0],
+  ] });
+  for (const shard of Object.values(shards)) shard.g = g;
+  const out = s(screen.render(ctxShards({ id: RAUL }, shards)));
+  assert.deepEqual(summaryRows(out).map(r => r[0]), ['Juvenil', 'Cadete', 'Benjamín']);
+  assert.deepEqual(summaryRows(out)[1], ['Cadete', '1 temporada · 0,5 goles por partido', '6 goles', '12 partidos']);
+});
+
 test('ficha: con un solo grupo, sin «Resumen» (no aporta nada)', () => {
   const out = renderRaul({ ...RAUL_ENTRY, c: [RAUL_ENTRY.c[0]] });
   assert.equal(summaryRows(out), null);

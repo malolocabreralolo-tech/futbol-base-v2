@@ -73,6 +73,17 @@ test('la vista de toda la trayectoria pinta "h"; la categoría que la app no tie
   assert.deepEqual(rows(render({ y: '2012', v: 'h' })).map((r) => r[4]), ['Club Seis · Infantil']);
 });
 
+test('una fila de infantil, cadete o juvenil dice su categoría con el nombre de la app («· Cadete»)', () => {
+  const ranking = { temporada: '2026-2027', anios: { 2011: [3, 0] } };
+  const years = { 2011: { t: [
+    ['2001', 'LOPEZ VEGA, JUAN', 'Club Uno', 'cadete', 14, 14, 13, 190, 1],
+    ['2002', 'RUIZ SOSA, PABLO', 'Club Dos', 'juvenil', 12, 12, 9, 150, 0],
+    ['2003', 'DIAZ GIL, MARIO', 'Club Tres', 'infantil', 10, 9, 7, 120, 1],
+  ], h: [] } };
+  const out = render({ y: '2011' }, { ranking, years });
+  assert.deepEqual(rows(out).map((r) => r[4]), ['Club Uno · Cadete', 'Club Dos · Juvenil', 'Club Tres · Infantil']);
+});
+
 test('los años, de más joven a más mayor, con el elegido marcado; las dos vistas, con el año', () => {
   const out = render({ y: '2018' });
   assert.deepEqual(years(out), [
