@@ -93,6 +93,22 @@ def test_new_competitions_solo_las_activables(monkeypatch):
     assert [c["id"] for c in U.new_competitions(CATALOG, KNOWN, today=TODAY, ignored={})] == NUEVAS_2627
 
 
+def test_el_desempate_cadete_se_ignora_y_hoy_no_cambia_nada(monkeypatch):
+    """La «ELIMINATORIA DESEMPATE CADETE INSULAR» (sin convenio de código) está en IGNORED_COMPETITIONS: desde que
+    cadete sea activable (paso D4) no sale en newCompetitions, así que activar_auto no la intenta cada día ni deja
+    el aviso de la portada encendido. Con lo activable de hoy, ignorarla no cambia nada."""
+    import categorias
+    assert "55133947" in U.IGNORED_COMPETITIONS
+    assert any(c["id"] == "55133947" for c in CATALOG)
+    monkeypatch.setattr(categorias, "ACTIVABLES", ("BENJAMIN", "PREBENJAMIN", "ALEVIN"))
+    assert U.new_competitions(CATALOG, KNOWN, today=TODAY) == U.new_competitions(CATALOG, KNOWN, today=TODAY, ignored={})
+    monkeypatch.setattr(categorias, "ACTIVABLES", ("BENJAMIN", "PREBENJAMIN", "ALEVIN", "CADETE"))
+    con = [c["id"] for c in U.new_competitions(CATALOG, KNOWN, today=TODAY, ignored={})]
+    sin = [c["id"] for c in U.new_competitions(CATALOG, KNOWN, today=TODAY)]
+    assert "55133947" in con and sin == [c for c in con if c != "55133947"]
+    assert "54976894" in sin                                # la interinsular de cadete, sí
+
+
 def test_ignored_and_known_competitions_are_left_out_and_first_seen_is_kept():
     previous = [{"id": "54977017", "name": "LIGA BENJAMIN F-7 DE FUERTEVENTURA 1ª FASE", "firstSeen": "2026-10-07"}]
     known = KNOWN | (set(NUEVAS_2627) - {"54977017", "54976940"})
