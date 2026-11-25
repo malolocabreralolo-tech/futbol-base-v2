@@ -395,3 +395,62 @@ def test_una_ficha_muerta_al_empezar_no_es_el_freno(fed_detalle):
     data = json.loads((fed_detalle.parent / "fiflp_campos_raw.json").read_text())
     assert ok and F.parada is None and "CodTemporada=22" in f.pedidas[0]
     assert data["75"]["intentos"] == 1 and data["76"]["ok"]
+
+
+def test_una_pagina_que_no_se_entiende_gasta_un_intento_como_una_muerta(fed_detalle, monkeypatch):
+    """I3 de la revisión final: la clasificación del grupo carga, pero su contenido hace lanzar al intérprete.
+    Antes la ejecución acababa con error en ese grupo cada vez; ahora gasta un intento como una página muerta y,
+    con tres, «no disponible» con el tipo de la excepción (nunca su texto: puede llevar un nombre)."""
+    real = D.parse_clasificacion
+
+    def interprete(html):
+        if "ROMPE" in html:
+            raise ValueError("Nombre Inventado")
+        return real(html)
+    monkeypatch.setattr(D, "parse_clasificacion", interprete)
+    sitio = sitio_detalle()
+    f = FederacionFalsa(lambda url: Pagina(html="<html><body>ROMPE</body></html>") if "NFG_VisClasificacion" in url
+                        else sitio(url), Reloj())
+    for n in (1, 2, 3):
+        ok, F, partes = correr(f, jornadas=())
+        g1 = json.loads(fed_detalle.read_text())["900:G1"]
+        assert ok and F.parada is None and g1["ok"] is False and g1["intentos"] == n and g1["motivo"] == "ValueError"
+    assert g1["no_disponible"] is True and "Inventado" not in fed_detalle.read_text()
+    assert partes == {"detalle:2016-2017": {"completo": True, "pendientes": 0, "no_disponible": 1}}
+
+
+def test_una_jornada_que_no_se_entiende_gasta_un_intento_y_se_leen_las_demas(fed_detalle):
+    """Una jornada del calendario cuyo contenido hace lanzar al intérprete (sus partidos no son partidos): como
+    una jornada muerta, las demás se leen («jornadas_leidas»), el grupo gasta un intento por ejecución y, con
+    tres, no disponible, con el motivo. La ejecución no acaba en rojo."""
+    sitio = sitio_detalle()
+    f = FederacionFalsa(lambda url: Pagina(datos=["no es un partido"]) if url.endswith("CodJornada=13")
+                        else sitio(url), Reloj())
+    for n in (1, 2, 3):
+        ok, F, partes = correr(f)
+        g1 = json.loads(fed_detalle.read_text())["900:G1"]
+        assert ok and F.parada is None and g1["ok"] and g1["intentos"] == n and g1["motivo"] == "TypeError"
+        assert "jornadas" not in g1 and sorted(g1["jornadas_leidas"]) == ["Jornada 1", "Jornada 2", "Jornada 4",
+                                                                          "Jornada 5"]
+    assert g1["no_disponible"] is True and partes["calendario:2016-2017"]["completo"]
+
+
+def test_una_ficha_de_campo_que_no_se_entiende_acaba_no_disponible(fed_detalle, monkeypatch):
+    (fed_detalle.parent / "fiflp_detalle_2016-2017_raw.json").write_text(json.dumps(
+        {"900:G1": {"ok": True, "directorio": [{"venue_code": 75}, {"venue_code": 76}]}}), encoding="utf-8")
+    campos = fed_detalle.parent / "fiflp_campos_raw.json"
+    real = D.parse_campo
+
+    def interprete(html):
+        if "ROMPE" in html:
+            raise KeyError("Nombre Inventado")
+        return real(html)
+    monkeypatch.setattr(D, "parse_campo", interprete)
+    f = FederacionFalsa(lambda url: Pagina(html="<html><body>ROMPE</body></html>") if "Codigo_Campo=76" in url
+                        else Pagina(html=read("campo_75.html")), Reloj())
+    for n in (1, 2, 3):
+        ok, F, partes = correr(f, campos=True)
+        data = json.loads(campos.read_text())
+        assert ok and data["75"]["ok"] and data["76"]["intentos"] == n and data["76"]["motivo"] == "KeyError"
+    assert data["76"]["no_disponible"] is True and "Inventado" not in campos.read_text()
+    assert partes == {"campos": {"completo": True, "pendientes": 0, "no_disponible": 1}}

@@ -195,7 +195,7 @@ def fed(tmp_path, monkeypatch):
     names = A.catalog_names("21")
     state = {"competition": {}, "read": [], "answer": None, "mislabel": True}
 
-    def enumerar(page, F, season, comp, ledger, index, intentos, no_disponible, log=print):
+    def enumerar(page, F, season, comp, ledger, index, intentos, no_disponible, log=print, motivos=None):
         for i in (1, 2):
             index[f"{comp}{i}"] = {"comp_id": comp, "grupo": "1", "jornada": str(i)}
             state["competition"][f"{comp}{i}"] = f"{names[comp]} (GRUPO 1)"

@@ -27,7 +27,8 @@ Lee como el bot (fiflp_carga.para_tanda): una página vacía solo es el freno si
 federación tampoco sirve otra. Lo que no carga nunca se guarda como leído: si la
 federación para (el freno, el tope de peticiones, el plazo, un runner rechazado),
 lo de esa entrada se queda como estaba y la ejecución acaba; si sirve otras y esa
-no (una página muerta), la entrada gasta un intento y, con MAX_INTENTOS, queda «no
+no (una página muerta), o si carga y no se entiende (una excepción al leerla: su
+tipo va en «motivo»), la entrada gasta un intento y, con MAX_INTENTOS, queda «no
 disponible en la federación». Las jornadas de un calendario leídas antes de un
 corte se guardan («jornadas_leidas») y la ejecución siguiente pide solo las que
 faltan; «jornadas» solo está con el calendario entero.
@@ -149,27 +150,33 @@ def _grupos(page, F):
 
 
 def _jornadas(page, F, base, log=print, leidas=None):
-    """({etiqueta de jornada: [partidos]}, estado) del calendario ya cargado de un grupo: cada jornada por su
-    URL y aplanada (las cifras de los marcadores van ofuscadas), salvo las de `leidas` (de una ejecución
+    """({etiqueta de jornada: [partidos]}, estado, motivo) del calendario ya cargado de un grupo: cada jornada por
+    su URL y aplanada (las cifras de los marcadores van ofuscadas), salvo las de `leidas` (de una ejecución
     anterior), que no se vuelven a pedir. El estado: "completo" (todas), "parada" (la federación dejó de servir:
-    lo leído hasta ahí vale), "fallo" (alguna no cargó con la federación sirviendo: las demás sí se leen) o
-    "vacio" (el desplegable, sin jornadas)."""
+    lo leído hasta ahí vale), "fallo" (alguna no cargó con la federación sirviendo, o cargó y no se entiende: las
+    demás sí se leen) o "vacio" (el desplegable, sin jornadas). `motivo`, el tipo de la última excepción (una
+    jornada o el desplegable que no se entienden), o None."""
     from fiflp_render import flatten
     from update_fiflp import option_round
     from activate_season import _iso
-    options = []
+    options, motivo = [], None
     for _ in range(4):
-        options = page.evaluate("""() => {
-            const sel = document.querySelector('select[name="jornada"]');
-            return sel ? Array.from(sel.options).filter(o => o.value && o.value !== '0')
-                           .map(o => ({value: o.value, text: o.text.trim()})) : [];
-        }""") or []
+        try:
+            options = page.evaluate("""() => {
+                const sel = document.querySelector('select[name="jornada"]');
+                return sel ? Array.from(sel.options).filter(o => o.value && o.value !== '0')
+                               .map(o => ({value: o.value, text: o.text.trim()})) : [];
+            }""") or []
+        except Exception as ex:
+            if parada_de(F) is not None:
+                return dict(leidas or {}), "parada", None
+            options, motivo = [], type(ex).__name__
         if options:
             break
         page.wait_for_timeout(2500)
     rounds = dict(leidas or {})
     if not options:
-        return rounds, "vacio"
+        return rounds, "vacio", motivo
     estado = "completo"
     for opt in options:
         label, when = option_round(opt["text"])
@@ -177,19 +184,37 @@ def _jornadas(page, F, base, log=print, leidas=None):
             continue
         if not F.goto(page, f"{base}&CodJornada={opt['value']}"):
             if parada_de(F) is not None:
-                return rounds, "parada"
+                return rounds, "parada", motivo
             log(f"      ! no carga la {label.lower()}")
             estado = "fallo"
             continue
-        flatten(page)
-        rounds[label] = [{**m, "date": _iso(m.get("date")) or (when.isoformat() if when else "")}
-                         for m in F.parse_matches(page)]
+        try:
+            flatten(page)
+            rounds[label] = [{**m, "date": _iso(m.get("date")) or (when.isoformat() if when else "")}
+                             for m in F.parse_matches(page)]
+        except Exception as ex:
+            # Cargó y no se entiende: como una que no carga (las demás se leen; el grupo gasta un intento), o
+            # la ejecución acabaría con error en ella cada vez. El tipo, nunca el texto (puede llevar un nombre).
+            rounds.pop(label, None)
+            if parada_de(F) is not None:
+                return rounds, "parada", motivo
+            motivo = type(ex).__name__
+            log(f"      ! no se entiende la {label.lower()} ({motivo})")
+            estado = "fallo"
         F.delay()
-    return rounds, estado
+    return rounds, estado, motivo
 
 
 def _sin_fecha(entry):
     return {k: v for k, v in (entry or {}).items() if k != "fetched"}
+
+
+def _con_motivo(entry, motivo):
+    """La entrada con el tipo de la excepción que la dejó sin leer («motivo»: el de su último intento), si lo hay.
+    Nunca el texto de la excepción: puede llevar un nombre."""
+    if motivo:
+        entry["motivo"] = motivo
+    return entry
 
 
 def scrape_group(page, F, season, comp, grupo, jornadas, previo=None, log=print):
@@ -200,7 +225,9 @@ def scrape_group(page, F, season, comp, grupo, jornadas, previo=None, log=print)
     la otra ni se pide. Con `jornadas`, el calendario: lo leído antes de un corte va a «jornadas_leidas» (la
     ejecución siguiente pide solo lo que falta) y, con todas, a «jornadas». Una jornada que no carga con la
     federación sirviendo (o un calendario sin jornadas) gasta un intento del grupo: con MAX_INTENTOS, no
-    disponible, con lo leído en «jornadas_leidas» y sin «jornadas» (no es el calendario entero)."""
+    disponible, con lo leído en «jornadas_leidas» y sin «jornadas» (no es el calendario entero). Una página que
+    carga y no se entiende (una excepción al leerla o interpretarla) cuenta como una que no carga, con su tipo en
+    «motivo»: antes la ejecución acababa con error en el mismo grupo cada vez."""
     previo = previo or {}
     if previo.get("ok"):
         entry = dict(previo)
@@ -212,7 +239,14 @@ def scrape_group(page, F, season, comp, grupo, jornadas, previo=None, log=print)
                 if parada_de(F) is not None:
                     return None
                 return un_intento(entry, previo)
-            entry[campo] = parse(page.content())
+            try:
+                entry[campo] = parse(page.content())
+            except Exception as ex:
+                if parada_de(F) is not None:
+                    return None
+                log(f"    ! {comp}:{grupo}: no se entiende su {campo} ({type(ex).__name__})")
+                F.delay()
+                return _con_motivo(un_intento(entry, previo), type(ex).__name__)
             F.delay()
         entry["ok"] = True
     if jornadas and "jornadas" not in entry:
@@ -221,7 +255,7 @@ def scrape_group(page, F, season, comp, grupo, jornadas, previo=None, log=print)
             if parada_de(F) is None:
                 un_intento(entry, previo)
         else:
-            rounds, estado = _jornadas(page, F, base, log, entry.get("jornadas_leidas"))
+            rounds, estado, motivo = _jornadas(page, F, base, log, entry.get("jornadas_leidas"))
             if estado == "completo":
                 entry["jornadas"] = rounds
                 entry.pop("jornadas_leidas", None)
@@ -229,7 +263,7 @@ def scrape_group(page, F, season, comp, grupo, jornadas, previo=None, log=print)
                 if rounds:
                     entry["jornadas_leidas"] = rounds
                 if estado != "parada":
-                    un_intento(entry, previo)
+                    _con_motivo(un_intento(entry, previo), motivo)
     return None if _sin_fecha(entry) == _sin_fecha(previo) else entry
 
 
@@ -306,7 +340,15 @@ def run_groups(page, F, seasons, jornadas_seasons, deadline, log=print, categori
         if comps is None:
             # Una temporada que el catálogo aún no tiene: las de la web, guardadas por categorías. Si no las da
             # (la página no carga o no trae ninguna), un intento; con MAX_INTENTOS, ninguna.
-            comps = live_comps(page, F, season, categories)
+            try:
+                comps = live_comps(page, F, season, categories)
+            except Exception as ex:
+                # La página de competiciones cargó y no se entiende: como una que no las da (un intento).
+                if parada_de(F) is not None:
+                    return False
+                comps = []
+                data.setdefault("_motivos", {})[key] = type(ex).__name__
+                log(f"  ! {season_name(season)}: no se entienden sus competiciones ({type(ex).__name__})")
             if not comps and parada_de(F) is not None:
                 return False
             if comps or _intento_de(data, key):
@@ -398,8 +440,9 @@ def _parte_campos(codes, data):
 
 def run_campos(page, F, deadline, log=print, partes=None, resumen=None, temporada="22"):
     """La ficha de cada campo. Una que no carga con la federación parada no se escribe (y la ejecución acaba);
-    una que no carga con la federación sirviendo, o que carga sin datos (parse_campo None), gasta un intento y,
-    con MAX_INTENTOS, queda no disponible. En `partes`, la parte «campos». La URL de una ficha no lleva la
+    una que no carga con la federación sirviendo, o que carga sin datos (parse_campo None) o no se entiende (una
+    excepción: su tipo en «motivo»), gasta un intento y, con MAX_INTENTOS, queda no disponible. En `partes`, la
+    parte «campos». La URL de una ficha no lleva la
     temporada: sin ninguna página servida aún en la ejecución, antes la de competiciones de `temporada`
     (fiflp_carga.preparar), o una primera ficha muerta se tomaría por el freno."""
     partes = {} if partes is None else partes
@@ -414,14 +457,20 @@ def run_campos(page, F, deadline, log=print, partes=None, resumen=None, temporad
         if time.monotonic() > deadline:
             log("  plazo agotado: sigue en la próxima tanda")
             return False
-        ficha = None
+        ficha = motivo = None
         if F.goto(page, F.BASE + CAMPO_URL.format(code=code)):
-            ficha = parse_campo(page.content())
+            try:
+                ficha = parse_campo(page.content())
+            except Exception as ex:
+                if parada_de(F) is not None:
+                    return False
+                motivo = type(ex).__name__
+                log(f"  ! campo {code}: no se entiende ({motivo})")
         elif parada_de(F) is not None:
             return False
         previo = data.get(str(code))
         nueva = {**(ficha or {}), "ok": bool(ficha), "fetched": date.today().isoformat()}
-        data[str(code)] = nueva if ficha else un_intento(nueva, previo)
+        data[str(code)] = nueva if ficha else _con_motivo(un_intento(nueva, previo), motivo)
         save(CAMPOS_RAW, data)
         partes["campos"] = _parte_campos(todos, data)
         if resumen:

@@ -255,7 +255,7 @@ def test_el_estado_nuevo_lleva_todas_sus_claves(tanda, tmp_path):
     status = tanda.status()
     assert set(status) == {"formato", "season", "enumerated", "in_raw", "fetched", "pending", "actas_por_leer",
                            "jornadas_por_leer", "grupos_por_leer", "unenumerated_comps", "no_disponible",
-                           "intentos", "enumeracion", "paginas", "parada"}
+                           "intentos", "motivos", "enumeracion", "paginas", "parada"}
     assert status["formato"] == 2 and status["season"] == "2025-2026"
     assert (status["enumerated"], status["in_raw"], status["fetched"]) == (14, 14, 14)
     assert (status["actas_por_leer"], status["jornadas_por_leer"], status["grupos_por_leer"],
@@ -337,6 +337,66 @@ def test_las_competiciones_de_la_web_sin_parada_y_con_ella(tanda, monkeypatch):
     assert f.pedidas[0] == f"{BASE}/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=12"
     status = json.loads((tanda.dir / "fiflp_actas_2016-2017_status.json").read_text(encoding="utf-8"))
     assert set(status["enumeracion"]) == {"900", "901"} and status["pending"] == 0
+
+
+ROMPE = "<html><body>ROMPE</body></html>"
+
+
+def test_un_acta_que_no_se_entiende_gasta_un_intento_como_una_muerta(tanda, monkeypatch):
+    """I3 de la revisión final: dos actas que cargan pero cuyo contenido hace lanzar al intérprete (una dentro del
+    lector, otra después, al mirar lo que dio). Antes, la segunda se saltaba sin apuntar nada: pendiente para
+    siempre y la ejecución en verde. Ahora cada una gasta un intento como una muerta, las demás se leen y, con
+    tres, «no disponible» con el tipo de la excepción (nunca su texto: puede llevar un nombre)."""
+    real = A.parse_acta
+    rotas = {"900111": "<html><body>ROMPE uno</body></html>", "900112": "<html><body>ROMPE dos</body></html>"}
+
+    def interprete(html):
+        if "ROMPE uno" in html:
+            raise ValueError("Nombre Inventado")
+        if "ROMPE dos" in html:
+            return []                                          # no es un acta: falla al mirarla
+        return real(html)
+    monkeypatch.setattr(A, "parse_acta", interprete)
+    sitio = sitio_actas()
+
+    def web(url):
+        cod = re.search(r"CodActa=(\d+)&", url)
+        return Pagina(html=rotas[cod.group(1)]) if cod and cod.group(1) in rotas else sitio(url)
+    f = FederacionFalsa(web, Reloj())
+    for n in (1, 2, 3):
+        f.ip_nueva()
+        tanda.run(f, "--comps", "900")
+        status = tanda.status()
+        assert status["parada"] is None and len(tanda.raw()) == 14
+        if n < 3:
+            assert status["intentos"] == {"acta:900111": n, "acta:900112": n} and status["pending"] == 2
+    assert {"acta:900111", "acta:900112"} <= set(status["no_disponible"]) and status["pending"] == 0
+    assert status["motivos"] == {"acta:900111": "ValueError", "acta:900112": "AttributeError"}
+    assert "Inventado" not in (tanda.dir / "fiflp_actas_2025-2026_status.json").read_text(encoding="utf-8")
+
+
+def test_una_jornada_que_no_se_entiende_gasta_un_intento_como_una_muerta(tanda, monkeypatch):
+    """Lo mismo en la enumeración: una jornada cuyo contenido hace lanzar al lector de sus enlaces. Antes la
+    ejecución acababa con error en ella cada vez."""
+    class Enlaces:
+        def finditer(self, html):
+            if "ROMPE" in html:
+                raise RuntimeError("Nombre Inventado")
+            return A.re.compile(r"NFG_CmpPartido[^\"'\s]*CodActa=(\d+)", A.re.IGNORECASE).finditer(html)
+    monkeypatch.setattr(A, "ACTA_HREF", Enlaces())
+    sitio = sitio_actas()
+    f = FederacionFalsa(lambda url: Pagina(html=ROMPE) if url.endswith("CodCompeticion=900&CodGrupo=G1&CodJornada=3")
+                        else sitio(url), Reloj())
+    for n in (1, 2, 3):
+        f.ip_nueva()
+        tanda.run(f, "--comps", "900")
+        status = tanda.status()
+        assert status["parada"] is None
+        if n < 3:
+            assert status["intentos"] == {"jornada:900:G1:3": n} and status["jornadas_por_leer"] == 1
+    assert "jornada:900:G1:3" in status["no_disponible"] and status["pending"] == 0
+    assert status["motivos"] == {"jornada:900:G1:3": "RuntimeError"}
+    assert set(tanda.raw()) == todas("900") - set(actas_de("900", "G1", 3))
 
 
 # ── main, con un Playwright de mentira y la federación de mentira ──

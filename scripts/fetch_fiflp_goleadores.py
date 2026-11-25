@@ -21,9 +21,9 @@ Lee como el bot (fiflp_carga.para_tanda): una página vacía solo es el freno si
 federación tampoco sirve otra. Lo que no carga nunca se guarda como leído: si la
 federación para (el freno, el tope de peticiones, el plazo, un runner rechazado),
 el grupo se queda como estaba y la ejecución acaba; si sirve otras y esa no (una
-página muerta), el grupo gasta un intento y, con MAX_INTENTOS, queda «no
-disponible en la federación». La última línea dice «Completo.» solo sin nada
-pendiente.
+página muerta), o si carga y no se entiende (una excepción al leerla: su tipo va en
+«motivo»), el grupo gasta un intento y, con MAX_INTENTOS, queda «no disponible en
+la federación». La última línea dice «Completo.» solo sin nada pendiente.
 Solo funciona desde GitHub Actions (historico.yml): FIFLP contesta
 vacío a las IPs domésticas.
 
@@ -228,7 +228,8 @@ def run(page, F, seasons, deadline, log=print, crests_only=False, categories=Non
     La lectura es la de una tanda (fiflp_carga.para_tanda). Si una página no carga y la federación ha
     parado (parada_de: el freno, el tope, el plazo, el navegador o un runner rechazado), no se escribe nada de
     ese grupo (se queda el de antes), no gasta intento y la ejecución acaba: lo pendiente sigue pendiente. Si la
-    federación sirve otras (una página muerta), el grupo gasta un intento (fiflp_carga.un_intento).
+    federación sirve otras (una página muerta), o si cargó y no se entiende (una excepción: su tipo en
+    «motivo»), el grupo gasta un intento (fiflp_carga.un_intento) y la ejecución sigue.
     Da False si la ejecución se cortó (el plazo o una parada); True si recorrió todo, aunque quede algo pendiente
     (una página muerta antes de su último intento: las partes lo dicen)."""
     partes = {} if partes is None else partes
@@ -277,12 +278,24 @@ def run(page, F, seasons, deadline, log=print, crests_only=False, categories=Non
                 if not done(entry):
                     if crests_only:
                         continue
-                    standings, scorers, ok = scrape_group(page, F, season, comp, grupo)
+                    motivo = None
+                    try:
+                        standings, scorers, ok = scrape_group(page, F, season, comp, grupo)
+                    except Exception as ex:
+                        # Cargó y no se entiende (una excepción al leerla o interpretarla): con la federación
+                        # sirviendo, como una página muerta (un intento) y se sigue; si no, la parada de abajo.
+                        # Antes la ejecución acababa con error en el mismo grupo cada vez, y el carril, que toma
+                        # el primer trabajo pendiente, no pasaba nunca de ahí. El tipo, nunca el texto (un nombre).
+                        standings, scorers, ok, motivo = [], [], False, type(ex).__name__
+                        log(f"  ! {key}: no se entiende ({motivo})")
+                        F.delay()
                     if not ok and parada_de(F) is not None:
                         return False              # la federación paró: nada de este grupo, ni un intento
                     nuevo = {"comp": comp, "comp_name": names.get(comp, ""), "grupo": grupo,
                              "grupo_name": grupo_name, "standings": standings, "scorers": scorers, "ok": ok,
                              "fetched": date.today().isoformat()}
+                    if motivo:
+                        nuevo["motivo"] = motivo
                     entry = data[key] = nuevo if ok else un_intento(nuevo, entry)
                     save(path, data)
                     anotar(season, comps, data, listas)

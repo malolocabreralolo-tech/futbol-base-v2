@@ -540,3 +540,32 @@ def test_el_resumen_se_escribe_al_guardar(S, tmp_path):
     data = json.loads(resumen.read_text())
     assert data["partes"] == {"goleadores:2024-2025": {"completo": True, "pendientes": 0, "no_disponible": 0}}
     assert data["servidas"] == F.served and data["parada"] is None
+
+
+def test_una_pagina_que_no_se_entiende_gasta_un_intento_como_una_muerta(S, tmp_path, monkeypatch):
+    """I3 de la revisión final: los goleadores del grupo 12 cargan, pero su contenido hace lanzar al intérprete.
+    Antes la ejecución acababa con error en ese grupo cada vez (y el carril, que toma el primer trabajo pendiente,
+    se quedaba ahí para siempre); ahora gasta un intento como una página muerta, la ejecución sigue con lo demás y,
+    con tres, queda «no disponible» con el tipo de la excepción (nunca su texto: puede llevar un nombre)."""
+    real = S.parse_goleadores
+
+    def interprete(html):
+        if "ROMPE" in html:
+            raise ValueError("Nombre Inventado")
+        return real(html)
+    monkeypatch.setattr(S, "parse_goleadores", interprete)
+    rota = "NFG_CMP_Goleadores?cod_primaria=1000120&CodJornada=&codcompeticion=900&codtemporada=20&codgrupo=12"
+    sitio = sitio_goleadores()
+    f = FederacionFalsa(lambda url: Pagina(html="<html><body>ROMPE</body></html>") if rota in url else sitio(url),
+                        Reloj())
+    path = tmp_path / "fiflp_goleadores_2024-2025_raw.json"
+    for n in (1, 2, 3):
+        ok, F, partes = correr(S, f)
+        raw = json.loads(path.read_text())
+        assert ok and F.parada is None and raw["900:11"]["ok"] and "crests" in raw["900:11"]
+        assert raw["900:12"]["ok"] is False and raw["900:12"]["intentos"] == n
+        assert raw["900:12"]["motivo"] == "ValueError"
+    assert raw["900:12"]["no_disponible"] is True and "Inventado" not in path.read_text()
+    assert partes == {"goleadores:2024-2025": {"completo": True, "pendientes": 0, "no_disponible": 1}}
+    ok, F, partes = correr(S, f)
+    assert f.pedidas == []

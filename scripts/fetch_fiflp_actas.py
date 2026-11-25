@@ -17,7 +17,8 @@ competición a competición: la enumera (enumerar) y en seguida lee sus actas
 (leer_actas). Lo que falta va apuntado en el estado (formato 2: status_de), jornada
 a jornada: si la federación para (el freno, el tope de peticiones, el plazo, un
 runner rechazado), lo que no leyó queda pendiente y la tanda acaba; si sirve otras y
-una página no (una página muerta), esa gasta un intento por tanda y, con
+una página no (una página muerta), o una carga y no se entiende (una excepción al
+leerla: su tipo, en «motivos» del estado), esa gasta un intento por tanda y, con
 fiflp_carga.MAX_INTENTOS, queda «no disponible en la federación», fuera de lo
 pendiente. Nada que vino vacío se guarda como leído.
 
@@ -434,14 +435,17 @@ class Collector:
     la relectura que sale peor se descarta y la vieja queda marcada. Cuenta las actas aplanadas nuevas (el
     avance de la cadena) y guarda cada `save_every` (y, con `on_save`, el estado).
     Un acta que no se leyó: si la federación paró (parada_de(F)), nada (sigue pendiente); si no (una página
-    muerta, o que cargó sin datos: is_empty_acta), un intento (anotar_intento)."""
+    muerta, que cargó sin datos: is_empty_acta, o que cargó y no se entiende: `motivo`, el tipo de la excepción),
+    un intento (anotar_intento); el motivo, en `motivos` (nunca el texto de la excepción: puede llevar un
+    nombre)."""
 
     def __init__(self, store, refrescar=False, save_every=25, total=0, log=print, F=None, intentos=None,
-                 no_disponible=None, on_save=None):
+                 no_disponible=None, on_save=None, motivos=None):
         self.store, self.refrescar, self.save_every, self.total, self.log = store, refrescar, save_every, total, log
         self.F, self.on_save = F, on_save
         self.intentos = {} if intentos is None else intentos
         self.no_disponible = [] if no_disponible is None else no_disponible
+        self.motivos = {} if motivos is None else motivos
         self.lock = threading.Lock()
         self.fetched = 0
         self.asked = 0                    # las actas pedidas en la tanda (--max-actas)
@@ -451,11 +455,13 @@ class Collector:
         if anotar_intento(self.intentos, self.no_disponible, f"acta:{cod}"):
             self.log(f"  ! acta {cod}: no disponible en la federación ({MAX_INTENTOS} tandas sin cargar)")
 
-    def __call__(self, t, acta):
+    def __call__(self, t, acta, motivo=None):
         cod = t["cod_acta"]
         if acta is None:
             if parada_de(self.F) is None:
-                self._fallo(cod)          # la federación sirve otras y esta no: una muerta
+                if motivo:
+                    self.motivos[f"acta:{cod}"] = motivo
+                self._fallo(cod)          # la federación sirve otras y esta no (o no se entiende): una muerta
             return
         if is_empty_acta(acta):
             # Cargó, pero sin nada: nunca como leída (envenenaría la reanudación); un intento.
@@ -555,7 +561,7 @@ def _completa(ledger):
     return ledger.get("grupos") is not None and not ledger.get("pendientes")
 
 
-def enumerar(page, F, season, comp_id, ledger, index, intentos, no_disponible, log=print):
+def enumerar(page, F, season, comp_id, ledger, index, intentos, no_disponible, log=print, motivos=None):
     """Enumera las actas de una competición pidiendo solo lo pendiente de `ledger` (su entrada en la
     «enumeracion» del estado: {"grupos": [[valor, nombre]] o None, "pendientes": {grupo: [jornadas] o None}},
     que va actualizando) y añade a `index` las actas de cada jornada leída. Por URL directa: comp → grupo
@@ -565,8 +571,9 @@ def enumerar(page, F, season, comp_id, ledger, index, intentos, no_disponible, l
     Una jornada que carga sin enlaces a actas está leída (existen: 2018-19 entera). La que no carga: si la
     federación paró (parada_de), "parada" y lo que falta sigue en `ledger`; si sirve otras, un intento (clave
     «comp:C», «grupo:C:G» o «jornada:C:G:J»: anotar_intento) y, con MAX_INTENTOS, sale de lo pendiente. Lo
-    mismo una competición o un grupo cuya página carga sin desplegable. Sin esperas entre intentos (las de
-    20-60 s de antes): lo que falta lo pide la tanda siguiente.
+    mismo una competición o un grupo cuya página carga sin desplegable, y una jornada que carga y no se entiende
+    (una excepción al leer sus enlaces: su tipo, en `motivos`). Sin esperas entre intentos (las de 20-60 s de
+    antes): lo que falta lo pide la tanda siguiente.
     Con --grupos (GROUP_FILTER), solo esos grupos; los demás siguen pendientes.
     Da "completa", "pendiente" o "parada"."""
     base = f"{F.BASE}/NFG_CmpJornada?cod_primaria=1000120&CodTemporada={season}&CodCompeticion={comp_id}"
@@ -614,8 +621,21 @@ def enumerar(page, F, season, comp_id, ledger, index, intentos, no_disponible, l
                 if anotar_intento(intentos, no_disponible, f"jornada:{comp_id}:{grupo}:{jornada}"):
                     jornadas.remove(jornada)
                 continue
-            for m in ACTA_HREF.finditer(page.content()):
-                index[m.group(1)] = {"comp_id": comp_id, "grupo": grupo, "jornada": jornada}
+            try:
+                enlaces = [m.group(1) for m in ACTA_HREF.finditer(page.content())]
+            except Exception as ex:
+                # Antes la tanda acababa con error en esta jornada cada vez. El tipo, nunca el texto.
+                if parada_de(F) is not None:
+                    return "parada"
+                log(f"  ! comp {comp_id} grupo {grupo} jornada {jornada}: no se entiende ({type(ex).__name__})")
+                if motivos is not None:
+                    motivos[f"jornada:{comp_id}:{grupo}:{jornada}"] = type(ex).__name__
+                if anotar_intento(intentos, no_disponible, f"jornada:{comp_id}:{grupo}:{jornada}"):
+                    jornadas.remove(jornada)
+                F.delay()
+                continue
+            for cod in enlaces:
+                index[cod] = {"comp_id": comp_id, "grupo": grupo, "jornada": jornada}
             jornadas.remove(jornada)
             F.delay()
         if not jornadas:
@@ -679,7 +699,10 @@ def enumerate_actas_by_range(page, F, season, comp_id, lo, hi):
     out = []
     target_season = SEASON_NAME[season]
     for cod in range(lo, hi + 1):
-        acta = fetch_and_parse_acta(page, str(cod), F)
+        try:
+            acta = fetch_and_parse_acta(page, str(cod), F)
+        except Exception:
+            acta = None                   # como hasta ahora: la que no se entiende, se salta
         if not acta:
             continue
         s = (acta.get("header", {}).get("season") or "").replace("/", "-")
@@ -729,8 +752,10 @@ def fetch_and_parse_acta(page, cod_acta, F, dump_fixture_for=None):
     Hasta noviembre de 2026 una vacía se reintentaba aquí dos veces (8 y 12 s después): con el freno de octubre
     salía vacía siempre. Ahora decide la Federacion, como en el bot: si es el freno de verdad, la tanda para
     (parada_de) y el acta sigue pendiente; si la federación sirve otras, es una página muerta (`dead` + 1) y
-    Collector le gasta un intento. Lo mismo un acta que carga sin datos (is_empty_acta, en Collector). Una URL
-    que el navegador ya pidió va a la red, no a la caché HTTP (fiflp_render.goto, por F.goto).
+    Collector le gasta un intento. Lo mismo un acta que carga sin datos (is_empty_acta, en Collector). Una que
+    carga y no se entiende lanza su excepción (antes daba None y no se sabía por qué): leer_actas le gasta el
+    intento con el tipo como motivo. Una URL que el navegador ya pidió va a la red, no a la caché HTTP
+    (fiflp_render.goto, por F.goto).
     """
     html = _fetch_acta_html(page, cod_acta, F)
     if not html:
@@ -763,12 +788,12 @@ def fetch_and_parse_acta(page, cod_acta, F, dump_fixture_for=None):
             if flat["header"].get("home_team") and flat["lineups"]["home"]:
                 result = flat
         except Exception as ex:
-            print(f"  ! aplanado acta={cod_acta}: {ex}")
+            print(f"  ! aplanado acta={cod_acta}: {type(ex).__name__}")
         if result is None:
             result = parse_acta(html)
     except Exception as ex:
-        print(f"  ! parse error acta={cod_acta}: {ex}")
-        return None
+        print(f"  ! parse error acta={cod_acta}: {type(ex).__name__}")
+        raise
     # Auto-diagnostic: if every header field is None and lineups are empty, the
     # parser silently produced nothing. Save the HTML for one occurrence per
     # session so we can see what FIFLP actually served.
@@ -849,14 +874,19 @@ def leer_actas(page, F, pending, over, on_result, dump_fixture=""):
     hasta que la federación pare (parada_de(F)). on_result(target, acta) con cada una (None: no cargó).
     Sustituye a fetch_parallel (varios navegadores sobre una cola): con el intervalo de 7 s de la Federacion,
     un runner de Azure ya lee ~500 páginas por hora, más de lo que da el tope del día en una tanda; dos
-    navegadores se saltarían el intervalo (el doble de carga) sin que haga falta."""
+    navegadores se saltarían el intervalo (el doble de carga) sin que haga falta.
+    Un acta que cargó y no se entiende (una excepción al leerla o interpretarla): on_result(target, None,
+    motivo=<tipo de la excepción>), como una muerta (Collector le gasta un intento si la federación sirve). Antes
+    se saltaba sin apuntar nada: pendiente para siempre, con la tanda en verde. El tipo, nunca el texto."""
     for t in pending:
         if over() or parada_de(F) is not None:
             return
         try:
             acta = fetch_and_parse_acta(page, t["cod_acta"], F, dump_fixture or None)
         except Exception as ex:
-            print(f"  ! acta {t['cod_acta']}: {ex}")
+            print(f"  ! acta {t['cod_acta']}: no se entiende ({type(ex).__name__})")
+            on_result(t, None, motivo=type(ex).__name__)
+            F.delay()
             continue
         on_result(t, acta)
         F.delay()
@@ -874,6 +904,9 @@ def status_de(season, comps, enumeracion, objetivos, wanted, store, collector, i
             "fetched": collector.fetched, "pending": actas + jornadas + grupos + sin_lista,
             "actas_por_leer": actas, "jornadas_por_leer": jornadas, "grupos_por_leer": grupos,
             "unenumerated_comps": sin_lista, "no_disponible": no_disponible, "intentos": intentos,
+            # El motivo (el tipo de la excepción) de lo que no se entendió, solo de lo que sigue en intentos o
+            # no disponible (lo que después se leyó bien ya no tiene motivo).
+            "motivos": {k: v for k, v in sorted(collector.motivos.items()) if k in intentos or k in no_disponible},
             "enumeracion": enumeracion, "paginas": {"pedidas": F.pages, "servidas": F.served},
             "parada": parada_de(F)}
 
@@ -975,6 +1008,7 @@ def _tanda(page, F, season, lote, categories, comps_arg, args, over, resumen):
     enumeracion = dict(old.get("enumeracion") or {}) if nuevo else {}
     intentos = dict(old.get("intentos") or {}) if nuevo else {}
     no_disponible = list(old.get("no_disponible") or []) if nuevo else []
+    motivos = dict(old.get("motivos") or {}) if nuevo else {}
     if args.reindex:
         for comp in comps:
             enumeracion.pop(comp, None)
@@ -1012,7 +1046,8 @@ def _tanda(page, F, season, lote, categories, comps_arg, args, over, resumen):
                 out.append(dict(e, cod_acta=cod))
         return out
 
-    collector = Collector(store, refrescar=args.refrescar, F=F, intentos=intentos, no_disponible=no_disponible)
+    collector = Collector(store, refrescar=args.refrescar, F=F, intentos=intentos, no_disponible=no_disponible,
+                          motivos=motivos)
 
     def guardar_estado():
         status = status_de(season, comps, enumeracion, objetivos(), wanted, store, collector, intentos,
@@ -1032,7 +1067,7 @@ def _tanda(page, F, season, lote, categories, comps_arg, args, over, resumen):
         ledger = enumeracion[comp]
         if not _completa(ledger):
             print(f"  enumerating comp {comp}...")
-            res = enumerar(page, F, season, comp, ledger, index, intentos, no_disponible)
+            res = enumerar(page, F, season, comp, ledger, index, intentos, no_disponible, motivos=motivos)
             # Tras cada competición: una tanda cortada no pierde lo enumerado.
             escribir_atomico(ipath, json.dumps(index, ensure_ascii=False, indent=1))
             guardar_estado()
