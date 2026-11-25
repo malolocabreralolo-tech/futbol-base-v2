@@ -382,11 +382,16 @@ def test_base_real(tmp_path):
     n = E.guardar_enlaces(conn, registro=quiet)
     filas = enlaces(conn)
     fichas_enlazadas = {p for _, p in filas}
-    print(f"\n  base real: {n} niños de MyGol enlazados con {len(fichas_enlazadas)} fichas")
-    assert 1400 <= n <= 1700 and 900 <= len(fichas_enlazadas) <= 1100
+    ninos = E.ninos_de(conn)
+    print(f"\n  base real: {n} de {len(ninos)} niños de MyGol enlazados con {len(fichas_enlazadas)} fichas")
+    # Sin topes que el crecimiento normal rompa (la puerta de pruebas del bot corre esto en cada pasada): una cota
+    # inferior holgada (el 25/11/2026, 1.521 de 5.200 niños con 968 fichas: docs/mygol.md) y proporciones que no
+    # dependen de cuántos datos haya. Una regla rota (que no enlace casi nada, o que enlace a todos) sale de ellas.
+    assert n == len(filas) >= 1000
+    assert 0.1 <= n / len(ninos) <= 0.6                      # ~29 %: la mayoría de la escuela no llega a la federación
+    assert 0.3 <= len(fichas_enlazadas) / n <= 1              # ~64 %: una ficha, uno o varios niños de la escuela
     principales = {p for (p,) in conn.execute("SELECT id FROM players WHERE ficha_id IS NULL")}
     assert fichas_enlazadas <= principales
-    ninos = E.ninos_de(conn)
     por_ficha = {}
     for nino_ in ninos:
         if nino_.id in dict(filas):
