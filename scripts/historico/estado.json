@@ -94,14 +94,29 @@
   }
  ],
  "formato": 1,
- "pruebas": [],
+ "pruebas": [
+  {
+   "at": "2026-11-25T19:24:27+00:00",
+   "mb_antes": 45.379,
+   "mb_despues": 45.699,
+   "motivo": "",
+   "segundos": 27.8,
+   "trabajos": [
+    "goleadores:2025-2026"
+   ],
+   "verde": true
+  }
+ ],
  "trabajos": {
   "goleadores:2025-2026": {
-   "actualizado": "2026-11-25T19:17:22+00:00",
+   "actualizado": "2026-11-25T19:24:27+00:00",
    "categorias": [
     "alevin"
    ],
-   "estado": "completo",
+   "estado": "promovido",
+   "huellas": {
+    "fiflp_goleadores_2025-2026_raw.json": "8a491a65c75cd2bce9148fa6597193a0a2e680c4"
+   },
    "no_disponible": 1,
    "pendientes": 0
   }
