@@ -404,6 +404,47 @@ export async function ensureJugadores(shard) {
   return _jugadoresPromise[shard];
 }
 
+/* Los ficheros perezosos de una sola constante (el índice de búsqueda de jugadores y el ranking por año
+ * de nacimiento), con el patrón de ensureJugadores: un vuelo por clave, el texto leído con readConsts
+ * (nunca el global), un 404 que da `missing()` y se memoriza (el fichero no existe porque no hay nada que
+ * publicar) y un fallo, o un texto sin la constante (sin conexión y sin su copia, el SW responde con
+ * index.html), null sin memorizarse, para reintentar. valid(valor) dice si la constante tiene su forma. */
+function lazyConst(cache, flights, key, { file, name, missing, valid }) {
+  if (cache[key] !== undefined) return Promise.resolve(cache[key]);
+  if (flights[key]) return flights[key];
+  flights[key] = (async () => {
+    try {
+      const r = await fetchData(file);
+      if (r.status === 404) { cache[key] = missing(); return cache[key]; }
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      const value = readConsts(await r.text())[name];
+      if (!valid(value)) throw new Error(name + ' not parseable');
+      cache[key] = value;
+      return value;
+    } catch (e) {
+      console.warn(`[state] ${file} failed:`, e.message);
+      return null;
+    } finally {
+      delete flights[key];
+    }
+  })();
+  return flights[key];
+}
+
+/* El índice de búsqueda de jugadores de un prefijo (dos letras de la a a la z; model.playerSearchPrefix):
+ * data-buscar-<xy>.js, const BUSCAR_<XY> = [[clave, nombre, último equipo, última temporada, [años]]]
+ * (generate_js.buscar_files). Solo se publican los prefijos con algún jugador: un 404 es «ningún jugador
+ * con ese prefijo», [], no un fallo. Lo que no es un prefijo, [] sin pedir nada. */
+const _buscar = {};
+const _buscarPromise = {};
+export function ensureBuscar(prefix) {
+  const xy = String(prefix ?? '');
+  if (!/^[a-z]{2}$/.test(xy)) return Promise.resolve([]);
+  return lazyConst(_buscar, _buscarPromise, xy, {
+    file: `data-buscar-${xy}.js`, name: `BUSCAR_${xy.toUpperCase()}`, missing: () => [], valid: Array.isArray,
+  });
+}
+
 /* ──────────────────────────────────────────────────────────────────────
  * Alevín. Nunca va en la carga inicial (la portada tiene que abrir en 3 s):
  * data-alevin.js, la temporada
