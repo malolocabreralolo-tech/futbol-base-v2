@@ -226,3 +226,13 @@ test('portada: cada candidato de la pregunta (estado E) es un botón de al menos
   assert.match(decl('.choice-name'), /color:\s*var\(--ink\)/);
   assert.match(decl('.choice-text'), /min-width:\s*0/);
 });
+
+test('test_selector_de_categorias: .cat-picker se desliza él (overflow-x: auto, sin barra en el móvil) y sus enlaces no parten el nombre; la página nunca', () => {
+  const decl = (sel, media = null) => RULES.filter((r) => r.media === media && r.selector.split(/\s*,\s*/).includes(sel)).map((r) => r.body).join(';');
+  assert.match(decl('.cat-picker'), /overflow-x:\s*auto/);
+  assert.match(decl('.cat-picker'), /scrollbar-width:\s*none/);
+  assert.match(decl('.cat-picker'), /position:\s*relative/, 'la referencia de offsetLeft (scrollToCurrent)');
+  assert.match(decl('.cat-picker .segment'), /white-space:\s*nowrap/);
+  assert.match(decl('.cat-picker .segment'), /min-width:\s*max-content/, 'nunca más estrecho que su nombre');
+  for (const sel of ['html', 'body', '.page', 'main', '#contenido']) assert.doesNotMatch(decl(sel), /overflow-x:\s*(auto|scroll)/, sel);
+});

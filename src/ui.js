@@ -2,8 +2,8 @@
 // devuelven Html: no leen globales ni tocan el DOM al importarse. Las clases
 // que emiten están definidas en acta.css.
 import { html, Html } from './html.js';
-import { groupSummary, matchState, penaltyWinner, seasonLabel, teamShort } from './model.js';
-import { shieldFile } from './state.js';
+import { CATEGORIES, CAT_NAMES, groupSummary, matchState, penaltyWinner, seasonLabel, teamShort } from './model.js';
+import { lazyCatsOf, shieldFile } from './state.js';
 
 // ── Escudo y monograma ──────────────────────────────────────────────────
 
@@ -300,6 +300,32 @@ export function segmented(options, active, hrefFor, { idPrefix = null } = {}) {
     : html`<a class="segment"${id(value)} href="${hrefFor(value)}">${label}</a>`))}</div>`;
 }
 
+/* El selector de categoría de Goleadores y Récords: el segmentado de siempre, una fila de enlaces con el nombre
+ * entero de cada una (CAT_NAMES), la elegida con aria-current, dentro de <nav class="<cls>" aria-label>. Con
+ * las tres de siempre se ve igual que antes; con seis, que no caben a 320 px, se desliza la fila y nunca la
+ * página (.cat-picker de acta.css: overflow-x: auto, sin barra en el móvil), como la fila de años del
+ * ranking, y el mount de la pantalla la lleva a la elegida (scrollToCurrent). `cats`: las que tiene la
+ * temporada y la elegida; con una sola, no hay nada que elegir: ''. Ids estables: categoria-<cat>. */
+// Las categorías del selector en la temporada `s` (ctx: model y datasets.seasons), en el orden de CATEGORIES:
+// benjamín, prebenjamín y alevín, siempre, como antes de las nuevas (de alevín no se sabe sin pedirlo si la
+// temporada lo tiene: entonces, «No hay goleadores de alevín»); infantil, cadete y juvenil, solo si la
+// temporada los tiene (los dice su entrada de data-seasons.js o ya están sus grupos), y la elegida, siempre.
+const SINCE_E = ['infantil', 'cadete', 'juvenil'];
+export function pickerCategories(ctx, s, chosen) {
+  const declared = lazyCatsOf(ctx.datasets && ctx.datasets.seasons, s);
+  const season = ctx.model && ctx.model.season(s);
+  const groups = (season && season.groups) || [];
+  return CATEGORIES.filter((cat) => !SINCE_E.includes(cat) || cat === chosen || declared.includes(cat) || groups.some((g) => g.cat === cat));
+}
+
+export function categoryPicker(cats, current, hrefFor, { label = 'Categoría', cls = '' } = {}) {
+  if (cats.length < 2) return '';
+  const links = cats.map((cat) => (cat === current
+    ? html`<a class="segment" id="categoria-${cat}" href="${hrefFor(cat)}" aria-current="true">${CAT_NAMES[cat] || cat}</a>`
+    : html`<a class="segment" id="categoria-${cat}" href="${hrefFor(cat)}">${CAT_NAMES[cat] || cat}</a>`));
+  return html`<nav${cls ? html` class="${cls}"` : ''} aria-label="${label}"><div class="segmented cat-picker">${links}</div></nav>`;
+}
+
 export function notice(term, text) {
   return html`<p class="notice">${term ? html`<b>${term}</b> ` : ''}${text}</p>`;
 }
@@ -413,7 +439,8 @@ export function groupStrip({ label, groups, currentId = null, mineId = null, hre
   return html`<nav class="group-strip" aria-label="Grupos de ${label}">${first}<div class="group-scroll">${chips}</div></nav>`;
 }
 
-// Para el mount de Tabla y Jornada: desliza la tira (.group-scroll) hasta su ficha con aria-current o,
+// Para el mount de Tabla y Jornada (y del selector de categoría de Goleadores y Récords, .cat-picker, con sus
+// enlaces de paradas): desliza la tira (.group-scroll) hasta su ficha con aria-current o,
 // sin ella («Todos»), hasta la de mi grupo, con scrollLeft: la página nunca se mueve (scrollIntoView la
 // movería). Lo más cerca del medio que se pueda, pero siempre con una ficha entera a la izquierda, donde
 // empieza la primera (su relleno): el corte, la pista de que se desliza, solo a la derecha; una ficha
@@ -426,7 +453,9 @@ export function scrollToCurrent(strip) {
   const width = strip.clientWidth;
   const most = Math.max(0, strip.scrollWidth - width);
   const middle = current.offsetLeft - (width - current.offsetWidth) / 2;
-  const chips = [...strip.querySelectorAll('.group-chip')];
+  // Las paradas: las fichas de la tira o los enlaces del selector de categoría (.cat-picker).
+  const found = [...strip.querySelectorAll('.group-chip')];
+  const chips = found.length ? found : [...strip.querySelectorAll('.segment')];
   const pad = chips.length ? chips[0].offsetLeft : 0;
   const shows = (x) => x >= 0 && current.offsetLeft >= x && current.offsetLeft + current.offsetWidth <= x + width;
   const stops = most > 0 ? chips.map((chip) => chip.offsetLeft - pad).filter(shows) : [];

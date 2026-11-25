@@ -264,6 +264,24 @@ abbr[title] { text-decoration: none; }
 }
 .segment + .segment { border-left: 1px solid var(--rule); }
 .segment[aria-current] { background: var(--ink); color: var(--on-ink); }
+/* El selector de categoría de Goleadores y Récords (categoryPicker de ui.js): el segmentado de siempre, que
+ * con las tres de antes se ve igual (cada una, la misma anchura), y con seis, que no caben a 320 px, se
+ * desliza él, nunca la página, sin barra en el móvil (con ratón, una fina), como la fila de años del ranking.
+ * Ningún nombre se parte ni se monta sobre el de al lado: cada enlace mide al menos su nombre.
+ * position: relative hace de la fila la referencia de offsetLeft (scrollToCurrent, que la lleva a la
+ * elegida al pintar con un nombre entero a la izquierda: el corte, la pista de que se desliza, solo a la
+ * derecha; con la elegida entre las últimas, alarga el final lo justo, --strip-tail). */
+.cat-picker {
+  position: relative;
+  padding-right: var(--strip-tail, 0px);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+.cat-picker .segment { min-width: max-content; white-space: nowrap; }
+@media (hover: hover) and (pointer: fine) {
+  .cat-picker { scrollbar-width: thin; }
+}
 
 .buttons { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); }
 .button {

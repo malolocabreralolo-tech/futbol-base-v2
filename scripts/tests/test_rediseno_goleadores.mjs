@@ -77,7 +77,7 @@ test('la global de mi categoría (prebenjamín): cabecera, categoría, buscador 
   assert.match(out, /^<section data-screen="goleadores"><header class="screen-head"><a class="back" href="#\/explorar" data-action="back" aria-label="Volver">‹<\/a>/);
   assert.equal((out.match(/<h1[ >]/g) || []).length, 1);
   assert.match(out, /<h1>Goleadores<\/h1><p class="screen-sub">Prebenjamín, todos los grupos<\/p><\/div><\/header>/);
-  assert.match(out, /<nav class="gol-cats" aria-label="Categoría"><div class="segmented"><a class="segment" id="categoria-benjamin" href="#\/goleadores\?s=2025-2026&amp;c=benjamin">Benjamín<\/a><a class="segment" id="categoria-prebenjamin" href="#\/goleadores\?s=2025-2026&amp;c=prebenjamin" aria-current="true">Prebenjamín<\/a><a class="segment" id="categoria-alevin" href="#\/goleadores\?s=2025-2026&amp;c=alevin">Alevín<\/a><\/div><\/nav>/);
+  assert.match(out, /<nav class="gol-cats" aria-label="Categoría"><div class="segmented cat-picker"><a class="segment" id="categoria-benjamin" href="#\/goleadores\?s=2025-2026&amp;c=benjamin">Benjamín<\/a><a class="segment" id="categoria-prebenjamin" href="#\/goleadores\?s=2025-2026&amp;c=prebenjamin" aria-current="true">Prebenjamín<\/a><a class="segment" id="categoria-alevin" href="#\/goleadores\?s=2025-2026&amp;c=alevin">Alevín<\/a><\/div><\/nav>/);
   // El buscador de Explorar (searchBox, ui.js), con su id estable.
   assert.match(out, /<form\b[^>]*\brole="search"[^>]*>.*<input\b[^>]*\bid="buscar-goleador"[^>]*>.*<\/form>/);
   assert.match(input(out), /\btype="search"/);

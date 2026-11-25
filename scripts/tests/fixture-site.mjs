@@ -137,7 +137,42 @@ export const WORLDS = {
   // F y unas Eliminatorias (alevinRaw y pastAlevinRaw de simulate.mjs). 2024-25, sin alevín (un 404).
   L: { today: '2026-10-14', portalSeason: '2026-2027',
     current: () => nextSeasonRaw({ benjamin: ['A1', 'B2', 'FF15'], prebenjamin: ['PG2', 'PG3'] }), gol: false, alevin: true },
+  // 14/10/2026, 2026/27 con infantil, cadete y juvenil (parte E2): un grupo de cada una, con equipos y
+  // goleadores inventados (mayoresFiles), y su entrada de SEASONS lo dice (`lazy`). Sin data-alevin.js (un
+  // 404: alevín, vacío), como B. Para el selector de categoría con seis a 320 px.
+  S: { today: '2026-10-14', portalSeason: '2026-2027',
+    current: () => nextSeasonRaw({ benjamin: ['A1', 'B2', 'FF15'], prebenjamin: ['PG2', 'PG3'] }), gol: false, mayores: true },
 };
+
+// Infantil, cadete y juvenil del mundo S, con la forma de data-<cat>.js (generate_js.generate_lazy_js): un
+// grupo de liga de seis equipos inventados con dos jornadas jugadas y sus goleadores, también inventados.
+const MAYORES = [['infantil', 'INFANTIL', 'INF', 'INFPG1', 'Preferente GC', 'LIGA INFANTIL PREFERENTE DE GRAN CANARIA'],
+  ['cadete', 'CADETE', 'CAD', 'CADNG1', 'Insular GC', 'LIGA CADETE INSULAR GRAN CANARIA'],
+  ['juvenil', 'JUVENIL', 'JUV', 'JUV2G1', 'Segunda GC', 'LIGA SEGUNDA JUVENIL GRAN CANARIA']];
+function mayoresFiles(js) {
+  return Object.fromEntries(MAYORES.map(([cat, groups, s, id, phase, fullName]) => {
+    const name = cat[0].toUpperCase() + cat.slice(1);
+    const teams = ['Uno', 'Dos', 'Tres', 'Cuatro', 'Cinco', 'Seis'].map((n) => `Club ${name} ${n}`);
+    const rounds = { 'Jornada 1': [[0, 1], [2, 3], [4, 5]], 'Jornada 2': [[1, 2], [3, 4], [5, 0]] };
+    const history = Object.fromEntries(Object.entries(rounds).map(([key, pairs], k) => [key,
+      pairs.map(([h, a], i) => [['2026-10-03', '2026-10-10'][k], teams[h], teams[a], (i + k) % 3, (i + 2 * k) % 2, null, '10:00', null])]));
+    const pts = new Map(teams.map((team) => [team, [0, 0, 0, 0, 0, 0, 0]]));
+    for (const matches of Object.values(history)) {
+      for (const [, home, away, hs, as] of matches) {
+        for (const [team, gf, gc] of [[home, hs, as], [away, as, hs]]) {
+          const r = pts.get(team);
+          r[0] += gf > gc ? 3 : gf === gc ? 1 : 0; r[1] += 1; r[2] += gf > gc; r[3] += gf === gc; r[4] += gf < gc; r[5] += gf; r[6] += gc;
+        }
+      }
+    }
+    const standings = [...pts].sort((a, b) => b[1][0] - a[1][0] || (b[1][5] - b[1][6]) - (a[1][5] - a[1][6]))
+      .map(([team, r], i) => [i + 1, team, r[0], r[1], Number(r[2]), Number(r[3]), Number(r[4]), r[5], r[6], r[5] - r[6]]);
+    const group = { id, name: 'Grupo 1', fullName: `${fullName} - GRUPO 1`, phase, island: 'grancanaria', url: null, jornada: 'Jornada 2', standings, matches: [], standingsKind: 'source' };
+    const gol = [{ id, g: `${groups} ${phase.toUpperCase()} - GRUPO 1`, s: teams.map((team, i) => [`PRUEBA, JUGADOR ${name.toUpperCase()} ${i + 1}`, team, 6 - i, 2]) }];
+    return [`data-${cat}.js`, js([[groups, [group]], [`${s}_STATS`, { groups: 1, teams: teams.length }], [`HISTORY_${s}`, { [id]: history }],
+      [`GOL_${s}`, gol], [`ESTADOS_${s}`, {}], [`EQUIPOS_${s}`, {}], [`CAMPOS_${s}`, {}]])];
+  }));
+}
 
 // 2025-26 terminada, con la forma de data-season-<S>.js, para los mundos de 2026/27 (B y X): la fixture
 // final con su Copa de Campeones, cada grupo con su calendario de HISTORY como `jornadas`.
@@ -157,7 +192,9 @@ function files(w) {
   const raw = w.current();
   const cups = cupsRaw({ extra: true });
   const gol = w.gol === false ? { benjamin: [], prebenjamin: [] } : scorersAt(raw);
-  const seasons = w.portalSeason === '2026-2027' ? SEASONS_2627 : SEASONS_2526;
+  const listed = w.portalSeason === '2026-2027' ? SEASONS_2627 : SEASONS_2526;
+  // El mundo S dice en SEASONS qué perezosas tiene su temporada (generate_js.season_lazy_keys).
+  const seasons = w.mayores ? listed.map((s) => (s.current ? { ...s, lazy: MAYORES.map(([cat]) => cat) } : s)) : listed;
   const next = w.portalSeason === '2026-2027' ? '2027-2028' : '2026-2027';
   const js = (pairs) => ({ type: 'text/javascript', body: pairs.map(([name, value]) => `const ${name}=${JSON.stringify(value)};`).join('\n') + '\n' });
   const archived = Object.fromEntries(seasons.filter((s) => !s.current)
@@ -174,6 +211,7 @@ function files(w) {
     ...archived,
     'data-matchdetail.js': js([['MATCH_DETAIL', fixture('matchdetail')]]),
     // El alevín, perezoso: el de la temporada del portal y el de 2025-26 (contrato común, puntos 4 y 5).
+    ...(w.mayores ? mayoresFiles(js) : {}),
     ...(w.alevin ? {
       'data-alevin.js': { type: 'text/javascript', body: dataFile(alevinRaw({ season: w.portalSeason, today: w.today })) },
       'data-season-2025-2026-alevin.js': js([['SEASON_2025_2026_ALEVIN', pastAlevinRaw('2025-2026')]]),

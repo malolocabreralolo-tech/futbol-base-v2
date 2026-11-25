@@ -921,6 +921,61 @@ async function alevinWidths() {
   }
 }
 
+// Goleadores y Récords a 320 px con seis categorías (mundo S), en claro y en oscuro, con juvenil elegido: la
+// página no se desplaza en horizontal (se desliza la fila del selector, nunca ella), las seis con su nombre
+// entero y de 44 px, y juvenil marcado y a la vista dentro de la fila al pintar (scrollToCurrent). Y la fila
+// se desliza: al volver al principio, juvenil queda fuera y benjamín, dentro.
+async function mayoresWidths() {
+  const viewport = { width: 320, height: 568 };
+  for (const colorScheme of ['light', 'dark']) {
+    const label = `${nameOf(viewport, colorScheme)}, seis categorías`;
+    const context = await newContext(viewport, colorScheme);
+    try {
+      await useWorld(context, 'S');
+      const page = await context.newPage();
+      page.setDefaultTimeout(8000);
+      const errors = [];
+      page.on('pageerror', (error) => errors.push(error.message));
+      for (const [hash, screen, picker, title] of [['#/goleadores?c=juvenil', 'goleadores', '.gol-cats', 'Goleadores'], ['#/records?c=juvenil', 'records', '.rc-cats', 'Récords']]) {
+        const where = `${label}, ${title}`;
+        await page.goto(`${base}${hash}`);
+        await paintedAs(page, screen, { label: where });
+        const m = await checkLayout(page, viewport.width, where);
+        assert.equal(m.paper, PAPER[colorScheme], `${where}: fondo del tema`);
+        const row = page.locator(`#contenido ${picker} .cat-picker`);
+        const seen = await row.evaluate((el) => {
+          const box = el.getBoundingClientRect();
+          const inside = (a) => { const r = a.getBoundingClientRect(); return r.left >= box.left - 1 && r.right <= box.right + 1; };
+          const links = [...el.querySelectorAll('.segment')];
+          return {
+            texts: links.map((a) => a.textContent), clipped: links.filter((a) => a.scrollWidth > a.clientWidth).map((a) => a.textContent),
+            short: links.filter((a) => a.getBoundingClientRect().height < 44).map((a) => a.textContent),
+            current: links.filter((a) => a.getAttribute('aria-current') === 'true').map((a) => a.textContent),
+            visible: links.filter(inside).map((a) => a.textContent), slides: el.scrollWidth > el.clientWidth, box: box.toJSON(),
+          };
+        });
+        assert.deepEqual(seen.texts, ['Benjamín', 'Prebenjamín', 'Alevín', 'Infantil', 'Cadete', 'Juvenil'], where);
+        assert.deepEqual(seen.clipped, [], `${where}: nombres recortados`);
+        assert.deepEqual(seen.short, [], `${where}: enlaces de menos de 44 px`);
+        assert.deepEqual(seen.current, ['Juvenil'], `${where}: juvenil marcado`);
+        assert.ok(seen.slides, `${where}: las seis no caben a 320 px: se desliza la fila`);
+        assert.ok(seen.visible.includes('Juvenil'), `${where}: juvenil a la vista (${seen.visible.join(', ')})`);
+        assert.ok(seen.box.right <= viewport.width, `${where}: la fila no se sale de la página`);
+        const back = await row.evaluate((el) => {
+          el.scrollLeft = 0;
+          const box = el.getBoundingClientRect();
+          return [...el.querySelectorAll('.segment')].filter((a) => { const r = a.getBoundingClientRect(); return r.left >= box.left - 1 && r.right <= box.right + 1; }).map((a) => a.textContent);
+        });
+        assert.ok(back.includes('Benjamín') && !back.includes('Juvenil'), `${where}: la fila se desliza (${back.join(', ')})`);
+        assert.equal(await page.evaluate(() => document.documentElement.scrollWidth), viewport.width, `${where}: la página, de 320 px`);
+      }
+      assert.deepEqual(errors, [], `${label}: sin errores de JavaScript`);
+    } finally {
+      await context.close();
+    }
+  }
+}
+
 // Mundo E: «Las Mesas Hu. B» guardado en FF13 pregunta; la respuesta se guarda en el
 // almacén y, al recargar, la portada es la de ese equipo, sin preguntar.
 async function answerE() {
@@ -980,6 +1035,8 @@ try {
   console.log('PASS: 390px en claro, alevín (mundo L): la Tabla de AL1 en frío con un solo data-alevin.js, Explorar con alevín sin volver a pedirlo, «Hacer mi equipo» de alevín guardado y respetado al recargar, la Segunda Fase F y las Eliminatorias de 2025/26 en Ligas y en Copa, y sin data-alevin.js, Explorar con su aviso y la Tabla de AL1 con la caja de error de alevín');
   await alevinWidths();
   console.log('PASS: 320 y 390px, en claro y en oscuro, alevín (mundo L): el selector de tres categorías de Goleadores y Récords, entero y de 44 px, y Ligas y Explorar sin desplazamiento horizontal');
+  await mayoresWidths();
+  console.log('PASS: Goleadores a 320 px con seis categorías y Récords a 320 px con seis categorías (mundo S), en claro y en oscuro: sin desplazamiento horizontal de la página, la fila del selector se desliza, los seis nombres enteros y de 44 px, y juvenil marcado y a la vista');
 } finally {
   if (browser) await browser.close();
   server.closeAllConnections();
