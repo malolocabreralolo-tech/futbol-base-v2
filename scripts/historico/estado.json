@@ -1,0 +1,41 @@
+{
+ "dia": {
+  "fecha": "2026-11-25",
+  "freno": null,
+  "paginas": 113
+ },
+ "dias_frenados": [],
+ "ejecuciones": [
+  {
+   "accion": "descargar",
+   "esperas": 0,
+   "fin": "2026-11-25T15:52:17+00:00",
+   "frenos": 0,
+   "frenos_tras": [],
+   "inicio": "2026-11-25T15:39:10+00:00",
+   "lote": null,
+   "muertas": 1,
+   "nube": "azure",
+   "paginas": 2000,
+   "parada": null,
+   "pedidas": 113,
+   "relanzada": true,
+   "runner_rechazado": false,
+   "servidas": 112,
+   "temporadas": [
+    "21"
+   ],
+   "trabajo": "goleadores"
+  }
+ ],
+ "formato": 1,
+ "pruebas": [],
+ "trabajos": {
+  "goleadores:2025-2026": {
+   "actualizado": "2026-11-25T15:52:17+00:00",
+   "estado": "pendiente",
+   "no_disponible": 0,
+   "pendientes": 1
+  }
+ }
+}
