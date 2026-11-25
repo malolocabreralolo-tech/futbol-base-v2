@@ -1,0 +1,71 @@
+name: MyGol (liga de escuelas)
+
+# La liga de escuelas de MyGol (docs/mygol.md): cada lunes baja la temporada en curso (la más reciente de
+# scripts/mygol_torneos.json) y sube sus originales, scripts/mygol_<S>_raw.json; a mano, las temporadas que se
+# le digan. No toca la base: la importa el bot en su pasada (import_mygol, si un original ha cambiado).
+# Cortesía con la API: una petición cada 2 s, de una en una, y como mucho max_peticiones por ejecución; lo que
+# quede, lo sigue la siguiente.
+
+on:
+  workflow_dispatch:
+    inputs:
+      temporadas:
+        description: 'Temporadas separadas por comas (2022-2023,2023-2024); vacía = la temporada en curso'
+        required: false
+        default: ''
+      max_peticiones:
+        description: 'Peticiones a la API como mucho (una cada 2 s: 2000 son unos 70 minutos)'
+        required: false
+        default: '2000'
+  schedule:
+    - cron: '17 4 * * 1'
+
+permissions:
+  contents: write
+
+# Las descargas manuales no se pisan entre sí; no hacen cola con el bot porque no escriben la base y rebasan antes de subir.
+concurrency:
+  group: descargas-manuales
+  cancel-in-progress: false
+
+jobs:
+  descargar:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+      - name: Bajar de MyGol
+        env:
+          TEMPORADAS: ${{ inputs.temporadas }}
+          MAX_PETICIONES: ${{ inputs.max_peticiones || '2000' }}
+        run: |
+          if [ -n "$TEMPORADAS" ]; then
+            python3 scripts/fetch_mygol.py --temporadas "$TEMPORADAS" --max-peticiones "$MAX_PETICIONES"
+          else
+            python3 scripts/fetch_mygol.py --en-curso --max-peticiones "$MAX_PETICIONES"
+          fi
+        timeout-minutes: 110
+      # if: always() -> si la descarga se corta (el plazo, cinco fallos seguidos), lo ya bajado se sube igual y la
+      # siguiente ejecución sigue por ahí (el descargador no vuelve a pedir lo leído).
+      - name: Subir los originales
+        if: always()
+        run: |
+          git config user.name  "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add 'scripts/mygol_*_raw.json' 2>/dev/null || true
+          if git diff --cached --quiet; then
+            echo "Los originales no han cambiado; nada que subir."
+            exit 0
+          fi
+          git commit -m "MyGol: originales de la liga de escuelas"
+          # Como el bot (update.yml): si alguien ha subido a main entretanto, se rebasa y se reintenta, en vez
+          # de perder la descarga entera; un conflicto aborta en rojo.
+          for intento in 1 2 3; do
+            if git push; then break; fi
+            if [ "$intento" = 3 ]; then exit 1; fi
+            git pull --rebase --autostash origin main || { git rebase --abort; echo "conflicto con main"; exit 1; }
+          done

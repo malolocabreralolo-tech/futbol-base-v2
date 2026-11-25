@@ -46,8 +46,8 @@ OWNED = ["update.yml", "tests.yml", "reloj.yml", "activar.yml"]
 
 # Los workflows que hay: uno nuevo o uno que vuelve se piensa antes (¿escribe la base?, ¿va en cola?) y se apunta aquí.
 WORKFLOWS = {"actas-federacion.yml", "activar.yml", "detalle-federacion.yml", "discover-fiflp.yml",
-             "fetch-fiflp-islas.yml", "freno-fiflp.yml", "goleadores-federacion.yml", "probe-fiflp.yml",
-             "reloj.yml", "tests.yml", "update.yml"}
+             "fetch-fiflp-islas.yml", "freno-fiflp.yml", "goleadores-federacion.yml", "mygol.yml",
+             "probe-fiflp.yml", "reloj.yml", "tests.yml", "update.yml"}
 # Lo que publica una pasada: quien lo sube tiene que hacer cola con el bot, o dos subidas se pisan la base.
 PUBLICADO = ("futbolbase.db", "data-*.js", "index.html", "sw.js")
 
@@ -135,7 +135,7 @@ def test_quien_sube_va_en_cola():
         assert not any(re.search(r"\bgit stash\b", run) for run in runs), path.name
 
 
-@pytest.mark.parametrize("name", ["discover-fiflp.yml", "fetch-fiflp-islas.yml"])
+@pytest.mark.parametrize("name", ["discover-fiflp.yml", "fetch-fiflp-islas.yml", "mygol.yml"])
 def test_las_descargas_manuales_no_paran_al_bot(name):
     """discover-fiflp.yml y fetch-fiflp-islas.yml no escriben la base: van en su propio grupo, sin cancelar a
     nadie, y no en update-data (una descarga de hasta 180 min dejaría al bot sin pasadas, y con un solo hueco de
@@ -154,6 +154,32 @@ def test_islas_entradas_por_env():
     o $() se ejecutaría como guion)."""
     for run in _all_runs("fetch-fiflp-islas.yml"):
         assert "${{ inputs." not in run, run
+
+
+def test_mygol_baja_la_temporada_en_curso_y_sube_solo_sus_originales():
+    """mygol.yml (docs/mygol.md): cada lunes, la temporada en curso de la liga de escuelas; a mano, las que se le
+    digan. Sube solo scripts/mygol_*_raw.json (la base la importa el bot en su pasada), sin Playwright y sin
+    pedir nada a la federación."""
+    data = _load("mygol.yml")
+    trig = _triggers(data)
+    assert set(trig) == {"workflow_dispatch", "schedule"}
+    assert [e.get("cron") for e in trig["schedule"]] == ["17 4 * * 1"]
+    entradas = trig["workflow_dispatch"]["inputs"]
+    assert set(entradas) == {"temporadas", "max_peticiones"}
+    assert entradas["temporadas"].get("default", "") == "" and str(entradas["max_peticiones"]["default"]) == "2000"
+    assert data.get("permissions") == {"contents": "write"}
+    job = data["jobs"]["descargar"]
+    assert job["timeout-minutes"] == 120
+    texto = (WF_DIR / "mygol.yml").read_text(encoding="utf-8")
+    assert "fiflp" not in texto.lower() and "playwright" not in texto.lower()
+    runs = _all_runs("mygol.yml")
+    baja = next(run for run in runs if "scripts/fetch_mygol.py" in run)
+    assert "--en-curso" in baja and '--temporadas "$TEMPORADAS"' in baja and "--max-peticiones" in baja
+    assert "${{ inputs." not in " ".join(runs)          # las entradas, por env:
+    anadidos = [p for run in runs for p in _git_add_paths(run)]
+    assert anadidos == ["scripts/mygol_*_raw.json"], anadidos
+    sube = next(s for s in job["steps"] if "git push" in (s.get("run") or ""))
+    assert sube.get("if") == "always()"                  # lo bajado hasta un corte también se sube
 
 
 # --------------------------------------------------------------- update.yml

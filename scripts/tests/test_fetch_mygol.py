@@ -199,8 +199,12 @@ def test_pendientes_por_fecha():
         "10": {"fecha": "2026-01-10T10:00:00"},                          # sin leer: sí
         "5": {"fecha": "0001-01-01T00:00:00", "leido": "2026-11-21"},    # sin fecha y leído: no
         "50": {"fecha": "2026-11-04T09:00:00", "leido": "2026-11-05"},   # hace 21 días justos: sí
+        "60": {"fecha": "2026-12-09T10:00:00"},                          # a 14 días justos, sin leer: sí
+        "70": {"fecha": "2026-12-10T10:00:00"},                          # a 15 días, sin leer: aún no
+        "80": {"fecha": "2027-01-16T10:00:00", "leido": "2026-11-21"},   # muy lejos, leído: tampoco
+        "90": {"fecha": "0001-01-01T00:00:00"},                          # sin fecha y sin leer: sí
     }}
-    assert M.pendientes(torneo, hoy) == [10, 20, 30, 50]
+    assert M.pendientes(torneo, hoy) == [10, 20, 30, 50, 60, 90]
 
 
 def test_para_tras_cinco_fallos(tmp_path):

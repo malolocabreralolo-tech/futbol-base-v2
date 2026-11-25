@@ -22,7 +22,8 @@ Original: scripts/mygol_<temporada>_raw.json
                                                     jugadores: {equipo: [[id, nombre, apellidos, jugó]]},
                                                     leido}}}}}
 Un partido sin leer no lleva `jugadores` ni `leido`. Un partido leído con fecha de hace más de 21 días ya
-no cambia y no se vuelve a pedir: la descarga se puede cortar (--max-peticiones, fallos) y reanudar.
+no cambia y no se vuelve a pedir: la descarga se puede cortar (--max-peticiones, fallos) y reanudar. Uno con
+fecha a más de 14 días vista tampoco se pide todavía.
 
 Cortesía con MyGol: una petición cada PAUSA segundos como mínimo, de una en una; dos reintentos ante un
 fallo de red o un 5xx; parar tras MAX_FALLOS fallos seguidos guardando lo ya bajado. Las cabeceras, las
@@ -50,6 +51,7 @@ PAUSA = 2.0
 MAX_FALLOS = 5
 REINTENTOS = 2
 DIAS_QUE_CAMBIAN = 21          # un partido de hace menos (o futuro) aún puede cambiar: se vuelve a pedir
+DIAS_DE_ANTELACION = 14        # un partido a más de estos días vista aún no se pide
 GUARDAR_CADA = 25              # partidos leídos entre dos guardados del original
 UA = ("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
       "(KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36")
@@ -167,15 +169,16 @@ def jugadores_del_partido(partido_json):
 
 def pendientes(torneo, hoy):
     """Los partidos que hay que pedir, en orden de id: los que no se han leído nunca y los que aún pueden
-    cambiar (fecha en los últimos 21 días o en el futuro)."""
+    cambiar (fecha en los últimos 21 días o en el futuro). Uno con fecha a más de 14 días vista, no: su
+    plantilla ya llegará cuando se acerque (cada semana se pedirían todos los futuros para nada)."""
     desde = hoy - timedelta(days=DIAS_QUE_CAMBIAN)
+    hasta = hoy + timedelta(days=DIAS_DE_ANTELACION)
     out = []
     for pid, p in (torneo.get("partidos") or {}).items():
-        if "leido" not in p:
-            out.append(int(pid))
-            continue
         f = _fecha(p.get("fecha"))
-        if f is not None and f >= desde:
+        if f is not None and f > hasta:
+            continue
+        if "leido" not in p or (f is not None and f >= desde):
             out.append(int(pid))
     return sorted(out)
 
