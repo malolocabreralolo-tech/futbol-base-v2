@@ -276,6 +276,7 @@ test('Copas y torneos: la Copa de Campeones con sus campeones y la Maspalomas Cu
     ['#/temporadas', 'Temporadas anteriores desde 2023/24'],
     ['#/records?s=2025-2026', 'Récords y estadísticas'],
     ['#/goleadores?s=2025-2026', 'Goleadores'],
+    ['#/ranking', 'Los mejores de cada año por año de nacimiento'],
     ['#/fuentes', 'Datos y fuentes comprobado hoy'],
     ['#/ajustes', 'Ajustes mi equipo y datos'],
   ]);

@@ -445,6 +445,29 @@ export function ensureBuscar(prefix) {
   });
 }
 
+/* El ranking por año de nacimiento (generate_js.ranking_files): data-ranking.js, const RANKING =
+ * { temporada, anios: { "<año>": [entradas en "t", entradas en "h"] } }, lo que dice qué años hay; y
+ * data-ranking-<año>.js, const RANKING_<año> = { t: [...], h: [...] }, las dos listas de ese año. Como el
+ * índice de búsqueda (lazyConst): un vuelo por fichero, null si falla, sin memorizarlo. Un 404 es que no
+ * se ha publicado nada: un ranking sin años, o un año sin nadie. */
+const _ranking = {};
+const _rankingPromise = {};
+const isObject = (value) => Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+export function ensureRanking() {
+  return lazyConst(_ranking, _rankingPromise, 'RANKING', {
+    file: 'data-ranking.js', name: 'RANKING', missing: () => ({ temporada: null, anios: {} }),
+    valid: (value) => isObject(value) && isObject(value.anios),
+  });
+}
+export function ensureRankingYear(year) {
+  const y = String(year ?? '');
+  if (!/^\d{4}$/.test(y)) return Promise.resolve({ t: [], h: [] });
+  return lazyConst(_ranking, _rankingPromise, `RANKING_${y}`, {
+    file: `data-ranking-${y}.js`, name: `RANKING_${y}`, missing: () => ({ t: [], h: [] }),
+    valid: (value) => isObject(value) && Array.isArray(value.t) && Array.isArray(value.h),
+  });
+}
+
 /* ──────────────────────────────────────────────────────────────────────
  * Alevín. Nunca va en la carga inicial (la portada tiene que abrir en 3 s):
  * data-alevin.js, la temporada

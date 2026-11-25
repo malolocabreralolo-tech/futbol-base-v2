@@ -164,6 +164,20 @@ test('ensureBuscar: un 404 es ningún jugador ([], memorizado); un fallo de red,
   assert.deepEqual(requests, []);
 });
 
+// El ranking por año de nacimiento: sin fichero (404), un ranking sin años y un año sin nadie, memorizados.
+test('ensureRanking y ensureRankingYear: parsean su constante; un 404 es que no hay nada publicado', async () => {
+  requests.length = 0;
+  assert.deepEqual(await state.ensureRanking(), { temporada: null, anios: {} });
+  assert.deepEqual(await state.ensureRankingYear(2016), { t: [], h: [] });
+  bodies['data-ranking-2018.js'] = 'const RANKING_2018 = {"t":[["1001","GOMEZ PEREZ, RAUL","Club Uno","prebenjamin",20,18,40,180,0]],"h":[]};\n';
+  const [a, b] = await Promise.all([state.ensureRankingYear('2018'), state.ensureRankingYear(2018)]);
+  assert.equal(a, b, 'las dos llamadas comparten el vuelo');
+  assert.deepEqual(a, { t: [['1001', 'GOMEZ PEREZ, RAUL', 'Club Uno', 'prebenjamin', 20, 18, 40, 180, 0]], h: [] });
+  assert.deepEqual(await state.ensureRankingYear('18'), { t: [], h: [] }, 'lo que no es un año no se pide');
+  assert.equal(await state.ensureRanking(), await state.ensureRanking());
+  assert.deepEqual(requests, ['./data-ranking.js?v=20260923j', './data-ranking-2016.js?v=20260923j', './data-ranking-2018.js?v=20260923j']);
+});
+
 test('sin el <script> de data-seasons.js, las peticiones van sin ?v=', async () => {
   const saved = scripts['data-seasons.js'];
   delete scripts['data-seasons.js'];
@@ -181,7 +195,7 @@ test('todas las peticiones perezosas pasan por fetchData(): la versión de los d
   assert.equal((src.match(/\bfetch\(/g) || []).length, 1, 'un solo fetch en state.js, el de fetchData');
   assert.match(src, /await fetch\(`\.\/\$\{file\}\$\{dataQuery\(\)\}`, \{ signal: controller\.signal \}\)/);
   const loaders = src.match(/await fetchData\(/g) || [];
-  assert.equal(loaders.length, 8, 'matchdetail, temporadas, actas, fichas de jugador, data-health, el alevín (data-alevin.js y data-season-<S>-alevin.js) y los de una constante (lazyConst: el índice de búsqueda)');
+  assert.equal(loaders.length, 8, 'matchdetail, temporadas, actas, fichas de jugador, data-health, el alevín (data-alevin.js y data-season-<S>-alevin.js) y los de una constante (lazyConst: el índice de búsqueda y el ranking)');
   assert.doesNotMatch(src, /data-matchdetail-keys\.js"\]/, 'la versión ya no sale de data-matchdetail-keys.js');
 });
 

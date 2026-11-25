@@ -193,8 +193,8 @@ function checkedText(health, today) {
   return at.day === today ? 'comprobado hoy' : `comprobado el ${dayMonth(at.day)}`;
 }
 
-// Más: Temporadas anteriores, Récords, Goleadores, Datos y fuentes y Ajustes. Récords y
-// Goleadores llevan la temporada elegida.
+// Más: Temporadas anteriores, Récords, Goleadores, los mejores de cada año, Datos y fuentes y Ajustes.
+// Récords y Goleadores llevan la temporada elegida; el ranking no depende de ella.
 function moreBlock(ctx, s) {
   const seasons = (ctx.datasets && ctx.datasets.seasons) || [];
   const oldest = seasons.length > 1 ? seasons[seasons.length - 1].name : null;
@@ -202,6 +202,7 @@ function moreBlock(ctx, s) {
     linkRow(routeHref('temporadas'), 'Temporadas anteriores', { context: oldest ? `desde ${seasonLabel(oldest)}` : null }),
     linkRow(routeHref('records', { s }), 'Récords y estadísticas'),
     linkRow(routeHref('goleadores', { s }), 'Goleadores'),
+    linkRow(routeHref('ranking'), 'Los mejores de cada año', { context: 'por año de nacimiento' }),
     linkRow(routeHref('fuentes'), 'Datos y fuentes', { context: checkedText(ctx.health, ctx.today) }),
     linkRow(routeHref('ajustes'), 'Ajustes', { context: 'mi equipo y datos' }),
   ];

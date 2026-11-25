@@ -185,6 +185,32 @@ test('Equipo: g es obligatorio; sin él, el equipo se busca en Explorar', () => 
   assert.deepEqual(target(resolve('#/equipo?g=ZZ9&t=X')), ['#/explorar?q=X', 'No encontramos el grupo ZZ9 en la temporada 2025/26']);
 });
 
+// Los mejores de cada año: no depende de ninguna temporada. Que el año tenga lista lo dice la pantalla,
+// que es la que carga data-ranking.js.
+test('Ranking: `y` es un año de cuatro cifras y `v`, la vista de toda la trayectoria (h); lo demás se quita', () => {
+  const R = parseRoute;
+  assert.deepEqual(resolve('#/ranking'), { params: {} });
+  assert.deepEqual(resolve('#/ranking?y=2018'), { params: { y: '2018' } });
+  assert.deepEqual(resolve('#/ranking?y=2018&v=h'), { params: { y: '2018', v: 'h' } });
+  // Esta temporada es la vista por defecto: no se escribe en la dirección.
+  assert.deepEqual(resolve('#/ranking?y=2018&v=t'), { params: { y: '2018' } });
+  assert.deepEqual(resolve('#/ranking?v=h&s=2024-2025&q=x'), { params: { v: 'h' } });
+  for (const hash of ['#/ranking?y=18', '#/ranking?y=20188', '#/ranking?y=abcd', '#/ranking?y=%202018', '#/ranking?v=x', '#/ranking?s=2024-2025', '#/ranking?s=1999-2000&g=PG2']) {
+    assert.deepEqual(resolve(hash), { params: {} }, hash);
+  }
+  assert.equal(routeHref('ranking', { v: 'h', y: '2018' }), '#/ranking?y=2018&v=h', 'el año primero');
+  assert.deepEqual(parseRoute('#/ranking?y=2018&v=h'), { screen: 'ranking', params: { y: '2018', v: 'h' } });
+  // Cambiar de año o de vista sustituye la entrada; llegar desde Explorar o desde una ficha crea otra.
+  assert.equal(historyMode(R('#/ranking?y=2018'), R('#/ranking?y=2017')), 'replace');
+  assert.equal(historyMode(R('#/ranking?y=2018'), R('#/ranking?y=2018&v=h')), 'replace');
+  assert.equal(historyMode(R('#/ranking'), R('#/ranking?y=2017&v=h')), 'replace');
+  assert.equal(historyMode(R('#/explorar'), R('#/ranking')), 'push');
+  assert.equal(historyMode(R('#/jugador?id=1001'), R('#/ranking?y=2018')), 'push');
+  // Cuelga de Explorar: su «‹» sin historial va allí, y la barra marca Explorar.
+  assert.deepEqual(parentOf(R('#/ranking?y=2018')), { screen: 'explorar', params: {} });
+  assert.deepEqual(activeTab(R('#/ranking?y=2018'), 'tabla'), { active: 'explorar', current: 'true' });
+});
+
 // ── historyMode, parentOf, activeTab y routeIsMine ───────────────────────
 
 test('historyMode: cambiar de pantalla es push; jornada, vista de Tabla, grupo o búsqueda, replace', () => {

@@ -492,6 +492,25 @@ test('ficha: con un solo grupo, sin «Resumen» (no aporta nada)', () => {
   assert.equal(summaryRows(twice), null);
 });
 
+// Los enlaces «Ver los mejores de <año>» (#/ranking?y=<año>): uno por año posible.
+const rankingLinks = (out) => [...out.matchAll(/<a class="more" href="(#\/ranking[^"]*)">([^<]+)<\/a>/g)].map(m => [m[1], m[2]]);
+
+test('ficha: con año, «Ver los mejores de <año>» al final del «Resumen» (o bajo la trayectoria), uno por año', () => {
+  const out = renderRaul(RAUL_ENTRY);
+  assert.deepEqual(rankingLinks(out), [['#/ranking?y=2014', 'Ver los mejores de 2014'], ['#/ranking?y=2015', 'Ver los mejores de 2015']]);
+  const resumen = out.slice(out.indexOf('Resumen'), out.indexOf('Trayectoria'));
+  assert.equal(rankingLinks(resumen).length, 2, 'en el bloque «Resumen»');
+  // Sin «Resumen» (un solo grupo), bajo la trayectoria; con tres años, tres enlaces.
+  const one = renderRaul({ ...RAUL_ENTRY, y: [2008, 2009, 2010], c: [RAUL_ENTRY.c[0]] });
+  assert.deepEqual(rankingLinks(one).map(([href]) => href), ['#/ranking?y=2008', '#/ranking?y=2009', '#/ranking?y=2010']);
+  assert.ok(one.indexOf('Ver los mejores de 2008') > one.indexOf('Trayectoria'));
+  const single = s(screen.render(ctxWith({ id: ID }, { shard: { ...SHARD, p: { [ID]: { ...SHARD.p[ID], y: [2018], yc: 1 } } } })));
+  assert.deepEqual(rankingLinks(single), [['#/ranking?y=2018', 'Ver los mejores de 2018']]);
+  // Sin año, ninguno.
+  assert.deepEqual(rankingLinks(s(screen.render(ctxWith({ id: ID })))), []);
+  assert.deepEqual(rankingLinks(renderRaul({ ...RAUL_ENTRY, y: undefined })), []);
+});
+
 test('acta.css: en la ficha del jugador el nombre parte línea en vez de cortarse; las demás cabeceras siguen igual', () => {
   const css = readFileSync(join(ROOT, 'acta.css'), 'utf8');
   const rule = css.match(/\[data-screen="jugador"\] \.screen-head h1 \{([^}]*)\}/);

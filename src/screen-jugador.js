@@ -9,7 +9,7 @@
 import { html } from './html.js';
 import { block, box, countLabel, decimal, empty, notice, screenHead } from './ui.js';
 import { bornText, categoryName, groupLabel, playerName, seasonLabel } from './model.js';
-import { playerHref, teamHref } from './links.js';
+import { playerHref, routeHref, teamHref } from './links.js';
 import { errorBox } from './shell.js';
 import { ensureJugadores, jugadoresShard } from './state.js';
 import { isFollowed } from './followed.js';
@@ -84,9 +84,19 @@ export function birthLabel(player) {
 // trozo no nombra (un grupo sin "g"), al final, en «Otras».
 const CAT_ORDER = ['juvenil', 'cadete', 'infantil', 'alevin', 'benjamin', 'prebenjamin'];
 
+// «Ver los mejores de 2018», al ranking de su año (#/ranking?y=2018): uno por año posible, porque el
+// estimado sale en el de cada uno; sin año, nada.
+function rankingLinks(player) {
+  const years = (Array.isArray(player.y) ? player.y : []).map(Number).filter(Number.isInteger).sort((a, b) => a - b);
+  if (!years.length) return '';
+  const links = years.map(y => html`<a class="more" href="${routeHref('ranking', { y: String(y) })}">Ver los mejores de ${y}</a>`);
+  return html`<p class="squad-more">${links.map((link, i) => html`${i ? ' · ' : ''}${link}`)}</p>`;
+}
+
 /* «Resumen»: una fila por categoría jugada (su nombre, temporadas, partidos, goles y goles por partido con
- * un decimal), de la más alta a la más baja. Con las filas de un solo grupo no dice nada que no diga ya la
- * trayectoria: no se pinta. Las filas, las de la trayectoria (traj-row), sin enlace. */
+ * un decimal), de la más alta a la más baja, y los enlaces al ranking de su año. Con las filas de un solo
+ * grupo no dice nada que no diga ya la trayectoria: no se pinta (y los enlaces van bajo la trayectoria).
+ * Las filas, las de la trayectoria (traj-row), sin enlace. */
 function summary(shard, player) {
   const groups = new Set(player.c.map(r => `${r[0]}/${r[1]}`));
   if (groups.size < 2) return '';
@@ -107,7 +117,7 @@ function summary(shard, player) {
     const rate = pj ? decimal(goals / pj, 1) : '–';
     return html`<div class="traj-row"><span class="traj-team">${cat === null ? 'Otras' : categoryName(cat)}</span><span class="traj-group">${countLabel(seasons, 'temporada', 'temporadas')} · ${rate} goles por partido</span><span class="traj-pos">${goals ? countLabel(goals, 'gol', 'goles') : 'sin goles'}</span><span class="traj-pts">${countLabel(pj, 'partido', 'partidos')}</span></div>`;
   });
-  return block('Resumen', box(html`${rows}`), { context: 'por categoría' });
+  return block('Resumen', html`${box(html`${rows}`)}${rankingLinks(player)}`, { context: 'por categoría' });
 }
 
 // Las otras fichas con el mismo nombre ("h": [[clave, último equipo, temporada]]), cada una a la suya.
@@ -133,7 +143,9 @@ function render(ctx) {
   const action = html`<button type="button" class="screen-action" data-action="seguir-jugador" aria-pressed="${following ? 'true' : 'false'}">${following ? 'Siguiendo' : 'Seguir'}</button>`;
   // Sin ningún id de la federación, la ficha es la de su nombre en sus actas: se dice.
   const only = player.s ? notice(null, 'En las actas figura solo con este nombre.') : '';
-  return wrap(html`${head(playerName(player.n), { sub, action })}${summary(shard, player)}${block('Trayectoria', html`${career(shard, player)}${only}`, { context: 'según las actas de la federación' })}${namesakes(player)}`);
+  const resumen = summary(shard, player);
+  const below = resumen ? '' : rankingLinks(player);
+  return wrap(html`${head(playerName(player.n), { sub, action })}${resumen}${block('Trayectoria', html`${career(shard, player)}${only}${below}`, { context: 'según las actas de la federación' })}${namesakes(player)}`);
 }
 
 function mount(root, ctx, nav) {
