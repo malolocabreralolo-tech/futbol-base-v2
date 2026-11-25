@@ -1,0 +1,68 @@
+[
+ {
+  "id": 99,
+  "name": "FUTBOL 7 ACADE CIUDAD TELDE",
+  "idSeason": 8,
+  "visible": true
+ },
+ {
+  "id": 89,
+  "name": "TORNEO F11  ACADE LAS PALMAS",
+  "idSeason": 7,
+  "visible": true
+ },
+ {
+  "id": 93,
+  "name": "LIGA FUTBOL SALA 26/27",
+  "idSeason": 8,
+  "visible": true
+ },
+ {
+  "id": 94,
+  "name": "COPA SIN FRONTERAS",
+  "idSeason": 8,
+  "visible": true
+ },
+ {
+  "id": 101,
+  "name": "ALEVIN ESCUELAS 26/27",
+  "idSeason": 8,
+  "visible": true
+ },
+ {
+  "id": 96,
+  "name": "BENJAMIN ESCUELA 2026/2027",
+  "idSeason": 8,
+  "visible": true
+ },
+ {
+  "id": 97,
+  "name": "MINIPREBENJAMIN ESCUELA 2026/2027",
+  "idSeason": 8,
+  "visible": true
+ },
+ {
+  "id": 98,
+  "name": "FUTBOL 11 ACADE - ARBICAN LAS PALMAS",
+  "idSeason": 8,
+  "visible": true
+ },
+ {
+  "id": 95,
+  "name": "PREBENJAMIN ESCUELA 2026/2027",
+  "idSeason": 8,
+  "visible": true
+ },
+ {
+  "id": 100,
+  "name": "FUTBOL 7 ARBICAN LAS PALMAS",
+  "idSeason": 8,
+  "visible": true
+ },
+ {
+  "id": 79,
+  "name": "FUTBOL 7 ACADE  CIUDAD TELDE ",
+  "idSeason": 7,
+  "visible": true
+ }
+]
