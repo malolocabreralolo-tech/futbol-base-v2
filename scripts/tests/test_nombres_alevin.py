@@ -307,6 +307,46 @@ def test_ud_las_palmas_keeps_its_row_when_the_foundation_has_one(monkeypatch):
     assert name_clashes(both) == []
 
 
+
+def test_a_club_of_juvenil_takes_the_row_of_benjamin(monkeypatch):
+    """Infantil, cadete y juvenil (parte E) tienen los clubes de siempre: 'PALMAS, U.D. LAS "A"' de un
+    raw de juvenil (fútbol 11: el primer equipo lleva la "A") es la fila de UD Las Palmas de benjamín, y
+    no la de la Fundación, al activar (con la ficha de la temporada) y con la tabla del proyecto. Sin
+    ninguna de las dos, las palabras empatan con la Fundación también en benjamín (por eso la tabla
+    fija a UD Las Palmas): juvenil, exactamente como benjamín."""
+    conn = base()
+    conn.execute("INSERT INTO categories(id, name) VALUES (6, 'JUVENIL')")
+    put(conn, 3, 1, "FF8", "grancanaria", ["Las Palmas"], fed={"Las Palmas": "PALMAS, U.D. LAS"})
+    put(conn, 3, 4, "AL5", "grancanaria", ["Fundación UD Las Palmas"])
+    for table in (None, ROOT / "scripts" / "fiflp_team_names.json"):
+        if table:
+            monkeypatch.setattr(fiflp_names, "FED_NAMES_PATH", str(table))
+            fiflp_names.fed_alias.cache_clear()
+        for season in ("2026-2027", None):
+            names = known_names(raw(['PALMAS, U.D. LAS "A"'], cat="juvenil"), conn, season=season)
+            assert names == known_names(raw(['PALMAS, U.D. LAS "A"'], cat="benjamin"), conn, season=season)
+            if table or season:
+                assert names == {'PALMAS, U.D. LAS "A"': "Las Palmas"}, (table, season)
+
+
+def test_name_clashes_across_benjamin_and_juvenil(table):
+    """Con las categorías del raw (raw_categories): el mismo club con otro nombre de la federación en
+    benjamín y en juvenil no es un choque; dos clubes distintos que acabarían con el mismo nombre en
+    juvenil, sí."""
+    from activate_season import raw_categories
+    crudos = (raw(["CLARAVISION-ROQUE AMAGRO, C.D."], cat="benjamin")
+              + raw(["ROQUE AMAGRO DE GALDAR, C.D."], cat="juvenil"))
+    names = {"CLARAVISION-ROQUE AMAGRO, C.D.": "Roque Amagro", "ROQUE AMAGRO DE GALDAR, C.D.": "Roque Amagro"}
+    assert name_clashes(names, raw_categories(crudos)) == []
+    crudos = raw(['GUINIGUADA APOLINARIO, C.D. "A"', 'FUNDACION GUINIGUADA, C.D. DE LA "A"'], cat="juvenil")
+    names = {'GUINIGUADA APOLINARIO, C.D. "A"': "Guiniguada", 'FUNDACION GUINIGUADA, C.D. DE LA "A"': "Guiniguada"}
+    assert name_clashes(names, raw_categories(crudos)) == [
+        ("Guiniguada", ['FUNDACION GUINIGUADA, C.D. DE LA "A"', 'GUINIGUADA APOLINARIO, C.D. "A"'])]
+    # Uno en benjamín y otro en juvenil: categorías distintas, no se pisan (la fila es por categoría).
+    crudos = (raw(['GUINIGUADA APOLINARIO, C.D. "A"'], cat="benjamin")
+              + raw(['FUNDACION GUINIGUADA, C.D. DE LA "A"'], cat="juvenil"))
+    assert name_clashes(names, raw_categories(crudos)) == []
+
 # ── El paso del bot: migrate_team_names ─────────────────────────────────────
 
 FIXES = {("2026-2027", "ALEVIN", "AL20"): {"Huracán B": "Las Mesas Hu. B", "Puertos de": "Puertos LP"},
