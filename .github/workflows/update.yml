@@ -75,12 +75,15 @@ jobs:
       # Diagnóstico del freno de la federación (15/10/2026): la IP pública del runner, que cambia de una
       # ejecución a otra, para cruzar los frenos del log (esperas del freno, «no sirve páginas») con las IPs.
       # Solo en el log (no va a data-health.json), sin secretos ni datos del usuario, y nunca para el job:
-      # 5 s como mucho y, sin respuesta, «desconocida».
+      # 5 s como mucho y, sin respuesta, «desconocida». Y la nube (25/11/2026): el fabricante de la máquina
+      # («Microsoft Corporation» en Azure, «Amazon EC2» en AWS), porque la federación no sirve a los runners
+      # de AWS desde el 13/11/2026 (docs/freno-2026-11.md); el bot lo lee igual (fiflp_carga.nube, run.cloud).
       - name: IP pública del runner
         continue-on-error: true
         timeout-minutes: 1
         run: |
           echo "IP pública del runner: $(curl -s --max-time 5 https://api.ipify.org || echo desconocida)"
+          echo "Nube del runner: $(cat /sys/class/dmi/id/sys_vendor 2>/dev/null || echo desconocida)"
 
       - name: Actualizar datos desde futbolaspalmas.com y la federación
         id: scrape
