@@ -344,16 +344,31 @@ def test_federacion_checks_the_catalog_normally_the_first_time(monkeypatch):
     assert F.goto(page, catalog) and page.fresh_loads(catalog) == [False, True]
 
 
+def braking(url, until, also=None):
+    """El freno de la federación desde la primera petición de `url` hasta su intento `until`: vacías todas
+    sus páginas (no solo esa: con las demás servidas sería una página muerta, no el freno). `also`, lo que
+    sirve cada URL fuera del freno (por defecto, la página)."""
+    state = {"on": False}
+
+    def outcome(u, n):
+        if u == url:
+            state["on"] = n < until
+        return "empty" if state["on"] else (also(u, n) if also else "ok")
+    return outcome
+
+
 def test_federacion_asks_the_brake_probes_fresh(monkeypatch):
     """Los sondeos del freno (la misma página a los 4 min y cada minuto después: dentro del max-age de 5 min
-    de la vacía): frescos, no la vacía guardada."""
+    de la vacía): frescos, no la vacía guardada. Y la otra página que se pide tras cada vacía (la última que
+    cargó: ¿es el freno o solo esta página?), también. El freno, vacías todas hasta el 3.er intento de esta."""
     url = group(4)
-    page = Page(outcome=lambda u, n: "empty" if u == url and n <= 2 else "ok")
+    page = Page(outcome=braking(url, until=3))
     F = federacion(monkeypatch)
     assert F.goto(page, group(1))
     assert F.goto(page, url)
-    assert F.pauses == 1 and F.resumed == 1
+    assert F.pauses == 1 and F.resumed == 1 and F.dead == 0
     assert page.fresh_loads(url) == [False, True, True]
+    assert page.fresh_loads(group(1)) == [False, True, True]
 
 
 # ── update_fiflp.scrape_group ─────────────────────────────────────────────────
@@ -392,10 +407,10 @@ def test_the_standings_lost_in_the_brake_are_asked_fresh(monkeypatch, U):
     def outcome(url, n):
         if url == standings_url:
             return 500 if n <= 3 else "ok"
-        if url == calendar:
-            return "empty" if n <= 2 else "ok"
         return "ok"
-    page = Page(outcome=outcome, options=lambda url, n: OPTIONS if url == calendar else [])
+    # El freno, desde el calendario hasta su 3.er intento (vacías todas, también la de competiciones).
+    page = Page(outcome=braking(calendar, until=3, also=outcome),
+                options=lambda url, n: OPTIONS if url == calendar else [])
     F = federacion(monkeypatch)
     standings, rounds = U.scrape_group(page, F, calendar, STORED, TODAY)
     assert standings == [{"team": "uno"}] and list(rounds) == ["Jornada 1"]

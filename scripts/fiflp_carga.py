@@ -40,15 +40,20 @@ a la vez, cada uno con su IP, pidiendo documentos distintos con la caché y fifl
     runners en paralelo, ni otra identidad): se trabaja DENTRO del cupo;
   - un sondeo de una página cada 60 s durante el bloqueo no lo alarga (vuelve a ~300 s igual).
 Por eso (Federacion):
-  - una página vacía es el freno a la primera: SIN reintento (uno a los 60 s sale vacío siempre: un
-    minuto perdido, y una petición);
+  - una página vacía es el freno a la primera, SIN reintento (uno a los 60 s sale vacío siempre: un
+    minuto perdido, y una petición), si la federación tampoco sirve OTRA página (_serving: la última que
+    cargó o, sin ninguna aún, la de competiciones de la temporada). Si la sirve, no es el freno: es esta
+    página, que no carga (una página muerta: `dead`), sin espera ni señal del freno, y la pasada sigue.
+    Desde el 21/11/2026 hay actas cuya página sale vacía siempre; tomadas por el freno, cada pasada se
+    quedaba sondeándolas 9-12 min (docs/freno-2026-11.md);
   - la ESPERA del freno: FIFLP_BRAKE_PAUSE_MIN (4) minutos sin pedir nada y después LA MISMA página cada
     FIFLP_BRAKE_PROBE_S (60) segundos (un sondeo: una sola petición, al documento de la red y no al de la
-    caché, porque la URL se repite), hasta que sirva; cada uno, si cabe en el plazo con BRAKE_ROOM para
-    leer algo después. Con un tope por freno, FIFLP_BRAKE_MAX_MIN (20) minutos desde la página vacía: si
-    no vuelve, nada más en esa pasada (`blocked`). Con lo medido (~5 min) vuelve en el 2.º o el 3.º
-    sondeo (a los ~300 o ~360 s); el de 122 s, en el 1.º; y el tope deja 17 sondeos (en una pasada real
-    un freno seguía a los 11 min);
+    caché, porque la URL se repite; si no carga, vacía o no, también la otra página: si esa carga, la
+    federación ya sirve y esta página no, y la espera acaba), hasta que sirva; cada uno, si cabe en el
+    plazo con BRAKE_ROOM para leer algo después. Con un tope por freno, FIFLP_BRAKE_MAX_MIN (20) minutos
+    desde la página vacía: si no vuelve, nada más en esa pasada (`blocked`). Con lo medido (~5 min)
+    vuelve en el 2.º o el 3.º sondeo (a los ~300 o ~360 s); el de 122 s, en el 1.º; y el tope deja 17
+    sondeos (en una pasada real un freno seguía a los 11 min);
   - UNA espera por pasada (BRAKE_PAUSES = 1, FIFLP_BRAKE_PAUSES): el segundo freno acaba la pasada. En
     pasadas reales el bloqueo ESCALA dentro de una pasada (el 1.º ~300 s, el 2.º ~900 s, el 3.º más que el
     plazo) y cada ejecución de GitHub, con su IP nueva, vuelve a empezar con ~5 min: esperar el 2.º son
@@ -58,9 +63,18 @@ Por eso (Federacion):
     espera (al frenar se acaba la pasada), y con «sin», sin tope;
   - SIN RALENTIZAR al reanudar: el cupo no es de ritmo, y cada segundo de más es tiempo de plazo
     perdido;
+  - EL RUNNER RECHAZADO (desde el 13/11/2026, docs/freno-2026-11.md): GitHub pone cerca de la mitad de los
+    jobs en AWS, y la federación les sirve vacío desde la primera petición, siempre (183 de 183; en Azure,
+    0 de 187), días después y con cualquier IP de AWS: no es un cupo y no se pasa esperando. Si frena antes
+    de servir ninguna página en la pasada y el runner no es de Azure (nube(): el fabricante de la
+    máquina), ni la espera ni los sondeos: nada más en esa pasada (`refused_runner`). No se relanza la
+    pasada para que caiga en Azure: sería esquivar el bloqueo (decisión del dueño, pendiente);
   - lo demás, igual: un freno no es un error (update_fiflp.run_passes), un 503 o un 429 es señal del
-    freno, una racha de URLs muertas mientras la federación sirve otra página no lo es, el navegador
-    cerrado tampoco, y ninguna página empieza pasado el plazo, contando la espera del intervalo.
+    freno sin más (sin preguntar por otra página), una racha de URLs muertas mientras la federación sirve
+    otra página no lo es (también cuenta en `dead`), el navegador cerrado tampoco, y ninguna página empieza
+    pasado el plazo, contando la espera del intervalo;
+  - el coste: en un freno de verdad, una petición más al frenar y una más por sondeo (la otra página). El
+    experimento de octubre midió que los sondeos no alargan el bloqueo.
 No cambia cómo se aplana ni cómo se lee el HTML: solo cuándo. Lo usa el bot (update_fiflp,
 Federacion); las tandas de temporadas pasadas (fetch_fiflp_actas, _goleadores, _detalle, _islas)
 siguen con el paso de fetch_fiflp_2425, sin prisa.
@@ -107,6 +121,9 @@ DEFAULT = object()        # Federacion(max_pauses=…) sin darlo: brake_pauses()
 EMPTY = "vacía"
 REFUSED = "rechazada"
 CLOSED = "navegador cerrado"
+# El fabricante de la máquina (nube): «Microsoft Corporation» en los runners de GitHub en Azure, «Amazon EC2»
+# en los de AWS, a los que la federación no sirve desde el 13/11/2026 (docs/freno-2026-11.md).
+SYS_VENDOR = "/sys/class/dmi/id/sys_vendor"
 
 _OPTION = ' option:not([value=""]):not([value="0"])'
 
@@ -194,6 +211,20 @@ def brake_pauses(env=None):
     if text == "sin":
         return None
     return int(text) if text.isdigit() else BRAKE_PAUSES
+
+
+def nube(leer=None):
+    """La nube de la máquina: "azure" si su fabricante (SYS_VENDOR) dice Microsoft, "aws" si dice Amazon y
+    "otra" si es otra cosa o no se puede leer (en local, en un contenedor). `leer`, una función sin argumentos
+    que da ese texto (las pruebas). Un diagnóstico: nunca falla."""
+    def vendor():
+        with open(SYS_VENDOR, encoding="utf-8", errors="replace") as f:
+            return f.read()
+    try:
+        text = str((leer or vendor)() or "").lower()
+    except Exception:
+        return "otra"
+    return "azure" if "microsoft" in text else "aws" if "amazon" in text else "otra"
 
 
 def _empty(page):
@@ -312,11 +343,16 @@ class Federacion:
       - `pages`, las peticiones (también los sondeos del freno y la de comprobar si sirve otra: el log
         del bot da el coste por página), y `served`, las páginas que cargaron;
       - `failures`, las seguidas que no cargan (con BLOCKED_AFTER, `blocked`: no pedirle más);
+      - `dead`, las páginas que no cargan aunque la federación sirve otra (_serving): una vacía (sin un 503
+        ni un 429) con la otra servida, la que cierra una racha de URLs muertas y la que el sondeo del
+        freno no consigue cargar cuando la otra ya sí. No son el freno: ni señal ni espera. El bot
+        (update_fiflp._read_actas) gasta así el intento de un acta muerta, que si no volvería la primera
+        en cada pasada;
       - el freno: `brakes`, sus señales (cada página vacía o con un 503 o un 429, cargue o no tras sus
-        reintentos, y cada racha de BLOCKED_AFTER sin cargar en la que la federación no sirve otra
-        página: _serving), y en `brake_marks` las páginas servidas (`served`) hasta cada una (el bot sabe
-        así si un fallo anterior, sin servir nada entre medias, ya era el freno); `unserved`, las páginas
-        que no sirvió por su freno;
+        reintentos, si la federación tampoco sirve otra página la vacía; y cada racha de BLOCKED_AFTER sin
+        cargar en la que no sirve otra: _serving), y en `brake_marks` las páginas servidas (`served`) hasta
+        cada una (el bot sabe así si un fallo anterior, sin servir nada entre medias, ya era el freno);
+        `unserved`, las páginas que no sirvió por su freno;
       - la espera de cada freno (una página vacía, o la que dejaría a la federación `blocked`): `pauses`,
         los frenos esperados (cada uno, su primera espera de `pause_seconds` y sus sondeos cada
         `probe_seconds`, como mucho `cap_seconds` desde la página vacía; como mucho `max_pauses` por
@@ -326,6 +362,10 @@ class Federacion:
         «frena tras 15 páginas»); `paused`, los segundos esperando (no son coste de ninguna página ni de ningún grupo); y
         `halted`: frenó y no volvió (sin sitio en el plazo, pasado el tope o sin esperas), y no se le pide
         nada más (`blocked`);
+      - `cloud`, la nube del runner (nube(), si no se da: "azure", "aws" u "otra"), y `refused_runner`: frenó
+        antes de servir ninguna página en la pasada (`served` 0) en un runner que no es de Azure. Es la
+        federación que no sirve a AWS (desde el 13/11/2026: siempre, desde la primera petición), no un
+        cupo: sin la espera ni los sondeos, `halted`. En Azure, o con alguna página servida, la espera;
       - `closed`: el navegador se cerró (Chromium caído). No es el freno (ni señal ni espera): `halted`,
         y el bot da por error el grupo que se estaba leyendo.
     Toda petición pasa por goto y fiflp_render.goto: una URL que el navegador ya pidió en la pasada (la otra
@@ -333,11 +373,14 @@ class Federacion:
     recuerda el navegador (su contexto), no esta clase: vale igual para cualquier lector."""
 
     def __init__(self, scraper, deadline=None, interval=None, clock=time.monotonic, sleep=time.sleep,
-                 pause_seconds=None, max_pauses=DEFAULT, probe_seconds=None, cap_seconds=None, wall=None, log=print):
+                 pause_seconds=None, max_pauses=DEFAULT, probe_seconds=None, cap_seconds=None, wall=None, log=print,
+                 cloud=None):
         self._scraper = scraper
         self.BASE = scraper.BASE
         self.deadline = deadline
-        self.pages = self.served = self.failures = self.unserved = self.brakes = 0
+        self.pages = self.served = self.failures = self.unserved = self.brakes = self.dead = 0
+        self.cloud = nube() if cloud is None else cloud
+        self.refused_runner = False
         self.brake_marks, self.brake_after = [], []
         self.interval = min_interval() if interval is None else interval
         self.pause_seconds = brake_pause_seconds() if pause_seconds is None else pause_seconds
@@ -384,8 +427,10 @@ class Federacion:
 
     def _serving(self, page, url):
         """¿Sirve la federación otra página: la última que cargó o, si aún no ha cargado ninguna, la de
-        competiciones de la temporada (CATALOG_URL, que existe siempre)? Distingue una racha de URLs
-        muertas (sí: no es el freno) del freno o de una caída (no). Si la que falla es esa misma, no."""
+        competiciones de la temporada (CATALOG_URL, que existe siempre)? Distingue una página vacía que no
+        es el freno, una racha de URLs muertas o un sondeo que sigue sin cargar cuando el freno ya pasó (sí:
+        es esta página, `dead`) del freno o de una caída (no). Si la que falla es esa misma, no; tampoco sin
+        ninguna cargada y sin temporada en la URL (un acta, la primera de la pasada)."""
         season = re.search(r"(?i)CodTemporada=(\d+)", url)
         other = self._good or (self.BASE + CATALOG_URL.format(season=season.group(1)) if season else None)
         if other is None or other == url:
@@ -409,10 +454,20 @@ class Federacion:
         """La espera de un freno en `url`: la primera, de `pause_seconds`, sin pedir nada; después, un sondeo
         (la misma página, una sola petición, fresca) cada `probe_seconds` hasta que sirva, mientras cada uno
         quepa con BRAKE_ROOM antes del plazo y no pase de `cap_seconds` desde ahora (la página vacía). Da
-        (¿cargó esta página?, ¿volvió a servir?): vuelve a servir si carga esta o, si esta no y no está
-        vacía, otra (_serving: la federación sirve y esta página no)."""
+        (¿cargó esta página?, ¿volvió a servir?): vuelve a servir si carga esta o, si esta no (vacía o no),
+        otra (_serving: la federación sirve y esta página no, que cuenta en `dead`). Hasta noviembre de 2026
+        solo se preguntaba por otra si el sondeo no salía vacío: una página vacía siempre se sondeaba hasta el
+        tope o el plazo. Sin ninguna página servida en la pasada y fuera de Azure (`cloud`), ni espera ni
+        sondeos: el runner rechazado (`refused_runner`)."""
         n = self._run
         self.brake_after.append(n)
+        if self.served == 0 and self.cloud != "azure":
+            # La federación no sirve a los runners de AWS desde la primera petición, días después y con
+            # cualquier IP (docs/freno-2026-11.md): esperar son 13 min y ~10 sondeos para nada.
+            self.refused_runner = True
+            self._log(f"      la federación no sirve a este runner desde la primera página (nube: {self.cloud}): "
+                      "nada en esta pasada")
+            return False, False
         if self.max_pauses is not None and self.pauses >= self.max_pauses:
             self._log("      la federación frena (sin esperas: FIFLP_BRAKE_PAUSES=0): nada más en esta pasada"
                       if not self.max_pauses else
@@ -437,9 +492,12 @@ class Federacion:
                 return False, False
             self.probes += 1
             at = self._last                       # cuándo empezó el sondeo
-            loaded, empty = got[0], EMPTY in got[1]
-            if loaded or (not empty and self._serving(page, url)):
+            loaded = got[0]
+            # Vacío o no, si no carga se pregunta por otra página: si esa carga, el freno ya pasó y es esta
+            # página la que no carga (una muerta: vacía siempre). Sin preguntar, se sondearía hasta el tope.
+            if loaded or self._serving(page, url):
                 self.resumed += 1
+                self.dead += not loaded
                 self._run = 0 if loaded else 1       # la que cargó, la 1.ª de la vuelta (esta la cuenta _goto)
                 self._log(f"      la federación vuelve a servir a los {at - began:.0f} s"
                           f"{'' if loaded else ', pero no esta página'}: se sigue")
@@ -472,14 +530,22 @@ class Federacion:
         if got is None:
             return False                  # tras el intervalo, pasado el plazo: ni se pide
         loaded, why = got
-        empty = EMPTY in why
+        empty, refused = EMPTY in why, REFUSED in why
+        # Una página vacía (sin un 503 ni un 429, que son la federación sin más) solo es el freno si la
+        # federación tampoco sirve otra página. Si la sirve, es esta la que no carga: una página muerta (las
+        # actas de alevín vacías siempre desde el 21/11/2026), sin espera ni señal del freno; se sigue.
+        if not loaded and empty and not refused and self._serving(page, url):
+            empty = False
+            self.dead += 1
+            self._log("      página vacía, pero la federación sirve otra: no es el freno, es esta página")
         # El freno: una página vacía o con un 503 o un 429 (aunque cargue tras sus reintentos), o la que
         # dejaría a la federación bloqueada si no sirve otra página. Si la sirve, la racha es de URLs muertas
         # (dos grupos seguidos con la URL muerta, p. ej.): esta no carga y se sigue.
-        signal = empty or REFUSED in why
+        signal = empty or refused
         streak = not loaded and self.failures + 1 >= BLOCKED_AFTER
         if streak and not signal and self._serving(page, url):
             streak = False
+            self.dead += 1
             self._log(f"      {BLOCKED_AFTER} páginas seguidas sin cargar, pero la federación sirve otra: no es "
                       "el freno, es esta página")
         if signal or streak:
