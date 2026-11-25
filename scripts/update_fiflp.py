@@ -1574,7 +1574,9 @@ def import_actas(page, F, conn, group_id, budget, deadline=None, log=print, trie
     """Lee e importa las actas pendientes del grupo (hasta `budget` y hasta
     `deadline`, en clock()). Devuelve cuántas importó y cuántas leyó.
     Una lectura fallida suma un intento; una página que no carga, no (es la
-    red, no el acta), pero tres seguidas cortan la pasada. Una que F ni pide
+    red, no el acta), pero tres seguidas cortan la pasada; salvo si la
+    federación sirve otras páginas (F.dead, _read_actas): entonces es el acta,
+    y gasta su intento. Una que F ni pide
     (pasado el plazo tras la espera del intervalo, o la federación ya
     bloqueada: F.pages no cambia) no es una lectura: no cuenta y corta. `tried`
     (un set): los partidos cuya acta ya se pidió en esta pasada, que no se
@@ -1597,6 +1599,9 @@ def _read_actas(page, F, conn, rows, season, deadline=None, log=print, tried=Non
     """Lee e importa las actas de `rows` ([(partido, CodActa, categoría)], de la temporada `season`), en
     ese orden: las pendientes de un grupo (import_actas) o las ya importadas sin original
     (releer_originales). Como import_actas cuenta (importadas, leídas), con sus intentos y sus cortes.
+    Una cuya página no carga aunque la federación sirve otras (F.dead sube en su petición: una página
+    muerta, fiflp_carga.Federacion) gasta su intento como una lectura fallida y no corta nada; sin
+    F.dead (las federaciones de prueba de antes), como cualquier página que no carga.
     El original de cada una que se importa se guarda (actas_bot.guardar) antes de su commit; si no se
     puede guardar, el acta ya aplicada se queda: se registra y se sigue."""
     import actas_bot
@@ -1609,7 +1614,7 @@ def _read_actas(page, F, conn, rows, season, deadline=None, log=print, tried=Non
             tried.add(mid)
         read += 1
         ok = False
-        asked = getattr(F, "pages", None)
+        asked, gone = getattr(F, "pages", None), getattr(F, "dead", None)
         try:
             if not F.goto(page, F.BASE + ACTA_URL.format(code=code)):
                 if asked is not None and F.pages == asked:      # ni se pidió
@@ -1617,18 +1622,26 @@ def _read_actas(page, F, conn, rows, season, deadline=None, log=print, tried=Non
                     if tried is not None:
                         tried.discard(mid)
                     break
-                failed_loads += 1
-                if unloaded is not None:
-                    unloaded.add(mid)
-                if failed_loads >= 3:
-                    log("    ! la federación no sirve actas: se deja para la próxima pasada")
-                    break
-                continue
-            failed_loads = 0
-            flatten(page)
-            acta = parse_flat_acta(page.content())
-            original = copy.deepcopy(acta)      # tal cual lo da el lector, por si la importación lo tocara
-            ok = apply_acta(conn, mid, code, acta, log)
+                if gone is None or F.dead <= gone:
+                    failed_loads += 1
+                    if unloaded is not None:
+                        unloaded.add(mid)
+                    if failed_loads >= 3:
+                        log("    ! la federación no sirve actas: se deja para la próxima pasada")
+                        break
+                    continue
+                # Su página no carga y la federación sirve otras (F.dead: fiflp_carga.Federacion lo ha
+                # comprobado): es el acta, no la red ni el freno. Gasta su intento, como una lectura fallida:
+                # si no, iría la primera en cada pasada (new_actas) y la pararía entera (las de alevín del
+                # 21/11/2026, docs/freno-2026-11.md). Con MAX_ACTA_TRIES, en pasadas distintas, se deja.
+                failed_loads = 0                # la federación sirve: no es «no sirve actas»
+                log(f"    ! acta {code}: su página no carga (la federación sirve otras): intento gastado")
+            else:
+                failed_loads = 0
+                flatten(page)
+                acta = parse_flat_acta(page.content())
+                original = copy.deepcopy(acta)      # tal cual lo da el lector, por si la importación lo tocara
+                ok = apply_acta(conn, mid, code, acta, log)
         except Exception as e:
             conn.rollback()
             log(f"    ! acta {code}: {e}")
@@ -2299,6 +2312,12 @@ def run_passes(page, F, conn, season_id, groups, today, pending, deadline_second
             source_health.carry(code, url)     # descansa, no cupo o no se sirvió: su última comprobación
         pending.pop(code, None)
     pauses = getattr(F, "pauses", 0)
+    # La nube del runner (fiflp_carga.nube: la federación no sirve a los de AWS desde el 13/11/2026), si se
+    # sabe; las páginas muertas (las que no cargan aunque la federación sirve otras) y el runner rechazado
+    # desde la primera página, si los hubo. Para cruzarlos con los frenos en data-health.json.
+    cloud = getattr(F, "cloud", None)
+    cloud = cloud if cloud in ("azure", "aws") else None
+    dead = getattr(F, "dead", 0)
     source_health.note_run({
         "pass": number, "groups": len(groups), "refreshed": len(results),
         "priority": mine, **({"hot": dict(plan.hot)} if plan.hot else {}), "fresh": fresh,
@@ -2310,7 +2329,9 @@ def run_passes(page, F, conn, season_id, groups, today, pending, deadline_second
         **({"groupSelects": {"seen": selects["seen"], "of": selects["of"]}} if selects["of"] else {}),
         **({"rawBackfill": {"read": backfill[0], "left": backfill[1]}} if backfill else {}),
         **({"pauses": pauses, "resumed": getattr(F, "resumed", 0),
-            "brakeAfter": list(getattr(F, "brake_after", []))} if pauses else {})})
+            "brakeAfter": list(getattr(F, "brake_after", []))} if pauses else {}),
+        **({"cloud": cloud} if cloud else {}), **({"deadPages": dead} if dead else {}),
+        **({"refusedRunner": True} if getattr(F, "refused_runner", False) else {})})
     print(f"  Federación: {round((clock() - start) / 60, 1)} min de {round((deadline - start) / 60, 1)}", flush=True)
     # Para el veredicto (pasada_sana), tras pasar los sospechosos a unserved: previstos, los que la pasada
     # intentó (leídos, sin servir por el freno y aplazados por plazo; los que descansan, no).

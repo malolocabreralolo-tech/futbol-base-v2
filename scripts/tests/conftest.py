@@ -32,6 +32,22 @@ def _originales_fuera_de_scripts(tmp_path_factory):
     mp.undo()
 
 
+@pytest.fixture(autouse=True, scope="session")
+def _runner_de_azure(tmp_path_factory):
+    """fiflp_carga.Federacion, sin darle la nube, la lee de la máquina (nube: SYS_VENDOR), y fuera de Azure un
+    freno en la primera página acaba la pasada sin esperarlo. Las pruebas no dependen de dónde corren (en
+    local, «otra»; tests.yml cae en Azure o en AWS): todas, como en un runner de Azure, donde se midió el
+    freno. Las que miran otra nube la dan (cloud=…) o cambian SYS_VENDOR. De sesión, como la de los
+    originales: las semanas simuladas de los fixtures de módulo crean su Federacion antes que cada prueba."""
+    import fiflp_carga
+    vendor = tmp_path_factory.mktemp("dmi") / "sys_vendor"
+    vendor.write_text("Microsoft Corporation\n")
+    mp = pytest.MonkeyPatch()
+    mp.setattr(fiflp_carga, "SYS_VENDOR", str(vendor))
+    yield
+    mp.undo()
+
+
 @pytest.fixture(autouse=True)
 def _originales_aparte(_originales_fuera_de_scripts, tmp_path_factory, monkeypatch):
     """Y cada prueba, en su carpeta: lo que guarda una no lo ve la siguiente."""

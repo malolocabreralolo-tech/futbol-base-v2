@@ -108,9 +108,21 @@ Páginas que la federación ha servido al bot (de `run.pages` en la historia de 
 | 22/11 | 537 | 1 de 16 |
 | 23-25/11 | unas 200 | ninguna (8 de 11 frenadas desde la primera página) |
 
-El freno va por rachas: estuvo del 14 al 20/10, desapareció tres semanas y volvió el 14/11, a peor. Con él,
-bajar el histórico por tandas es cuestión de meses; sin él, de días (antes del freno una tanda bajaba unas
-500-600 actas por hora). El Archivo de Internet no tiene las páginas de la federación.
+El estudio del 25/11 ([docs/freno-2026-11.md](freno-2026-11.md), 840 registros de v1 y v2) corrige la
+lectura de esta tabla: el cupo de octubre (~15 páginas por IP y ~5 min de bloqueo) no se ha vuelto a ver en
+Azure desde el 21/10. Lo de noviembre son dos cosas distintas:
+
+- **Los runners en AWS.** Desde el 13/11 GitHub pone cerca de la mitad de los jobs en AWS, y la federación
+  les sirve vacío desde la primera petición, siempre (183 de 183, también a v1); en Azure, ninguna pasada
+  frenada desde la primera (0 de 187). De ahí las «frenadas desde la primera página».
+- **Las páginas muertas.** Desde el 21/11 hay actas de alevín (ALD1, ALE2) cuya página sale vacía siempre.
+  El bot las tomaba por el freno, no les gastaba intento y volvían las primeras en cada pasada: 22 de 25
+  pasadas de v2 en Azure se quedaban 9-12 min sondeándolas (v1, en Azure, lo sirvió todo esos días).
+
+El bot ya distingue las dos (desde el 25/11: `docs/federacion.md`, «Noviembre de 2026»). Para las tandas del
+histórico: en Azure, ~124-138 páginas por pasada sin freno desde el 21/10; antes de escalar, una tanda corta
+que mire la nube al arrancar y trate la página vacía (§2: hoy ninguna lo hace). El Archivo de Internet no
+tiene las páginas de la federación.
 
 ## 4. Fichas de jugador, hoy
 
