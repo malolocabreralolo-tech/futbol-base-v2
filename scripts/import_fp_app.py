@@ -32,7 +32,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
 RAW_FILE = re.compile(r"^fp_app_(\d{4}-\d{4})_raw\.json$")
-FP_VERSION = "1"
+FP_VERSION = "2"   # sube cuando cambia lo que se escribe: el bot vuelve a importar el original
 MIN_OVERLAP = 0.6
 
 SCHEMA = (
@@ -176,18 +176,24 @@ def import_raw(conn, path, log=print):
                       meta.get("plazas_descenso"), meta.get("texto_ascenso"), meta.get("texto_playoff"),
                       meta.get("texto_copa"), meta.get("texto_promocion"), meta.get("texto_descenso"),
                       liga.get("fetched")))
-        if not gid:
+        mapping = {}
+        if gid:
+            report["ligas"] += 1
+            group_of[str(liga_id)] = gid
+            names = sorted({t.get("nombre") for t in liga.get("tabla") or [] if t.get("nombre")}
+                           | {p.get(k) for p in raw.get("partidos", {}).values()
+                              if str(p.get("liga_id")) == str(liga_id) for k in ("local", "visitante") if p.get(k)})
+            mapping = _team_map(conn, season_id, gid, names)
+            for n, tid in mapping.items():
+                team_of[(str(liga_id), n)] = tid
+        else:
             report["sin_grupo"] += 1
             log(f"    sin grupo en la base: {liga.get('name')}")
-            continue
-        report["ligas"] += 1
-        group_of[str(liga_id)] = gid
-        names = sorted({t.get("nombre") for t in liga.get("tabla") or [] if t.get("nombre")}
-                       | {p.get(k) for p in raw.get("partidos", {}).values() if str(p.get("liga_id")) == str(liga_id)
-                          for k in ("local", "visitante") if p.get(k)})
-        mapping = _team_map(conn, season_id, gid, names)
-        for n, tid in mapping.items():
-            team_of[(str(liga_id), n)] = tid
+        # Los equipos de cada liga, siempre los de su tabla de ahora, también sin grupo (como sus partidos en
+        # fp_matches): sin equipo de la base, que solo da el grupo. Si una liga sin grupo se saltara, guardaría
+        # los equipos y el equipo de la base de la última pasada en que casó, que el original ya no explica: el
+        # 24/11/2026, 156 de las ligas de la segunda fase de benjamín, que habían casado una pasada con las
+        # eliminatorias de la primera (docs/reconstruccion.md).
         conn.execute("DELETE FROM fp_teams WHERE liga_id=?", (int(liga_id),))
         for t in liga.get("tabla") or []:
             conn.execute("""INSERT OR REPLACE INTO fp_teams(fp_team_id, liga_id, team_id, name, escudo, equipacion,
