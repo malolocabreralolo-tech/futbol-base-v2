@@ -5,8 +5,10 @@
     que dejó import_history.py al pasar la clave en minúsculas), solo si nada las usa: la
     única tabla que apunta a categories es groups.category_id, pero se mira cualquier
     columna category_id y cualquier clave ajena a categories, por si llega otra.
-  - Crea las que faltan de categorias.DB_NAME (ALEVIN), en mayúsculas: generate_js las
-    busca por su nombre exacto.
+  - Crea las que faltan de las que ve la web (categorias.EN_WEB: ALEVIN), en mayúsculas:
+    generate_js las busca por su nombre exacto. Las demás de DB_NAME (infantil, cadete y
+    juvenil) no: las crea activate_season al activar su primer grupo. Creadas aquí, la primera
+    pasada del bot tras conocerlas cambiaría la base sin que cambie nada más.
 
 Una fila duplicada que sí se usa se queda (se avisa): moverla de grupo es otra cosa.
 La ejecuta el bot al arrancar (fetch_futbolaspalmas.main) y se puede lanzar a mano:
@@ -17,7 +19,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from categorias import DB_NAME  # noqa: E402
+from categorias import EN_WEB  # noqa: E402
 
 
 def _referencing_columns(conn):
@@ -55,7 +57,7 @@ def migrate(conn, log=print):
         report["dropped"].append(name)
         log(f"  categoría '{name}' (id {cid}) duplicada y sin uso: borrada")
     have = {r[0].upper() for r in conn.execute("SELECT name FROM categories")}
-    for name in DB_NAME.values():
+    for name in EN_WEB:
         if name not in have:
             conn.execute("INSERT INTO categories(name) VALUES (?)", (name,))
             report["created"].append(name)

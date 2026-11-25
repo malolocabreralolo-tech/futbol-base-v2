@@ -73,12 +73,20 @@ def segunda_fase(n):
     return None
 
 
+# Las categorías con convenio de código aquí. Infantil, cadete y juvenil se conocen (categorias.category_of)
+# pero aún no tienen el suyo: sin esto caerían en el de benjamín («LIGA INFANTIL LANZAROTE FASE 1» → LZ1,
+# el código de un grupo de benjamín).
+CON_CONVENIO = ("benjamin", "prebenjamin", "alevin")
+
+
 def category(name):
     """'benjamin', 'prebenjamin' o 'alevin' de una competición; ValueError si no se publica."""
     from categorias import category_of
     cat = category_of(name)
     if not cat:
         raise ValueError(f"no se publica (fútbol sala, alevín de otra isla o sin categoría): {name}")
+    if cat.lower() not in CON_CONVENIO:
+        raise ValueError(f"competición sin convenio de código: {name}")
     return cat.lower()
 
 

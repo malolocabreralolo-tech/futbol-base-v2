@@ -265,7 +265,9 @@ def meta_by_name(comp_name):
     archivadas y para alevín (comp_meta)."""
     n = _fold(comp_name)
     category = category_of(comp_name)
-    if "SALA" in n or not category:
+    # Infantil, cadete y juvenil se conocen pero no tienen convenio aquí: con el de benjamín, «LIGA PRIMERA
+    # INFANTIL DE LANZAROTE» de una temporada archivada saldría LZ1, un código de benjamín.
+    if "SALA" in n or category not in ELIMINATORIAS:
         return None
     pre = "PREBENJAMIN" in n.replace(" ", "")
     island = _island(n)

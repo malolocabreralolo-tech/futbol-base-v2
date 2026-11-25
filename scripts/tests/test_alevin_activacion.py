@@ -289,7 +289,7 @@ def test_alevin_groups_are_added_creating_their_category():
 
 def test_an_unknown_category_is_still_refused():
     manifest = alevin_manifest([group("54976940", ALEVIN, 1, TEAMS)])
-    manifest["groups"][0]["cat"] = "infantil"
+    manifest["groups"][0]["cat"] = "senior"          # infantil, cadete y juvenil ya se conocen (DB_NAME)
     with pytest.raises(ValueError, match="Categoría"):
         validate_manifest(manifest, "2026-2027", adding=True)
 
@@ -528,7 +528,8 @@ def test_a_run_with_only_alevin_reads_every_alevin_group(monkeypatch, number, ex
 @pytest.mark.parametrize("cats, recorded, kept", [
     ("alevin", ["AL1", "AL2", "AL3", "AL4", "AL5"], ["FF1", "PG2"]),
     ("benjamin,prebenjamin", ["FF1", "PG2"], ["AL1", "AL2", "AL3", "AL4", "AL5"]),
-    # La entrada cats de update.yml, vacía (el reloj y las tandas no la pasan): todas, como sin la variable.
+    # La entrada cats de update.yml, vacía (el reloj y las tandas no la pasan): el carril principal, como sin
+    # la variable (aquí, todas: la base no tiene grupos de las mayores).
     ("", ["AL1", "AL2", "AL3", "AL4", "AL5", "FF1", "PG2"], []),
 ])
 def test_fiflp_cats_keeps_the_health_of_the_categories_left_out(monkeypatch, cats, recorded, kept):
@@ -544,6 +545,59 @@ def test_fiflp_cats_keeps_the_health_of_the_categories_left_out(monkeypatch, cat
     U.update_groups(conn, 1, today=date(2026, 10, 5))
     urls = dict(conn.execute("SELECT code, url FROM groups"))
     assert sorted(seen_record) == recorded and sorted(seen_carry) == [(c, urls[c]) for c in kept]
+
+
+def _base_de_dos_carriles():
+    """Un grupo de cada carril: FF1 de benjamín (el principal) e INFPG1 de infantil (el de mayores), los dos
+    con la URL de la federación (lo que fiflp_groups lee)."""
+    conn = db()
+    for name in ("ALEVIN", "INFANTIL"):
+        conn.execute("INSERT INTO categories(name) VALUES(?)", (name,))
+    cats = dict(conn.execute("SELECT name, id FROM categories"))
+    for code, cat in (("FF1", "BENJAMIN"), ("INFPG1", "INFANTIL")):
+        conn.execute("INSERT INTO groups(season_id,category_id,code,url) VALUES (1,?,?,?)",
+                     (cats[cat], code, URL.format(comp=1, grupo=code)))
+    conn.commit()
+    return conn
+
+
+@pytest.mark.parametrize("cats, leidos, guardados", [
+    (None, ["FF1"], ["INFPG1"]),               # sin FIFLP_CATS: el carril principal, como el bot de hoy
+    ("", ["FF1"], ["INFPG1"]),                 # la entrada cats de update.yml, vacía: lo mismo
+    ("infantil", ["INFPG1"], ["FF1"]),         # el carril de las mayores
+])
+def test_sin_fifl_cats_solo_el_carril_principal(monkeypatch, cats, leidos, guardados):
+    """Sin FIFLP_CATS el bot lee solo su carril (prebenjamín, benjamín y alevín: categorias.CARRILES), no
+    todo lo que tenga URL de la federación: los grupos de infantil, cadete y juvenil los lee su carril
+    (carril-mayores.yml) y aquí conservan su entrada de data-health.json (source_health.carry)."""
+    monkeypatch.setattr(U, "flatten", lambda page, selector=None: 0)
+    if cats is None:
+        monkeypatch.delenv("FIFLP_CATS", raising=False)
+    else:
+        monkeypatch.setenv("FIFLP_CATS", cats)
+    pedidos, guardado = [], []
+    monkeypatch.setattr(U.source_health, "record", lambda code, *a, **k: None)
+    monkeypatch.setattr(U.source_health, "carry", lambda code, url=None: guardado.append(code))
+
+    def browser(work, deadline=None):
+        return work(_Page(), _Fed())
+    monkeypatch.setattr(U, "_with_browser", browser)
+    real = U.run_passes
+
+    def run_passes(page, F, conn, season_id, groups, *a, **k):
+        pedidos.extend(g[1] for g in groups)
+        return real(page, F, conn, season_id, groups, *a, **k)
+    monkeypatch.setattr(U, "run_passes", run_passes)
+    U.update_groups(_base_de_dos_carriles(), 1, today=date(2026, 10, 5))
+    assert pedidos == leidos and guardado == guardados
+
+
+def test_los_carriles_no_se_mezclan_en_una_pasada(monkeypatch):
+    """FIFLP_CATS con categorías de los dos carriles para antes de pedir nada a la federación."""
+    monkeypatch.setenv("FIFLP_CATS", "benjamin,infantil")
+    monkeypatch.setattr(U, "_with_browser", lambda work, deadline=None: pytest.fail("no se abre el navegador"))
+    with pytest.raises(ValueError, match="no se mezclan"):
+        U.update_groups(_base_de_dos_carriles(), 1, today=date(2026, 10, 5))
 
 
 def test_source_health_carry_keeps_the_previous_entry_of_the_same_group(tmp_path, monkeypatch):

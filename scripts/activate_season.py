@@ -49,7 +49,7 @@ def validate_manifest(manifest, current, adding=False):
         if not re.fullmatch(r"[A-Z][A-Z0-9_-]{0,19}", code) or code in codes:
             raise ValueError("Los códigos deben ser válidos y únicos entre categorías")
         codes.add(code)
-        if group.get("cat") not in DB_NAME:          # benjamin, prebenjamin, alevin
+        if group.get("cat") not in DB_NAME:          # benjamin, prebenjamin, alevin, infantil, cadete, juvenil
             raise ValueError("Categoría no admitida")
         if group.get("island") not in ["grancanaria", "lanzarote", "fuerteventura"]:
             raise ValueError("Isla no admitida")

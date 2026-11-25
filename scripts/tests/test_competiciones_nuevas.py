@@ -40,12 +40,12 @@ FIFLP = ("https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&Co
     ("LIGA ALEVIN GRAN CANARIA FASE PREVIA", "ALEVIN"),
     ("COPA CAMPEONES ALEVÍN", "ALEVIN"),
     ("copa de campeones categoria alevin fase a", "ALEVIN"),
-    # Alevín solo de Gran Canaria; nunca fútbol sala; el resto de categorías, nada.
+    # Alevín solo de Gran Canaria; nunca fútbol sala. Infantil se conoce, pero no se activa (abajo).
     ("LIGA ALEVIN LANZAROTE FASE 1", None),
     ("LIGA ALEVIN FUERTEVENTURA F7 1ª FASE", None),
     ("LIGA PRIMERA BENJAMIN FUTBOL SALA GRAN CANARIA", None),
     ("LIGA BENJAMIN LPFS", None),
-    ("LIGA INFANTIL PREFERENTE DE GRAN CANARIA", None),
+    ("LIGA INFANTIL PREFERENTE DE GRAN CANARIA", "INFANTIL"),
     ("MINI COPA DE NAVIDAD", None),
     ("", None),
 ])
@@ -56,21 +56,49 @@ def test_category_of_a_federation_competition(name, cat):
 # ── Qué es nuevo ───────────────────────────────────────────────────────────────
 
 KNOWN = {"54976988", "54976982", "54977022"}       # FF1-24, LZ1-5 y PG1-4 de 2026-27
+# Lo que el congelado del 25/11/2026 tiene de 2026-27 y KNOWN no, en el orden del catálogo: el alevín de
+# Gran Canaria (la Fase Previa y la Segunda Fase), la Segunda Fase y la copa de benjamín de Gran Canaria,
+# el benjamín de Fuerteventura y el prebenjamín de Lanzarote y Fuerteventura.
+NUEVAS_2627 = ["54976940", "54977110", "55335268", "54977117", "54977125", "55335271", "55335272",
+               "54977143", "54977148", "54977153", "55337393", "55337394", "55337395", "54977017",
+               "55331982", "54977161", "54977026"]
 
 
 def test_the_2026_27_catalog_has_fuerteventura_benjamin_and_gran_canaria_alevin_pending():
     fresh = U.new_competitions(CATALOG, KNOWN, today=TODAY, ignored={})
-    assert [(c["id"], c["name"]) for c in fresh] == [
-        ("54976940", "LIGA ALEVIN GRAN CANARIA FASE PREVIA"),
-        ("54977017", "LIGA BENJAMIN F-7 DE FUERTEVENTURA 1ª FASE")]
+    assert [c["id"] for c in fresh] == NUEVAS_2627
+    names = {c["id"]: c["name"] for c in fresh}
+    assert names["54976940"] == "LIGA ALEVIN GRAN CANARIA FASE PREVIA"
+    assert names["54977017"] == "LIGA BENJAMIN F-7 DE FUERTEVENTURA 1ª FASE"
     assert {c["firstSeen"] for c in fresh} == {"2026-10-14"}
+
+
+def test_new_competitions_solo_las_activables(monkeypatch):
+    """Conocer una categoría no es activarla: hoy activar_auto activa sola cada competición que el bot
+    apunta en newCompetitions, así que solo se apuntan las de categorias.ACTIVABLES. Si no, en cuanto
+    category_of reconociera infantil, cadete y juvenil, sus 24 competiciones de 2026-27 se activarían a la
+    vez (decisión 1 de la parte E)."""
+    import categorias
+    options = [{"id": "54976908", "name": "LIGA INFANTIL PREFERENTE DE GRAN CANARIA"},
+               {"id": "55331982", "name": "COPA BENJAMÍN GRAN CANARIA"}]
+    assert [c["id"] for c in U.new_competitions(options, set(), today=TODAY)] == ["55331982"]
+    # Con lo ignorado de siempre (IGNORED_COMPETITIONS), igual.
+    assert U.new_competitions(options, set(), today=TODAY) == \
+        U.new_competitions(options, set(), today=TODAY, ignored=U.IGNORED_COMPETITIONS)
+    # El paso del director (D3): infantil activable.
+    monkeypatch.setattr(categorias, "ACTIVABLES", categorias.ACTIVABLES + ("INFANTIL",))
+    assert [c["id"] for c in U.new_competitions(options, set(), today=TODAY)] == ["54976908", "55331982"]
+    # Y del catálogo entero de 2026-27, con lo de hoy, ninguna de las categorías nuevas.
+    monkeypatch.setattr(categorias, "ACTIVABLES", ("BENJAMIN", "PREBENJAMIN", "ALEVIN"))
+    assert [c["id"] for c in U.new_competitions(CATALOG, KNOWN, today=TODAY, ignored={})] == NUEVAS_2627
 
 
 def test_ignored_and_known_competitions_are_left_out_and_first_seen_is_kept():
     previous = [{"id": "54977017", "name": "LIGA BENJAMIN F-7 DE FUERTEVENTURA 1ª FASE", "firstSeen": "2026-10-07"}]
-    fresh = U.new_competitions(CATALOG, KNOWN, previous, TODAY, ignored={"54976940": "alevín, en su rama"})
+    known = KNOWN | (set(NUEVAS_2627) - {"54977017", "54976940"})
+    fresh = U.new_competitions(CATALOG, known, previous, TODAY, ignored={"54976940": "alevín, en su rama"})
     assert fresh == previous
-    assert U.new_competitions(CATALOG, KNOWN | {"54977017", "54976940"}, previous, TODAY, ignored={}) == []
+    assert U.new_competitions(CATALOG, KNOWN | set(NUEVAS_2627), previous, TODAY, ignored={}) == []
     # Lo que no es una opción de verdad (sin id o sin nombre) no cuenta.
     assert U.new_competitions([{"id": "", "name": "LIGA BENJAMIN X"}, {"value": "1", "text": "1 - 03-10-2026"}],
                               set(), today=TODAY, ignored={}) == []
@@ -134,7 +162,7 @@ def test_the_bot_reads_the_dropdown_once_and_writes_new_competitions(health):
     fed = Fed()
     fresh = U.check_competitions(Page(CATALOG), fed, conn, 2, TODAY, log=lambda *_: None)
     assert fed.urls == ["https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22"]
-    assert [c["id"] for c in fresh] == ["54976940", "54977017"]
+    assert [c["id"] for c in fresh] == NUEVAS_2627
     source_health.finish(now=datetime(2026, 10, 14, 4, tzinfo=timezone.utc))
     assert json.loads(health.read_text())["newCompetitions"] == fresh
 
@@ -162,8 +190,8 @@ def test_same_competitions_do_not_rewrite_the_report_and_a_failed_read_keeps_the
     source_health.begin("2026-2027")
     fresh = U.check_competitions(Page(CATALOG), Fed(), conn, 2, TODAY, log=lambda *_: None)
     source_health.finish(now=t0 + timedelta(hours=8))
-    assert [c["id"] for c in fresh] == ["54976940"]
-    assert [c["id"] for c in json.loads(health.read_text())["newCompetitions"]] == ["54976940"]
+    assert [c["id"] for c in fresh] == [c for c in NUEVAS_2627 if c != "54977017"]
+    assert [c["id"] for c in json.loads(health.read_text())["newCompetitions"]] == [c for c in NUEVAS_2627 if c != "54977017"]
 
 
 def test_a_new_season_starts_without_the_old_ones(health):

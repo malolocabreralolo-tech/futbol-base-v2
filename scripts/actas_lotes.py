@@ -51,8 +51,13 @@ def _categorias():
 
 def lote_of(category):
     """El lote de una categoría (LOTE_DE_CATEGORIA): 'ALEVIN' → 'alevin'; 'BENJAMIN', 'PREBENJAMIN' (o None)
-    → '' (el raw de siempre)."""
-    return LOTE_DE_CATEGORIA.get(category, "")
+    → '' (el raw de siempre). Una de las mayores (categorias.MAYORES) sin lote aquí todavía, ValueError: sus
+    actas nunca van al raw de siempre (una tanda o un encargo con ella para antes de bajar nada)."""
+    if category in LOTE_DE_CATEGORIA:
+        return LOTE_DE_CATEGORIA[category]
+    if category in _categorias().MAYORES:
+        raise ValueError(f"categoría sin lote de actas: {category}")
+    return ""
 
 
 def lote_of_name(name):
@@ -61,7 +66,9 @@ def lote_of_name(name):
     web no publica: category_of da None) también es del lote de alevín: nunca va al de siempre."""
     C = _categorias()
     category = C.category_of(name)
-    if category:
+    # Solo las que tienen lote aquí (las de siempre y alevín): una categoría que se conoce pero aún no lo
+    # tiene, como si no dijera la suya (None), nunca al de siempre.
+    if category and (category in LOTE_DE_CATEGORIA or category in C.DEFAULT_CATEGORIES):
         return lote_of(category)
     folded = "".join(c for c in unicodedata.normalize("NFD", name or "")
                      if unicodedata.category(c) != "Mn").upper()

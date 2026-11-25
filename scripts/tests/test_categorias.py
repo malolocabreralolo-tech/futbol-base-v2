@@ -11,6 +11,7 @@ from pathlib import Path
 
 import pytest
 
+import categorias
 from categorias import category_of, parse_categories, DB_NAME
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -45,7 +46,22 @@ ROOT = Path(__file__).resolve().parents[2]
     ("LIGA PREBENJAMIN FUTBOL SALA GRAN CANARIA (LPFS)", None),
     ("COPA FÚTBOL SALA PREBENJAMÍN", None),
     ("MINI COPA JOSÉ ANTONIO RUIZ CABALLERO", None),
-    ("LIGA INFANTIL PREFERENTE", None),
+    # Infantil, cadete y juvenil se conocen (parte E): category_of las nombra, pero ni el bot las activa
+    # (ACTIVABLES) ni las lee el carril de siempre (CARRILES) ni las ve la web (EN_WEB).
+    ("LIGA INFANTIL PREFERENTE DE GRAN CANARIA", "INFANTIL"),
+    ("LIGA CADETE INSULAR GRAN CANARIA 1ª FASE", "CADETE"),
+    ("LIGA DIVISION DE HONOR JUVENIL GRUPO 6", "JUVENIL"),
+    ("FINAL COPA CABILDO DE LANZAROTE PRIMERA INFANTILL", "INFANTIL"),   # así en el catálogo (2024-25)
+    ("LIGA PRIMERA INFANTIL DE GRAN CANARIA (GRUPO 3)", "INFANTIL"),     # cabecera de un acta
+    ("LIGA INFANTIL FASE 1", "INFANTIL"),                                # «FASE» no es «FS»
+    # Su sala, su fútbol femenino y un nombre con dos categorías, fuera.
+    ("copa juvenil isla de gran canaria fs", None),
+    ("LIGA INFANTIL F.S. LANZAROTE", None),
+    ("LIGA INFANTIL FUTBOL SALA GRAN CANARIA", None),
+    ("CAMPEONATO DE CANARIAS DE FÚTBOL SALA CADETE", None),
+    ("COPA FEMENINA LANZAROTE", None),
+    ("LIGA INFANTIL FEMENINA", None),
+    ("COPA ALEVIN E INFANTIL", None),
     ("", None),
     (None, None),
 ])
@@ -58,21 +74,103 @@ def test_category_of_whole_catalog():
     Canaria, y ningún benjamín tomado por prebenjamín ni al revés. El congelado en fixtures/: el
     vivo lo cambia discover-fiflp.yml y esta prueba corre en el bot antes de publicar."""
     catalog = json.loads((ROOT / "scripts" / "tests" / "fixtures" / "fiflp_comps_catalog.json").read_text(encoding="utf-8"))
-    seen = {"ALEVIN": 0, "BENJAMIN": 0, "PREBENJAMIN": 0}
-    for season in catalog.values():
+    import re
+    from categorias import _fold
+    seen = {cat: 0 for cat in DB_NAME.values()}
+    distintos = {"INFANTIL": set(), "CADETE": set(), "JUVENIL": set()}
+    for season_name, season in catalog.items():
         for comp in season.get("all", []):
             cat = category_of(comp["name"])
-            upper = comp["name"].upper()
-            if "SALA" in upper or "LPFS" in upper:
+            upper = _fold(comp["name"])
+            fuera = re.search(r"SALA|\bFS\b|FEMENIN", upper)
+            if fuera or "LPFS" in upper:
                 assert cat is None, comp
             if cat == "ALEVIN":
                 assert "LANZAROTE" not in upper and "FUERTEVENTURA" not in upper, comp
             if cat:
                 seen[cat] += 1
+            # De 2019-20 a 2026-27, todo lo de las categorías nuevas que se publicaría tiene su categoría.
+            if season_name >= "2019-2020" and not fuera:
+                for mayor in distintos:
+                    if mayor in upper.replace("INFANTILL", "INFANTIL"):
+                        assert cat == mayor, comp
+                        distintos[mayor].add(re.sub(r"\s+", " ", comp["name"]).strip())
     assert all(seen.values()), seen
+    # Los nombres distintos de 2019-20 a 2026-27 (la tabla del convenio, scripts/convenio.py).
+    assert {k: len(v) for k, v in distintos.items()} == {"INFANTIL": 35, "CADETE": 47, "JUVENIL": 32}
     # 2026-27: la Fase Previa alevín de Gran Canaria entra; las de Lanzarote y Fuerteventura, no.
     names = {c["id"]: category_of(c["name"]) for c in catalog["2026-2027"]["all"]}
     assert names["54976940"] == "ALEVIN" and names["54976933"] is None and names["54976977"] is None
+
+
+def test_alevin_de_islas_con_la_marca(monkeypatch):
+    """El alevín de Lanzarote y Fuerteventura se reconoce, pero sigue fuera mientras ALEVIN_ISLAS sea False
+    (el paso D6 del director): reconocerlo no puede meterlo en el encargo alevín del histórico en marcha."""
+    from categorias import excluded, es_alevin_de_islas
+    nombre = "LIGA ALEVIN LANZAROTE FASE 1"
+    assert category_of(nombre) is None and excluded(nombre) is True and es_alevin_de_islas(nombre) is True
+    monkeypatch.setattr(categorias, "ALEVIN_ISLAS", True)
+    assert category_of(nombre) == "ALEVIN"
+    assert excluded(nombre) is False
+    assert es_alevin_de_islas(nombre) is True
+    assert category_of("LIGA ALEVIN GRAN CANARIA FASE PREVIA") == "ALEVIN"
+    assert es_alevin_de_islas("LIGA ALEVIN GRAN CANARIA FASE PREVIA") is False
+    # Su sala, nunca.
+    assert category_of("LIGA ALEVIN FUTBOL SALA LANZAROTE") is None
+
+
+def test_activable(monkeypatch):
+    from categorias import activable
+    assert activable("LIGA BENJAMIN GRAN CANARIA FASE PREVIA") is True
+    assert activable("LIGA ALEVIN GRAN CANARIA FASE PREVIA") is True
+    assert activable("LIGA INFANTIL PREFERENTE DE GRAN CANARIA") is False
+    monkeypatch.setattr(categorias, "ACTIVABLES", ("BENJAMIN", "PREBENJAMIN", "ALEVIN", "INFANTIL"))
+    assert activable("LIGA INFANTIL PREFERENTE DE GRAN CANARIA") is True
+    # El alevín de islas, no, aunque ALEVIN sea activable: con ALEVIN_ISLAS a False no tiene categoría.
+    assert activable("LIGA ALEVIN LANZAROTE FASE 1") is False
+    assert activable("LIGA INFANTIL FUTBOL SALA GRAN CANARIA") is False
+
+
+def test_carriles():
+    from categorias import carril_de, carril_actual, categorias_del_carril
+    assert carril_de(("INFANTIL",)) == "mayores"
+    assert carril_de(("BENJAMIN", "ALEVIN")) == "principal"
+    with pytest.raises(ValueError, match="no se mezclan"):
+        carril_de(("BENJAMIN", "CADETE"))
+    with pytest.raises(ValueError):
+        carril_de(())
+    assert carril_actual({}) == "principal"
+    assert carril_actual({"FIFLP_CATS": " "}) == "principal"
+    assert carril_actual({"FIFLP_CATS": "infantil,cadete,juvenil"}) == "mayores"
+    assert categorias_del_carril("mayores") == ("INFANTIL", "CADETE", "JUVENIL")
+    assert categorias_del_carril("principal") == ("PREBENJAMIN", "BENJAMIN", "ALEVIN")
+    with pytest.raises(KeyError):
+        categorias_del_carril("otro")
+
+
+def test_tandas():
+    from categorias import sufijo_tanda, categorias_de_tanda
+    assert sufijo_tanda("JUVENIL") == "juv"
+    assert sufijo_tanda("BENJAMIN") == ""
+    assert sufijo_tanda("PREBENJAMIN") == ""
+    assert sufijo_tanda("ALEVIN") == "al"
+    assert categorias_de_tanda("cad") == ("CADETE",)
+    assert categorias_de_tanda("al") == ("ALEVIN",)
+    assert categorias_de_tanda("") == ("BENJAMIN", "PREBENJAMIN")
+    with pytest.raises(KeyError):
+        categorias_de_tanda("xx")
+    with pytest.raises(KeyError):
+        sufijo_tanda("SENIOR")
+
+
+def test_lo_que_se_activa_y_lo_que_se_ve_no_cambia():
+    """Ninguna tarea de la parte E1 cambia ACTIVABLES, ALEVIN_ISLAS ni EN_WEB: lo hace el director, por pasos
+    (D3-D6). Esta prueba es la que tiene que cambiar en cada paso."""
+    assert categorias.ACTIVABLES == ("BENJAMIN", "PREBENJAMIN", "ALEVIN")
+    assert categorias.EN_WEB == ("BENJAMIN", "PREBENJAMIN", "ALEVIN")
+    assert categorias.ALEVIN_ISLAS is False
+    assert categorias.MAYORES == ("INFANTIL", "CADETE", "JUVENIL")
+    assert categorias.DEFAULT_CATEGORIES == ("BENJAMIN", "PREBENJAMIN")
 
 
 def test_parse_categories():
@@ -81,9 +179,12 @@ def test_parse_categories():
     assert parse_categories("ALEVIN,benjamin,alevin") == ("ALEVIN", "BENJAMIN")
     assert parse_categories("") == ("BENJAMIN", "PREBENJAMIN")       # por defecto, las de siempre
     assert parse_categories(None) == ("BENJAMIN", "PREBENJAMIN")
-    with pytest.raises(ValueError, match="cadete"):
-        parse_categories("benjamin,cadete")
-    assert DB_NAME == {"benjamin": "BENJAMIN", "prebenjamin": "PREBENJAMIN", "alevin": "ALEVIN"}
+    assert parse_categories("benjamin,cadete") == ("BENJAMIN", "CADETE")
+    with pytest.raises(ValueError, match="senior") as err:
+        parse_categories("benjamin,senior")
+    assert all(key in str(err.value) for key in ("benjamin", "prebenjamin", "alevin", "infantil", "cadete", "juvenil"))
+    assert DB_NAME == {"benjamin": "BENJAMIN", "prebenjamin": "PREBENJAMIN", "alevin": "ALEVIN",
+                       "infantil": "INFANTIL", "cadete": "CADETE", "juvenil": "JUVENIL"}
 
 
 # ── La tabla categories ──────────────────────────────────────────────────────
@@ -117,6 +218,9 @@ def test_migration_drops_the_orphan_lower_case_row_and_adds_alevin():
     report = migrate(conn)
     assert sorted(r[0] for r in conn.execute("SELECT name FROM categories")) == ["ALEVIN", "BENJAMIN", "PREBENJAMIN"]
     assert report == {"dropped": ["prebenjamin"], "kept": [], "created": ["ALEVIN"]}
+    # Las categorías nuevas no se crean aquí (la web no las busca): las crea activate_season al activar su
+    # primer grupo. Si la migración las creara, la primera pasada del bot cambiaría la base sin motivo.
+    assert not {"INFANTIL", "CADETE", "JUVENIL"} & {r[0] for r in conn.execute("SELECT name FROM categories")}
     # Idempotente: otra pasada no cambia nada.
     before = conn.execute("SELECT id, name FROM categories ORDER BY id").fetchall()
     assert migrate(conn) == {"dropped": [], "kept": [], "created": []}
@@ -145,7 +249,10 @@ def test_migration_on_a_copy_of_the_real_base(tmp_path):
     src.close()
     groups = dst.execute("SELECT category_id, count(*) FROM groups GROUP BY category_id").fetchall()
     migrate(dst)
-    assert {r[1] for r in dst.execute("SELECT id, name FROM categories")} == {"BENJAMIN", "PREBENJAMIN", "ALEVIN"}
+    # Con la base de hoy, las tres de siempre; con la de después de activar infantil, cadete o juvenil, también
+    # las suyas (las crea activate_season).
+    nombres = {r[1] for r in dst.execute("SELECT id, name FROM categories")}
+    assert {"BENJAMIN", "PREBENJAMIN", "ALEVIN"} <= nombres <= set(DB_NAME.values())
     assert dst.execute("SELECT category_id, count(*) FROM groups GROUP BY category_id").fetchall() == groups
     dst.close()
 
@@ -198,3 +305,22 @@ def test_the_bot_runs_the_category_migration_at_start():
 def test_excluded(name, expected):
     from categorias import excluded
     assert excluded(name) is expected
+
+
+def test_conocer_una_categoria_no_le_da_codigo_ni_lote():
+    """Infantil, cadete y juvenil se conocen, pero los que dan código y lote no las tratan como benjamín
+    («LIGA PRIMERA INFANTIL DE LANZAROTE» saldría LZ1, un código de benjamín, y sus actas irían al raw de
+    benjamín y prebenjamín): sin convenio ni lote propios, lo de antes (sin código, sin lote)."""
+    import actas_lotes
+    import fiflp_manifest
+    import import_fiflp_grupos
+    for name in ("LIGA PRIMERA INFANTIL DE LANZAROTE", "LIGA CADETE INSULAR DE LANZAROTE",
+                 "ELIMINATORIAS COPA CADETE PREFERENTE DE LANZAROTE", "LIGA JUVENIL PREFERENTE LANZAROTE"):
+        assert import_fiflp_grupos.meta_by_name(name) is None
+        with pytest.raises(ValueError, match="sin convenio"):
+            fiflp_manifest.comp_meta(name)
+        assert actas_lotes.lote_of_name(name) is None
+    # Y una tanda o un encargo de actas con ellas para antes de bajar nada: sus actas, nunca al raw de siempre.
+    for cat in categorias.MAYORES:
+        with pytest.raises(ValueError, match="sin lote"):
+            actas_lotes.lotes_of((cat,))

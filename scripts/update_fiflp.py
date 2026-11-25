@@ -32,6 +32,7 @@ import unicodedata
 import zlib
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import categorias
 from categorias import category_of
 from db import get_or_create_team
 from fiflp_names import canonical_names, is_bye
@@ -144,7 +145,8 @@ clock = time.monotonic          # el reloj de los plazos (las pruebas ponen uno 
 def fiflp_groups(conn, season_id, categories=None):
     """[(id, código, url)] de los grupos de la federación de la temporada: benjamín y prebenjamín por
     código y alevín al final (el orden de la pasada lo decide plan_groups). `categories` ('BENJAMIN',
-    'ALEVIN'…): solo esas (FIFLP_CATS en update_groups); por defecto, todas."""
+    'ALEVIN'…): solo esas (update_groups le pasa las de su carril: FIFLP_CATS o, sin ella, las del
+    principal); por defecto, todas."""
     rows = conn.execute(
         """SELECT g.id, g.code, g.url, upper(coalesce(c.name, '')) FROM groups g
            LEFT JOIN categories c ON c.id=g.category_id
@@ -585,9 +587,11 @@ def season_code(conn, season_id):
 
 
 def new_competitions(options, known, previous=(), today=None, ignored=None):
-    """[{id, name, firstSeen}] de las opciones del desplegable ([{id, name}]) de las categorías de la
-    web (category_of) que no están en `known` ni en `ignored`; firstSeen, el de `previous` si ya se
-    había visto (así el informe no cambia de una pasada a otra)."""
+    """[{id, name, firstSeen}] de las opciones del desplegable ([{id, name}]) de las categorías que el bot
+    activa solo (categorias.activable: las de ACTIVABLES) que no están en `known` ni en `ignored`;
+    firstSeen, el de `previous` si ya se había visto (así el informe no cambia de una pasada a otra).
+    Conocer una categoría (category_of) no basta: activar_auto activa todo lo que se apunta aquí, y una
+    categoría se activa solo cuando lo decide el director (decisión 1 de la parte E)."""
     ignored = IGNORED_COMPETITIONS if ignored is None else ignored
     seen = {str(c.get("id")): c.get("firstSeen") for c in previous or [] if isinstance(c, dict)}
     out, ids = [], set()
@@ -596,7 +600,7 @@ def new_competitions(options, known, previous=(), today=None, ignored=None):
             continue
         cid, name = str(c.get("id") or "").strip(), re.sub(r"\s+", " ", str(c.get("name") or "")).strip()
         if (not cid.isdigit() or not name or cid in ids or cid in known or cid in ignored
-                or not category_of(name)):
+                or not categorias.activable(name)):
             continue
         ids.add(cid)
         out.append({"id": cid, "name": name, "firstSeen": seen.get(cid) or (today or date.today()).isoformat()})
@@ -1846,13 +1850,17 @@ def dry_hours(since, now):
 def update_groups(conn, season_id, today=None, now=None):
     """Recorre los grupos de la federación de la temporada en curso, con el plazo global
     (budget_seconds) contado desde aquí, antes de abrir el navegador. Con FIFLP_CATS
-    ('benjamin,prebenjamin', 'alevin'), solo los de esas categorías (para repartir la temporada entre
-    dos workflows si un día no cabe en uno): los de las demás conservan su entrada de
-    data-health.json (cada workflow lo reescribe entero). Al acabar, el veredicto de la pasada
-    (pasada_sana) en data-health.json, con la racha de pasadas secas contada hasta `now` (UTC; por
-    defecto, la hora de ahora)."""
-    from categorias import parse_categories
-    cats = parse_categories(os.environ["FIFLP_CATS"]) if os.environ.get("FIFLP_CATS", "").strip() else None
+    ('benjamin,prebenjamin', 'alevin', 'infantil,cadete,juvenil'), solo los de esas categorías, que son de
+    un solo carril (categorias.carril_de: si no, ValueError antes de pedir nada); sin ella, los del carril
+    principal (categorias.CARRILES: prebenjamín, benjamín y alevín, lo que leía el bot antes de que la base
+    tuviera otras), nunca los de las mayores, que lee su carril (carril-mayores.yml). Los de las demás
+    categorías conservan su entrada de data-health.json (cada pasada lo reescribe entero). Al acabar, el
+    veredicto de la pasada (pasada_sana) en data-health.json, con la racha de pasadas secas contada hasta
+    `now` (UTC; por defecto, la hora de ahora)."""
+    from categorias import parse_categories, carril_de, categorias_del_carril
+    text = os.environ.get("FIFLP_CATS", "").strip()
+    cats = parse_categories(text) if text else categorias_del_carril("principal")
+    carril_de(cats)               # un solo carril por pasada: ValueError antes de abrir el navegador
     every = fiflp_groups(conn, season_id)
     groups = fiflp_groups(conn, season_id, categories=cats)
     for group in every:

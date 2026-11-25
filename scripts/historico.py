@@ -663,6 +663,7 @@ def encargar(plan, temporadas, categorias, trabajos, calendario, now):
     elegidas = {k for k, v in DB_NAME.items() if v in parse_categories(categorias)}
     if elegidas & {"benjamin", "prebenjamin"}:
         elegidas |= {"benjamin", "prebenjamin"}
+    _lotes(sorted(elegidas))          # cada categoría con su lote de actas (si no, ValueError: actas_lotes.lote_of)
     return {"formato": 1, "encargado": _iso(now), "temporadas": temporadas,
             "categorias": [c for c in DB_NAME if c in elegidas],
             "trabajos": [t for t in TRABAJOS if t in trabajos], "calendario": calendario, "parado": False,
