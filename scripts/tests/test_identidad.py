@@ -113,37 +113,37 @@ def test_compatibles_por_edad_y_solape():
 
 
 # Clave pública y trozo. TABLA_CLAVES es la que copia la prueba de Node:
-# (fiflp_id, nombre normalizado, equipo, año de inicio, clave, trozo de 16).
+# (fiflp_id, nombre normalizado, equipo, año de inicio, clave, trozo de 64: generate_js.JUGADORES_SHARDS).
 TABLA_CLAVES = [
-    (153432, "", "", 0, "153432", 8),
+    (153432, "", "", 0, "153432", 24),
     (55329034, "", "", 0, "55329034", 10),
     (214080, "ALVAREZ PENA, JOSE", "Tamaraceite", 2023, "214080", 0),
-    (1000017, "LUCAS", "Arucas", 2024, "1000017", 1),
-    (None, "ALVAREZ PENA, JOSE", "Tamaraceite", 2024, "nisxwgmjvp", 5),
-    (None, "ALVAREZ PENA, JOSE", "Tamaraceite", 2025, "ns8zin819i", 6),
+    (1000017, "LUCAS", "Arucas", 2024, "1000017", 17),
+    (None, "ALVAREZ PENA, JOSE", "Tamaraceite", 2024, "nisxwgmjvp", 37),
+    (None, "ALVAREZ PENA, JOSE", "Tamaraceite", 2025, "ns8zin819i", 38),
     (None, "ALVAREZ PENA, JOSE", "Tamaraceite B", 2024, "nphzk2mnyf", 7),
-    (None, "ALVAREZ PENA, JOSE#2", "Tamaraceite", 2024, "njkibiyk9d", 1),
-    (None, "LUCAS", "Arucas", 2024, "n22zp0f76w", 8),
-    (None, "LUCAS", "Arucas B", 2024, "n1ddjsy73e", 10),
-    (None, "LUCAS", "Las Mesas Hu.", 2026, "nb6t8ejz2s", 4),
-    (None, "LUCAS", "Las Mesas Hu. C", 2026, "n8qeq0zomr", 3),
-    (None, "DE LA ROSA, MARIA DEL PINO", "UD Guía", 2026, "nccuo4q7lp", 13),
-    (None, "DE LA ROSA, MARIA DEL PINO", "UD Guia", 2026, "ni6iou2qm2", 10),
-    (None, "MUNOZ RUIZ, INIGO", "Unión Viera", 2025, "nc7n9df8hm", 10),
-    (None, "H. G., G.", "UD Guía", 2026, "npp634adwo", 8),
-    (None, "A.", "Santa Brígida", 2026, "n06wbfdyqg", 8),
-    (None, "A.", "CD Calero", 2026, "nogme3ruur", 3),
-    (None, "M.", "UD Atalaya", 2026, "nib8aqb17c", 8),
-    (None, "D.", "Tamaraceite B", 2026, "njzprohv7i", 14),
-    (None, "", "", 2026, "nlaihmii3x", 13),
-    (None, "SANCHEZ, LEO", "Roque Amagro A", 2019, "ns9cly007v", 11),
+    (None, "ALVAREZ PENA, JOSE#2", "Tamaraceite", 2024, "njkibiyk9d", 17),
+    (None, "LUCAS", "Arucas", 2024, "n22zp0f76w", 40),
+    (None, "LUCAS", "Arucas B", 2024, "n1ddjsy73e", 42),
+    (None, "LUCAS", "Las Mesas Hu.", 2026, "nb6t8ejz2s", 20),
+    (None, "LUCAS", "Las Mesas Hu. C", 2026, "n8qeq0zomr", 51),
+    (None, "DE LA ROSA, MARIA DEL PINO", "UD Guía", 2026, "nccuo4q7lp", 61),
+    (None, "DE LA ROSA, MARIA DEL PINO", "UD Guia", 2026, "ni6iou2qm2", 58),
+    (None, "MUNOZ RUIZ, INIGO", "Unión Viera", 2025, "nc7n9df8hm", 58),
+    (None, "H. G., G.", "UD Guía", 2026, "npp634adwo", 40),
+    (None, "A.", "Santa Brígida", 2026, "n06wbfdyqg", 24),
+    (None, "A.", "CD Calero", 2026, "nogme3ruur", 51),
+    (None, "M.", "UD Atalaya", 2026, "nib8aqb17c", 24),
+    (None, "D.", "Tamaraceite B", 2026, "njzprohv7i", 62),
+    (None, "", "", 2026, "nlaihmii3x", 45),
+    (None, "SANCHEZ, LEO", "Roque Amagro A", 2019, "ns9cly007v", 27),
 ]
 
 
 @pytest.mark.parametrize("fiflp, norm, equipo, anio, clave, parte", TABLA_CLAVES)
 def test_clave_publica_y_trozo(fiflp, norm, equipo, anio, clave, parte):
     assert clave_publica(fiflp, norm, equipo, anio) == clave
-    assert trozo(clave) == parte
+    assert trozo(clave, 64) == parte
 
 
 def test_clave_sin_id_es_el_sha1_en_base_36():
@@ -156,9 +156,9 @@ def test_clave_sin_id_es_el_sha1_en_base_36():
         cifras = "0123456789abcdefghijklmnopqrstuvwxyz"[resto] + cifras
     assert clave == "n" + cifras.rjust(31, "0")[:9]
     assert len(clave) == 10 and clave[1:].isalnum() and clave[1:] == clave[1:].lower()
-    assert trozo(clave) == int(clave[1:], 36) % 16
+    assert trozo(clave) == int(clave[1:], 36) % 64          # por defecto, los 64 de la web
     assert trozo(clave, 4) == int(clave[1:], 36) % 4
-    assert trozo("214080") == 214080 % 16
+    assert trozo("214080") == 214080 % 64
 
 
 # ---------------------------------------------------------------------------

@@ -12,6 +12,8 @@ Reads futbolbase.db and produces:
   - data-seasons.js and data-season-<S>.js (the past seasons; su alevín, aparte, en
     data-season-<S>-alevin.js: docs/alevin.md)
   - data-lineups-<S>-<grupo>.js (one per group with actas)
+  - data-jugadores-<k>.js (las fichas, 64 trozos), data-buscar-<xy>.js (el buscador de jugadores) y
+    data-ranking.js con data-ranking-<año>.js (los mejores de cada año de nacimiento): de las mismas filas
 data-shields.js is maintained by hand. data-matchdetail-keys.js, data-stats.js
 and data-players-<S>.js are not generated: nobody reads them
 (test_pygen_fixes.py::TestGeneratorOutputs keeps them out).
@@ -907,8 +909,11 @@ def write_lineups(conn, root=None):
 
 
 # La ficha de cada niño (docs/identidad.md: una o varias identidades de acta con una principal):
-# 16 ficheros, el de su clave pública (identidad.trozo), para que abrir una ficha no baje todas.
-JUGADORES_SHARDS = 16
+# 64 ficheros, el de su clave pública (identidad.trozo), para que abrir una ficha no baje todas. Eran 16; con
+# las categorías nuevas habrá unas seis veces más fichas, y con 16 cada trozo pasaría del megabyte (hoy, con
+# 64, ~80 KB cada uno).
+# Cambiar el número no cambia ninguna clave, solo el fichero en el que va cada una (src/state.js, igual).
+JUGADORES_SHARDS = 64
 # union_por → el motivo corto de una fila unida en data-jugadores (la ficha lo dice en esa línea).
 _MOTIVO = {"equipo": "e", "club": "c", "nombre": "n"}
 
@@ -1002,23 +1007,139 @@ def _season_day(text, start_year):
     return f"{year:04d}-{month:02d}-{day:02d}"
 
 
-def jugadores_files(conn):
-    """{fichero: contenido} de los data-jugadores-<k>.js: const JUGADORES_<k> =
-       {"p": {"<clave>": {"n": nombre, "c": [fila, ...], "s"?: 1, "h"?: [[clave, equipo, temporada], ...],
-                          "al"?: [alias, ...]}},
-        "a": {"<alias>": "<clave>"},
-        "g": {"<temporada>/<grupo>": [categoría, nombre, fase, isla]}}.
-       Una entrada por ficha con alguna aparición, en el trozo de su clave (la de su principal), con las
-       apariciones de todas sus identidades: una fila [temporada, grupo, equipo, partidos, titular, goles,
-       amarillas, rojas] por identidad, grupo y equipo, en orden de temporada y de primer partido del grupo;
-       la de una identidad unida lleva además 1 y el motivo ("e" equipo, "c" club, "n" nombre) y no se suma
-       a la de la principal. "s": 1, ninguna identidad con id; "h", las otras fichas con el mismo nombre
-       normalizado (su último equipo y temporada); "al", sus alias. Cada alias (la clave de una identidad
-       no principal con aparición o suceso) va en "a" del trozo DEL ALIAS, para abrirlo sin saber la clave.
-       "g": de cada grupo, lo que la app necesita para nombrarlo (model.groupLabel)."""
-    if not any(r[1] == "fiflp_id" for r in conn.execute("PRAGMA table_info(players)")):
+# El año de nacimiento confirmado por una fuente pública, que manda sobre el estimado (docs/ranking.md). Lo
+# mantiene una persona a mano: {"<clave>": {"anio": 2010, "fuente": "texto"}}. Empieza vacío.
+ANIOS_CONFIRMADOS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "anios_confirmados.json")
+
+
+def anios_confirmados(path=None):
+    """{clave: año} de scripts/anios_confirmados.json (o de `path`). Un fichero que falta o vacío es {}. Uno
+    con algo que no sea {clave: {"anio": entero, ...}} es un ValueError con lo que falla: nunca se publica un
+    año mal escrito como confirmado. _datos_fichas lo recoge, avisa y sigue sin ninguno (el bot no se para)."""
+    path = path or ANIOS_CONFIRMADOS
+    try:
+        with open(path, encoding="utf-8") as fh:
+            texto = fh.read()
+    except FileNotFoundError:
         return {}
-    from identidad import trozo
+    if not texto.strip():
+        return {}
+    try:
+        datos = json.loads(texto)
+    except json.JSONDecodeError as e:
+        raise ValueError(f"{path}: no es JSON ({e})") from e
+    if not isinstance(datos, dict):
+        raise ValueError(f"{path}: tiene que ser un objeto {{clave: {{\"anio\": año, \"fuente\": texto}}}}")
+    out = {}
+    for clave, valor in datos.items():
+        anio = valor.get("anio") if isinstance(valor, dict) else None
+        # bool es un int en Python: true no es un año.
+        if not isinstance(anio, int) or isinstance(anio, bool):
+            raise ValueError(f"{path}: la clave {clave!r} no tiene un \"anio\" entero: {valor!r}")
+        out[str(clave)] = anio
+    return out
+
+
+def _rival_y_puesto(conn):
+    """Lo que el ranking necesita de las temporadas y de las tablas de los grupos, sacado de los partidos
+    (para lo que encaja cada equipo y su puesto, solo los que tienen marcador; uno fuera de
+    [0, MAX_SANE_SCORE] es un dato roto y no cuenta). Devuelve
+    ([(partido, equipo, peso de un gol de ese equipo en ese partido), ...], {(grupo, equipo): percentil},
+     {(temporada, categoría, equipo): su mejor letra de Segunda Fase}), con las ids de las tablas.
+
+    El peso (ranking.peso_rival) es el de su rival, con lo que el rival encaja en TODA su temporada de esa
+    categoría (primera fase, eliminatorias, segunda fase y copas juntas) y con prudencia
+    (ranking.encajados_prudente), frente a la media de la temporada y la categoría (sus goles entre dos veces
+    sus partidos); redondeado a 4 cifras y solo si no es 1. El percentil es del grupo: entre los equipos con
+    MIN_PARTIDOS_EQUIPO partidos o más en él, por puntos por partido (a igualdad, diferencia de goles por
+    partido y el id del equipo, para que sea determinista), 1 el primero y 0 el último, lineal por puesto;
+    sin percentil los de menos partidos y los de un grupo con menos de dos equipos que cuenten. La mejor
+    letra: la más alta (A antes que B) de los grupos «Segunda Fase X» de esa temporada y categoría en los que
+    está el equipo, por su clasificación o por sus partidos, jugados o no (ranking.fase_que_cuenta)."""
+    import ranking as R
+    tabla = {}                       # (grupo, equipo) → [partidos, a favor, en contra, puntos]
+    temporada = {}                   # (temporada, categoría, equipo) → [partidos, en contra]
+    goles, jugados = {}, {}          # (temporada, categoría) → goles y partidos con marcador
+    partidos = conn.execute("""SELECT m.id, m.group_id, g.season_id, g.category_id, m.home_team_id,
+                                      m.away_team_id, m.home_score, m.away_score
+                                 FROM matches m JOIN groups g ON g.id = m.group_id ORDER BY m.id""").fetchall()
+    for _mid, gid, sid, cid, local, visitante, gl, gv in partidos:
+        if local == visitante or gl is None or gv is None:
+            continue
+        if not (0 <= gl <= MAX_SANE_SCORE and 0 <= gv <= MAX_SANE_SCORE):
+            continue
+        goles[(sid, cid)] = goles.get((sid, cid), 0) + gl + gv
+        jugados[(sid, cid)] = jugados.get((sid, cid), 0) + 1
+        for equipo, a_favor, en_contra in ((local, gl, gv), (visitante, gv, gl)):
+            fila = tabla.setdefault((gid, equipo), [0, 0, 0, 0])
+            fila[0] += 1
+            fila[1] += a_favor
+            fila[2] += en_contra
+            fila[3] += 3 if a_favor > en_contra else 1 if a_favor == en_contra else 0
+            suya = temporada.setdefault((sid, cid, equipo), [0, 0])
+            suya[0] += 1
+            suya[1] += en_contra
+    media = {k: goles[k] / (2 * n) for k, n in jugados.items()}
+    por_grupo = {}
+    for (gid, equipo), (pj, gf, gc, pts) in tabla.items():
+        if pj >= R.MIN_PARTIDOS_EQUIPO:
+            por_grupo.setdefault(gid, []).append((-pts / pj, -(gf - gc) / pj, equipo))
+    percentil = {}
+    for gid, equipos in por_grupo.items():
+        if len(equipos) < 2:
+            continue
+        equipos.sort()
+        for puesto, (_, _, equipo) in enumerate(equipos, 1):
+            percentil[(gid, equipo)] = 1 - (puesto - 1) / (len(equipos) - 1)
+    pesos = []
+    for mid, _gid, sid, cid, local, visitante, _, _ in partidos:
+        if local == visitante:
+            continue
+        m = media.get((sid, cid))
+        for equipo, rival in ((local, visitante), (visitante, local)):
+            pj, en_contra = temporada.get((sid, cid, rival), (0, 0))
+            peso = round(R.peso_rival(R.encajados_prudente(en_contra, pj, m), m), 4)
+            if peso != 1.0:
+                pesos.append((mid, equipo, peso))
+    # La mejor letra de Segunda Fase de cada equipo: esta temporada los grupos de la Segunda Fase ya tienen
+    # equipos y calendario aunque casi no se haya jugado, así que valen la clasificación y los partidos.
+    letra = {gid: (sid, cid, R.letra_segunda_fase(fase))
+             for gid, sid, cid, fase in conn.execute("SELECT id, season_id, category_id, phase FROM groups")}
+    letra = {gid: v for gid, v in letra.items() if v[2]}
+    en_grupo = set()
+    for _mid, gid, _sid, _cid, local, visitante, _, _ in partidos:
+        if gid in letra:
+            en_grupo |= {(gid, local), (gid, visitante)}
+    if _has_table(conn, "standings"):
+        en_grupo |= {(gid, t) for gid, t in conn.execute("SELECT group_id, team_id FROM standings")
+                     if gid in letra}
+    mejor = {}
+    for gid, equipo in en_grupo:
+        sid, cid, x = letra[gid]
+        k = (sid, cid, equipo)
+        if k not in mejor or x < mejor[k]:
+            mejor[k] = x
+    return pesos, percentil, mejor
+
+
+def _datos_fichas(conn, confirmados=None):
+    """Lo que comparten jugadores_files, buscar_files y ranking_files, sacado de una sola pasada por las
+    apariciones (la consulta grande): main() lo calcula una vez y se lo pasa a las tres; cada una, llamada
+    sola, lo calcula ella. None si la base no tiene las identidades (sin players.fiflp_id).
+
+    "filas": {principal: [(clave de orden, fila publicada, grupo, fila del ranking), ...]} en orden de
+    temporada y de primer día del grupo (a igualdad, la de la principal antes); la fila del ranking es
+    (año de inicio, categoría en minúsculas, fase, partidos, titular, goles, goles por rival, isla,
+    percentil, temporada, equipo): las nueve primeras, una ranking.Fila. La fase es la que cuenta para el
+    nivel (ranking.fase_que_cuenta, con la mejor letra de Segunda Fase de su equipo); la de la ficha ("g")
+    sigue siendo la del grupo. Los goles por rival, la suma aparición a aparición de sus goles por el peso
+    de su rival en ese partido (_rival_y_puesto), con 4 cifras.
+    "anios": {principal: (años, confirmado)}, los de nacimiento.estimar con todas sus filas o el
+    confirmado (anios_confirmados, o `confirmados` si se pasa) de su clave o de uno de sus alias."""
+    if not any(r[1] == "fiflp_id" for r in conn.execute("PRAGMA table_info(players)")):
+        return None
+    import ranking as R
+    from nacimiento import estimar
     f = _fichas(conn)
     clave, ficha, publicadas = f["clave"], f["ficha"], f["publicadas"]
     # El primer día de cada grupo (las fechas vienen en tres formatos).
@@ -1028,32 +1149,98 @@ def jugadores_files(conn):
         iso = _season_day(day, start)
         if iso and (gid not in first_day or iso < first_day[gid]):
             first_day[gid] = iso
+    # El peso de cada gol por su rival va en una tabla temporal, para sumarlo en la misma consulta grande
+    # (aparición a aparición en Python serían 400.000 vueltas). Sin fila, el gol vale 1.
+    pesos, percentil, mejor = _rival_y_puesto(conn)
+    abierta = conn.in_transaction            # lo que el que llama tuviera a medias no se confirma aquí
+    conn.execute("DROP TABLE IF EXISTS temp._peso_rival")
+    conn.execute("CREATE TEMP TABLE _peso_rival (match_id INTEGER, team_id INTEGER, peso REAL, "
+                 "PRIMARY KEY (match_id, team_id))")
+    conn.executemany("INSERT INTO temp._peso_rival VALUES (?, ?, ?)", pesos)
     rows = conn.execute("""
         SELECT p.id, s.name, s.start_year, g.id, g.code, t.name, COUNT(*),
                SUM(a.role='starter'), SUM(a.goals), SUM(a.yellow), SUM(a.red),
-               LOWER(c.name), g.name, g.phase, g.island
+               LOWER(c.name), g.name, g.phase, g.island, a.team_id, SUM(a.goals * COALESCE(w.peso, 1.0)),
+               g.season_id, g.category_id
           FROM appearances a JOIN players p ON p.id=a.player_id
           JOIN matches m ON m.id=a.match_id JOIN groups g ON g.id=m.group_id
           JOIN seasons s ON s.id=g.season_id JOIN teams t ON t.id=a.team_id
           JOIN categories c ON c.id=g.category_id
+          LEFT JOIN temp._peso_rival w ON w.match_id=a.match_id AND w.team_id=a.team_id
          GROUP BY p.id, g.id, a.team_id""").fetchall()
-    names = dict(conn.execute("SELECT id, full_name FROM players"))
-    fids = {pid for (pid,) in conn.execute("SELECT id FROM players WHERE fiflp_id IS NOT NULL")}
+    conn.execute("DROP TABLE temp._peso_rival")
+    if not abierta and conn.in_transaction:
+        conn.commit()
     # Por ficha: sus filas en orden de temporada y primer día del grupo; a igualdad, la de la principal antes.
     por_ficha = {}
-    for pid, season, year, gid, code, team, pj, tit, goals, yellow, red, cat, gname, phase, island in rows:
+    for (pid, season, year, gid, code, team, pj, tit, goals, yellow, red, cat, gname, phase, island,
+         team_id, por_rival, sid, cid) in rows:
         principal = ficha.get(pid)
         if principal not in publicadas:
             continue
         motivo = [] if principal == pid else [1, _MOTIVO.get(f["por"].get(pid))] if f["por"].get(pid) in _MOTIVO else [1]
         por_ficha.setdefault(principal, []).append(
             ((year, first_day.get(gid, "9999"), code, team, len(motivo), motivo),
-             [season, code, team, pj, tit, goals, yellow, red, *motivo], (season, code, cat, gname, phase, island)))
+             [season, code, team, pj, tit, goals, yellow, red, *motivo], (season, code, cat, gname, phase, island),
+             (year, cat, R.fase_que_cuenta(phase, mejor.get((sid, cid, team_id))), pj, tit, goals,
+              round(por_rival or 0.0, 4), island, percentil.get((gid, team_id)), season, team)))
     for filas in por_ficha.values():
         filas.sort(key=lambda x: x[0])
     miembros = {}
     for pid, principal in ficha.items():
         miembros.setdefault(principal, []).append(pid)
+    # El año de nacimiento. Una observación por temporada y categoría (las de todas sus identidades juntas,
+    # como las ve la ficha); el confirmado manda: el de la clave de la ficha y, si no, el del primero de sus
+    # alias que lo tenga.
+    if confirmados is None:
+        # Un fichero mal escrito no para al bot (la web dejaría de actualizarse): se avisa y se publica sin
+        # ningún año confirmado (todo o nada: con una entrada mala no se fía de las demás).
+        try:
+            confirmados = anios_confirmados()
+        except (ValueError, OSError) as e:
+            print(f"  ! anios_confirmados.json no se entiende ({e}): se publica sin años confirmados")
+            confirmados = {}
+    anios = {}
+    for principal, filas in por_ficha.items():
+        k = clave[principal]
+        otras = sorted((clave[m] for m in miembros[principal] if m in clave and clave[m] != k), key=_orden_clave)
+        anio = next((confirmados[c] for c in [k, *otras] if c in confirmados), None)
+        if anio is not None:
+            anios[principal] = ((anio,), True)
+            continue
+        partidos = {}
+        for year, cat, _phase, pj, *_ in (r for *_, r in filas):
+            partidos[(year, cat)] = partidos.get((year, cat), 0) + pj
+        anios[principal] = (estimar((y, c, p) for (y, c), p in partidos.items()), False)
+    return {"fichas": f, "filas": por_ficha, "miembros": miembros, "anios": anios,
+            "nombres": dict(conn.execute("SELECT id, full_name FROM players")),
+            # El último equipo y la temporada de cada ficha (lo que dicen "h" y el buscador).
+            "ultimo": {p: (filas[-1][1][2], filas[-1][1][0]) for p, filas in por_ficha.items()}}
+
+
+def jugadores_files(conn, datos=None):
+    """{fichero: contenido} de los data-jugadores-<k>.js: const JUGADORES_<k> =
+       {"p": {"<clave>": {"n": nombre, "c": [fila, ...], "y"?: [año, ...], "yc"?: 1, "s"?: 1,
+                          "h"?: [[clave, equipo, temporada], ...], "al"?: [alias, ...]}},
+        "a": {"<alias>": "<clave>"},
+        "g": {"<temporada>/<grupo>": [categoría, nombre, fase, isla]}}.
+       Una entrada por ficha con alguna aparición, en el trozo de su clave (la de su principal), con las
+       apariciones de todas sus identidades: una fila [temporada, grupo, equipo, partidos, titular, goles,
+       amarillas, rojas] por identidad, grupo y equipo, en orden de temporada y de primer partido del grupo;
+       la de una identidad unida lleva además 1 y el motivo ("e" equipo, "c" club, "n" nombre) y no se suma
+       a la de la principal. "y": los años de nacimiento posibles, de uno a tres y en orden (sin la clave si
+       no se puede estimar); "yc": 1, el año es confirmado (anios_confirmados). "s": 1, ninguna identidad
+       con id; "h", las otras fichas con el mismo nombre normalizado (su último equipo y temporada); "al",
+       sus alias. Cada alias (la clave de una identidad no principal con aparición o suceso) va en "a" del
+       trozo DEL ALIAS, para abrirlo sin saber la clave.
+       "g": de cada grupo, lo que la app necesita para nombrarlo (model.groupLabel)."""
+    datos = _datos_fichas(conn) if datos is None else datos
+    if datos is None:
+        return {}
+    from identidad import trozo
+    f, por_ficha, miembros, ultimo = datos["fichas"], datos["filas"], datos["miembros"], datos["ultimo"]
+    clave, publicadas, names = f["clave"], f["publicadas"], datos["nombres"]
+    fids = {pid for (pid,) in conn.execute("SELECT id FROM players WHERE fiflp_id IS NOT NULL")}
     con_algo = {pid for (pid,) in conn.execute("SELECT DISTINCT player_id FROM appearances")}
     if _has_table(conn, "match_events"):
         con_algo |= {pid for (pid,) in conn.execute("SELECT DISTINCT player_id FROM match_events")}
@@ -1061,28 +1248,29 @@ def jugadores_files(conn):
     por_nombre = {}
     for principal in publicadas:
         por_nombre.setdefault(f["nombre"][principal], []).append(principal)
-    ultimo = {p: (filas[-1][1][2], filas[-1][1][0]) for p, filas in por_ficha.items()}
-
-    def orden(k):
-        return (0, int(k), "") if k.isdigit() else (1, 0, k)
 
     shards = [{"p": {}, "a": {}, "g": {}} for _ in range(JUGADORES_SHARDS)]
-    for principal in sorted(por_ficha, key=lambda p: orden(clave[p])):
+    for principal in sorted(por_ficha, key=lambda p: _orden_clave(clave[p])):
         k = clave[principal]
         shard = shards[trozo(k, JUGADORES_SHARDS)]
-        entry = {"n": names[principal], "c": [fila for _, fila, _ in por_ficha[principal]]}
-        for season, code, cat, gname, phase, island in (g for _, _, g in por_ficha[principal]):
+        entry = {"n": names[principal], "c": [fila for _, fila, _, _ in por_ficha[principal]]}
+        anios, confirmado = datos["anios"][principal]
+        if anios:
+            entry["y"] = list(anios)
+            if confirmado:
+                entry["yc"] = 1
+        for season, code, cat, gname, phase, island in (g for _, _, g, _ in por_ficha[principal]):
             shard["g"].setdefault(f"{season}/{code}", [cat, gname, phase, island])
         if not any(m in fids for m in miembros[principal]):
             entry["s"] = 1
         # La más reciente primero; a igualdad, por clave.
         otras = sorted(sorted((p for p in por_nombre[f["nombre"][principal]] if p != principal and p in ultimo),
-                              key=lambda p: orden(clave[p])), key=lambda p: ultimo[p][1], reverse=True)
+                              key=lambda p: _orden_clave(clave[p])), key=lambda p: ultimo[p][1], reverse=True)
         if otras:
             entry["h"] = [[clave[p], *ultimo[p]] for p in otras]
         # Sin la clave de la ficha: si la principal no tenía, lleva la de otra de sus identidades (_fichas).
         alias = sorted((clave[m] for m in miembros[principal]
-                        if m != principal and m in clave and m in con_algo and clave[m] != k), key=orden)
+                        if m != principal and m in clave and m in con_algo and clave[m] != k), key=_orden_clave)
         if alias:
             entry["al"] = alias
             for a in alias:
@@ -1093,13 +1281,142 @@ def jugadores_files(conn):
             for k, shard in enumerate(shards)}
 
 
-def write_jugadores(conn, root=None):
+def write_jugadores(conn, root=None, datos=None):
     root = root or PROJECT_ROOT
-    files = jugadores_files(conn)
+    files = jugadores_files(conn, datos)
     for name, content in files.items():
         escribir_atomico(os.path.join(root, name), content)
     total = sum(len(c) for c in files.values())
     print(f"  {len(files)} ficheros data-jugadores-<k>.js, {total:,} bytes")
+    return files
+
+
+# El buscador de jugadores (Explorar): un fichero por las dos primeras letras de cada palabra del nombre, que
+# la web pide al escribir (no van en la portada ni en el precache). La web normaliza lo que se escribe igual
+# (src/, playerSearchPrefix): sin tildes, en minúsculas y partiendo por lo que no es una letra.
+_PARTICULAS = frozenset({"de", "del", "la", "las", "los", "y", "da", "do"})
+
+
+def _palabras(nombre):
+    """Las palabras de un nombre, sin tildes (ñ → n) y en minúsculas; lo que no es una letra de la a a la z
+    las separa. Como la web (NFD y fuera las marcas)."""
+    s = "".join(ch for ch in unicodedata.normalize("NFD", nombre or "")
+                if not unicodedata.category(ch).startswith("M")).lower()
+    return [w for w in re.split(r"[^a-z]+", s) if w]
+
+
+def prefijos_de(nombre):
+    """Los prefijos de búsqueda de un nombre, cada uno una vez y en el orden en que salen: las dos primeras
+    letras de cada palabra de dos letras o más que no sea una partícula (de, del, la, las, los, y, da, do)."""
+    return list(dict.fromkeys(w[:2] for w in _palabras(nombre) if len(w) > 1 and w not in _PARTICULAS))
+
+
+def buscar_files(conn, datos=None):
+    """{fichero: contenido} de los data-buscar-<xy>.js: const BUSCAR_<XY> = [[clave, nombre, último equipo,
+    última temporada, [años]], ...]; una ficha en el de cada prefijo distinto de su nombre (prefijos_de), en
+    orden de clave. [años] es su "y" de data-jugadores ([] si no tiene). Solo los prefijos con alguna."""
+    datos = _datos_fichas(conn) if datos is None else datos
+    if datos is None:
+        return {}
+    clave, names = datos["fichas"]["clave"], datos["nombres"]
+    por_prefijo = {}
+    for principal in sorted(datos["filas"], key=lambda p: _orden_clave(clave[p])):
+        nombre = names[principal]
+        entrada = [clave[principal], nombre, *datos["ultimo"][principal], list(datos["anios"][principal][0])]
+        for xy in prefijos_de(nombre):
+            por_prefijo.setdefault(xy, []).append(entrada)
+    return {f"data-buscar-{xy}.js": f"const BUSCAR_{xy.upper()} = "
+            + json.dumps(entradas, ensure_ascii=False, separators=(",", ":")) + ";\n"
+            for xy, entradas in sorted(por_prefijo.items())}
+
+
+def _borrar_sobrantes(root, empieza, files):
+    """Borra los <empieza>*.js del árbol que esta pasada ya no publica (como write_lineups con los suyos)."""
+    for name in sorted(os.listdir(root)):
+        if name.startswith(empieza) and name.endswith(".js") and name not in files:
+            os.remove(os.path.join(root, name))
+            print(f"  {name}: borrado")
+
+
+def write_buscar(conn, root=None, datos=None):
+    """Escribe los data-buscar-<xy>.js y borra los de un prefijo que ya no tiene ninguna ficha."""
+    root = root or PROJECT_ROOT
+    files = buscar_files(conn, datos)
+    _borrar_sobrantes(root, "data-buscar-", files)
+    for name, content in files.items():
+        escribir_atomico(os.path.join(root, name), content)
+    total = sum(len(c.encode()) for c in files.values())
+    print(f"  {len(files)} ficheros data-buscar-<xy>.js, {total:,} bytes")
+    return files
+
+
+def ranking_files(conn, datos=None):
+    """{fichero: contenido} del ranking por año de nacimiento (ranking.py; docs/ranking.md):
+    data-ranking.js, const RANKING = {"temporada": <la de seasons.is_current, o null>,
+                                      "anios": {"<año>": [entradas en "t", entradas en "h"], ...}};
+    y, de cada año con alguna entrada, data-ranking-<año>.js, const RANKING_<año> = {"t": [...], "h": [...]}.
+    "t" es esta temporada (sus filas, con al menos MIN_TEMPORADA partidos) y "h" toda la trayectoria (al menos
+    MIN_TRAYECTORIA). Cada entrada: [clave, nombre, equipo, categoría, partidos, titular, goles, índice,
+    dudoso]: los goles, los de verdad (el índice, ranking.indice, los pondera por el rival, la liga y su
+    isla, el equipo y la edad); equipo y categoría, los de la fila más reciente de las que cuentan; dudoso,
+    1 si la ficha tiene más de un año posible (sale en el de cada uno, con el índice de ese año). Orden:
+    índice y goles de mayor
+    a menor y después la clave; como mucho TOPE por lista. data-ranking.js sale siempre que la base tenga
+    las identidades (aunque sin años: la web lo pide para saber qué años hay); sin ellas, como las fichas,
+    nada."""
+    import ranking as R              # aquí, como identidad: los valores se leen al llamar
+    from nacimiento import VENTANA
+    datos = _datos_fichas(conn) if datos is None else datos
+    if datos is None:
+        return {}
+    actual = conn.execute("SELECT name FROM seasons WHERE is_current = 1 ORDER BY start_year DESC").fetchone()
+    temporada = actual[0] if actual else None
+    listas = {}                      # año → {"t": [...], "h": [...]}
+    clave, names = datos["fichas"]["clave"], datos["nombres"]
+    filas = {p: [r for *_, r in fs] for p, fs in datos["filas"].items()}
+    # La media de goles por partido de cada temporada y categoría, con las filas de todas las fichas.
+    medias = R.medias_de(r[:9] for fs in filas.values() for r in fs)
+    for principal, fs in filas.items():
+        anios = datos["anios"][principal][0]
+        # Las que cuentan para el índice (ranking.indice): categoría conocida y con media.
+        cuentan = [r for r in fs if r[1] in VENTANA and medias.get((r[0], r[1]))]
+        vistas = (("t", [r for r in cuentan if r[9] == temporada], R.MIN_TEMPORADA),
+                  ("h", cuentan, R.MIN_TRAYECTORIA))
+        for vista, rs, minimo in vistas:
+            partidos = sum(r[3] for r in rs)
+            if not rs or partidos < minimo:
+                continue
+            # La más reciente: la última en el orden de la ficha (temporada y primer día del grupo).
+            reciente = rs[-1]
+            for anio in anios:
+                listas.setdefault(anio, {"t": [], "h": []})[vista].append(
+                    [clave[principal], names[principal], reciente[10], reciente[1], partidos,
+                     sum(r[4] for r in rs), sum(r[5] for r in rs),
+                     R.indice((r[:9] for r in rs), anio, medias), 1 if len(anios) > 1 else 0])
+    out = {}
+    resumen = {}
+    for anio in sorted(listas):
+        vistas = listas[anio]
+        for vista in vistas.values():
+            vista.sort(key=lambda e: (-e[7], -e[6], _orden_clave(e[0])))
+            del vista[R.TOPE:]
+        resumen[str(anio)] = [len(vistas["t"]), len(vistas["h"])]
+        out[f"data-ranking-{anio}.js"] = (f"const RANKING_{anio} = "
+                                          + json.dumps(vistas, ensure_ascii=False, separators=(",", ":")) + ";\n")
+    cabecera = {"temporada": temporada, "anios": resumen}
+    out["data-ranking.js"] = "const RANKING = " + json.dumps(cabecera, ensure_ascii=False, separators=(",", ":")) + ";\n"
+    return out
+
+
+def write_ranking(conn, root=None, datos=None):
+    """Escribe data-ranking.js y los data-ranking-<año>.js, y borra los de un año que ya no tiene entradas."""
+    root = root or PROJECT_ROOT
+    files = ranking_files(conn, datos)
+    _borrar_sobrantes(root, "data-ranking-", files)
+    for name, content in files.items():
+        escribir_atomico(os.path.join(root, name), content)
+    total = sum(len(c.encode()) for c in files.values())
+    print(f"  {len(files)} ficheros data-ranking*.js, {total:,} bytes")
     return files
 
 
@@ -1695,9 +2012,15 @@ def main():
     print("\n9. data-lineups-<S>-<grupo>.js (actas)")
     write_lineups(conn)
 
-    # Fichas de jugador: data-jugadores-<k>.js.
+    # Fichas de jugador: data-jugadores-<k>.js, y lo que sale de las mismas filas: el buscador y el ranking.
+    # La consulta grande (todas las apariciones), una vez para los tres.
+    datos = _datos_fichas(conn)
     print("\n9b. data-jugadores-<k>.js (fichas de jugador)")
-    write_jugadores(conn)
+    write_jugadores(conn, datos=datos)
+    print("\n9c. data-buscar-<xy>.js (buscador de jugadores)")
+    write_buscar(conn, datos=datos)
+    print("\n9d. data-ranking.js y data-ranking-<año>.js (los mejores de cada año)")
+    write_ranking(conn, datos=datos)
 
     print("\n10. Cache version (only if data changed — C4)")
     bump_if_changed(before_snapshot)

@@ -2,7 +2,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { fixture } from './fixtures/rediseno/load.mjs';
-import { buildSeason, playerName, teamShort, timelineFor } from '../../src/model.js';
+import { spawnSync } from 'node:child_process';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { buildSeason, playerName, playerPrefixes, playerSearchPrefix, searchPlayers, teamShort, timelineFor } from '../../src/model.js';
 
 const current = fixture('current-2025-2026');
 const matchDetail = fixture('matchdetail');
@@ -176,4 +179,80 @@ test('seasonLabel: «2025-2026» → «2025/26»; lo que no es una temporada que
   assert.equal(seasonLabel(''), '');
   assert.equal(seasonLabel(null), '');
   assert.equal(seasonLabel('Temporada'), 'Temporada');
+});
+
+// ── El buscador de jugadores (data-buscar-<xy>.js de generate_js.buscar_files) ──────────────────────
+// La web y Python tienen que trocear igual: si no, una búsqueda iría a un fichero que no es.
+
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
+
+// La tabla de test_prefijos_de (scripts/tests/test_jugadores_ampliacion.py): el nombre y sus prefijos.
+const TABLA_PREFIJOS = [
+  ['GARCÍA PÉREZ, JOSÉ ÁNGEL', ['ga', 'pe', 'jo', 'an']],
+  ["DE LA CRUZ O'NEILL, IÑAKI", ['cr', 'ne', 'in']],
+  ['A., X', []],
+  ['PEREZ PEÑA, PEDRO DEL PINO', ['pe', 'pi']],
+  ['LOS SANTOS Y DO DA LAS, LU', ['sa', 'lu']],
+];
+
+test('playerPrefixes da lo mismo que generate_js.prefijos_de: la tabla de las pruebas de Python', () => {
+  for (const [name, prefixes] of TABLA_PREFIJOS) {
+    assert.deepEqual(playerPrefixes(name), prefixes, name);
+    assert.equal(playerSearchPrefix(name), prefixes[0] ?? null, name);
+  }
+});
+
+test('playerPrefixes da lo mismo que generate_js.prefijos_de con nombres difíciles (los calcula Python)', () => {
+  const names = ['Ñandú Çelik', 'ÆSIR Øster', 'İLKAY ŞAHİN', 'MÜLLER-STRAßE, JÜRGEN', "D'ALESSANDRO, JEAN-LUC",
+    'ŁUKASZ DE LOS RÍOS', 'ǅORĐE DEL VALLE', 'ﬁlipe da silva', 'GÓMEZ  PÉREZ ,  RAÚL', 'NGUYỄN VĂN AN', '  y  de la ', '12 AB3CD',
+    'MARÍA DEL PILAR, Ñ', 'ÉLODIE Ü. ŒUVRE'];
+  const code = [
+    'import json, sys', `sys.path.insert(0, ${JSON.stringify(join(ROOT, 'scripts'))})`,
+    'from generate_js import prefijos_de',
+    'print(json.dumps([prefijos_de(n) for n in json.loads(sys.argv[1])]))',
+  ].join('\n');
+  const run = spawnSync('python3', ['-c', code, JSON.stringify(names)], { encoding: 'utf8', timeout: 60000 });
+  assert.equal(run.status, 0, run.stderr);
+  const python = JSON.parse(run.stdout);
+  names.forEach((name, i) => assert.deepEqual(playerPrefixes(name), python[i], name));
+});
+
+test('playerSearchPrefix: la primera palabra que cuenta, sin tildes ni mayúsculas; sin ninguna, null', () => {
+  assert.equal(playerSearchPrefix('  García '), 'ga');
+  assert.equal(playerSearchPrefix('de la Cruz'), 'cr');
+  assert.equal(playerSearchPrefix("o'neill"), 'ne');
+  assert.equal(playerSearchPrefix('ÁLVARO'), 'al');
+  for (const q of ['a', '', '   ', 'de la', 'y', 'a b c', null, undefined, '12']) assert.equal(playerSearchPrefix(q), null, String(q));
+});
+
+// Cuatro entradas inventadas con la forma de BUSCAR_<XY>: [clave, nombre, último equipo, última temporada, [años]].
+const BUSCAR = [
+  ['1001', 'GARCÍA PÉREZ, JOSÉ', 'Club Uno', '2025-2026', [2016]],
+  ['1002', 'GARCÍA, ANA', 'Club Dos', '2026-2027', [2017, 2018]],
+  ['n0k3z9q2d4', 'GARCIA RUIZ, JOEL', 'Club Tres', '2024-2025', []],
+  ['1004', 'GALLEGO DE LA CRUZ, JORGE', 'Club Uno', '2026-2027', [2015]],
+];
+
+test('searchPlayers: cada palabra que cuenta es el principio de alguna del nombre, sin tildes ni mayúsculas', () => {
+  const { total, list } = searchPlayers(BUSCAR, 'garcia jo');
+  assert.equal(total, 2);
+  assert.deepEqual(list, [
+    { id: '1001', name: 'GARCÍA PÉREZ, JOSÉ', team: 'Club Uno', season: '2025-2026', years: [2016] },
+    { id: 'n0k3z9q2d4', name: 'GARCIA RUIZ, JOEL', team: 'Club Tres', season: '2024-2025', years: [] },
+  ]);
+  // En cualquier orden y con partículas, que no cuentan; una letra suelta tampoco.
+  assert.deepEqual(searchPlayers(BUSCAR, 'Jorge de la Cruz').list.map(p => p.id), ['1004']);
+  assert.deepEqual(searchPlayers(BUSCAR, 'GARCÍA j').list.map(p => p.id), ['1002', '1001', 'n0k3z9q2d4']);
+  assert.deepEqual(searchPlayers(BUSCAR, 'perez jose').list.map(p => p.id), ['1001']);
+  assert.deepEqual(searchPlayers(BUSCAR, 'arcia'), { total: 0, list: [] }, 'el principio de la palabra, no un trozo');
+  assert.deepEqual(searchPlayers(BUSCAR, 'de la'), { total: 0, list: [] });
+  assert.deepEqual(searchPlayers(null, 'garcia'), { total: 0, list: [] });
+});
+
+test('searchPlayers: de la última temporada más reciente a la más antigua y después por nombre; como mucho `limit`', () => {
+  assert.deepEqual(searchPlayers(BUSCAR, 'ga').list.map(p => p.id), ['1004', '1002', '1001', 'n0k3z9q2d4']);
+  const two = searchPlayers(BUSCAR, 'ga', 2);
+  assert.equal(two.total, 4);
+  assert.deepEqual(two.list.map(p => p.id), ['1004', '1002']);
+  assert.equal(searchPlayers(Array.from({ length: 40 }, (_, i) => [String(i + 1), `GOMEZ, LUIS${i}`, 'X', '2025-2026', []]), 'gomez').list.length, 30);
 });

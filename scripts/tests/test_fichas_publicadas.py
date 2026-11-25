@@ -83,16 +83,16 @@ def trozos(files):
 
 
 def ficha(shards, clave):
-    return shards[trozo(clave)]["p"].get(clave)
+    return shards[trozo(clave, 64)]["p"].get(clave)
 
 
 def test_una_entrada_por_ficha_en_el_trozo_de_su_clave_con_todas_sus_apariciones():
     shards = trozos(G.jugadores_files(base()))
-    assert sorted(shards) == list(range(16))
+    assert sorted(shards) == list(range(64))
     claves = sorted(k for s in shards.values() for k in s["p"])
     assert claves == sorted([ANA, LEO_DOS, LEO_TRES, PABLO])
     for clave in claves:
-        assert clave in shards[trozo(clave)]["p"]
+        assert clave in shards[trozo(clave, 64)]["p"]
     # Ana: su fila con id (u = 0, 8 valores) y las unidas, cada una con u = 1 y el motivo; las del mismo grupo y
     # equipo no se suman. En orden de temporada.
     ana = ficha(shards, ANA)
@@ -105,16 +105,16 @@ def test_una_entrada_por_ficha_en_el_trozo_de_su_clave_con_todas_sus_apariciones
     assert "s" not in ana and "h" not in ana
     assert sorted(ana["al"]) == sorted([ANA_SIN_ID, ANA_UN_USO])
     # Los grupos de sus filas, en el trozo de la ficha.
-    assert shards[trozo(ANA)]["g"]["2024-2025/PG1"] == ["prebenjamin", "Grupo 1", "Gran Canaria", "grancanaria"]
-    assert shards[trozo(ANA)]["g"]["2025-2026/BG1"] == ["benjamin", "Grupo 1", "Gran Canaria", "grancanaria"]
+    assert shards[trozo(ANA, 64)]["g"]["2024-2025/PG1"] == ["prebenjamin", "Grupo 1", "Gran Canaria", "grancanaria"]
+    assert shards[trozo(ANA, 64)]["g"]["2025-2026/BG1"] == ["benjamin", "Grupo 1", "Gran Canaria", "grancanaria"]
 
 
 def test_cada_alias_en_el_trozo_del_alias_y_ninguna_clave_se_repite():
     shards = trozos(G.jugadores_files(base()))
     alias = {a: c for s in shards.values() for a, c in s["a"].items()}
     assert alias == {ANA_SIN_ID: ANA, ANA_UN_USO: ANA}
-    assert shards[trozo(ANA_SIN_ID)]["a"][ANA_SIN_ID] == ANA
-    assert shards[trozo(ANA_UN_USO)]["a"][ANA_UN_USO] == ANA
+    assert shards[trozo(ANA_SIN_ID, 64)]["a"][ANA_SIN_ID] == ANA
+    assert shards[trozo(ANA_UN_USO, 64)]["a"][ANA_UN_USO] == ANA
     fichas = [k for s in shards.values() for k in s["p"]]
     assert len(fichas) == len(set(fichas)) and not set(fichas) & set(alias)
 
@@ -129,7 +129,8 @@ def test_sin_ningun_id_s_1_y_las_otras_fichas_del_mismo_nombre_con_su_ultimo_equ
     assert "al" not in dos
     # El ordinal es parte de su clave; un nombre sin homónimos no lleva «h».
     pablo = ficha(shards, PABLO)
-    assert pablo == {"n": "SANCHEZ, PABLO", "c": [["2024-2025", "PG1", "Deportivo Dos", 1, 0, 0, 0, 0]], "s": 1}
+    assert pablo == {"n": "SANCHEZ, PABLO", "c": [["2024-2025", "PG1", "Deportivo Dos", 1, 0, 0, 0, 0]], "s": 1,
+                     "y": [2017, 2018]}
 
 
 def publicado(conn):
@@ -188,7 +189,7 @@ def test_una_principal_sin_clave_publica_su_ficha_con_la_de_otra_identidad_suya(
     iris = clave_publica(None, "MOYA, IRIS", "Club Tres", 2025)
     entrada = ficha(shards, iris)
     assert entrada["c"] == [["2025-2026", "BG1", "Club Tres", 1, 0, 0, 0, 0, 1, "c"]]
-    assert "al" not in entrada and iris not in shards[trozo(iris)]["a"]
+    assert "al" not in entrada and iris not in shards[trozo(iris, 64)]["a"]
     assert G.claves_de_ficha(conn)[21] == iris
 
 

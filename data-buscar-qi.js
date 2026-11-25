@@ -1,0 +1,1 @@
+const BUSCAR_QI = [["54777895","ZHENG, ZI QI","Las Majoreras","2026-2027",[2017,2018]],["55085875","RAMOS QIU, JORGE","Veteranos C","2026-2027",[2017,2018]]];

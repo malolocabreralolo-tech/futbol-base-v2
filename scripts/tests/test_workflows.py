@@ -48,8 +48,9 @@ OWNED = ["update.yml", "tests.yml", "reloj.yml", "activar.yml"]
 WORKFLOWS = {"actas-federacion.yml", "activar.yml", "detalle-federacion.yml", "discover-fiflp.yml",
              "fetch-fiflp-islas.yml", "freno-fiflp.yml", "goleadores-federacion.yml", "probe-fiflp.yml",
              "reloj.yml", "tests.yml", "update.yml"}
-# Lo que publica una pasada: quien lo sube tiene que hacer cola con el bot, o dos subidas se pisan la base.
-PUBLICADO = ("futbolbase.db", "data-*.js", "index.html", "sw.js")
+# Lo que publica una pasada: quien lo sube tiene que hacer cola con el bot, o dos subidas se pisan la base. Las
+# piezas de la base (base/, docs/almacenamiento.md), también.
+PUBLICADO = ("futbolbase.db", "data-*.js", "index.html", "sw.js", "base/*")
 
 
 def _load(name):
@@ -628,7 +629,7 @@ def test_update_stages_all_generate_js_outputs():
     explicit list silently dropped data-seasons.js and data-season-*.js."""
     runs = _runs(_load("update.yml"), "update")
     commit_run = next(r for r in runs if "git add" in r)
-    for needed in ("data-*.js", "index.html", "sw.js", "futbolbase.db"):
+    for needed in ("data-*.js", "index.html", "sw.js", "futbolbase.db", "git add -A base/"):
         assert needed in commit_run, f"update.yml git add must stage {needed}"
 
 
@@ -649,19 +650,22 @@ def test_update_gates_db_commit_on_published_changes():
     )
     gate_idx = next(i for i, l in enumerate(lines) if "git diff --cached --quiet" in l)
     db_idx = next(i for i, l in enumerate(lines) if re.search(r"git add .*futbolbase\.db", l))
-    assert pub_idx < gate_idx < db_idx, (
-        "futbolbase.db must be staged only inside the else branch, after the "
+    base_idx = next(i for i, l in enumerate(lines) if "git add -A base/" in l)
+    assert pub_idx < gate_idx < db_idx < base_idx, (
+        "futbolbase.db (and its pieces, base/) must be staged only inside the else branch, after the "
         "published-artifact gate"
     )
 
 
-def _run_commit_step(tmp_path, actas_bot=True, data_changed=False):
+def _run_commit_step(tmp_path, actas_bot=True, data_changed=False, piezas="failure"):
     """El guion de verdad de «Commit y push si hay cambios», con bash, en un clon de un repositorio de mentira
     (con su remoto) con data-x.js, futbolbase.db y data-health.json publicados. La pasada cambia la base (sus
     bytes cambian siempre) y, si `actas_bot`, guarda un original nuevo (scripts/actas_bot_*.jsonl); si
-    `data_changed`, también un dato publicado. Devuelve (código de salida, ficheros del último commit del
-    remoto, la salida)."""
+    `data_changed`, también un dato publicado. `piezas`, el resultado del paso de las piezas (con «success»,
+    la pasada deja también una pieza cambiada en base/). Devuelve (código de salida, ficheros del último commit
+    del remoto, la salida)."""
     _, step = _update_step("Commit y push si hay cambios")
+    assert step["env"] == {"PIEZAS": "${{ steps.piezas.outcome }}"}
     tmp_path.mkdir(parents=True)
     git_env = {**os.environ, "GIT_CONFIG_GLOBAL": str(tmp_path / "gitconfig"), "GIT_CONFIG_NOSYSTEM": "1",
                "RUNNER_TEMP": str(tmp_path / "runner")}
@@ -676,20 +680,22 @@ def _run_commit_step(tmp_path, actas_bot=True, data_changed=False):
     git("init", "--bare", "-b", "main", str(remote), cwd=tmp_path)
     git("clone", str(remote), str(work), cwd=tmp_path)
     (work / "scripts").mkdir()
+    (work / "base").mkdir()
     for name, text in (("data-x.js", "publicado"), ("index.html", "i"), ("sw.js", "s"), ("futbolbase.db", "base"),
-                       ("data-health.json", "{}")):
+                       ("data-health.json", "{}"), ("base/comun.db", "pieza")):
         (work / name).write_text(text, encoding="utf-8")
     git("add", ".", cwd=work)
     git("commit", "-m", "publicado", cwd=work)
     git("push", "origin", "main", cwd=work)
     (work / "futbolbase.db").write_text("base con otros bytes", encoding="utf-8")
+    (work / "base" / "comun.db").write_text("pieza con otros bytes", encoding="utf-8")
     if actas_bot:
         (work / "scripts" / "actas_bot_2026-2027_benjamin.jsonl").write_text('{"cod_acta":1}\n', encoding="utf-8")
         (work / "scripts" / ".actas_bot_2026-2027_benjamin.jsonl.x.tmp").write_text("a medias", encoding="utf-8")
     if data_changed:
         (work / "data-x.js").write_text("de esta pasada", encoding="utf-8")
-    done = subprocess.run(["bash", "-e", "-c", step["run"]], cwd=work, env=git_env, capture_output=True, text=True,
-                          timeout=60)
+    done = subprocess.run(["bash", "-e", "-c", step["run"]], cwd=work, env={**git_env, "PIEZAS": piezas},
+                          capture_output=True, text=True, timeout=60)
     files = git("show", "--name-only", "--format=", "main", cwd=remote).split()
     return done.returncode, files, done.stdout + done.stderr
 
@@ -713,7 +719,16 @@ def test_update_commits_the_bots_acta_originals_always_and_only_in_the_data_comm
     assert code == 0, log
     assert sorted(files) == ["data-x.js", "futbolbase.db", "scripts/actas_bot_2026-2027_benjamin.jsonl"], log
     code, files, log = _run_commit_step(tmp_path / "sin-originales", actas_bot=False)
-    assert code == 0 and files == ["data-health.json", "data-x.js", "futbolbase.db", "index.html", "sw.js"], log
+    # Nada que subir: el último commit sigue siendo el publicado.
+    assert code == 0 and files == ["base/comun.db", "data-health.json", "data-x.js", "futbolbase.db", "index.html",
+                                   "sw.js"], log
+    # Con las piezas bien, van con la base; sin datos publicados, ni la una ni las otras.
+    code, files, log = _run_commit_step(tmp_path / "con-piezas", data_changed=True, piezas="success")
+    assert code == 0, log
+    assert sorted(files) == ["base/comun.db", "data-x.js", "futbolbase.db",
+                             "scripts/actas_bot_2026-2027_benjamin.jsonl"], log
+    code, files, log = _run_commit_step(tmp_path / "piezas-sin-datos", piezas="success")
+    assert code == 0 and files == ["scripts/actas_bot_2026-2027_benjamin.jsonl"], log
 
 
 def test_update_also_commits_the_db_when_the_bot_marks_it():
@@ -729,6 +744,166 @@ def test_update_also_commits_the_db_when_the_bot_marks_it():
     commit_run = next(r for r in _runs(data, "update") if "git commit" in r)
     gate = next(l for l in commit_run.splitlines() if "git diff --cached --quiet" in l)
     assert f'[ -f "$RUNNER_TEMP/{name}" ]' in gate, gate
+
+
+# ------------------------------------------------- las piezas de la base, en sombra (parte D, fase 1)
+
+PIEZAS = "Piezas de la base (en sombra)"
+
+
+def test_las_piezas_van_tras_la_base_sana_y_no_paran_la_pasada():
+    """En update.yml y activar.yml, justo después de «Base sana»: partir y verificar, en ese orden, con
+    continue-on-error (un fallo de las piezas no deja la pasada sin publicar) y un plazo propio (colgado, se
+    comería el del job). Si fallan, base/ vuelve a lo publicado."""
+    for name, job, cond in (("update.yml", "update", "steps.base.outcome == 'success'"),
+                            ("activar.yml", "activar",
+                             "steps.cambios.outputs.datos == 'true' && steps.base.outcome == 'success'")):
+        steps = _steps(_load(name), job)
+        names = [s.get("name") for s in steps]
+        step = steps[names.index(PIEZAS)]
+        assert names.index(PIEZAS) == names.index(BASE_SANA) + 1, name
+        assert step.get("id") == "piezas" and step.get("continue-on-error") is True, name
+        assert step.get("if") == cond, name
+        assert 0 < step.get("timeout-minutes", 0) <= 10, name
+        run = step["run"]
+        assert "${{" not in run
+        assert run.index("python3 scripts/piezas.py partir") < run.index("python3 scripts/piezas.py verificar"), name
+        assert "git checkout -q HEAD -- base/" in run and "git clean -fdqx -- base/" in run, name
+
+
+def test_las_piezas_suben_solo_con_la_base():
+    """«Commit y push si hay cambios»: git add -A base/ dentro de la puerta de la base (en la misma rama del if,
+    después de git add futbolbase.db) y solo con el paso de las piezas en verde. Un fallo al añadirlas no para
+    la subida de lo demás."""
+    _, step = _update_step("Commit y push si hay cambios")
+    assert step["env"] == {"PIEZAS": "${{ steps.piezas.outcome }}"}
+    lines = [l.strip() for l in step["run"].splitlines()]
+    puerta = next(i for i, l in enumerate(lines) if l.startswith("if ") and "git diff --cached --quiet" in l)
+    fin = next(i for i in range(puerta, len(lines)) if lines[i] == "fi")
+    db = next(i for i, l in enumerate(lines) if l == "git add futbolbase.db")
+    piezas = [i for i, l in enumerate(lines) if "git add -A base/" in l]
+    assert len(piezas) == 1 and puerta < db < piezas[0] < fin, lines[puerta:fin + 1]
+    assert lines[piezas[0]].startswith('if [ "$PIEZAS" = success ]; then git add -A base/'), lines[piezas[0]]
+    assert not any(l.startswith(("if ", "else", "elif")) for l in lines[db + 1:piezas[0]])
+    act = _activar_step("Subir la activación")
+    assert act["env"]["PIEZAS"] == "${{ steps.piezas.outcome }}"
+    lineas = [l.strip() for l in act["run"].splitlines()]
+    dentro = lineas[lineas.index('if [ "$DATOS" = true ]; then') + 1:]
+    dentro = dentro[:dentro.index("fi")]
+    assert any(l.startswith('if [ "$PIEZAS" = success ]; then git add -A base/') for l in dentro), dentro
+
+
+def _cargar_test_piezas():
+    """La base de mentira de test_piezas.py (el esquema de verdad, dos temporadas con actas)."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("_base_de_piezas", ROOT / "scripts" / "tests" / "test_piezas.py")
+    modulo = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(modulo)
+    return modulo
+
+
+def test_pasada_en_seco_sube_solo_la_pieza_que_cambia(tmp_path):
+    """Los guiones de verdad de «Base sana», «Piezas de la base (en sombra)» y «Commit y push si hay cambios»,
+    uno tras otro, con piezas.py, base_sana.py y lo que importan copiados, en un clon de un repositorio de
+    mentira con su remoto y una base con el esquema de verdad. Cuatro pasadas: la primera trae base/ entera; la
+    segunda, solo la pieza que cambia; la tercera (nada publicado cambia), ninguna; y la cuarta, cortada a
+    mitad de una pieza, publica la base y no sube piezas, con base/ como estaba."""
+    import shutil
+    import sqlite3
+    tp = _cargar_test_piezas()
+    steps = _steps(_load("update.yml"), "update")
+    por_nombre = {s.get("name"): s for s in steps}
+    git, remote, work, env = _repo(tmp_path / "repo", {"data-x.js": "publicado", "index.html": "i", "sw.js": "s",
+                                                       "data-health.json": "{}\n"})
+    (work / "scripts").mkdir()
+    for name in ("piezas.py", "base_sana.py", "source_health.py", "portal_config.py", "escritura.py", "db.py"):
+        shutil.copy2(ROOT / "scripts" / name, work / "scripts" / name)
+    shutil.copy2(ROOT / ".gitignore", work / ".gitignore")
+    tp._base(work / "futbolbase.db")
+    git("add", ".", cwd=work)
+    git("commit", "-m", "los guiones y la base", cwd=work)
+    git("push", "origin", "main", cwd=work)
+
+    def un_gol_mas(temporada):
+        conn = sqlite3.connect(work / "futbolbase.db", isolation_level=None)
+        mid = tp._partidos_con_acta(conn, temporada)[-1]
+        local = conn.execute("SELECT home_team_id FROM matches WHERE id = ?", (mid,)).fetchone()[0]
+        conn.execute("INSERT INTO match_events (match_id, team_id, player_id, kind, minute, goal_type) "
+                     "VALUES (?, ?, ?, 'goal', 33, 'normal')", (mid, local, local * 10 + 1))
+        conn.execute("UPDATE appearances SET goals = goals + 1 WHERE match_id = ? AND team_id = ? AND ord = 1",
+                     (mid, local))
+        conn.close()
+
+    def pasada(datos, corte=None):
+        log = ""
+        resultados = {}
+        for nombre in (BASE_SANA, PIEZAS, "Commit y push si hay cambios"):
+            step = por_nombre[nombre]
+            extra = {}
+            if nombre == PIEZAS and corte:
+                extra["PIEZAS_CORTE_PRUEBA"] = corte
+            if nombre == "Commit y push si hay cambios":
+                assert step["env"] == {"PIEZAS": "${{ steps.piezas.outcome }}"}
+                extra["PIEZAS"] = resultados[PIEZAS]
+            if datos:
+                (work / "data-x.js").write_text(f"pasada {datos}", encoding="utf-8")
+            done = subprocess.run(["bash", "-e", "-c", step["run"]], cwd=work, env={**env, **extra},
+                                  capture_output=True, text=True, timeout=180)
+            log += done.stdout + done.stderr
+            resultados[nombre] = "success" if done.returncode == 0 else "failure"
+            if nombre != PIEZAS:          # el único con continue-on-error
+                assert done.returncode == 0, log
+        return resultados, sorted(git("show", "--name-only", "--format=", "main", cwd=remote).split()), log
+
+    # 1. Sin base/ todavía: entran todas las piezas, con la base y lo publicado.
+    un_gol_mas("2024-2025")
+    r, ficheros, log = pasada(1)
+    assert r[PIEZAS] == "success", log
+    assert ficheros == ["base/actas-2024-2025.db", "base/actas-2025-2026.db", "base/comun.db", "base/piezas.json",
+                        "data-x.js", "futbolbase.db"], log
+    # 2. Un gol más en 2025-26: su pieza y el manifiesto, y ninguna otra.
+    un_gol_mas("2025-2026")
+    r, ficheros, log = pasada(2)
+    assert r[PIEZAS] == "success", log
+    assert ficheros == ["base/actas-2025-2026.db", "base/piezas.json", "data-x.js", "futbolbase.db"], log
+    # 3. Cambia la base, pero nada publicado (solo el informe): ni la base ni las piezas.
+    un_gol_mas("2024-2025")
+    (work / "data-health.json").write_text('{"pasada": 3}\n', encoding="utf-8")
+    r, ficheros, log = pasada(None)
+    assert r[PIEZAS] == "success", log
+    assert ficheros == ["data-health.json"], log
+    # 4. Cortada dentro de una pieza: la pasada publica la base y lo demás, sin piezas, y base/ como en main.
+    un_gol_mas("2025-2026")
+    r, ficheros, log = pasada(4, corte="dentro:1")
+    assert r[PIEZAS] == "failure", log
+    assert ficheros == ["data-x.js", "futbolbase.db"], log
+    estado = subprocess.run(["git", "status", "--porcelain", "--ignored", "--", "base/"], cwd=work, env=env,
+                            capture_output=True, text=True, check=True).stdout
+    assert estado == "", estado
+    assert not list((work / "base").glob("*-journal"))
+
+
+def test_tests_yml_compara_las_piezas_con_la_base():
+    """En la fase 1, el aviso diario de que la sombra se ha desviado: tras la suite, montar base/ y compararla
+    con futbolbase.db (con la prueba de la base real partida y montada, PIEZAS_REAL); y un cambio solo en base/
+    lanza tests.yml."""
+    steps = _steps(_load("tests.yml"), "pytest")
+    names = [s.get("name") for s in steps]
+    assert names.index("Las piezas son la base") == names.index("Run Python tests") + 1
+    step = steps[names.index("Las piezas son la base")]
+    assert "python3 scripts/piezas.py comparar --db futbolbase.db --piezas base" in step["run"]
+    assert steps[names.index("Run Python tests")]["env"]["PIEZAS_REAL"] == "1"
+    trig = _triggers(_load("tests.yml"))
+    for event in ("push", "pull_request"):
+        paths = trig[event]["paths"]
+        assert paths.index("base/**") == paths.index("futbolbase.db") + 1, event
+
+
+def test_las_piezas_no_se_suben_sueltas():
+    """.gitignore: el diario de una pieza a medio escribir y la marca de qué piezas dieron la base montada no
+    van a git."""
+    lineas = (ROOT / ".gitignore").read_text(encoding="utf-8").splitlines()
+    assert "base/*.db-journal" in lineas and "/futbolbase.db.piezas" in lineas
 
 
 # ---------------------------------------------------------------- tests.yml
@@ -1092,7 +1267,7 @@ V2_REPO = "malolocabreralolo-tech/futbol-base-v2"
 ACTIVAR_STEPS = ["Checkout", "Set up Python", "Set up Node", "Qué hay pendiente", "Instalar dependencias de test",
                  "Instalar Playwright (federación)", "Catálogo de la temporada", "Descargar lo pendiente",
                  "Subir lo descargado", "Activar", "Cambios en la web", "Base sana (bloquea el commit si falla)",
-                 "Tests Python (bloquean el commit si fallan)",
+                 "Piezas de la base (en sombra)", "Tests Python (bloquean el commit si fallan)",
                  "Tests Node (bloquean el commit si fallan)", "Subir la activación",
                  "Publicar el fallo si las pruebas fallan", "Activación en rojo"]
 PENDING = "steps.pendientes.outputs.ids != ''"
@@ -1226,14 +1401,15 @@ def _repo(tmp_path, files):
 # El catálogo del repositorio de mentira (nunca se lee el vivo: test_catalogo_congelado.py, que busca su nombre).
 FAKE_CATALOG = "scripts/fiflp_comps" + "_catalog.json"
 PUBLISHED = {"data-x.js": "publicado", "index.html": "i", "sw.js": "s", "futbolbase.db": "base",
-             "data-health.json": '{"publicado": true}', FAKE_CATALOG: "{}",
+             "base/comun.db": "pieza", "data-health.json": '{"publicado": true}', FAKE_CATALOG: "{}",
              "scripts/fiflp_islas_22_raw.json": "[]", "docs/temporadas/2026-2027.json": "{}"}
 
 
 def _activation_run(work):
     """Lo que deja una activación en el árbol: la base, lo generado, un data-*.js nuevo, su manifiesto y
     data-health.json con el resultado."""
-    for name, text in (("futbolbase.db", "base activada"), ("data-x.js", "activado"), ("data-y.js", "nuevo"),
+    for name, text in (("futbolbase.db", "base activada"), ("base/comun.db", "pieza activada"),
+                       ("base/actas-2026-2027.db", "pieza nueva"), ("data-x.js", "activado"), ("data-y.js", "nuevo"),
                        ("index.html", "i2"), ("sw.js", "s2"), ("docs/temporadas/2026-2027-auto-20261114.json", "{}"),
                        ("data-health.json", '{"de esta ejecucion": true}')):
         (work / name).write_text(text, encoding="utf-8")
@@ -1328,16 +1504,19 @@ def test_activar_commits_the_data_only_with_green_suites(tmp_path):
     assert step["if"] == "${{ success() && steps.activar.outcome != 'skipped' }}"
     assert names.index("Tests Node (bloquean el commit si fallan)") < names.index("Subir la activación")
     assert step["env"]["DATOS"] == "${{ steps.cambios.outputs.datos }}"
-    for datos, expected in (("true", ["data-health.json", "data-x.js", "data-y.js",
-                                      "docs/temporadas/2026-2027-auto-20261114.json", "futbolbase.db", "index.html",
-                                      "sw.js"]),
-                            ("false", ["data-health.json"])):
-        git, remote, work, env = _repo(tmp_path / datos, PUBLISHED)
+    assert step["env"]["PIEZAS"] == "${{ steps.piezas.outcome }}"
+    datos_sin_piezas = ["data-health.json", "data-x.js", "data-y.js", "docs/temporadas/2026-2027-auto-20261114.json",
+                        "futbolbase.db", "index.html", "sw.js"]
+    for datos, piezas, expected in (
+            ("true", "success", sorted(datos_sin_piezas + ["base/actas-2026-2027.db", "base/comun.db"])),
+            ("true", "failure", datos_sin_piezas),
+            ("false", "skipped", ["data-health.json"])):
+        git, remote, work, env = _repo(tmp_path / f"{datos}-{piezas}", PUBLISHED)
         _activation_run(work)
-        done = subprocess.run(["bash", "-e", "-c", step["run"]], cwd=work, env={**env, "DATOS": datos},
+        done = subprocess.run(["bash", "-e", "-c", step["run"]], cwd=work, env={**env, "DATOS": datos, "PIEZAS": piezas},
                               capture_output=True, text=True, timeout=60)
         assert done.returncode == 0, done.stdout + done.stderr
-        assert _last_commit(git, remote) == expected, datos
+        assert _last_commit(git, remote) == expected, (datos, piezas)
     assert "for vez in 1 2 3" in step["run"] and "git pull --rebase --autostash origin main" in step["run"]
     assert "git rebase --abort" in step["run"]
 
@@ -1371,9 +1550,10 @@ def test_when_the_suites_fail_after_activating_only_the_published_report_goes_up
     published = json.loads(git("show", "main:data-health.json", cwd=remote))
     assert published == {"publicado": True, "activation": {
         "failed": [{"reason": "las pruebas fallaron tras activar"}], "de": {"de esta ejecucion": True}}}, log
-    for name in ("futbolbase.db", "data-x.js", "index.html", "sw.js"):
+    for name in ("futbolbase.db", "data-x.js", "index.html", "sw.js", "base/comun.db"):
         assert (work / name).read_text() == PUBLISHED[name], name
     assert not (work / "data-y.js").exists() and not (work / "docs/temporadas/2026-2027-auto-20261114.json").exists()
+    assert not (work / "base/actas-2026-2027.db").exists(), "las piezas, también como en main"
     assert [l.strip() for l in step["run"].strip().splitlines()][-1] == "exit 1"
     assert re.findall(r"git add .*", step["run"]) == ["git add data-health.json"]
 

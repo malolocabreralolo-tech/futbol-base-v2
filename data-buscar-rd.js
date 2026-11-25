@@ -1,0 +1,1 @@
+const BUSCAR_RD = [["234552","EL MCHIOUT AIT M HAND, RDWAN","CD Teguinte","2026-2027",[2017]]];

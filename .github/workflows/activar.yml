@@ -157,6 +157,23 @@ jobs:
         if: steps.cambios.outputs.datos == 'true'
         run: python3 scripts/base_sana.py --salud
 
+      # Parte D, fase 1 (docs/almacenamiento.md), como en update.yml: la base, partida en sus piezas (base/) y
+      # comprobada en cada activación, en sombra: la fuente de verdad sigue siendo futbolbase.db. Si algo falla
+      # aquí, la activación publica igual y solo no sube las piezas (vuelven a las de main; -x quita también el
+      # diario de una pieza cortada, que al abrirla desharía sobre la de main una transacción de otra). 5 min
+      # de plazo (hoy, ~15 s; con todas las actas, ~1,5 min): colgado, se comería el del job.
+      - name: Piezas de la base (en sombra)
+        id: piezas
+        if: steps.cambios.outputs.datos == 'true' && steps.base.outcome == 'success'
+        continue-on-error: true
+        timeout-minutes: 5
+        run: |
+          python3 scripts/piezas.py partir && python3 scripts/piezas.py verificar || {
+            git checkout -q HEAD -- base/ 2>/dev/null || true
+            git clean -fdqx -- base/
+            exit 1
+          }
+
       # Como en update.yml: los push con GITHUB_TOKEN no lanzan tests.yml, así que las suites van aquí, sobre
       # la web recién activada y antes del commit.
       - name: Tests Python (bloquean el commit si fallan)
@@ -176,12 +193,15 @@ jobs:
         if: ${{ success() && steps.activar.outcome != 'skipped' }}
         env:
           DATOS: ${{ steps.cambios.outputs.datos }}
+          PIEZAS: ${{ steps.piezas.outcome }}
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
           if [ "$DATOS" = true ]; then
             git add 'data-*.js' index.html sw.js futbolbase.db
             git add 'docs/temporadas/*-auto-*.json' 2>/dev/null || true
+            # Las piezas de la base (base/), con ella y solo si salieron iguales a ella, como en update.yml.
+            if [ "$PIEZAS" = success ]; then git add -A base/ || { git reset -q -- base/; echo "las piezas no se suben"; }; fi
           fi
           git add data-health.json
           if git diff --cached --quiet; then
@@ -208,6 +228,9 @@ jobs:
           git checkout HEAD -- futbolbase.db 'data-*.js' index.html sw.js data-health.json
           git checkout HEAD -- 'docs/temporadas/*-auto-*.json' 2>/dev/null || true
           git clean -fq -- 'data-*.js' 'docs/temporadas/*-auto-*.json'
+          # Las piezas, también como en main (las nuevas y los diarios de una cortada, fuera).
+          git checkout HEAD -- base/ 2>/dev/null || true
+          git clean -fdqx -- base/
           python3 scripts/activar_auto.py --pruebas-fallaron "$RUNNER_TEMP/activacion.json"
           git add data-health.json
           if ! git diff --cached --quiet; then

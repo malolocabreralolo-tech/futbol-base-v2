@@ -183,9 +183,10 @@ export function downloadCalendar(matches, options) {
 
 /* ====== Rutas: '#/<pantalla>?<parámetros>' ====== */
 
-export const SCREENS = ['', 'jornada', 'tabla', 'explorar', 'partido', 'equipo', 'ligas', 'copa', 'goleadores', 'temporadas', 'records', 'fuentes', 'ajustes', 'jugador'];
+export const SCREENS = ['', 'jornada', 'tabla', 'explorar', 'partido', 'equipo', 'ligas', 'copa', 'goleadores', 'temporadas', 'records', 'fuentes', 'ajustes', 'jugador', 'ranking'];
 // Orden estable de los parámetros en los enlaces; los que no están aquí van detrás, por orden alfabético.
-const PARAM_ORDER = ['s', 'c', 'i', 'f', 'g', 'r', 'h', 'a', 't', 'v', 'q', 'to'];
+// `y`, el año de nacimiento del ranking, antes que su vista: «#/ranking?y=2018&v=h».
+const PARAM_ORDER = ['s', 'c', 'i', 'f', 'g', 'r', 'h', 'a', 't', 'y', 'v', 'q', 'to'];
 
 export function parseRoute(hash) {
   const m = String(hash ?? '').match(/^#?\/([a-z]*)(?:\?([^#]*))?(?:#.*)?$/);

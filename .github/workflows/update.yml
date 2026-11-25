@@ -106,6 +106,23 @@ jobs:
         if: steps.scrape.outcome == 'success'
         run: python3 scripts/base_sana.py --salud
 
+      # Parte D, fase 1 (docs/almacenamiento.md): la base, partida en sus piezas (base/) y comprobada en cada
+      # pasada, en sombra: la fuente de verdad sigue siendo futbolbase.db. Si algo falla aquí, la pasada publica
+      # igual y solo no sube las piezas (vuelven a las de main; -x quita también el diario de una pieza cortada,
+      # que al abrirla desharía sobre la de main una transacción de otra). 5 min de plazo (hoy tarda ~15 s;
+      # con todas las actas, ~1,5 min): colgado, se comería el del job y la pasada no publicaría.
+      - name: Piezas de la base (en sombra)
+        id: piezas
+        if: steps.base.outcome == 'success'
+        continue-on-error: true
+        timeout-minutes: 5
+        run: |
+          python3 scripts/piezas.py partir && python3 scripts/piezas.py verificar || {
+            git checkout -q HEAD -- base/ 2>/dev/null || true
+            git clean -fdqx -- base/
+            exit 1
+          }
+
       # Los push del bot (GITHUB_TOKEN) NO disparan tests.yml (anti-recursión
       # de GitHub), así que las suites tienen que correr AQUÍ, sobre los datos
       # recién generados y ANTES del commit: si fallan, el job sale rojo y no
@@ -122,6 +139,8 @@ jobs:
 
       - name: Commit y push si hay cambios
         if: success() && steps.scrape.outcome == 'success'
+        env:
+          PIEZAS: ${{ steps.piezas.outcome }}
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
@@ -134,6 +153,9 @@ jobs:
           git add 'data-*.js' index.html sw.js
           if ! git diff --cached --quiet || [ -f "$RUNNER_TEMP/base-cambiada" ]; then
             git add futbolbase.db
+            # Sus piezas (base/), con ella y solo si salieron iguales a ella (paso «Piezas de la base»). Si
+            # añadirlas fallara, se suben la base y lo demás sin ellas.
+            if [ "$PIEZAS" = success ]; then git add -A base/ || { git reset -q -- base/; echo "las piezas no se suben en esta pasada"; }; fi
             # El raw de la app de futbolaspalmas (qué días ya están leídos) va con los datos que ha dado.
             git add 'scripts/fp_app_*_raw.json' 2>/dev/null || true
           fi
