@@ -84,9 +84,10 @@ jobs:
 
       # Una fase nueva son cientos de páginas (una por grupo y jornada) y la federación frena: la descarga para
       # a los 20 min (ISLAS_HASTA; fetch_fiflp_islas.guardar_por_grupo guarda cada grupo al acabarlo) y el
-      # intento siguiente, tras la pasada siguiente del bot, la reanuda. Las dos tandas con la misma lista:
-      # cada una filtra por su categoría (benjamín y prebenjamín; alevín). Nunca para el job: lo descargado se
-      # sube igual.
+      # intento siguiente, tras la pasada siguiente del bot, la reanuda. Solo las tandas con algo pendiente de
+      # sus categorías (activar_auto.py --tandas: '22' benjamín y prebenjamín, '22al' alevín, '22inf', '22cad' y
+      # '22juv' las mayores, en ese orden; nada de una categoría que el bot aún no activa), todas con la misma
+      # lista: cada una filtra por su categoría. Nunca para el job: lo descargado se sube igual.
       - name: Descargar lo pendiente
         id: descarga
         if: steps.pendientes.outputs.ids != ''
@@ -98,7 +99,8 @@ jobs:
           PYTHONUNBUFFERED: '1'
         run: |
           export ISLAS_HASTA=$(( $(date +%s) + 20 * 60 ))
-          for TANDA in "$CODIGO" "${CODIGO}al"; do
+          echo "Tandas de la temporada $CODIGO con algo pendiente: $(python3 scripts/activar_auto.py --tandas)"
+          for TANDA in $(python3 scripts/activar_auto.py --tandas); do
             if [ "$(date +%s)" -ge "$ISLAS_HASTA" ]; then echo "Sin plazo para la tanda $TANDA: el intento siguiente"; break; fi
             ISLAS_SEASON="$TANDA" python3 scripts/fetch_fiflp_islas.py || echo "La tanda $TANDA no acabó: el intento siguiente la reanuda"
           done

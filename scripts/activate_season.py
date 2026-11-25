@@ -21,11 +21,28 @@ from urllib.parse import parse_qs, urlparse
 
 from db import get_connection, PROJECT_ROOT
 import precache
-from categorias import DB_NAME
+from categorias import DB_NAME, MAYORES
 from fetch_futbolaspalmas import fetch, parse_all_matches, parse_standings
 from portal_config import load_config
 
 SOURCE_HOSTS = ("futbolaspalmas.com", "www.fiflp.com")
+# Las islas de un grupo (groups.island). «interinsular» es la del convenio (scripts/convenio.py) para las ligas de
+# varias islas (División de Honor, Autonómica, Interinsular, las de Lanzarote-Fuerteventura): solo existe en las
+# categorías nuevas (categorias.MAYORES). En benjamín, prebenjamín o alevín sería un error de su convenio, y la
+# web de esas categorías no la sabe pintar: sigue sin admitirse.
+ISLAS = ("grancanaria", "lanzarote", "fuerteventura")
+INTERINSULAR = "interinsular"
+
+
+def isla_admitida(cat, island):
+    """¿Admite la activación un grupo de la categoría `cat` (clave de la web: 'cadete') en `island`?"""
+    return island in ISLAS or (island == INTERINSULAR and DB_NAME.get(cat) in MAYORES)
+
+
+def mismas_islas(a, b):
+    """¿Pueden ser del mismo equipo dos conjuntos de islas (las de un nombre en el raw y en la base)? Si comparten
+    alguna, o si una es interinsular: un equipo de una liga interinsular es de una de las islas, la que sea."""
+    return bool(set(a) & set(b)) or INTERINSULAR in a or INTERINSULAR in b
 
 
 def validate_manifest(manifest, current, adding=False):
@@ -51,7 +68,7 @@ def validate_manifest(manifest, current, adding=False):
         codes.add(code)
         if group.get("cat") not in DB_NAME:          # benjamin, prebenjamin, alevin, infantil, cadete, juvenil
             raise ValueError("Categoría no admitida")
-        if group.get("island") not in ["grancanaria", "lanzarote", "fuerteventura"]:
+        if not isla_admitida(group.get("cat"), group.get("island")):
             raise ValueError("Isla no admitida")
         if not group.get("name") or not group.get("phase"):
             raise ValueError("Faltan nombre o fase del grupo")
@@ -541,7 +558,9 @@ def known_names(raw, conn, years=None, keep_existing=False, season=None):
 
     # Un equipo no cambia de isla: un nombre de la base que solo ha jugado en
     # otra isla no es este equipo ('Internacional B' de Lanzarote no es el
-    # filial de un club de Gran Canaria).
+    # filial de un club de Gran Canaria). Una competición interinsular (las mayores:
+    # mismas_islas) es de varias: su equipo puede ser de cualquiera, y uno de la base
+    # que solo ha jugado interinsulares también.
     base_islands = {}
     for name, island in conn.execute(
             """SELECT DISTINCT t.name, g.island FROM teams t JOIN standings st ON st.team_id=t.id
@@ -559,7 +578,7 @@ def known_names(raw, conn, years=None, keep_existing=False, season=None):
 
     def fits(n, canon):
         return (_filial(canon) == _filial(n) and
-                (canon not in base_islands or base_islands[canon] & islands[n]))
+                (canon not in base_islands or mismas_islas(base_islands[canon], islands[n])))
 
     names = {n: n for n in crudos}
     # Lo que no se empareja por palabras: la ficha de la federación de la misma temporada (lo que ya
@@ -637,7 +656,7 @@ def known_names(raw, conn, years=None, keep_existing=False, season=None):
             # un nombre que ya es de otro club de su categoría lo intentan otra vez sin los ocupados.
             for island in sorted({i for key in rest for n in variants[key] for i in islands[n]}):
                 keys = [k for k in rest if unnamed(k) and any(island in islands[n] for n in variants[k])]
-                local = [c for c in candidates if c not in base_islands or island in base_islands[c]]
+                local = [c for c in candidates if c not in base_islands or mismas_islas({island}, base_islands[c])]
                 for key in assign(keys, local):
                     if unnamed(key):
                         assign([key], [c for c in local if free(c, club(variants[key][0]), kinds(key))])
@@ -647,7 +666,7 @@ def known_names(raw, conn, years=None, keep_existing=False, season=None):
     for n in crudos:
         if names[n] == n:
             twin = next((m for m in crudos if names[m] != m and _same_team(club(n), club(m))
-                         and islands[n] & islands[m]), None)
+                         and mismas_islas(islands[n], islands[m])), None)
             if twin:
                 names[n] = names[twin]
 
@@ -658,7 +677,7 @@ def known_names(raw, conn, years=None, keep_existing=False, season=None):
         if not letter or n in fixed:
             continue
         core = team_key(n)[0]
-        own = [f for f in firsts if team_key(f)[0] == core and islands[f] & islands[n]]
+        own = [f for f in firsts if team_key(f)[0] == core and mismas_islas(islands[f], islands[n])]
         same = {names[f] for f in own}
         near = [f for f in firsts if team_score((core, ""), (team_key(f)[0], "")) >= MIN_TEAM_SCORE]
         # Un filial va con su club. Si su primer equipo ya tiene nombre de la base, el filial es el de su

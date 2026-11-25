@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       temporada:
-        description: 'Tanda: 17/18/19 (islas), 17gc/18gc/19gc (Gran Canaria), 20 (copas Cabildo LZ), 22 (2026-27 benjamín y prebenjamín), 22al (2026-27 alevín de Gran Canaria)'
+        description: 'Tanda: 17/18/19 (islas), 17gc/18gc/19gc (Gran Canaria), 20 (copas Cabildo LZ), 22 (2026-27 benjamín y prebenjamín), 22al (2026-27 alevín de Gran Canaria), 22inf/22cad/22juv (2026-27 infantil, cadete, juvenil)'
         required: true
         default: '19'
       ids:

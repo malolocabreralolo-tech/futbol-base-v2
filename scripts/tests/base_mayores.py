@@ -13,7 +13,8 @@ funciones, donde se puede sin navegador:
 
   1. la activación (como activar_auto.activar, por competición): un raw sintético con la forma del de
      fetch_fiflp_islas (por categoría, tres competiciones de 2026-27 con convenio: una liga de Gran Canaria con
-     dos grupos, una liga de Lanzarote y una copa a eliminatorias), su manifiesto con fiflp_manifest.build (con
+     dos grupos, una liga de Lanzarote y una copa a eliminatorias; en cadete, además, la liga interinsular, con
+     equipos de Gran Canaria y de Lanzarote), su manifiesto con fiflp_manifest.build (con
      los códigos que ya tiene la temporada en `taken`), activate_season.validate_manifest, los nombres de los
      equipos con activate_season.raw_team_names, la verificación con verify_sources y el alta con add_groups;
   2. la pasada del carril (lo que escribe update_fiflp de cada grupo): la jornada y la clasificación con
@@ -50,16 +51,17 @@ if str(SCRIPTS) not in sys.path:
 from categorias import MAYORES  # noqa: E402
 
 SEMILLA = 20261125
-# Por categoría: (competición del catálogo, isla, grupos, copa). Tres por categoría, todas con convenio y de una
-# isla que la activación admite (activate_season.validate_manifest: las interinsulares, todavía no, ver
-# docs/superpowers/plans/2026-11-25-ampliacion-e1-categorias-datos.md, tarea 8).
+# Por categoría: (competición del catálogo, isla, grupos, copa). Tres por categoría, todas con convenio, y en cadete
+# además la liga interinsular (isla «interinsular», que la activación admite solo en las categorías nuevas desde la
+# tarea 8 de la parte E1: activate_season.isla_admitida), con equipos de Gran Canaria y de Lanzarote.
 COMPETICIONES = {
     "INFANTIL": (("LIGA PRIMERA INFANTIL DE GRAN CANARIA", "grancanaria", 2, False),
                  ("LIGA INFANTIL LANZAROTE FASE 1", "lanzarote", 1, False),
                  ("COPA CAMPEONES INFANTIL", "grancanaria", 1, True)),
     "CADETE": (("LIGA CADETE INSULAR GRAN CANARIA 1ª FASE", "grancanaria", 2, False),
                ("LIGA CADETE INSULAR DE LANZAROTE", "lanzarote", 1, False),
-               ("COPA CADETE INSULAR DE LANZAROTE", "lanzarote", 1, True)),
+               ("COPA CADETE INSULAR DE LANZAROTE", "lanzarote", 1, True),
+               ("LIGA CADETE INTERINSULAR", "interinsular", 1, False)),
     "JUVENIL": (("LIGA SEGUNDA JUVENIL GRAN CANARIA", "grancanaria", 2, False),
                 ("LIGA JUVENIL PREFERENTE LANZAROTE", "lanzarote", 1, False),
                 ("COPA JUVENIL PREFERENTE FUERTEVENTURA", "fuerteventura", 1, True)),
@@ -192,8 +194,13 @@ class _Fabrica:
         return f"PRUEBA MAYORES {self.club_nuevo:02d}, C.D."
 
     def equipos_de(self, isla, n, con_sin_id=False):
-        """`n` equipos de la isla (los de la base, sin repetir dentro de una competición) y uno nuevo."""
-        lista = self.equipos.get(isla) or self.equipos["grancanaria"]
+        """`n` equipos de la isla (los de la base, sin repetir dentro de una competición) y uno nuevo. De una
+        interinsular, de Gran Canaria y de Lanzarote, alternos."""
+        if isla == "interinsular":
+            gc, lz = self.equipos["grancanaria"], self.equipos.get("lanzarote") or self.equipos["grancanaria"]
+            lista = [t for par in zip(gc[len(gc) // 2:], lz[len(lz) // 2:]) for t in par]
+        else:
+            lista = self.equipos.get(isla) or self.equipos["grancanaria"]
         fijos = []
         if con_sin_id:
             fijos = [(tid, fed) for tid, fed, _ in self.sin_id[:2]]
