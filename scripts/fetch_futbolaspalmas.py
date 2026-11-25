@@ -929,6 +929,19 @@ def importar_mygol(conn, registro=print):
         registro(f"  ! MyGol: {type(e).__name__}: {e}")
 
 
+def enlazar_mygol(conn, registro=print):
+    """Qué niño de la liga de escuelas es qué ficha (enlace_mygol, docs/mygol.md): rehace mygol_enlaces con las
+    fichas recién resueltas. Como importar_mygol, un fallo nunca para la pasada: se deshace lo que dejara a
+    medias, se apunta y se sigue (la web sale sin las escuelas que cambiaran, nunca sin publicar)."""
+    registro("\nLiga de escuelas de MyGol: los niños enlazados con su ficha")
+    try:
+        import enlace_mygol
+        enlace_mygol.guardar_enlaces(conn, registro=registro)
+    except Exception as e:
+        conn.rollback()
+        registro(f"  ! MyGol (enlaces): {type(e).__name__}: {e}")
+
+
 def main():
     conn = get_connection()
     init_db(conn)
@@ -976,6 +989,8 @@ def main():
         # Las fichas, una vez, con todas las actas importadas y los jugadores sin uso ya podados (el último
         # paso de import_past_seasons). Un fallo para la pasada: no se publican fichas a medias.
         migrate_identidad.resolver_fichas(conn)
+        # Con las fichas ya resueltas: cada enlace va a la principal de su ficha de esta pasada.
+        enlazar_mygol(conn)
         from generate_js import main as generate_main
         generate_main()
         failed = False

@@ -72,8 +72,11 @@ def _choca(grupo) -> bool:
 
 def enlazar(ninos: Iterable[Nino], fichas: Iterable[Ficha]) -> dict[int, int]:
     """{id de MyGol: id de la ficha} de los niños que se pueden enlazar con seguridad (la regla de arriba),
-    en orden de id de MyGol. No depende del orden de entrada."""
-    ninos = sorted(set(ninos), key=lambda n: n.id)
+    en orden de id de MyGol. No depende del orden de entrada.
+
+    Un id de MyGol que sale en dos torneos (dos categorías, o, rara vez, dos temporadas con el mismo id) es un
+    Nino por cada uno: se enlaza solo si todos ellos llevan a la misma ficha, porque el enlace es del id."""
+    ninos = sorted(set(ninos), key=lambda n: (n.id, n.temporada, n.categoria or "", n.norm, sorted(n.clubes)))
     # Las fichas de cada nombre (un nombre en dos identidades de la misma ficha cuenta una vez).
     por_nombre: dict[str, set[int]] = {}
     anios: dict[int, tuple[int, ...]] = {}
@@ -86,8 +89,9 @@ def enlazar(ninos: Iterable[Nino], fichas: Iterable[Ficha]) -> dict[int, int]:
     for n in ninos:
         mismo_nombre.setdefault((n.temporada, n.norm), []).append(n)
     dos_ninos = {k for k, grupo in mismo_nombre.items() if _choca(grupo)}
-    candidatos: dict[int, int] = {}
+    candidatos: dict[Nino, int | None] = {}
     for n in ninos:
+        candidatos[n] = None
         if not nombre_completo(n.norm) or (n.temporada, n.norm) in dos_ninos:
             continue
         unica = por_nombre.get(n.norm, set())
@@ -95,12 +99,130 @@ def enlazar(ninos: Iterable[Nino], fichas: Iterable[Ficha]) -> dict[int, int]:
             continue                    # 3: ninguna ficha, o dos (la duda)
         (fid,) = unica
         if edad_compatible(anios[fid], n.temporada, n.categoria):
-            candidatos[n.id] = fid
+            candidatos[n] = fid
     # 5: dos niños de la misma temporada en clubes sin nada en común no pueden ser la misma ficha; como no
     # se sabe cuál de los dos lo es, se quitan todos los de esa ficha y esa temporada.
     por_ficha: dict[tuple[int, int], list[Nino]] = {}
-    for n in ninos:
-        if n.id in candidatos:
-            por_ficha.setdefault((candidatos[n.id], n.temporada), []).append(n)
-    fuera = {n.id for grupo in por_ficha.values() if _choca(grupo) for n in grupo}
-    return {i: fid for i, fid in candidatos.items() if i not in fuera}
+    for n, fid in candidatos.items():
+        if fid is not None:
+            por_ficha.setdefault((fid, n.temporada), []).append(n)
+    for grupo in por_ficha.values():
+        if _choca(grupo):
+            for n in grupo:
+                candidatos[n] = None
+    # Por id: todos sus torneos a la misma ficha, o nada.
+    por_id: dict[int, set[int | None]] = {}
+    for n, fid in candidatos.items():
+        por_id.setdefault(n.id, set()).add(fid)
+    return {i: next(iter(fids)) for i, fids in por_id.items() if len(fids) == 1 and None not in fids}
+
+
+# ---------------------------------------------------------------------------
+# Con base: los enlaces en mygol_enlaces, rehechos en cada pasada del bot
+# ---------------------------------------------------------------------------
+
+# Las tablas de MyGol que hacen falta (las de import_mygol): sin alguna, no hay nada que enlazar.
+TABLAS_MYGOL = ("mygol_torneos", "mygol_equipos", "mygol_jugadores", "mygol_partidos", "mygol_participaciones")
+# Derivada: se rehace entera en cada pasada con las fichas de ese momento (como players.ficha_id), así que
+# sigue a la ficha si el resolvedor le cambia la principal. jugador_id, el de mygol_jugadores; player_id, el
+# players.id de la principal de su ficha.
+ESQUEMA = """CREATE TABLE IF NOT EXISTS mygol_enlaces (
+    jugador_id INTEGER PRIMARY KEY, player_id INTEGER NOT NULL)"""
+
+
+def _tablas(conn) -> set[str]:
+    return {n for (n,) in conn.execute("SELECT name FROM sqlite_master WHERE type = 'table'")}
+
+
+def ninos_de(conn) -> list[Nino]:
+    """Los niños de MyGol de la base: uno por id y torneo (temporada y categoría), con los clubes de los
+    equipos en los que sale en él. Sin las tablas mygol_*, []."""
+    from identidad import club
+    if not set(TABLAS_MYGOL) <= _tablas(conn):
+        return []
+    clubes: dict[tuple, set[str]] = {}
+    for jid, norm, temporada, categoria, equipo in conn.execute("""
+            SELECT j.id, j.norm, t.temporada, t.categoria, e.nombre
+              FROM mygol_participaciones p JOIN mygol_jugadores j ON j.id = p.jugador_id
+              JOIN mygol_partidos m ON m.id = p.partido_id JOIN mygol_torneos t ON t.id = m.torneo_id
+              LEFT JOIN mygol_equipos e ON e.id = p.equipo_id
+             GROUP BY j.id, t.temporada, t.categoria, p.equipo_id"""):
+        try:
+            anio = int(str(temporada)[:4])
+        except ValueError:
+            continue                    # una temporada que no se entiende: ese torneo no cuenta
+        suyos = clubes.setdefault((jid, norm or "", anio, categoria.lower() if categoria else None), set())
+        # Un equipo sin nombre no da club: sin ninguno, el niño no comparte club con nadie (la prudencia).
+        if equipo and club(equipo):
+            suyos.add(club(equipo))
+    return [Nino(id=jid, norm=norm, temporada=anio, categoria=cat, clubes=frozenset(cs))
+            for (jid, norm, anio, cat), cs in sorted(clubes.items(), key=lambda kv: (kv[0][0], kv[0][2],
+                                                                                    kv[0][3] or ""))]
+
+
+def fichas_de(conn) -> list[Ficha]:
+    """Las fichas de la federación (generate_js._fichas): todas, publicadas o no (una más con el mismo nombre
+    es una duda más), con los nombres de todas sus identidades y el año de nacimiento estimado SOLO con sus
+    apariciones federadas: el que publicaría el generador sin la escuela (sin los años confirmados a mano). Si
+    contara la escuela, el enlace dependería de sí mismo. Sin players.fiflp_id (una base sin migrar), []."""
+    import generate_js as G
+    from nacimiento import estimar
+    if not any(r[1] == "fiflp_id" for r in conn.execute("PRAGMA table_info(players)")):
+        return []
+    f = G._fichas(conn)
+    nombres: dict[int, set[str]] = {}
+    for pid, principal in f["ficha"].items():
+        nombre = f["nombre"].get(pid) or ""
+        suyos = nombres.setdefault(principal, set())
+        if nombre and not nombre.startswith("#"):
+            suyos.add(nombre)
+    # Una observación por temporada y categoría con los partidos de todas sus identidades: la misma cuenta que
+    # hace generate_js._datos_fichas (con los mismos JOIN), sin la consulta grande.
+    partidos: dict[int, dict[tuple[int, str], int]] = {}
+    for pid, anio, categoria, pj in conn.execute("""
+            SELECT a.player_id, s.start_year, LOWER(c.name), COUNT(*)
+              FROM appearances a JOIN players p ON p.id = a.player_id
+              JOIN matches m ON m.id = a.match_id JOIN groups g ON g.id = m.group_id
+              JOIN seasons s ON s.id = g.season_id JOIN teams t ON t.id = a.team_id
+              JOIN categories c ON c.id = g.category_id
+             GROUP BY a.player_id, s.start_year, LOWER(c.name)"""):
+        principal = f["ficha"].get(pid)
+        if principal not in f["publicadas"]:
+            continue
+        suyas = partidos.setdefault(principal, {})
+        suyas[(anio, categoria)] = suyas.get((anio, categoria), 0) + pj
+    return [Ficha(id=p, nombres=frozenset(ns),
+                  anios=estimar((y, c, n) for (y, c), n in partidos.get(p, {}).items()))
+            for p, ns in sorted(nombres.items())]
+
+
+def guardar_enlaces(conn, registro=print) -> int:
+    """Rehace mygol_enlaces entera con lo que diga enlazar, en un SAVEPOINT (si algo falla, queda como
+    estaba). Si el contenido no cambia, no escribe nada (una pasada sin cambios no ensucia la base). Sin las
+    tablas mygol_*, no crea nada (y vacía la de enlaces si quedaba alguna de antes). Devuelve cuántos hay."""
+    tablas = _tablas(conn)
+    nuevos = enlazar(ninos_de(conn), fichas_de(conn)) if set(TABLAS_MYGOL) <= tablas else None
+    if nuevos is None and "mygol_enlaces" not in tablas:
+        return 0
+    if "mygol_enlaces" not in tablas:
+        conn.execute(ESQUEMA)
+    nuevos = nuevos or {}
+    actuales = dict(conn.execute("SELECT jugador_id, player_id FROM mygol_enlaces"))
+    fichas = len(set(nuevos.values()))
+    if actuales == nuevos:
+        registro(f"  MyGol (enlaces): {len(nuevos)} niños enlazados con {fichas} fichas, sin cambios")
+        return len(nuevos)
+    try:
+        conn.execute("SAVEPOINT enlace_mygol")
+        conn.execute("DELETE FROM mygol_enlaces")
+        conn.executemany("INSERT INTO mygol_enlaces VALUES (?, ?)", sorted(nuevos.items()))
+        conn.execute("RELEASE SAVEPOINT enlace_mygol")
+    except BaseException:
+        conn.execute("ROLLBACK TO SAVEPOINT enlace_mygol")
+        conn.execute("RELEASE SAVEPOINT enlace_mygol")
+        raise
+    conn.commit()
+    registro(f"  MyGol (enlaces): {len(nuevos)} niños enlazados con {fichas} fichas "
+             f"({len(set(nuevos.items()) - set(actuales.items()))} nuevos o cambiados, "
+             f"{len(set(actuales) - set(nuevos))} quitados)")
+    return len(nuevos)
