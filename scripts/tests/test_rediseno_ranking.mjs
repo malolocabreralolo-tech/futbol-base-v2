@@ -141,7 +141,7 @@ test('«Cómo se calcula», bajo la lista, con su texto', () => {
   const out = render({ y: '2018' });
   const how = out.match(/<details class="rank-how"><summary>Cómo se calcula<\/summary><p>([^<]+)<\/p><\/details>/);
   assert.ok(how, 'falta el desplegable');
-  assert.equal(how[1], 'El índice compara los goles por partido de cada niño con la media de su categoría (100 es la media). Cuenta más marcar en una liga de más nivel y hacerlo siendo de los pequeños de la categoría o jugando con los mayores, y se corrige a quien ha jugado pocos partidos. Sale solo de las actas de la federación: no hay minutos, ni se sabe quién es portero o defensa, así que favorece a quien marca. El año de nacimiento es una estimación por las categorías en las que ha jugado; quien puede ser de dos años sale en los dos.');
+  assert.equal(how[1], 'El índice compara los goles por partido de cada niño con la media de su categoría (100 es la media). Un gol vale más si el rival encaja poco, si la liga es de más nivel y si su equipo es de los de arriba de su grupo, y también si el niño es de los pequeños de la categoría o juega con los mayores. Se corrige a quien ha jugado pocos partidos. Sale solo de las actas de la federación: no hay minutos, ni se sabe quién es portero o defensa, así que favorece a quien marca. El año de nacimiento es una estimación por las categorías en las que ha jugado; quien puede ser de dos años sale en los dos.');
   assert.ok(out.indexOf('rank-how') > out.indexOf('</table>'));
   // También con la lista vacía.
   assert.match(render({ y: '2012' }), /<summary>Cómo se calcula<\/summary>/);

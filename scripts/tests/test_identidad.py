@@ -156,9 +156,9 @@ def test_clave_sin_id_es_el_sha1_en_base_36():
         cifras = "0123456789abcdefghijklmnopqrstuvwxyz"[resto] + cifras
     assert clave == "n" + cifras.rjust(31, "0")[:9]
     assert len(clave) == 10 and clave[1:].isalnum() and clave[1:] == clave[1:].lower()
-    assert trozo(clave) == int(clave[1:], 36) % 16
+    assert trozo(clave) == int(clave[1:], 36) % 64          # por defecto, los 64 de la web
     assert trozo(clave, 4) == int(clave[1:], 36) % 4
-    assert trozo("214080") == 214080 % 16
+    assert trozo("214080") == 214080 % 64
 
 
 # ---------------------------------------------------------------------------

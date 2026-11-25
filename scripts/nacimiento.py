@@ -10,7 +10,8 @@ tiempo es habitual; quedarse en una de pequeños siendo demasiado mayor, raro), 
 Por eso cada observación no descarta un año, lo hace menos verosímil (`verosimilitud`), y `estimar` suma
 los logaritmos de todas, pesando cada una por sus partidos: dos partidos sueltos con los mayores no pesan
 lo que una temporada entera. Se devuelven los años que quedan cerca del mejor (a menos de RAZON veces), de
-uno a tres: con uno, el año es seguro; con dos o tres, la web lo marca como dudoso.
+uno a tres: con uno, la web enseña ese año como estimado; con dos o tres, los enseña todos. Seguro solo es
+el año confirmado a mano (scripts/anios_confirmados.json), que no pasa por aquí.
 """
 import math
 from typing import Iterable

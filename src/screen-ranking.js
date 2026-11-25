@@ -19,7 +19,7 @@ const viewOf = (params) => (params && params.v === 'h' ? 'h' : 't');
 const otherView = (v) => (v === 'h' ? 't' : 'h');
 const hrefFor = (y, v) => routeHref('ranking', { y: y || '', v: v === 'h' ? 'h' : '' });
 
-const HOW = 'El índice compara los goles por partido de cada niño con la media de su categoría (100 es la media). Cuenta más marcar en una liga de más nivel y hacerlo siendo de los pequeños de la categoría o jugando con los mayores, y se corrige a quien ha jugado pocos partidos. Sale solo de las actas de la federación: no hay minutos, ni se sabe quién es portero o defensa, así que favorece a quien marca. El año de nacimiento es una estimación por las categorías en las que ha jugado; quien puede ser de dos años sale en los dos.';
+const HOW = 'El índice compara los goles por partido de cada niño con la media de su categoría (100 es la media). Un gol vale más si el rival encaja poco, si la liga es de más nivel y si su equipo es de los de arriba de su grupo, y también si el niño es de los pequeños de la categoría o juega con los mayores. Se corrige a quien ha jugado pocos partidos. Sale solo de las actas de la federación: no hay minutos, ni se sabe quién es portero o defensa, así que favorece a quien marca. El año de nacimiento es una estimación por las categorías en las que ha jugado; quien puede ser de dos años sale en los dos.';
 
 // Los años de data-ranking.js, de más joven a más mayor: [{ year, t, h }], con cuántos tiene cada vista.
 function yearsOf(ranking) {

@@ -10,15 +10,21 @@ en palabras de cualquiera. Las fórmulas exactas están en `scripts/ranking.py` 
 Mide **los goles**. Compara lo que marca cada niño con lo que marca un niño normal de su categoría, en la
 misma temporada.
 
-- **100 es la media.** Un niño que marca lo normal, en una liga normal y siendo de los mayores de su
-  categoría, tiene 100.
+- **100 es la media.** Un niño que marca lo normal, a rivales normales, en una liga normal de Gran Canaria
+  y siendo de los mayores de su categoría, tiene cerca de 100: el puesto de su equipo lo mueve un poco
+  arriba o abajo.
 - **200 es el doble de la media.** Y así.
 
-Hay tres cosas que suben el índice:
+Es más difícil destacar en un equipo bueno y en una liga buena que en un equipo malo y en una liga mala.
+Por eso **un gol no vale lo mismo en todas partes**. Hay cinco cosas que suben el índice:
 
 1. **Marcar mucho por partido.**
-2. **Marcar en una liga de más nivel.** Marcar en la Segunda Fase A vale más que en la E.
-3. **Marcar siendo pequeño.** Vale más si el niño es de los pequeños de su categoría, o si juega con los
+2. **Marcar a rivales que encajan poco.** Un gol al equipo que menos encaja de su grupo vale más que uno
+   al que lo encaja todo.
+3. **Marcar en una liga de más nivel.** Marcar en la Segunda Fase A vale más que en la E, y en Gran Canaria
+   más que en Lanzarote o Fuerteventura.
+4. **Marcar en un equipo de los de arriba.** Su equipo es de los primeros de su grupo.
+5. **Marcar siendo pequeño.** Vale más si el niño es de los pequeños de su categoría, o si juega con los
    mayores.
 
 Y hay una corrección para quien ha jugado **pocos partidos**: así, tres goles en un partido no ponen a
@@ -26,12 +32,15 @@ nadie primero.
 
 ## La fórmula, con un ejemplo
 
-Para cada temporada en la que ha jugado el niño:
+Primero, cada gol se multiplica por **el peso de su rival** en ese partido (la tabla de más abajo). La suma
+son sus **goles por rival**. Después, para cada temporada y cada grupo en el que ha jugado el niño:
 
-> goles que cuentan = goles ÷ media de la categoría × nivel de la liga × premio por edad
+> goles que cuentan = goles por rival ÷ media de la categoría × nivel de la liga × nivel de la isla × nivel
+> del equipo × premio por edad
 
 La **media de la categoría** es lo que marca un niño normal en un partido de esa categoría y esa temporada.
-Se calcula con todas las actas: todos los goles entre todos los partidos jugados por todos los niños.
+Se calcula con todas las actas: todos los goles (los de verdad, sin el peso del rival) entre todos los
+partidos jugados por todos los niños.
 
 Después se suma todo y se aplica la corrección de los pocos partidos:
 
@@ -41,19 +50,42 @@ Los **6** son la corrección. Es como si a todos se les sumaran 6 partidos marca
 muchos partidos, esos 6 casi no se notan. Con pocos, el índice se queda cerca de 100.
 
 **Ejemplo, con números inventados.** Un niño nacido en 2017 juega en benjamín la temporada 2025-26, en la
-Segunda Fase B. Juega 20 partidos y marca 15 goles. La media de benjamín ese año es 0,25 goles por partido.
+Segunda Fase B de Gran Canaria, en el equipo que va primero de su grupo. Juega 20 partidos y marca 15
+goles: 10 a rivales que encajan lo normal y 5 al que menos encaja del grupo. La media de benjamín ese año
+es 0,25 goles por partido.
 
-- Goles frente a la media: 15 ÷ 0,25 = 60. Es decir, ha marcado lo que 60 partidos de un niño normal.
-- Nivel de la Segunda Fase B: × 1,15, que da 69.
-- Nacido en 2017, es de los pequeños de benjamín ese año: × 1,10, que da 75,9.
-- Índice: 100 × (75,9 + 6) ÷ (20 + 6) = **315**.
+- Goles por rival: 10 × 1 + 5 × 1,5 = 17,5.
+- Frente a la media: 17,5 ÷ 0,25 = 70. Es decir, ha marcado lo que 70 partidos de un niño normal.
+- Nivel de la Segunda Fase B: × 1,15, que da 80,5. Gran Canaria: × 1,00.
+- Su equipo es el primero: × 1,15, que da 92,6.
+- Nacido en 2017, es de los pequeños de benjamín ese año: × 1,10, que da 101,8.
+- Índice: 100 × (101,8 + 6) ÷ (20 + 6) = **415**.
 
-Otro niño, de los mayores, en una liga normal, marca 3 goles en 3 partidos:
+Otro niño, de los mayores, en una liga normal de Gran Canaria y en un equipo de mitad de tabla, marca 3
+goles en 3 partidos a rivales normales:
 
-- 3 ÷ 0,25 = 12.
-- Índice: 100 × (12 + 6) ÷ (3 + 6) = **200**.
+- 3 ÷ 0,25 = 12; mitad de tabla, × 1,025: 12,3.
+- Índice: 100 × (12,3 + 6) ÷ (3 + 6) = **203**.
 
 Marca muchísimo por partido, pero ha jugado tan poco que la corrección lo frena.
+
+## El peso del rival
+
+Se mira **cuántos goles encaja el rival por partido en ese grupo**, frente a lo que se encaja de media en el
+grupo (todos los goles del grupo entre dos veces sus partidos). Un gol vale lo que se encaja de media
+dividido entre lo que encaja el rival, con un mínimo de 0,5 y un máximo de 1,5. Por ejemplo, en un grupo donde se encajan 2 goles por
+partido de media:
+
+| El rival encaja por partido | Un gol vale |
+|---|---|
+| Ninguno, o 1,3 o menos | × 1,50 |
+| 1,6 | × 1,25 |
+| 2,0 (la media) | × 1,00 |
+| 2,5 | × 0,80 |
+| 4,0 o más | × 0,50 |
+
+Un rival con **menos de 3 partidos** con marcador en el grupo todavía no dice nada: el gol vale × 1,00. Pasa
+en las copas cortas y al principio de cada temporada.
 
 ## El nivel de la liga
 
@@ -75,6 +107,33 @@ Si la Copa de Campeones lleva letra (A a E), vale lo mismo que esa letra en la S
 
 Una copa que lleva «Preferente» en medio del nombre (por ejemplo, «Copa Cabildo Preferente Lanzarote») no
 cuenta como Preferente: vale 1,00, porque en una copa se mezclan equipos de varios niveles.
+
+Y se multiplica por **el nivel de la isla** del grupo:
+
+| Isla | Nivel |
+|---|---|
+| Gran Canaria | 1,00 |
+| Lanzarote | 0,85 |
+| Fuerteventura | 0,85 |
+
+Así, la Preferente de Lanzarote vale 1,25 × 0,85 = 1,06.
+
+## El nivel del equipo
+
+Se ordenan los equipos del grupo por **puntos por partido** (a igualdad, por diferencia de goles por
+partido). El primero vale × 1,15 y el último × 0,90; los demás, en medio, según su puesto. En un grupo de
+cinco:
+
+| Puesto | Nivel |
+|---|---|
+| 1.º | 1,15 |
+| 2.º | 1,0875 |
+| 3.º | 1,025 |
+| 4.º | 0,9625 |
+| 5.º | 0,90 |
+
+Solo cuentan los equipos con **3 partidos o más** con marcador. Un equipo con menos, o un grupo en el que
+solo hay uno que llegue, vale × 1,00 (pasa en las copas cortas y al principio de la temporada).
 
 ## El premio por edad
 
@@ -177,7 +236,10 @@ más. Por eso:
   no autoriza el nombre). Esos goles no se pueden dar a ningún niño.
 - **Solo cuentan los partidos con acta**, desde la temporada **2019-20**. Lo que se jugó antes, o los
   partidos sin acta, no cuentan.
-- **Un rival flojo no descuenta.** Un gol a un equipo que lo pierde todo vale lo mismo que a uno fuerte de
-  la misma liga. Solo cuenta el nivel de la liga, no el del rival.
+- **El nivel de las islas es una apreciación fija**, no una medida. Lanzarote y Fuerteventura valen 0,85
+  porque sus ligas tienen menos equipos y menos nivel, pero los equipos de islas distintas casi nunca juegan
+  entre sí, así que las actas no dejan medirlo.
+- **El rival se mide dentro de su grupo.** Un rival que encaja poco en una liga floja pesa como uno que
+  encaja poco en una fuerte; la diferencia entre ligas la pone el nivel de la liga.
 - **El año es una estimación.** Un niño mal estimado sale en un año que no es el suyo. Por eso existe la
   marca de año dudoso, y la forma de confirmarlo de arriba.

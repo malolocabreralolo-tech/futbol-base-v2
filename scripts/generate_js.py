@@ -1040,6 +1040,59 @@ def anios_confirmados(path=None):
     return out
 
 
+def _rival_y_puesto(conn):
+    """Lo que el ranking necesita de las tablas de cada grupo (ranking.peso_rival, ranking.nivel_equipo),
+    sacado de los partidos con marcador (uno fuera de [0, MAX_SANE_SCORE] es un dato roto: no cuenta):
+    ([(partido, equipo, peso de un gol de ese equipo en ese partido), ...], {(grupo, equipo): percentil}).
+
+    El peso es el de su rival: lo que encaja por partido en el grupo (None con menos de MIN_PARTIDOS_EQUIPO
+    partidos) frente a la media del grupo (sus goles entre dos veces sus partidos: lo que encaja un equipo
+    por partido de media); redondeado a 4 cifras y solo si no es 1. El percentil: entre los equipos del
+    grupo con MIN_PARTIDOS_EQUIPO partidos o más, por puntos por partido (a igualdad, diferencia de goles
+    por partido y el id del equipo, para que sea determinista), 1 el primero y 0 el último, lineal por
+    puesto; sin percentil los de menos partidos y los de un grupo con menos de dos equipos que cuenten."""
+    import ranking as R
+    tabla = {}                       # (grupo, equipo) → [partidos, a favor, en contra, puntos]
+    goles, jugados = {}, {}          # grupo → goles y partidos con marcador
+    partidos = conn.execute("SELECT id, group_id, home_team_id, away_team_id, home_score, away_score "
+                            "FROM matches ORDER BY id").fetchall()
+    for _mid, gid, local, visitante, gl, gv in partidos:
+        if local == visitante or gl is None or gv is None:
+            continue
+        if not (0 <= gl <= MAX_SANE_SCORE and 0 <= gv <= MAX_SANE_SCORE):
+            continue
+        goles[gid] = goles.get(gid, 0) + gl + gv
+        jugados[gid] = jugados.get(gid, 0) + 1
+        for equipo, a_favor, en_contra in ((local, gl, gv), (visitante, gv, gl)):
+            fila = tabla.setdefault((gid, equipo), [0, 0, 0, 0])
+            fila[0] += 1
+            fila[1] += a_favor
+            fila[2] += en_contra
+            fila[3] += 3 if a_favor > en_contra else 1 if a_favor == en_contra else 0
+    media = {gid: goles[gid] / (2 * n) for gid, n in jugados.items()}
+    cuentan = {k: v for k, v in tabla.items() if v[0] >= R.MIN_PARTIDOS_EQUIPO}
+    encajados = {k: v[2] / v[0] for k, v in cuentan.items()}
+    por_grupo = {}
+    for (gid, equipo), (pj, gf, gc, pts) in cuentan.items():
+        por_grupo.setdefault(gid, []).append((-pts / pj, -(gf - gc) / pj, equipo))
+    percentil = {}
+    for gid, equipos in por_grupo.items():
+        if len(equipos) < 2:
+            continue
+        equipos.sort()
+        for puesto, (_, _, equipo) in enumerate(equipos, 1):
+            percentil[(gid, equipo)] = 1 - (puesto - 1) / (len(equipos) - 1)
+    pesos = []
+    for mid, gid, local, visitante, _, _ in partidos:
+        if local == visitante:
+            continue
+        for equipo, rival in ((local, visitante), (visitante, local)):
+            peso = round(R.peso_rival(encajados.get((gid, rival)), media.get(gid)), 4)
+            if peso != 1.0:
+                pesos.append((mid, equipo, peso))
+    return pesos, percentil
+
+
 def _datos_fichas(conn, confirmados=None):
     """Lo que comparten jugadores_files, buscar_files y ranking_files, sacado de una sola pasada por las
     apariciones (la consulta grande): main() lo calcula una vez y se lo pasa a las tres; cada una, llamada
@@ -1047,7 +1100,10 @@ def _datos_fichas(conn, confirmados=None):
 
     "filas": {principal: [(clave de orden, fila publicada, grupo, fila del ranking), ...]} en orden de
     temporada y de primer día del grupo (a igualdad, la de la principal antes); la fila del ranking es
-    (año de inicio, categoría en minúsculas, fase, partidos, titular, goles, temporada, equipo).
+    (año de inicio, categoría en minúsculas, fase, partidos, titular, goles, goles por rival, isla,
+    percentil, temporada, equipo): las nueve primeras, una ranking.Fila. Los goles por rival, la suma
+    aparición a aparición de sus goles por el peso de su rival en ese partido (_rival_y_puesto), con 4
+    cifras.
     "anios": {principal: (años, confirmado)}, los de nacimiento.estimar con todas sus filas o el
     confirmado (anios_confirmados, o `confirmados` si se pasa) de su clave o de uno de sus alias."""
     if not any(r[1] == "fiflp_id" for r in conn.execute("PRAGMA table_info(players)")):
@@ -1062,18 +1118,31 @@ def _datos_fichas(conn, confirmados=None):
         iso = _season_day(day, start)
         if iso and (gid not in first_day or iso < first_day[gid]):
             first_day[gid] = iso
+    # El peso de cada gol por su rival va en una tabla temporal, para sumarlo en la misma consulta grande
+    # (aparición a aparición en Python serían 400.000 vueltas). Sin fila, el gol vale 1.
+    pesos, percentil = _rival_y_puesto(conn)
+    abierta = conn.in_transaction            # lo que el que llama tuviera a medias no se confirma aquí
+    conn.execute("DROP TABLE IF EXISTS temp._peso_rival")
+    conn.execute("CREATE TEMP TABLE _peso_rival (match_id INTEGER, team_id INTEGER, peso REAL, "
+                 "PRIMARY KEY (match_id, team_id))")
+    conn.executemany("INSERT INTO temp._peso_rival VALUES (?, ?, ?)", pesos)
     rows = conn.execute("""
         SELECT p.id, s.name, s.start_year, g.id, g.code, t.name, COUNT(*),
                SUM(a.role='starter'), SUM(a.goals), SUM(a.yellow), SUM(a.red),
-               LOWER(c.name), g.name, g.phase, g.island
+               LOWER(c.name), g.name, g.phase, g.island, a.team_id, SUM(a.goals * COALESCE(w.peso, 1.0))
           FROM appearances a JOIN players p ON p.id=a.player_id
           JOIN matches m ON m.id=a.match_id JOIN groups g ON g.id=m.group_id
           JOIN seasons s ON s.id=g.season_id JOIN teams t ON t.id=a.team_id
           JOIN categories c ON c.id=g.category_id
+          LEFT JOIN temp._peso_rival w ON w.match_id=a.match_id AND w.team_id=a.team_id
          GROUP BY p.id, g.id, a.team_id""").fetchall()
+    conn.execute("DROP TABLE temp._peso_rival")
+    if not abierta and conn.in_transaction:
+        conn.commit()
     # Por ficha: sus filas en orden de temporada y primer día del grupo; a igualdad, la de la principal antes.
     por_ficha = {}
-    for pid, season, year, gid, code, team, pj, tit, goals, yellow, red, cat, gname, phase, island in rows:
+    for (pid, season, year, gid, code, team, pj, tit, goals, yellow, red, cat, gname, phase, island,
+         team_id, por_rival) in rows:
         principal = ficha.get(pid)
         if principal not in publicadas:
             continue
@@ -1081,7 +1150,8 @@ def _datos_fichas(conn, confirmados=None):
         por_ficha.setdefault(principal, []).append(
             ((year, first_day.get(gid, "9999"), code, team, len(motivo), motivo),
              [season, code, team, pj, tit, goals, yellow, red, *motivo], (season, code, cat, gname, phase, island),
-             (year, cat, phase, pj, tit, goals, season, team)))
+             (year, cat, phase, pj, tit, goals, round(por_rival or 0.0, 4), island,
+              percentil.get((gid, team_id)), season, team)))
     for filas in por_ficha.values():
         filas.sort(key=lambda x: x[0])
     miembros = {}
@@ -1248,8 +1318,10 @@ def ranking_files(conn, datos=None):
     y, de cada año con alguna entrada, data-ranking-<año>.js, const RANKING_<año> = {"t": [...], "h": [...]}.
     "t" es esta temporada (sus filas, con al menos MIN_TEMPORADA partidos) y "h" toda la trayectoria (al menos
     MIN_TRAYECTORIA). Cada entrada: [clave, nombre, equipo, categoría, partidos, titular, goles, índice,
-    dudoso]: equipo y categoría, los de la fila más reciente de las que cuentan; dudoso, 1 si la ficha tiene
-    más de un año posible (sale en el de cada uno, con el índice de ese año). Orden: índice y goles de mayor
+    dudoso]: los goles, los de verdad (el índice, ranking.indice, los pondera por el rival, la liga y su
+    isla, el equipo y la edad); equipo y categoría, los de la fila más reciente de las que cuentan; dudoso,
+    1 si la ficha tiene más de un año posible (sale en el de cada uno, con el índice de ese año). Orden:
+    índice y goles de mayor
     a menor y después la clave; como mucho TOPE por lista. data-ranking.js sale siempre que la base tenga
     las identidades (aunque sin años: la web lo pide para saber qué años hay); sin ellas, como las fichas,
     nada."""
@@ -1264,12 +1336,12 @@ def ranking_files(conn, datos=None):
     clave, names = datos["fichas"]["clave"], datos["nombres"]
     filas = {p: [r for *_, r in fs] for p, fs in datos["filas"].items()}
     # La media de goles por partido de cada temporada y categoría, con las filas de todas las fichas.
-    medias = R.medias_de(r[:6] for fs in filas.values() for r in fs)
+    medias = R.medias_de(r[:9] for fs in filas.values() for r in fs)
     for principal, fs in filas.items():
         anios = datos["anios"][principal][0]
         # Las que cuentan para el índice (ranking.indice): categoría conocida y con media.
         cuentan = [r for r in fs if r[1] in VENTANA and medias.get((r[0], r[1]))]
-        vistas = (("t", [r for r in cuentan if r[6] == temporada], R.MIN_TEMPORADA),
+        vistas = (("t", [r for r in cuentan if r[9] == temporada], R.MIN_TEMPORADA),
                   ("h", cuentan, R.MIN_TRAYECTORIA))
         for vista, rs, minimo in vistas:
             partidos = sum(r[3] for r in rs)
@@ -1279,9 +1351,9 @@ def ranking_files(conn, datos=None):
             reciente = rs[-1]
             for anio in anios:
                 listas.setdefault(anio, {"t": [], "h": []})[vista].append(
-                    [clave[principal], names[principal], reciente[7], reciente[1], partidos,
+                    [clave[principal], names[principal], reciente[10], reciente[1], partidos,
                      sum(r[4] for r in rs), sum(r[5] for r in rs),
-                     R.indice((r[:6] for r in rs), anio, medias), 1 if len(anios) > 1 else 0])
+                     R.indice((r[:9] for r in rs), anio, medias), 1 if len(anios) > 1 else 0])
     out = {}
     resumen = {}
     for anio in sorted(listas):

@@ -220,6 +220,88 @@ def test_ranking_orden_y_tope(monkeypatch):
     assert [e[0] for e in r["h"]] == ["1997", "1998", "1999"]
 
 
+# Una liga de cuatro equipos (grupo 4, benjamín 2026-27), una vuelta, con los marcadores a mano:
+#   M1 Atletico Uno 4-0 Deportivo Dos     M4 Deportivo Dos 0-2 Club Tres
+#   M2 Atletico Uno 2-1 Club Tres         M5 Deportivo Dos 1-1 Union Cuatro
+#   M3 Atletico Uno 3-1 Union Cuatro      M6 Club Tres 0-0 Union Cuatro
+# La tabla que resulta:
+#   equipo          PJ  GF  GC  Pts  Pts/PJ  encaja/PJ  peso de un gol contra él  percentil
+#   Atletico Uno     3   9   2   9   3,00    0,6667     1,25/0,6667 = 1,875 → 1,5    1
+#   Club Tres        3   3   2   4   1,33    0,6667     1,5                          0,6667
+#   Union Cuatro     3   2   4   2   0,67    1,3333     1,25/1,3333 = 0,9375         0,3333
+#   Deportivo Dos    3   1   7   1   0,33    2,3333     1,25/2,3333 = 0,5357         0
+# Media del grupo: 15 goles en 6 partidos, 15 / (2 × 6) = 1,25 encajados por equipo y partido.
+# Y una copa (grupo 5) de dos partidos: Atletico Uno 5-0 Deportivo Dos y Deportivo Dos 0-3 Atletico Uno.
+# Nadie llega a 3 partidos: peso 1 y sin percentil.
+LIGA = [(1, 1, 2, 4, 0), (2, 1, 3, 2, 1), (3, 1, 4, 3, 1), (4, 2, 3, 0, 2), (5, 2, 4, 1, 1), (6, 3, 4, 0, 0)]
+COPA = [(7, 1, 2, 5, 0), (8, 2, 1, 0, 3)]
+# (player_id, nombre, fiflp_id, equipo, {partido: goles}): juega todos los partidos de su equipo.
+EN_LA_LIGA = [
+    (1, "GOMEZ PEREZ, RAUL", 1001, 1, {1: 2, 2: 1, 7: 2}),      # 2 al colista, 1 a Club Tres; 2 en la copa
+    (2, "SUAREZ DIAZ, IVAN", 1002, 2, {5: 1}),                  # 1 a Union Cuatro
+    (3, "MORALES RUIZ, HUGO", 1003, 3, {4: 2}),                 # 2 al colista
+    (4, "NAVARRO GIL, OSCAR", 1004, 4, {3: 2}),                 # 2 al líder
+]
+
+
+def base_liga():
+    conn = base()
+    conn.executescript("""
+      INSERT INTO teams(id, name) VALUES (4, 'Union Cuatro');
+      INSERT INTO groups(id, season_id, category_id, code, name, phase, island) VALUES
+        (4, 2, 2, 'BG4', 'Grupo 4', 'Primera Fase GC', 'grancanaria'),
+        (5, 2, 2, 'CP1', 'Copa', 'Copa Gran Canaria', 'grancanaria');""")
+    for grupo, partidos in ((4, LIGA), (5, COPA)):
+        for n, local, visitante, gl, gv in partidos:
+            conn.execute("INSERT INTO matches(id, group_id, jornada, date, home_team_id, away_team_id, home_score, "
+                         "away_score) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                         (n, grupo, f"Jornada {n}", f"{n:02d}-10-2026", local, visitante, gl, gv))
+    partidos = {n: (local, visitante) for n, local, visitante, _, _ in LIGA + COPA}
+    for pid, nombre, fid, equipo, goles in EN_LA_LIGA:
+        conn.execute("INSERT INTO players(id, full_name, norm_name, fiflp_id) VALUES (?, ?, ?, ?)",
+                     (pid, nombre, nombre, fid))
+        for n, (local, visitante) in partidos.items():
+            if equipo in (local, visitante):
+                conn.execute("INSERT INTO appearances(match_id, team_id, player_id, dorsal, role, goals, ord) "
+                             "VALUES (?, ?, ?, 7, 'starter', ?, 0)", (n, equipo, pid, goles.get(n, 0)))
+    conn.commit()
+    asegurar_esquema(conn)
+    return conn
+
+
+def _fila_ranking(datos, pid, code):
+    """La fila del ranking de la ficha `pid` en el grupo `code`: (año, categoría, fase, partidos, titular,
+    goles, goles por rival, isla, percentil, temporada, equipo)."""
+    return next(r for _, fila, _, r in datos["filas"][pid] if fila[1] == code)
+
+
+def test_goles_por_rival_y_percentil():
+    datos = G._datos_fichas(base_liga())
+    raul = _fila_ranking(datos, 1, "BG4")
+    # 2 goles a Deportivo Dos (0,5357) y 1 a Club Tres (1,5).
+    assert raul[5] == 3 and raul[6] == pytest.approx(2 * 0.5357 + 1.5) and raul[7] == "grancanaria"
+    assert raul[8] == 1.0
+    ivan = _fila_ranking(datos, 2, "BG4")
+    assert ivan[5] == 1 and ivan[6] == pytest.approx(0.9375) and ivan[8] == 0.0
+    assert _fila_ranking(datos, 3, "BG4")[8] == pytest.approx(2 / 3)
+    assert _fila_ranking(datos, 4, "BG4")[8] == pytest.approx(1 / 3)
+    # La copa de dos partidos: peso 1 y sin percentil.
+    copa = _fila_ranking(datos, 1, "CP1")
+    assert copa[3] == 2 and copa[5] == 2 and copa[6] == 2.0 and copa[8] is None
+
+
+def test_el_rival_cambia_el_orden():
+    # Hugo y Oscar: los dos con 3 partidos y 2 goles esta temporada en la liga (y nada más), del mismo año.
+    # Con solo los goles empatarían y saldría primero el de clave menor (Hugo); Oscar los marcó al líder.
+    r = ranking(G.ranking_files(base_liga()), 2017)
+    t = {e[0]: e for e in r["t"]}
+    assert t["1003"][4:7] == t["1004"][4:7] == [3, 3, 2]
+    orden = [e[0] for e in r["t"]]
+    assert orden.index("1004") < orden.index("1003") and t["1004"][7] > t["1003"][7]
+    # Lo publicado no cambia de forma: los goles, los de verdad.
+    assert all(len(e) == 9 and isinstance(e[6], int) for e in r["t"] + r["h"])
+
+
 def test_write_borra_los_que_sobran(tmp_path):
     for name in ("data-buscar-zz.js", "data-ranking-1999.js", "data-ranking.js", "data-jugadores-3.js"):
         (tmp_path / name).write_text("const X = 1;\n", encoding="utf-8")
@@ -278,7 +360,8 @@ def test_base_real(tmp_path):
     en_buscar = {e[0] for name, t in bus.items()
                  for e in _const(t, "BUSCAR_" + name[len("data-buscar-"):-3].upper())}
     assert en_buscar == {k for k, e in p.items() if G.prefijos_de(e["n"])}
-    # El ranking.
+    # El ranking: los mismos bytes en otra pasada entera (determinista).
+    assert G.ranking_files(conn) == ran
     anios = ranking(ran)["anios"]
     for anio in range(2011, 2021):
         assert str(anio) in anios and f"data-ranking-{anio}.js" in ran, anio

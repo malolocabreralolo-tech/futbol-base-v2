@@ -106,9 +106,10 @@ def clave_publica(fiflp_id: int | None, norm: str, equipo: str, anio: int) -> st
     return "n" + "".join(reversed(cifras)).rjust(_CIFRAS_SHA1, "0")[:9]
 
 
-def trozo(clave: str, n: int = 16) -> int:
+def trozo(clave: str, n: int = 64) -> int:
     """El fichero de la web en el que va una clave: numérica, su valor % n; 'n…', el resto en base 36 % n
-    (9 cifras caben en un número de JavaScript sin perder nada: 36**9 < 2**53)."""
+    (9 cifras caben en un número de JavaScript sin perder nada: 36**9 < 2**53). Por defecto, los 64 de
+    data-jugadores (generate_js.JUGADORES_SHARDS, src/state.js): sin n, el mismo fichero que la web."""
     return int(clave[1:], 36) % n if clave.startswith("n") else int(clave) % n
 
 

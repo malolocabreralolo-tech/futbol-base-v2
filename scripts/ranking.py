@@ -2,17 +2,25 @@
 
 El ranking solo sale de las actas, que es donde cada gol y cada partido están atados a una ficha, y es un
 ranking de lo medible: favorece a quien marca (defensas y porteros casi no se pueden valorar con lo que dan
-las actas). La fórmula premia marcar mucho, hacerlo en una liga de nivel alto y hacerlo siendo de los
-pequeños de la categoría o jugando en la de arriba, y corrige a quien ha jugado muy pocos partidos para que
-tres goles en un partido no lo pongan primero:
+las actas). Es más difícil destacar en un equipo bueno y en una liga buena que en un equipo malo y en una
+liga mala, así que un gol no vale lo mismo en todas partes. Cuatro factores, cada uno en una frase:
+
+1. El rival (por partido): un gol vale más cuanto menos encaja el rival en ese grupo (peso_rival).
+2. La liga (por grupo): la letra de la Segunda Fase y «Preferente» (nivel_fase), y la isla (nivel_isla).
+3. El equipo (por grupo): un poco más si su equipo es de los de arriba de la tabla (nivel_equipo).
+4. La edad: más si es de los pequeños de la categoría o juega en la de arriba (factor_edad).
+
+Y se corrige a quien ha jugado muy pocos partidos, para que tres goles en un partido no lo pongan primero:
 
     índice = 100 × (GP + PRUDENCIA) / (PJ + PRUDENCIA)
 
-PJ son los partidos jugados y GP los goles «ponderados» de cada fila (temporada, categoría y fase):
-goles / media de goles por partido de esa temporada y categoría × nivel de la fase × premio por edad.
-100 es la media de la categoría: quien marca al ritmo medio, en una liga de nivel 1 y siendo de los
-mayores, tiene 100. Los PRUDENCIA partidos de más, a ritmo medio, son la corrección: con pocos partidos
-el índice se queda cerca de 100; con muchos, manda lo que el niño ha hecho.
+PJ son los partidos jugados y GP los goles «ponderados» de cada fila (temporada, categoría y grupo):
+goles por rival / media de goles por partido de esa temporada y categoría × nivel de la fase × nivel de la
+isla × nivel del equipo × premio por edad. Los goles por rival son la suma, partido a partido, de cada gol
+por el peso de su rival. 100 es la media de la categoría: quien marca al ritmo medio, a rivales normales,
+en una liga de nivel 1, en un equipo de nivel 1 (o sin cifras) y siendo de los mayores, tiene 100. Los
+PRUDENCIA partidos de más, a ritmo medio, son la corrección: con pocos partidos el índice se queda cerca de
+100; con muchos, manda lo que el niño ha hecho.
 """
 import re
 import unicodedata
@@ -28,8 +36,21 @@ MIN_TRAYECTORIA = 10
 # Como mucho estos niños por lista.
 TOPE = 100
 
-# (temporada, categoría, fase, partidos, titular, goles)
-Fila = tuple[int, str, str | None, int, int, int]
+# Un gol vale la media de lo que se encaja en el grupo entre lo que encaja ese rival, entre estos dos topes:
+# al rival que lo encaja todo, la mitad; al que no encaja nada, una vez y media.
+RIVAL_MIN = 0.5
+RIVAL_MAX = 1.5
+# Con menos partidos, un equipo no tiene aún cifras que digan nada: ni su rival pesa ni su puesto cuenta.
+MIN_PARTIDOS_EQUIPO = 3
+# El del último de su grupo y el del primero; entre ellos, en línea recta por el puesto.
+EQUIPO_MIN = 0.90
+EQUIPO_MAX = 1.15
+# Las ligas de Lanzarote y Fuerteventura tienen menos equipos y menos nivel que las de Gran Canaria. Es una
+# apreciación fija, no una medida: los equipos de islas distintas no se cruzan en las actas.
+NIVEL_ISLA = {"grancanaria": 1.0, "lanzarote": 0.85, "fuerteventura": 0.85}
+
+# (temporada, categoría, fase, partidos, titular, goles, goles por rival, isla, percentil)
+Fila = tuple[int, str, str | None, int, int, int, float, str | None, float | None]
 
 # El nivel de cada grupo de la segunda fase (A el más fuerte) y el de Preferente y la Copa de Campeones,
 # que juntan a los mejores equipos. Lo que no se reconoce es una liga normal: 1.
@@ -82,28 +103,56 @@ def factor_edad(anio: int, temporada: int, categoria: str) -> float:
     return _PREMIO_EDAD.get(e, _PREMIO_EDAD_LEJOS)
 
 
+def peso_rival(encajados: float | None, media: float | None) -> float:
+    """Lo que vale un gol marcado a un rival que encaja `encajados` goles por partido en un grupo donde se
+    encajan `media` de media: media / encajados, entre RIVAL_MIN y RIVAL_MAX. Sin datos (None, o una media
+    que no es positiva), 1; a un rival que no ha encajado ninguno, RIVAL_MAX."""
+    if encajados is None or media is None or media <= 0:
+        return 1.0
+    if encajados <= 0:
+        return RIVAL_MAX
+    return min(RIVAL_MAX, max(RIVAL_MIN, media / encajados))
+
+
+def nivel_equipo(percentil: float | None) -> float:
+    """El nivel del equipo por su puesto en el grupo: `percentil` es 1 el primero y 0 el último (por puntos
+    por partido), y el nivel va en línea recta de EQUIPO_MIN a EQUIPO_MAX (un percentil fuera de [0, 1] se
+    recorta). None (sin datos, una copa, menos de MIN_PARTIDOS_EQUIPO partidos): 1."""
+    if percentil is None:
+        return 1.0
+    p = min(1.0, max(0.0, percentil))
+    return EQUIPO_MIN + (EQUIPO_MAX - EQUIPO_MIN) * p
+
+
+def nivel_isla(isla: str | None) -> float:
+    """El nivel de la isla del grupo (groups.island), de NIVEL_ISLA; una desconocida o None, 1."""
+    return NIVEL_ISLA.get(isla, 1.0) if isla else 1.0
+
+
 def indice(filas: Iterable[Fila], anio: int, medias: Mapping[tuple[int, str], float]) -> int:
     """round(100 × (GP + PRUDENCIA) / (PJ + PRUDENCIA)) de un niño nacido en `anio`. Una fila de categoría
     que no está en VENTANA o cuya (temporada, categoría) no tiene media (o la tiene a 0) no cuenta: ni sus
     partidos ni sus goles. Sin ninguna fila que cuente, 0."""
     pj, gp, cuenta = 0, 0.0, False
-    for temporada, categoria, fase, partidos, _titular, goles in filas:
+    for temporada, categoria, fase, partidos, _titular, _goles, por_rival, isla, percentil in filas:
         media = medias.get((temporada, categoria))
         if categoria not in VENTANA or not media:
             continue
         cuenta = True
         pj += partidos
-        gp += goles / media * nivel_fase(fase) * factor_edad(anio, temporada, categoria)
+        gp += (por_rival / media * nivel_fase(fase) * nivel_isla(isla) * nivel_equipo(percentil)
+               * factor_edad(anio, temporada, categoria))
     if not cuenta:
         return 0
     return round(100 * (gp + PRUDENCIA) / (pj + PRUDENCIA))
 
 
 def medias_de(filas_de_todos: Iterable[Fila]) -> dict[tuple[int, str], float]:
-    """Goles por partido de cada (temporada, categoría): la suma de goles entre la suma de partidos de
-    todas las filas. Una (temporada, categoría) sin ningún partido no tiene media (no sale)."""
+    """Goles por partido de cada (temporada, categoría): la suma de goles (los de verdad, sin ponderar por
+    el rival) entre la suma de partidos de todas las filas. Una (temporada, categoría) sin ningún partido no
+    tiene media (no sale)."""
     partidos, goles = {}, {}
-    for temporada, categoria, _fase, pj, _titular, g in filas_de_todos:
+    for temporada, categoria, _fase, pj, _titular, g, *_ in filas_de_todos:
         clave = (temporada, categoria)
         partidos[clave] = partidos.get(clave, 0) + pj
         goles[clave] = goles.get(clave, 0) + g
