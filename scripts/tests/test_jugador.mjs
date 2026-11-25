@@ -11,11 +11,11 @@ import { ctxFor, datasetsFor } from './fixtures/rediseno/screens.mjs';
 import { memoryStorage } from './fixtures/rediseno/fake-browser.mjs';
 import { FOLLOWED_KEY, clearStore } from '../../src/store.js';
 import { MAX_FOLLOWED, cleanFollowed, isFollowed, loadFollowed, saveFollowed, toggleFollowed } from '../../src/followed.js';
-import { screen, followedBlock } from '../../src/screen-jugador.js';
+import { screen, followedBlock, birthLabel } from '../../src/screen-jugador.js';
 import { resolveParams } from '../../src/router.js';
 import { parseRoute, playerHref } from '../../src/links.js';
 import { jugadoresShard } from '../../src/state.js';
-import { playerMatches, teamSquad, timelineFor } from '../../src/model.js';
+import { birthText, categoryName, playerMatches, teamSquad, timelineFor } from '../../src/model.js';
 import { screen as partido } from '../../src/screen-partido.js';
 
 const s = (h) => String(h);
@@ -90,8 +90,9 @@ test('ficha: nombre, resumen, «Seguir» y su trayectoria de la temporada más r
   assert.match(out, /<h1>Leyre Serrano Dominguez<\/h1>/);
   assert.match(out, /2 temporadas · 34 partidos · 10 goles/);
   assert.match(out, /data-action="seguir-jugador" aria-pressed="false">Seguir</);
+  // Cada temporada, con sus totales (todas sus filas).
   const seasons = [...out.matchAll(/<h3 class="traj-season">([^<]+)<\/h3>/g)].map(m => m[1]);
-  assert.deepEqual(seasons, ['2025/26', '2024/25']);
+  assert.deepEqual(seasons, ['2025/26 · 22 partidos · 7 goles', '2024/25 · 12 partidos · 3 goles']);
   // Cada fila, a la ficha de su equipo en su grupo; el grupo con su nombre de la app (o su código sin él).
   assert.match(out, /href="#\/equipo\?s=2025-2026&amp;g=PG2&amp;t=Las%20Mesas%20Hu\."/);
   assert.match(out, /<span class="traj-group">Prebenjamín, Grupo 2 de Gran Canaria · 18 de titular<\/span>/);
@@ -238,7 +239,9 @@ test('ficha unida: cada fila unida dice por qué; ninguna se suma a otra; las ot
   const out = s(screen.render(ctxShards({ id: ID }, shardsWith({ [ID]: UNIDA }))));
   assert.match(out, /<h1>Leyre Serrano Dominguez<\/h1>/);
   assert.match(out, /2 temporadas · 35 partidos · 11 goles/);
-  const groups = [...out.matchAll(/<span class="traj-group">([^<]+)<\/span>/g)].map(m => m[1]);
+  // Las filas de la trayectoria (el «Resumen» de antes usa las mismas clases).
+  const career = out.slice(out.indexOf('Trayectoria'));
+  const groups = [...career.matchAll(/<span class="traj-group">([^<]+)<\/span>/g)].map(m => m[1]);
   assert.deepEqual(groups.slice(0, 4), [
     'Prebenjamín, Grupo 2 de Gran Canaria · 18 de titular',
     'Prebenjamín, Grupo 2 de Gran Canaria · unido por nombre (mismo equipo y temporada)',
@@ -390,6 +393,103 @@ test('título de la pestaña: el nombre del jugador; sin jugador, el de la panta
   assert.equal(screen.title(ctxShards({ id: SIN_ID }, shardsWith({ [ID]: UNIDA }))), 'Leyre Serrano Dominguez');
   assert.equal(screen.title(ctxShards({}, {})), null);
   assert.equal(screen.title(ctxShards({ id: '16' }, shardsWith({ [ID]: UNIDA }))), null);
+});
+
+// ── Año de nacimiento y resumen por categoría (data-jugadores "y", "yc" y la categoría de "g") ──────
+
+test('birthText y birthLabel: lo estimado se dice estimado; uno, dos o tres años; sin años, nada', () => {
+  assert.equal(birthText([2018], false), '2018 (estimado)');
+  assert.equal(birthText([2018], true), '2018');
+  assert.equal(birthText([2018, 2019], false), '2018 o 2019 (estimado)');
+  assert.equal(birthText([2008, 2009, 2010], false), 'entre 2008 y 2010 (estimado)');
+  assert.equal(birthText([], false), '');
+  assert.equal(birthText(undefined, true), '');
+  const at = (y, yc) => birthLabel({ n: 'X, Y', c: [], ...(y ? { y } : {}), ...(yc ? { yc } : {}) });
+  assert.equal(at([2018]), 'Nacido en 2018 (estimado)');
+  assert.equal(at([2018, 2019]), 'Nacido en 2018 o 2019 (estimado)');
+  assert.equal(at([2008, 2009, 2010]), 'Nacido entre 2008 y 2010 (estimado)');
+  assert.equal(at([2018], 1), 'Nacido en 2018');
+  assert.equal(at(null), '');
+  // Dos años nunca son «confirmados»: lo estimado se enseña siempre como estimado.
+  assert.equal(at([2018, 2019], 1), 'Nacido en 2018 o 2019 (estimado)');
+});
+
+test('ficha: el subtítulo empieza por el año de nacimiento; sin año, no dice «Nacido»', () => {
+  const con = s(screen.render(ctxWith({ id: ID }, { shard: { ...SHARD, p: { [ID]: { ...SHARD.p[ID], y: [2018] } } } })));
+  assert.match(con, /<p class="screen-sub">Nacido en 2018 \(estimado\) · 2 temporadas · 34 partidos · 10 goles<\/p>/);
+  const confirmado = s(screen.render(ctxWith({ id: ID }, { shard: { ...SHARD, p: { [ID]: { ...SHARD.p[ID], y: [2018], yc: 1 } } } })));
+  assert.match(confirmado, /<p class="screen-sub">Nacido en 2018 · 2 temporadas/);
+  const sin = s(screen.render(ctxWith({ id: ID })));
+  assert.match(sin, /<p class="screen-sub">2 temporadas · 34 partidos · 10 goles<\/p>/);
+  assert.doesNotMatch(sin, /Nacido/);
+});
+
+// Un niño inventado con benjamín (2024/25) y alevín (2025/26, dos grupos).
+const RAUL = 'n0k3z9q2c1';
+const RAUL_SHARD = (entry) => shardsWith({ [RAUL]: entry });
+const G_RAUL = {
+  '2024-2025/BX1': ['benjamin', 'Grupo 1', 'Primera Fase', 'grancanaria'],
+  '2025-2026/AX1': ['alevin', 'Grupo 1', 'Primera Fase', 'grancanaria'],
+  '2025-2026/AX2': ['alevin', 'Grupo 2', 'Segunda Fase', 'grancanaria'],
+  '2023-2024/IX1': ['infantil', 'Grupo 1', 'Primera Fase', 'grancanaria'],
+};
+const RAUL_ENTRY = { n: 'GOMEZ PEREZ, RAUL', y: [2014, 2015], c: [
+  ['2024-2025', 'BX1', 'Club Uno', 20, 18, 30, 0, 0],
+  ['2025-2026', 'AX1', 'Club Uno', 12, 10, 18, 1, 0],
+  ['2025-2026', 'AX2', 'Club Uno', 10, 9, 13, 0, 0],
+] };
+const renderRaul = (entry) => {
+  const shards = RAUL_SHARD(entry);
+  for (const shard of Object.values(shards)) shard.g = G_RAUL;
+  return s(screen.render(ctxShards({ id: RAUL }, shards)));
+};
+// Las filas del bloque «Resumen»: [categoría, detalle, goles, partidos].
+const summaryRows = (out) => {
+  const at = out.indexOf('<h2 class="block-title">Resumen</h2>');
+  if (at < 0) return null;
+  const block = out.slice(at, out.indexOf('</section>', at));
+  return [...block.matchAll(/<div class="traj-row"><span class="traj-team">([^<]+)<\/span><span class="traj-group">([^<]+)<\/span><span class="traj-pos">([^<]+)<\/span><span class="traj-pts">([^<]+)<\/span><\/div>/g)]
+    .map(m => m.slice(1));
+};
+
+test('ficha: «Resumen» antes de «Trayectoria», una fila por categoría de la más alta a la más baja, con goles por partido', () => {
+  const out = renderRaul(RAUL_ENTRY);
+  assert.match(out, /<p class="screen-sub">Nacido en 2014 o 2015 \(estimado\) · 2 temporadas · 42 partidos · 61 goles<\/p>/);
+  assert.ok(out.indexOf('Resumen') < out.indexOf('Trayectoria'));
+  assert.deepEqual(summaryRows(out), [
+    ['Alevín', '1 temporada · 1,4 goles por partido', '31 goles', '22 partidos'],
+    ['Benjamín', '1 temporada · 1,5 goles por partido', '30 goles', '20 partidos'],
+  ]);
+  // El título de cada temporada, con sus totales.
+  assert.match(out, /<h3 class="traj-season">2025\/26 · 22 partidos · 31 goles<\/h3>/);
+  assert.match(out, /<h3 class="traj-season">2024\/25 · 20 partidos · 30 goles<\/h3>/);
+});
+
+test('ficha: el «Resumen» dice «Otras» de lo que el trozo no nombra, la categoría que la app no tiene con mayúscula y «–» sin partidos', () => {
+  const out = renderRaul({ ...RAUL_ENTRY, c: [
+    ...RAUL_ENTRY.c,
+    ['2023-2024', 'IX1', 'Club Uno', 0, 0, 0, 0, 0],
+    ['2025-2026', 'ZZ9', 'Club Dos', 4, 4, 0, 0, 0],
+    ['2024-2025', 'ZZ8', 'Club Dos', 2, 2, 1, 0, 0],
+  ] });
+  assert.deepEqual(summaryRows(out), [
+    ['Infantil', '1 temporada · – goles por partido', 'sin goles', '0 partidos'],
+    ['Alevín', '1 temporada · 1,4 goles por partido', '31 goles', '22 partidos'],
+    ['Benjamín', '1 temporada · 1,5 goles por partido', '30 goles', '20 partidos'],
+    ['Otras', '2 temporadas · 0,2 goles por partido', '1 gol', '6 partidos'],
+  ]);
+  assert.equal(categoryName('alevin'), 'Alevín');
+  assert.equal(categoryName('cadete'), 'Cadete');
+  assert.equal(categoryName('juvenil'), 'Juvenil');
+});
+
+test('ficha: con un solo grupo, sin «Resumen» (no aporta nada)', () => {
+  const out = renderRaul({ ...RAUL_ENTRY, c: [RAUL_ENTRY.c[0]] });
+  assert.equal(summaryRows(out), null);
+  assert.doesNotMatch(out, /Resumen/);
+  // Dos filas del mismo grupo (una unida) siguen siendo un grupo.
+  const twice = renderRaul({ ...RAUL_ENTRY, c: [RAUL_ENTRY.c[0], [...RAUL_ENTRY.c[0].slice(0, 8), 1, 'e']] });
+  assert.equal(summaryRows(twice), null);
 });
 
 test('acta.css: en la ficha del jugador el nombre parte línea en vez de cortarse; las demás cabeceras siguen igual', () => {
