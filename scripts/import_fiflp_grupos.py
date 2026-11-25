@@ -3,7 +3,7 @@
 desde la federación: ligas insulares de 2021-22, grupos de una competición que
 no se archivaron, finales, semifinales y torneos de cierre o clausura.
 
-Fuentes (las suben goleadores-federacion.yml y actas-federacion.yml):
+Fuentes (las sube el carril del histórico, historico.yml, al promoverlas; las actas, también actas-federacion.yml):
   - fiflp_goleadores_<S>_raw.json: los grupos de cada competición del catálogo,
     con su nombre y su clasificación oficial;
   - fiflp_actas_<S>_index.json y _raw.json: los partidos jugados de cada grupo,

@@ -27,8 +27,9 @@ CLI:
   --categorias LISTA  (optional) 'benjamin,prebenjamin' (por defecto) o 'alevin' (solo
                       Gran Canaria, sin sala): las competiciones del catálogo que se recorren;
                       las de un solo lote
-  --lote siempre|alevin (optional) el lote de la cadena (su grupo de concurrencia en
-                      actas-federacion.yml): si las categorías son de otro, para
+  --lote siempre|alevin (optional) el lote de la tanda (el de su trabajo en historico.py, o el de
+                      su grupo de concurrencia en actas-federacion.yml): si las categorías son de
+                      otro, para
   --max-actas N       (optional) cap for spike runs
   --max-paginas N     (optional) tope de peticiones a la federación de la tanda (0, sin tope)
   --resumen RUTA      (optional) el resumen de la tanda (fiflp_carga.guardar_resumen; parte
@@ -173,8 +174,8 @@ def comp_lotes(season_code, comps, categories=None, names=None):
     return out
 
 
-# --lote de la CLI (actas-federacion.yml lo pasa con el lote de su grupo de concurrencia): «siempre», el de
-# benjamín y prebenjamín, y cada lote de actas_lotes.LOTES por su nombre.
+# --lote de la CLI (historico.py lo pasa con el lote de su trabajo; actas-federacion.yml, con el de su grupo de
+# concurrencia): «siempre», el de benjamín y prebenjamín, y cada lote de actas_lotes.LOTES por su nombre.
 LOTE_ARG = {"siempre": "", **{lote: lote for lote in actas_lotes.LOTES if lote}}
 
 

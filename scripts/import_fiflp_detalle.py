@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """import_fiflp_detalle.py — El detalle de la federación que descarga
-detalle-federacion.yml (fetch_fiflp_detalle.py), en la base:
+el carril del histórico (historico.yml, fetch_fiflp_detalle.py), en la base:
 
   standings_detail  (grupo, equipo): partidos en casa y fuera, últimos resultados,
                     puntos de sanción y código del equipo en la federación, de la
@@ -451,7 +451,7 @@ def _season_fed_teams(conn, season_id):
 def create_cup_group(conn, season_id, season, det, log=print):
     """El grupo de una final, una semifinal o una copa de una temporada archivada que la base no
     tiene (sin clasificación ni actas, así que import_fiflp_grupos no lo crea): su calendario del
-    raw (las jornadas que baja detalle-federacion.yml para 2016-17 a 2018-19), con los equipos de
+    raw (las jornadas que baja el carril del histórico, trabajo calendario, para 2016-17 a 2018-19), con los equipos de
     esa temporada. Cada nombre se busca primero por su ficha de la temporada (team_seasons, el mismo
     club y la misma letra) y si no, por parecido (canonical_names); el que no casa se salta: no se
     inventan equipos. Código, fase e isla de su competición (meta_by_name: LZ1F, BC, PCC, CFVF…);

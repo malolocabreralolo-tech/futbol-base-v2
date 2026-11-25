@@ -1,5 +1,5 @@
 """Goleadores de temporadas pasadas desde la federación (2026-10): el raw que
-descarga goleadores-federacion.yml y su importación en los grupos de la base."""
+descarga el carril del histórico (historico.yml) y su importación en los grupos de la base."""
 import json
 import pytest
 import sqlite3
@@ -91,7 +91,7 @@ def test_a_tie_between_two_groups_matches_none():
     assert G.by_teams(conn, 1, e) is None
 
 
-# ── El descargador (goleadores-federacion.yml), con una página falsa ──
+# ── El descargador (el trabajo goleadores de historico.yml), con una página falsa ──
 
 class FakePage:
     def __init__(self, html):

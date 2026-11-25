@@ -1489,6 +1489,35 @@ def test_historico_en_rojo_solo_por_un_fallo(tmp_path):
     assert code(ACCION="nada") == 0
 
 
+def test_como_lanzar_y_parar_el_historico_esta_escrito():
+    """Las órdenes del carril, escritas donde se buscan (docs/federacion.md, «El carril del histórico») y la
+    primera prueba pequeña (alevín de Gran Canaria 2025-26) en docs/alevin.md, con las entradas de verdad del
+    workflow."""
+    fed = (ROOT / "docs" / "federacion.md").read_text(encoding="utf-8")
+    lanzar = f"gh workflow run historico.yml -R {V2_REPO} --ref main"
+    for orden in (f"{lanzar} -f accion=encargar", "-f accion=parar", "-f accion=reanudar", "-f accion=reintentar",
+                  "python3 scripts/historico.py estado", "gh workflow enable historico.yml",
+                  "gh variable set HISTORICO_PAGINAS_DIA"):
+        assert orden in fed, orden
+    alevin = (ROOT / "docs" / "alevin.md").read_text(encoding="utf-8")
+    primera = f"{lanzar} -f accion=encargar -f temporadas=21 -f categorias=alevin -f trabajos=goleadores,actas"
+    assert primera in alevin
+    # Con las entradas y los valores que admiten el workflow y historico.py.
+    import sys
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import historico
+    entradas = _triggers(_historico())["workflow_dispatch"]["inputs"]
+    for texto in (fed, alevin):
+        for linea in (l for l in texto.splitlines() if l.startswith(lanzar)):
+            valores = dict(re.findall(r"-f (\w+)=(\S*)", linea))
+            assert set(valores) <= set(entradas), linea
+            assert valores.get("accion", "seguir") in entradas["accion"]["options"], linea
+            if valores.get("accion") == "encargar":
+                historico.encargar(None, valores.get("temporadas", ""), valores.get("categorias", "alevin"),
+                                   valores.get("trabajos", entradas["trabajos"]["default"]),
+                                   valores.get("calendario", ""), historico.datetime.now(historico.timezone.utc))
+
+
 # ------------------------------------------------------------ activar.yml
 #
 # activar.yml activa solo lo que el bot apuntó como nuevo (newCompetitions y newGroups

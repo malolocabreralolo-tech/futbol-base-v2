@@ -11,7 +11,7 @@ scripts/fiflp_actas_<S>_raw.json (benjamín y prebenjamín) y cada
 scripts/fiflp_actas_<S>_alevin_raw.json (alevín, aparte: actas_lotes.py) que haya
 cambiado desde la última vez (sha1 por fichero en la tabla raw_imports), por
 temporada y el de siempre antes que el de alevín, con solo las actas leídas
-aplanadas (las descarga actas-federacion.yml).
+aplanadas (las descargan el carril del histórico, historico.yml, y actas-federacion.yml).
 
 CLI: python3 scripts/import_fiflp_actas.py path/to/raw.json [--db futbolbase.db]
 """
@@ -432,7 +432,7 @@ def _purge_orphan_cod_actas(conn, raw: dict, also_known=()) -> int:
 
     Y solo en lo que el raw cubre de verdad: las temporadas cerradas (en la que
     está en curso el bot importa actas en cada pasada, update_fiflp, y un raw de
-    actas-federacion.yml nunca las tiene todas) y las categorías de sus actas
+    las tandas nunca las tiene todas) y las categorías de sus actas
     (categorias.category_of de la competición): un raw con solo las de alevín no
     deja sin acta a los partidos de benjamín. Nunca las que leyó el bot por el
     código que da la federación en la jornada (cod_acta = fiflp_acta, desde
@@ -490,7 +490,7 @@ def _purge_orphan_cod_actas(conn, raw: dict, also_known=()) -> int:
 def flattened(acta) -> bool:
     """Un acta leída aplanada (fiflp_render.FLATTEN_JS + fiflp_acta; trae
     `consistent`). Las leídas con acta_parser, sin aplanar, traen marcadores y
-    minutos mal descifrados: actas-federacion.yml las vuelve a descargar, y
+    minutos mal descifrados: las tandas de actas las vuelven a descargar, y
     hasta entonces se quedan como estén en la base."""
     return isinstance(acta, dict) and "consistent" in acta
 
@@ -998,8 +998,8 @@ def import_changed_raws(conn, folder: str = SCRIPTS_DIR, log=print) -> dict:
     `folder` que haya cambiado desde la última importación (su sha1, por fichero,
     en la tabla raw_imports), con solo las actas aplanadas (`flattened`): por
     temporada y, en cada una, el de siempre antes que el de alevín
-    (actas_lotes.raw_files). Las tandas de actas-federacion.yml solo descargan
-    y comitean el raw; el bot lo importa en su pasada siguiente. El raw de una
+    (actas_lotes.raw_files). Las tandas de actas (el carril del histórico, historico.yml, y actas-federacion.yml) solo
+    descargan y comitean el raw; el bot lo importa en su pasada siguiente. El raw de una
     temporada que no está en la base (una archivada, hasta que la da de alta
     import_fiflp_grupos) se salta sin grabar su huella; las actas de los grupos
     creados desde la federación las importa import_fiflp_grupos (import_raw con

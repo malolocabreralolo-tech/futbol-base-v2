@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """escudos_federacion.py — Escudos de la federación para los equipos que no tienen.
 
-Los raws de goleadores (goleadores-federacion.yml) guardan, por grupo, la URL del
+Los raws de goleadores (el carril del histórico, historico.yml) guardan, por grupo, la URL del
 escudo de cada equipo («crests», la imagen de su celda en una jornada). Cada
 grupo se casa con el de la base (import_fiflp_goleadores.match_group) y sus
 nombres se traducen con team_bridge; un equipo de la base sin escudo en
@@ -12,7 +12,7 @@ trim_shields.py y se guarda en escudos/fed_<nombre>.png; después, las
 miniaturas y el sello de la caché (build_crests.py).
 
 Además: el escudo de la ficha de cada equipo (team_seasons.crest_url, del
-directorio de equipos que baja detalle-federacion.yml), solo si su nombre oficial casa con el de la
+directorio de equipos que baja el carril del histórico), solo si su nombre oficial casa con el de la
 base (team_score), y un filial sin escudo toma el de su primer equipo ('Victoria B' el de 'Victoria'),
 como los que ya están en data-shields.js, sin bajar nada.
 

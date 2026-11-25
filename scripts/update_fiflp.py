@@ -2342,7 +2342,7 @@ def run_passes(page, F, conn, season_id, groups, today, pending, deadline_second
 def update_directorio(page, F, conn, season_id, groups, deadline=None, pages=None):
     """team_seasons de los equipos de la temporada en curso que no la tienen (el directorio de su
     grupo, fiflp_detalle.parse_directorio, con el nombre de la base) y venue_details de sus campos
-    que no la tienen (parse_campo). Es lo que baja detalle-federacion.yml de las temporadas
+    que no la tienen (parse_campo). Es lo que baja el carril del histórico (historico.yml) de las temporadas
     pasadas, para los grupos que van apareciendo (la Segunda Fase). Como mucho `pages` páginas (None:
     hasta el plazo). Devuelve (fichas, campos)."""
     from datetime import date as _date

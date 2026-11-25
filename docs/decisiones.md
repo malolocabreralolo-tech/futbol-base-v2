@@ -61,6 +61,9 @@ al que afecta. Solo lo que sigue siendo verdad: la historia de cómo se llegó a
 - **Cada grupo se lee completo (calendario, goleadores y actas) antes del siguiente**, para que el freno no deje calendarios sin sus actas. `scripts/update_fiflp.py` (`run_passes`).
 - **Una pasada seca de vez en cuando es normal** (un runner con una IP ya frenada); solo una racha larga es un fallo. `scripts/pasada_sana.py`.
 - **El directorio de campos cortado a medias no vacía la tabla**: solo añade lo leído. `scripts/update_fiflp.py` (`update_campos`).
+- **El histórico va por un solo carril (`historico.yml`) con la lectura del bot**: una ejecución cada vez, fuera de las ventanas de partidos, 2.000 páginas al día para empezar (la rampa, a mano) y nada más el día que aparece el freno de verdad; no se relanza por caer en un runner de AWS (decisión pendiente del dueño: `RELANZAR_SI_RUNNER_RECHAZADO`). `scripts/historico.py`, `docs/federacion.md`.
+- **Lo bajado del histórico pasa por la cuarentena** (`scripts/historico/`, que el bot no mira) y por una prueba sobre una copia (importar sin red, la base sana y las dos suites) antes de que el bot lo importe: una temporada que rompe algo no deja al bot sin publicar. `scripts/cuarentena.py`, `scripts/prueba_historico.py`.
+- **`historico.yml` sustituye a las tandas de goleadores y de detalle**; `actas-federacion.yml` queda solo para `reindex` y `refrescar`, que el carril no hace, hasta que el dueño decida. `.github/workflows/historico.yml`.
 - **Del directorio de equipos no se lee el contacto de los clubes**: son datos personales y la base va a un repositorio público. `scripts/fiflp_detalle.py`, `docs/federacion.md`.
 
 ## La base y los originales
@@ -76,7 +79,7 @@ al que afecta. Solo lo que sigue siendo verdad: la historia de cómo se llegó a
 
 ## Publicar
 
-- **Solo los workflows del grupo `update-data` suben datos (`data-*.js`) o base (`futbolbase.db`)**, uno detrás de otro, sin cancelar el que corre. `.github/workflows/update.yml`, `activar.yml`. Otros cinco suben solo originales a `scripts/` (`actas-federacion.yml`, `goleadores-federacion.yml`, `detalle-federacion.yml`, `discover-fiflp.yml`, `fetch-fiflp-islas.yml`).
+- **Solo los workflows del grupo `update-data` suben datos (`data-*.js`) o base (`futbolbase.db`)**, uno detrás de otro, sin cancelar el que corre. `.github/workflows/update.yml`, `activar.yml`. Otros cuatro suben solo originales a `scripts/` (`historico.yml`, `actas-federacion.yml`, `discover-fiflp.yml`, `fetch-fiflp-islas.yml`).
 - **`dist/` solo se empaqueta en el PC, al publicar**; ni el bot ni la activación lo hacen, y `--check` no necesita node. `scripts/codigo.py`, `scripts/publicar.py`.
 - **El código de las fichas en 64 trozos y los datos se publican juntos**: al publicar se regeneran `dist/` y los datos (`generate_js.py`) en el mismo commit. La web de 64 trozos no puede salir con datos de 16 (abriría el trozo que no es), ni al revés. `scripts/publicar.py`, `scripts/generate_js.py` (`JUGADORES_SHARDS`), `src/state.js`.
 - **Una publicación sube la versión sin mover la fecha «Última actualización»**, que es la de los datos. `scripts/publicar.py`, `scripts/generate_js.py` (`bump_cache_version`).

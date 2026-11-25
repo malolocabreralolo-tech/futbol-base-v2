@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """import_fiflp_goleadores.py — Los goleadores de temporadas pasadas que descarga
-goleadores-federacion.yml (scripts/fiflp_goleadores_<S>_raw.json), en la base.
+el carril del histórico (historico.yml; scripts/fiflp_goleadores_<S>_raw.json), en la base.
 
 Cada grupo de la federación se casa con un grupo de la base de la misma
 temporada (match_group):

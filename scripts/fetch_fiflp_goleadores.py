@@ -24,7 +24,7 @@ el grupo se queda como estaba y la ejecución acaba; si sirve otras y esa no (un
 página muerta), el grupo gasta un intento y, con MAX_INTENTOS, queda «no
 disponible en la federación». La última línea dice «Completo.» solo sin nada
 pendiente.
-Solo funciona desde GitHub Actions (goleadores-federacion.yml): FIFLP contesta
+Solo funciona desde GitHub Actions (historico.yml): FIFLP contesta
 vacío a las IPs domésticas.
 
   python3 scripts/fetch_fiflp_goleadores.py --temporadas 17,18,19,20,21 [--max-minutes 320] [--categorias alevin]

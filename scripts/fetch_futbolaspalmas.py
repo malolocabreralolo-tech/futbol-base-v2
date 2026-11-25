@@ -877,9 +877,9 @@ def update_fp_app(conn, season_name, log=print):
 
 
 def import_past_seasons(conn, log=print):
-    """Lo que descargan de temporadas pasadas actas-federacion.yml,
-    goleadores-federacion.yml y detalle-federacion.yml (solo los raws nuevos o
-    cambiados): actas, grupos que faltaban (finales, torneos, ligas insulares sin
+    """Lo que llega de temporadas pasadas a scripts/ (lo que el carril del histórico,
+    historico.yml, ya probó y promovió, y las tandas de actas-federacion.yml; solo los
+    raws nuevos o cambiados): actas, grupos que faltaban (finales, torneos, ligas insulares sin
     archivar), goleadores, torneos, el archivo del portal y el detalle (casa/fuera,
     equipos, campos y calendarios), en ese orden (los goleadores y el detalle casan
     sus grupos por las actas; el detalle, al final, completa y corrige con el

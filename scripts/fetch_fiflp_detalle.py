@@ -20,7 +20,7 @@ Solo escribe raws (reanudables: lo ya leído no se vuelve a pedir):
                                         "comp:grupo": {clasificacion, directorio, jornadas…}}
   scripts/fiflp_campos_raw.json        {código: ficha}
 Los importa import_fiflp_detalle.py (lo llama el bot), que salta las entradas sin `ok`
-y las claves con «_». Solo funciona desde GitHub Actions (detalle-federacion.yml):
+y las claves con «_». Solo funciona desde GitHub Actions (historico.yml):
 FIFLP contesta vacío a las IPs domésticas.
 
 Lee como el bot (fiflp_carga.para_tanda): una página vacía solo es el freno si la
