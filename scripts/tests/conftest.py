@@ -56,3 +56,27 @@ def _runner_de_azure(tmp_path_factory):
 def _originales_aparte(_originales_fuera_de_scripts, tmp_path_factory, monkeypatch):
     """Y cada prueba, en su carpeta: lo que guarda una no lo ve la siguiente."""
     monkeypatch.setenv("ACTAS_BOT_DIR", str(tmp_path_factory.mktemp("actas_bot")))
+
+
+@pytest.fixture(autouse=True, scope="session")
+def _sin_carril_del_job():
+    """update.yml pone FIFLP_CATS en el env del job (la ven todos sus pasos, también el de las pruebas): en una
+    pasada del carril de las mayores llegaría aquí con infantil,cadete,juvenil, y una prueba que no la mira daría
+    lo del carril y no lo de siempre (y la puerta de pruebas del carril, en rojo). Como en local: sin ella; las que
+    la miran la ponen ellas (monkeypatch.setenv). De sesión, como las de arriba."""
+    mp = pytest.MonkeyPatch()
+    mp.delenv("FIFLP_CATS", raising=False)
+    yield
+    mp.undo()
+
+
+@pytest.fixture(scope="session")
+def bases_reales(tmp_path_factory):
+    """La base real tras el final de una pasada, sin y con infantil, cadete y juvenil leídos (base_mayores.bases_reales):
+    una vez por sesión para las pruebas que las comparan. Salta sin futbolbase.db. Nadie las cambia: cada prueba
+    copia la suya."""
+    import base_mayores
+    origen = Path(__file__).resolve().parents[2] / "futbolbase.db"
+    if not origen.exists():
+        pytest.skip("futbolbase.db no está")
+    return base_mayores.bases_reales(origen, tmp_path_factory.mktemp("bases_reales"))

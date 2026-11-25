@@ -509,6 +509,28 @@ def test_el_freno_de_verdad_para_el_dia():
     assert not H.freno_del_bot({**salud, "run": {"cloud": "azure"}}, MIERCOLES)
 
 
+def test_el_freno_que_vio_el_carril_de_las_mayores_tambien_para_el_dia():
+    """El carril de infantil, cadete y juvenil (carril-mayores.yml) lee la misma federación que el bot: su freno de
+    verdad en Azure (carriles.mayores.run de data-health.json) también para al histórico ese día; el de AWS o sin
+    pausas, no. Con el informe de hoy (checkedAt), como el del bot."""
+    frenado = {"pauses": 1, "cloud": "azure"}
+    salud = {"checkedAt": "2026-11-25T09:21:28+00:00", "run": {"pauses": 0, "cloud": "azure"},
+             "carriles": {"mayores": {"runHealth": {"ok": True}, "run": frenado}}}
+    assert H.freno_del_bot(salud, MIERCOLES)
+    assert H.siguiente(PLAN, H.estado_vacio(), MIERCOLES, env={}, salud=salud)["motivo"] == "freno de verdad hoy"
+    assert H.apuntar_freno_del_bot(H.estado_vacio(), salud, MIERCOLES)["dia"]["freno"] == "bot"
+    # Sin `run` del bot (aún no ha pasado hoy), también.
+    assert H.freno_del_bot({k: v for k, v in salud.items() if k != "run"}, MIERCOLES)
+    for lane in ({"pauses": 1, "cloud": "aws", "refusedRunner": True}, {"pauses": 0, "cloud": "azure"},
+                 {"pauses": 2, "cloud": "azure", "refusedRunner": True}, {"pauses": "x"}, "?", None):
+        assert not H.freno_del_bot({**salud, "carriles": {"mayores": {"run": lane}}}, MIERCOLES), lane
+    for carriles in (None, "?", {}, {"mayores": None}, {"mayores": "?"}, {"mayores": {"runHealth": {"ok": True}}}):
+        assert not H.freno_del_bot({**salud, "carriles": carriles}, MIERCOLES), carriles
+    assert not H.freno_del_bot({**salud, "checkedAt": "2026-11-24T22:00:00+00:00"}, MIERCOLES)
+    # Y el del bot sigue valiendo solo, con el carril sano.
+    assert H.freno_del_bot({**salud, "run": frenado, "carriles": {"mayores": {"run": {"pauses": 0}}}}, MIERCOLES)
+
+
 def test_encargar_valida():
     p = H.encargar(None, "21,20", "alevín", "goleadores,actas", "", MIERCOLES)
     assert p == {**PLAN, "encargado": "2026-11-25T10:00:00+00:00"}

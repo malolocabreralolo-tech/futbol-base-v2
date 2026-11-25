@@ -17,6 +17,16 @@ name: Reloj de las pasadas
 # pasadas de verdad (y en las que lanzan el carril del histórico al promover lo probado, historico.yml, y las
 # tandas de actas que quedan al subir su raw, actas-federacion.yml; o a mano, como siempre; activar.yml no).
 #
+# El carril de las categorías mayores (infantil, cadete y juvenil; docs/categorias-mayores.md): carril-mayores.yml,
+# que llama a update.yml con cats: infantil,cadete,juvenil, lo lanza también este reloj, y solo con la variable del
+# repositorio CARRIL_MAYORES a 1 (apagado, sin ella: ni lista nada de más ni lanza). Toca (reloj_pasadas.due_carril)
+# fuera de las ventanas y a más de 1 h de que empiece una, entre dos pasadas del bot (la última empezó hace 25-75
+# min), cada 4 h, y nunca con otra ejecución sin acabar de update.yml, carril-mayores.yml, activar.yml o
+# historico.yml (GitHub guarda una sola en espera por grupo de concurrencia: una más nueva cancelaría la que
+# espera). Tiene su propio número de pasada (el de carril-mayores.yml): sus ejecuciones no están en la lista de
+# update.yml y el reloj no las cuenta como pasadas del bot (si las contara, cada una retrasaría hasta 2 h la
+# siguiente); con el carril encendido, la del bot solo espera a que acabe uno sin acabar (no haría cola tras él).
+#
 # Ligero: checkout disperso de reloj_pasadas.py, el python3 del sistema, sin pip; y los permisos justos para
 # leer y lanzar workflows (actions: write) y leer el repositorio (contents: read). Un fallo de gh o una
 # respuesta que no se entiende: el job falla a la vista y no lanza nada. Sin la base de zonas horarias, un
@@ -56,15 +66,28 @@ jobs:
           sparse-checkout: scripts/reloj_pasadas.py
           sparse-checkout-cone-mode: false
 
+      # Con el carril encendido (CARRIL_MAYORES a 1, por env: nunca interpolada en el guion), también las ejecuciones
+      # del carril, de la activación y del histórico; un fallo de cualquier lista tumba el paso sin decidir nada
+      # (tampoco la pasada del bot: no se sabría si el carril está en marcha), y el tick siguiente lo vuelve a mirar.
       - name: ¿Toca una pasada?
         id: reloj
         env:
           GH_TOKEN: ${{ github.token }}
+          CARRIL_MAYORES: ${{ vars.CARRIL_MAYORES }}
         run: |
           set -euo pipefail
           gh run list --repo "$GITHUB_REPOSITORY" --workflow update.yml --limit 20 \
             --json number,event,status,conclusion,createdAt,startedAt > "$RUNNER_TEMP/pasadas.json"
-          python3 scripts/reloj_pasadas.py < "$RUNNER_TEMP/pasadas.json"
+          if [ "${CARRIL_MAYORES:-}" = 1 ]; then
+            for wf in carril-mayores activar historico; do
+              gh run list --repo "$GITHUB_REPOSITORY" --workflow "$wf.yml" --limit 20 \
+                --json number,event,status,conclusion,createdAt,startedAt > "$RUNNER_TEMP/$wf.json"
+            done
+            python3 scripts/reloj_pasadas.py --carril "$RUNNER_TEMP/carril-mayores.json" \
+              --activar "$RUNNER_TEMP/activar.json" --activar "$RUNNER_TEMP/historico.json" < "$RUNNER_TEMP/pasadas.json"
+          else
+            python3 scripts/reloj_pasadas.py < "$RUNNER_TEMP/pasadas.json"
+          fi
 
       - name: Lanzar la pasada
         if: steps.reloj.outputs.due == 'true'
@@ -85,3 +108,23 @@ jobs:
             fi
           done
           echo "::warning::La pasada está lanzada, pero GitHub aún no la enseña."
+
+      # La pasada del carril de las mayores, solo si toca (due_carril: nunca a la vez que la del bot, y siempre
+      # false con el carril apagado), sobre main, y como la del bot: hasta que GitHub la enseñe.
+      - name: Lanzar el carril
+        if: steps.reloj.outputs.due_carril == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh workflow run carril-mayores.yml --ref main --repo "$GITHUB_REPOSITORY"
+          for i in $(seq 12); do
+            sleep 5
+            busy=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow carril-mayores.yml --limit 5 --json status \
+              --jq '[.[] | select(.status != "completed")] | length' || echo 0)
+            if [ "$busy" != "0" ]; then
+              echo "Carril lanzado: $busy sin acabar."
+              exit 0
+            fi
+          done
+          echo "::warning::El carril está lanzado, pero GitHub aún no lo enseña."

@@ -448,3 +448,57 @@ def poblar(conn, categorias=("INFANTIL", "CADETE", "JUVENIL"), temporada="2026-2
     out["jugadores_reutilizados"] = len(fab.reutilizados)
     out["sin_id_reutilizados"] = len(fab.sin_id_usados)
     return out
+
+
+# ── Las bases de las pruebas sobre la base real (fixture de sesión bases_reales, conftest.py) ─────────────
+
+def fin_de_pasada(path):
+    """Lo que hace el final de una pasada con la base de `path`: las fichas (migrate_identidad.resolver_fichas) y
+    los enlaces de la liga de escuelas (enlace_mygol.guardar_enlaces)."""
+    import enlace_mygol
+    import migrate_identidad
+    from db import get_connection
+    conn = get_connection(path)
+    try:
+        migrate_identidad.resolver_fichas(conn, log=lambda *a: None)
+        enlace_mygol.guardar_enlaces(conn, registro=lambda *a: None)
+    finally:
+        conn.close()
+
+
+def leida(resuelta, path, categorias=MAYORES, islas=False):
+    """Una copia de `resuelta` en `path` con lo de poblar (esas categorías y, con `islas`, el alevín de Lanzarote)
+    activado y leído y el final de una pasada: lo que devolvió poblar."""
+    import shutil
+    from db import get_connection
+    shutil.copyfile(resuelta, path)
+    conn = get_connection(path)
+    try:
+        hecho = poblar(conn, categorias=categorias, islas=islas, log=lambda *a: None)
+    finally:
+        conn.close()
+    fin_de_pasada(path)
+    return hecho
+
+
+def bases_reales(origen, carpeta):
+    """Copias de la base real `origen`, en `carpeta`, tras el final de una pasada: «resuelta», tal cual; «mayores»,
+    la misma con infantil, cadete y juvenil activados y leídos (poblar); e «islas», la misma con solo el alevín de
+    Lanzarote (poblar con islas). Las usan test_vista_web.test_generador_igual_con_y_sin_mayores (lo que genera la
+    web con una y con otra) y las pruebas de quitar_categoria (test_activacion_categorias.py): una vez por sesión,
+    y las dos últimas a la vez (paralelo.en_paralelo), porque las fichas de la base real tardan ~10 s cada vez y la
+    puerta de pruebas del bot pasa la suite entera en cada pasada. Quien las usa no las cambia: trabaja sobre su
+    propia copia. {'resuelta', 'mayores', 'islas': rutas; 'hecho', 'hecho_islas': lo que devolvió poblar}."""
+    import sqlite3
+    from paralelo import en_paralelo
+    carpeta = Path(carpeta)
+    resuelta, mayores, islas = carpeta / "resuelta.db", carpeta / "mayores.db", carpeta / "islas.db"
+    src = sqlite3.connect(f"file:{origen}?mode=ro", uri=True)
+    dst = sqlite3.connect(str(resuelta))
+    src.backup(dst)
+    dst.close()
+    src.close()
+    fin_de_pasada(resuelta)
+    hecho, hecho_islas = en_paralelo((leida, (resuelta, mayores)),
+                                     (leida, (resuelta, islas, (), True)))
+    return {"resuelta": resuelta, "mayores": mayores, "islas": islas, "hecho": hecho, "hecho_islas": hecho_islas}

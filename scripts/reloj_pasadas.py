@@ -34,14 +34,45 @@ Sin la base de zonas horarias del sistema (ZoneInfoNotFoundError: en ubuntu-24.0
 instala tzdata) no hay ventanas: una pasada cada BASE, con un aviso (::warning::) y sin dejar el job en rojo,
 que como update.yml no tiene cron, sin reloj no habría ninguna pasada.
 
+El carril de las categorías mayores (due_carril; docs/categorias-mayores.md, «El carril»): infantil, cadete y
+juvenil los lee update.yml llamado desde carril-mayores.yml (workflow_call), que tiene su propio número de
+pasada (GITHUB_RUN_NUMBER es el del llamante): no gasta números del bot, del que sale su rotación, y por eso sus
+ejecuciones no están en la lista de update.yml y la decisión del bot no las cuenta como pasadas (si contaran,
+cada una retrasaría hasta 2 h la siguiente del bot). Solo con la variable del repositorio CARRIL_MAYORES a 1
+(reloj.yml pasa entonces --carril y --activar; sin ella, ni lista de más ni lanza: due_carril=false). Toca si:
+  - no es una ventana de partidos ni falta menos de ANTES_DE_VENTANA (1 h) para que empiece una (el viernes,
+    desde las 17:00; el sábado y el domingo, desde las 9:00): el carril no le quita sitio al bot cuando se juega;
+    sin la base de zonas horarias, nunca (no se sabe dónde caen);
+  - no hay ninguna ejecución sin acabar del bot, del carril, de la activación (activar.yml) ni del histórico
+    (historico.yml): los que escriben la base comparten el grupo de concurrencia update-data, GitHub guarda una
+    sola ejecución en espera por grupo (una más nueva cancela la que esperaba) y el histórico puede tardar
+    horas (y al promover lanza el bot);
+  - la última pasada del bot empezó hace entre CARRIL_DESDE y CARRIL_HASTA (25-75 min): ya acabó (~24 min) y
+    la siguiente toca a los 110-120, así que el carril (~24 min) acaba antes y no la retrasa;
+  - la última del carril empezó hace CARRIL_CADA menos SLACK (3 h 50 min) o más, o no hay ninguna;
+  - y no toca la del bot (due): si toca, gana ella.
+Como solo cabe en el hueco tras una pasada del bot, y fuera de las ventanas el bot pasa cada 2 h, el carril puede
+ir cada 2 h o cada 4 h, no entre medias: cada 4 h, 6 al día de lunes a jueves, 5 el viernes (de 0 a 17 h), 3 el
+sábado y el domingo (de 0 a 9 h): 35 a la semana. ~45 grupos × ~4 páginas son ~180 páginas por vuelta (~1,3
+pasadas en Azure, ~137 páginas cada una); con la mitad de los runners en AWS (no leen nada), 17-18 pasadas útiles
+a la semana, ~2.400 páginas para ~1.500 que hacen falta: margen de 1,6. Con más de 60 grupos, CARRIL_CADA a 2 h
+(12 de lunes a jueves, una tras cada pasada del bot); con menos de 25, se puede subir a 6 h.
+Y la del bot, con el carril encendido: además de lo de arriba, no toca con una ejecución del carril sin acabar
+(`otros`): haría cola tras él en update-data, y otra más en cola cancelaría la que espera. Las acabadas no
+cuentan. Con eso, las horas de arranque de las pasadas del bot son las mismas con el carril y sin él
+(test_reloj_pasadas.test_semana_con_carril).
+
 Puro y sin dependencias (solo la biblioteca estándar): el reloj corre con el python3 del sistema, sin pip ni
 el resto del repositorio (checkout disperso de este fichero). Lo prueban test_reloj_pasadas.py y, el
 workflow, test_workflows.py.
 
 Uso: gh run list ... --json ... | python3 scripts/reloj_pasadas.py [--now 2026-10-17T10:00:00Z]
-Escribe la decisión en la salida y, si existe $GITHUB_OUTPUT, «due=true» o «due=false» en él. Una entrada que
-no es la lista de ejecuciones (un fallo de gh) sale con error y sin escribir nada: el job falla a la vista y
-no lanza nada.
+         [--carril carril.json --activar activar.json [--activar historico.json …]]
+Escribe la decisión en la salida y, si existe $GITHUB_OUTPUT, «due=true» o «due=false» en él, y «due_carril=…»
+(sin --carril, false). --carril es el fichero con las ejecuciones de carril-mayores.yml y cada --activar uno con
+las de activar.yml o historico.yml (el mismo JSON de gh run list): van juntos. Una entrada que no es la lista de
+ejecuciones (un fallo de gh), en cualquiera de ellos, sale con error y sin escribir nada: el job falla a la
+vista y no lanza nada (tampoco la pasada del bot: no se sabría si el carril está en marcha).
 """
 from datetime import datetime, timedelta, timezone
 import json
@@ -62,6 +93,11 @@ DONE = "completed"                      # el único status de una ejecución aca
 DAYS = ("lunes", "martes", "miércoles", "jueves", "viernes", "sábado", "domingo")
 NO_ZONE = "sin ventanas de partidos"
 RERUN = timedelta(minutes=1)            # un startedAt más tardío que esto tras su createdAt: un relanzamiento
+# El carril de las categorías mayores (carril-mayores.yml, due_carril: arriba).
+CARRIL_CADA = timedelta(hours=4)        # una pasada del carril cada 4 h (menos SLACK)
+CARRIL_DESDE = timedelta(minutes=25)    # tras el arranque de una pasada del bot: ya ha acabado (~24 min)…
+CARRIL_HASTA = timedelta(minutes=75)    # …y el carril (~24 min) acaba antes de la siguiente (110-120 min)
+ANTES_DE_VENTANA = timedelta(hours=1)   # ni en una ventana de partidos ni a menos de 1 h de que empiece una
 
 
 def _utc(moment):
@@ -137,9 +173,12 @@ def check_runs(runs):
     return runs
 
 
-def decide(now, runs):
-    """(¿toca?, por qué) a la hora `now` (UTC), con las ejecuciones de update.yml `runs` (gh run list)."""
+def decide(now, runs, otros=()):
+    """(¿toca?, por qué) a la hora `now` (UTC), con las ejecuciones de update.yml `runs` (gh run list) y las del
+    carril de las mayores `otros` (carril-mayores.yml: solo cuentan las que están sin acabar, que harían cola
+    delante en update-data; las acabadas no son pasadas del bot)."""
     runs = check_runs(runs)
+    otros = check_runs(list(otros))
     now = _utc(now)
     every = interval(now)
     where = window(now)
@@ -155,6 +194,11 @@ def decide(now, runs):
     if busy:
         r = max(busy, key=run_time)
         return False, f"{head}. No toca: la {r.get('number', '?')} ({r.get('event', '?')}) está {r['status']}."
+    lane = [r for r in otros if r["status"] != DONE]
+    if lane:
+        r = max(lane, key=run_time)
+        return False, (f"{head}. No toca: el carril de las categorías mayores está sin acabar (la "
+                       f"{r.get('number', '?')} de carril-mayores.yml está {r['status']}).")
     if not runs:
         return True, f"{head}. Toca: no hay ninguna ejecución de update.yml."
     last = max(runs, key=run_time)
@@ -168,26 +212,118 @@ def decide(now, runs):
     return False, f"{head}. No toca: {ago} (toca a partir de los {int((every - SLACK).total_seconds() // 60)})."
 
 
-def due(now, runs):
+def due(now, runs, otros=()):
     """¿Toca lanzar una pasada a la hora `now` (UTC)? (decide)"""
-    return decide(now, runs)[0]
+    return decide(now, runs, otros)[0]
+
+
+def _minutes(delta):
+    return int(delta.total_seconds() // 60)
+
+
+def due_carril(now, principal, carril, activar):
+    """(¿toca una pasada del carril de las mayores?, por qué) a la hora `now` (UTC), con las ejecuciones de
+    update.yml (`principal`), de carril-mayores.yml (`carril`) y de activar.yml e historico.yml juntas
+    (`activar`), todas de gh run list. Las reglas, arriba (cabecera del módulo)."""
+    principal, carril, activar = check_runs(principal), check_runs(carril), check_runs(activar)
+    now = _utc(now)
+    local = local_time(now)
+    if local is None:
+        return False, "no toca: sin la hora de Canarias (no está la base de zonas horarias) no se saben las ventanas"
+    where = window(now) or window(now + ANTES_DE_VENTANA)
+    if where:
+        return False, f"no toca: ventana de partidos ({where}) o a menos de {_minutes(ANTES_DE_VENTANA)} min de ella"
+    for name, runs in (("update.yml", principal), ("carril-mayores.yml", carril), ("activar.yml o historico.yml", activar)):
+        busy = [r for r in runs if r["status"] != DONE]
+        if busy:
+            r = max(busy, key=run_time)
+            return False, f"no toca: la {r.get('number', '?')} de {name} está {r['status']}"
+    if due(now, principal, carril):
+        return False, "no toca: toca una pasada del bot (va primero)"
+    if not principal:
+        return False, "no toca: no hay ninguna pasada del bot tras la que entrar"
+    last = max(principal, key=run_time)
+    since = now - run_time(last)
+    if not CARRIL_DESDE <= since <= CARRIL_HASTA:
+        return False, (f"no toca: la última pasada del bot, la {last.get('number', '?')}, empezó hace "
+                       f"{_minutes(since)} min (el carril entra entre los {_minutes(CARRIL_DESDE)} y los "
+                       f"{_minutes(CARRIL_HASTA)})")
+    if carril:
+        mine = max(carril, key=run_time)
+        ago = now - run_time(mine)
+        if ago < CARRIL_CADA - SLACK:
+            return False, (f"no toca: la última del carril, la {mine.get('number', '?')}, empezó hace "
+                           f"{_minutes(ago)} min (toca a partir de los {_minutes(CARRIL_CADA - SLACK)})")
+        tail = f"la última del carril, la {mine.get('number', '?')}, empezó hace {_minutes(ago)} min"
+    else:
+        tail = "no hay ninguna del carril"
+    return True, (f"toca: la última pasada del bot, la {last.get('number', '?')}, empezó hace "
+                  f"{_minutes(since)} min y {tail}")
+
+
+USO = ("uso: reloj_pasadas.py [--now FECHA_ISO] [--carril carril.json --activar activar.json "
+       "[--activar historico.json …]] < ejecuciones.json")
+
+
+def _args(argv):
+    """{'now': texto o None, 'carril': fichero o None, 'activar': [ficheros]}, o None si no se entiende (sin
+    argparse, que sale con SystemExit: main devuelve 2). --carril y --activar van juntos."""
+    out = {"now": None, "carril": None, "activar": []}
+    i = 0
+    while i < len(argv):
+        flag = argv[i]
+        if flag not in ("--now", "--carril", "--activar") or i + 1 >= len(argv):
+            return None
+        value = argv[i + 1]
+        if flag == "--activar":
+            out["activar"].append(value)
+        elif out[flag[2:]] is not None:
+            return None
+        else:
+            out[flag[2:]] = value
+        i += 2
+    if (out["carril"] is None) != (not out["activar"]):
+        return None
+    return out
+
+
+def _read_runs(path):
+    """Las ejecuciones de un fichero de gh run list; ValueError si no está o no se lee."""
+    try:
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
+    except OSError as e:
+        raise ValueError(f"{path}: {e}") from e
 
 
 def main(argv=None, stdin=None, env=None):
     argv = sys.argv[1:] if argv is None else argv
     env = os.environ if env is None else env
-    now = datetime.now(timezone.utc)
-    if argv[:1] == ["--now"] and len(argv) == 2:
-        now = _utc(datetime.fromisoformat(argv[1].replace("Z", "+00:00")))
-    elif argv:
-        print("uso: reloj_pasadas.py [--now FECHA_ISO] < ejecuciones.json", file=sys.stderr)
+    args = _args(argv)
+    if args is None:
+        print(USO, file=sys.stderr)
         return 2
+    now = datetime.now(timezone.utc)
+    if args["now"] is not None:
+        now = _utc(datetime.fromisoformat(args["now"].replace("Z", "+00:00")))
+    lane = None
     try:
-        ok, why = decide(now, json.load(stdin or sys.stdin))
+        runs = json.load(stdin or sys.stdin)
+        if args["carril"] is not None:
+            carril = _read_runs(args["carril"])
+            activar = []
+            for path in args["activar"]:          # activar.yml e historico.yml, juntas
+                activar += check_runs(_read_runs(path))
+            ok, why = decide(now, runs, carril)
+            lane = due_carril(now, runs, carril, activar)
+        else:
+            ok, why = decide(now, runs)
     except ValueError as e:                     # json.JSONDecodeError también es un ValueError
         print(f"reloj_pasadas: no se puede decidir ({e}): no se lanza nada.", file=sys.stderr)
         return 1
     print(why)
+    if lane is not None:
+        print(f"Carril de las categorías mayores: {lane[1]}.")
     if local_time(now) is None:
         print(f"::warning::reloj_pasadas: no está la zona {LOCAL_ZONE} (la base de zonas horarias del sistema): "
               f"{NO_ZONE}, una pasada cada {int(BASE.total_seconds() // 60)} min.")
@@ -195,6 +331,7 @@ def main(argv=None, stdin=None, env=None):
     if out:
         with open(out, "a", encoding="utf-8") as f:
             f.write(f"due={'true' if ok else 'false'}\n")
+            f.write(f"due_carril={'true' if lane and lane[0] else 'false'}\n")
     return 0
 
 

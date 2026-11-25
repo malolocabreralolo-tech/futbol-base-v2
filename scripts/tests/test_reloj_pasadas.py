@@ -197,7 +197,8 @@ def test_the_command_line_prints_the_decision_and_writes_due(tmp_path, capsys):
     assert R.main(["--now", "2026-10-17T12:00:00+00:00"], io.StringIO("[]"), {"GITHUB_OUTPUT": str(out)}) == 0
     assert R.main(["--now", "2026-10-20T12:00:00Z"], io.StringIO(runs.replace("2026-10-17", "2026-10-20")),
                   {"GITHUB_OUTPUT": str(out)}) == 0
-    assert out.read_text() == "due=true\ndue=true\ndue=false\n"
+    # due_carril=false sin --carril (el carril, apagado): el paso que lo lanza no corre.
+    assert out.read_text() == "due=true\ndue_carril=false\n" * 2 + "due=false\ndue_carril=false\n"
     printed = capsys.readouterr().out.splitlines()
     assert printed[0].startswith("17/10/2026 13:00 en Canarias, ventana de partidos (sábado de 10:00 a 24:00)")
     assert "Toca: la última, la 1118" in printed[0]
@@ -225,7 +226,7 @@ def test_it_runs_alone_with_the_system_python(tmp_path):
                           capture_output=True, cwd=tmp_path, env={"GITHUB_OUTPUT": str(out)}, timeout=60)
     assert done.returncode == 0, done.stderr
     assert "Toca: no hay ninguna ejecución de update.yml." in done.stdout
-    assert out.read_text() == "due=true\n"
+    assert out.read_text() == "due=true\ndue_carril=false\n"
 
 
 # ── Sin la base de zonas horarias ─────────────────────────────────────────────
@@ -243,7 +244,7 @@ def test_without_the_time_zones_there_are_no_windows_but_the_clock_goes_on(monke
     assert R.due(SAT, [run(SAT - timedelta(minutes=110))])
     out = tmp_path / "salida"
     assert R.main(["--now", "2026-10-17T12:00:00Z"], io.StringIO("[]"), {"GITHUB_OUTPUT": str(out)}) == 0
-    assert out.read_text() == "due=true\n"
+    assert out.read_text() == "due=true\ndue_carril=false\n"
     printed = capsys.readouterr().out
     assert printed.startswith("17/10/2026 12:00 UTC, sin la hora de Canarias"), printed
     assert "::warning::reloj_pasadas: no está la zona Atlantic/Canary" in printed
@@ -262,4 +263,222 @@ def test_without_the_system_time_zones_the_script_still_decides(tmp_path):
     done = subprocess.run([sys.executable, str(alone), "--now", "2026-10-17T12:00:00Z"], input="[]", text=True,
                           capture_output=True, cwd=tmp_path, env=env, timeout=60)
     assert done.returncode == 0, done.stderr
-    assert "::warning::" in done.stdout and out.read_text() == "due=true\n"
+    assert "::warning::" in done.stdout and out.read_text() == "due=true\ndue_carril=false\n"
+
+
+# ── El carril de las categorías mayores (carril-mayores.yml) ──────────────────
+#
+# El reloj lo lanza solo con la variable CARRIL_MAYORES a 1 (reloj.yml), fuera de las ventanas de partidos y a
+# más de 1 h de que empiece una, entre dos pasadas del bot (la última empezó hace 25-75 min), cada 4 h, y nunca con
+# otra ejecución sin acabar: del bot, del carril, de la activación (activar.yml) o del histórico (historico.yml:
+# GitHub guarda una sola ejecución en espera por grupo de concurrencia y el histórico puede tardar horas). Diciembre
+# de 2026: Canarias en UTC+0, así que las horas de abajo son las de Canarias.
+
+M = timedelta(minutes=1)
+
+
+def bot_a_las(now, minutes, number=50):
+    """La lista del bot con una sola pasada, empezada hace `minutes` y acabada."""
+    return [run(now - minutes * M, number=number)]
+
+
+def test_due_carril():
+    tue = utc("2026-12-01T10:40")                           # martes, 10:40
+    assert R.due_carril(tue, bot_a_las(tue, 30), [], [])[0]
+    assert not R.due_carril(utc("2026-12-01T10:20"), bot_a_las(utc("2026-12-01T10:20"), 10), [], [])[0]
+    assert not R.due_carril(utc("2026-12-01T11:30"), bot_a_las(utc("2026-12-01T11:30"), 80), [], [])[0]
+    # Los bordes: desde los 25 min y hasta los 75 (incluidos).
+    assert R.due_carril(tue, bot_a_las(tue, 25), [], [])[0] and R.due_carril(tue, bot_a_las(tue, 75), [], [])[0]
+    assert not R.due_carril(tue, bot_a_las(tue, 24), [], [])[0] and not R.due_carril(tue, bot_a_las(tue, 76), [], [])[0]
+    # La última del carril: hace 3 h 40 min, no; hace 3 h 55 min, sí (4 h menos la holgura de 10 min).
+    ok, why = R.due_carril(tue, bot_a_las(tue, 30), [run(utc("2026-12-01T07:00"), number=7)], [])
+    assert not ok and "la 7" in why, why
+    assert R.due_carril(tue, bot_a_las(tue, 30), [run(utc("2026-12-01T06:45"), number=7)], [])[0]
+    # Nada sin acabar: ni la activación, ni el histórico, ni el propio carril, ni el bot.
+    ok, why = R.due_carril(tue, bot_a_las(tue, 30), [], [run(tue - 5 * M, status="in_progress", number=3)])
+    assert not ok and "in_progress" in why, why
+    for status in ("queued", "waiting", "pending"):
+        assert not R.due_carril(tue, bot_a_las(tue, 30), [], [run(tue - 300 * M, status=status)])[0], status
+    assert not R.due_carril(tue, bot_a_las(tue, 30), [run(tue - 300 * M, status="in_progress")], [])[0]
+    assert not R.due_carril(tue, [run(tue - 30 * M, status="in_progress")], [], [])[0]
+    # Las acabadas de la activación y del histórico no cuentan (ni su hora).
+    assert R.due_carril(tue, bot_a_las(tue, 30), [], [run(tue - 5 * M, conclusion="failure")])[0]
+    # Las ventanas: el viernes, desde las 17:00 (la ventana empieza a las 18:00); el sábado, desde las 9:00.
+    fri = utc("2026-12-04T17:10")
+    ok, why = R.due_carril(fri, bot_a_las(fri, 30), [], [])
+    assert not ok and "ventana" in why, why
+    assert R.due_carril(utc("2026-12-04T16:50"), bot_a_las(utc("2026-12-04T16:50"), 30), [], [])[0]
+    for moment, expected in (("2026-12-05T08:40", True), ("2026-12-05T09:10", False), ("2026-12-05T12:00", False),
+                             ("2026-12-06T08:59", True), ("2026-12-06T09:00", False), ("2026-12-06T23:30", False),
+                             ("2026-12-07T00:10", True)):
+        now = utc(moment)
+        assert R.due_carril(now, bot_a_las(now, 30), [], [])[0] is expected, moment
+    # Sin ninguna pasada del bot: no hay hueco que medir.
+    assert not R.due_carril(tue, [], [], [])[0]
+
+
+def test_due_carril_sin_zona_horaria_nunca(monkeypatch):
+    """Sin la base de zonas horarias no se sabe dónde caen las ventanas: el carril no se lanza (el bot sigue, cada
+    2 h: test_without_the_time_zones_…)."""
+    def missing(key):
+        raise zoneinfo.ZoneInfoNotFoundError(f"No time zone found with key {key}")
+    monkeypatch.setattr(R, "ZoneInfo", missing)
+    tue = utc("2026-12-01T10:40")
+    ok, why = R.due_carril(tue, bot_a_las(tue, 30), [], [])
+    assert not ok and "zonas horarias" in why, why
+
+
+def test_due_carril_nunca_a_la_vez_que_el_bot(monkeypatch):
+    """Si toca una pasada del bot, gana ella, aunque el hueco del carril también encajara."""
+    monkeypatch.setattr(R, "CARRIL_HASTA", timedelta(minutes=200))
+    tue = utc("2026-12-01T10:40")
+    assert R.due(tue, bot_a_las(tue, 115))
+    ok, why = R.due_carril(tue, bot_a_las(tue, 115), [], [])
+    assert not ok and "pasada del bot" in why, why
+
+
+def test_due_carril_valida_sus_listas():
+    tue = utc("2026-12-01T10:40")
+    for bad in ({}, None, [1], [{"status": "completed"}]):
+        with pytest.raises(ValueError):
+            R.due_carril(tue, bot_a_las(tue, 30), bad, [])
+        with pytest.raises(ValueError):
+            R.due_carril(tue, bot_a_las(tue, 30), [], bad)
+
+
+def test_las_constantes_del_carril():
+    assert R.CARRIL_CADA == timedelta(hours=4)
+    assert (R.CARRIL_DESDE, R.CARRIL_HASTA) == (timedelta(minutes=25), timedelta(minutes=75))
+    assert R.ANTES_DE_VENTANA == timedelta(hours=1)
+    # El carril (~24 min) lanzado lo más tarde posible acaba antes de que toque la pasada siguiente del bot.
+    assert R.CARRIL_HASTA + timedelta(minutes=24) < R.BASE - R.SLACK
+
+
+def test_due_espera_al_carril():
+    """Con el carril sin acabar, la pasada del bot espera (si no, haría cola tras él en update-data y otra
+    más en cola cancelaría la que espera); acabado, toca como siempre."""
+    for now in (TUE, SAT):
+        runs = [run(now - 300 * M)]
+        ok, why = R.decide(now, runs, [run(now - 10 * M, status="in_progress", number=4)])
+        assert not ok and "carril" in why and "in_progress" in why, why
+        assert not R.due(now, runs, [run(now - 10 * M, status="queued")])
+        assert R.due(now, runs, [run(now - 10 * M)]) and R.due(now, runs)
+
+
+def test_carril_no_comparte_numero_ni_reloj():
+    """La decisión del bot solo mira las ejecuciones de update.yml: las del carril (carril-mayores.yml, con su
+    propio número de pasada) acabadas no la cambian, por recientes que sean (si contaran, cada pasada del carril
+    retrasaría hasta 2 h la siguiente del bot)."""
+    for now in (TUE, SAT, utc("2026-12-01T10:40"), utc("2026-12-04T17:10")):
+        for minutes in (10, 30, 49, 50, 75, 109, 110, 125, 300):
+            runs = bot_a_las(now, minutes)
+            for otros in ([run(now - 5 * M, number=900)], [run(now - k * M, number=900 + k) for k in (1, 20, 60, 200)]):
+                assert R.due(now, runs, otros) == R.due(now, runs), (now, minutes)
+                assert R.decide(now, runs, otros) == R.decide(now, runs)
+
+
+DURA = timedelta(minutes=24)
+
+
+def _semana(con_carril):
+    """La semana del lunes 30/11 al domingo 6/12/2026 con el reloj: un tick a las :07, :22, :37 y :52 de cada hora,
+    que lanza una pasada del bot si toca (due) y, si no, una del carril si toca (due_carril); cada una dura 24 min.
+    Sin activar.yml ni histórico. Devuelve [(«bot»|«carril», inicio)]."""
+    bot = [(utc("2026-11-29T23:07"), "bot")]                # la última del domingo 29, en su ventana
+    hechas = list(bot)
+    tick = utc("2026-11-30T00:07")
+    end = utc("2026-12-07T00:00")
+
+    def lista(kind, now):
+        return [run(at, status="completed" if at + DURA <= now else "in_progress", number=i)
+                for i, (at, k) in enumerate(hechas) if k == kind][-20:]
+
+    while tick < end:
+        for minute in (7, 22, 37, 52):
+            now = tick.replace(minute=minute)
+            principal, carril = lista("bot", now), lista("carril", now)
+            if R.due(now, principal, carril if con_carril else ()):
+                hechas.append((now, "bot"))
+            elif con_carril and R.due_carril(now, principal, carril, [])[0]:
+                hechas.append((now, "carril"))
+        tick += timedelta(hours=1)
+    return [(k, at) for at, k in hechas[1:]]
+
+
+def test_semana_con_carril():
+    sin, con = _semana(False), _semana(True)
+    assert [at for k, at in con if k == "bot"] == [at for _, at in sin], "las pasadas del bot, a su hora de siempre"
+    assert all(k == "bot" for k, _ in sin)
+    # Nunca dos a la vez.
+    starts = [at for _, at in con]
+    assert starts == sorted(starts)
+    assert all(b >= a + DURA for a, b in zip(starts, starts[1:]))
+    carril = [at for k, at in con if k == "carril"]
+    por_dia = {}
+    for at in carril:
+        por_dia[at.date()] = por_dia.get(at.date(), 0) + 1
+        assert R.window(at) is None and R.window(at + R.ANTES_DE_VENTANA) is None, at
+    dias = [utc("2026-11-30T00:00").date() + timedelta(days=d) for d in range(7)]
+    assert [por_dia.get(d, 0) for d in dias[:4]] == [6, 6, 6, 6], por_dia          # de lunes a jueves
+    assert por_dia.get(dias[4], 0) >= 4, por_dia                                     # viernes
+    assert por_dia.get(dias[5], 0) == 3 and por_dia.get(dias[6], 0) == 3, por_dia   # sábado y domingo
+    assert len(carril) >= 34
+
+
+# ── La línea de órdenes con el carril ─────────────────────────────────────────
+
+def _json(path, runs):
+    path.write_text(json.dumps(runs), encoding="utf-8")
+    return str(path)
+
+
+def test_the_command_line_with_the_lane(tmp_path, capsys):
+    """Con --carril y --activar (una o más listas: reloj.yml pasa la de activar.yml y la de historico.yml), escribe
+    due y due_carril; sin ellas, due_carril=false y la misma decisión del bot."""
+    out = tmp_path / "salida"
+    tue = utc("2026-12-01T10:40")
+    pasadas = json.dumps(bot_a_las(tue, 30, number=1200))
+    carril = _json(tmp_path / "carril.json", [])
+    activar = _json(tmp_path / "activar.json", [])
+    historico = _json(tmp_path / "historico.json", [run(tue - 300 * M)])
+    args = ["--now", "2026-12-01T10:40:00Z", "--carril", carril, "--activar", activar, "--activar", historico]
+    assert R.main(args, io.StringIO(pasadas), {"GITHUB_OUTPUT": str(out)}) == 0
+    assert out.read_text() == "due=false\ndue_carril=true\n"
+    printed = capsys.readouterr().out.splitlines()
+    assert "No toca" in printed[0] and printed[1].startswith("Carril de las categorías mayores: toca"), printed
+    # El histórico en marcha: no toca.
+    _json(tmp_path / "historico.json", [run(tue - 30 * M, status="in_progress")])
+    out.unlink()
+    assert R.main(args, io.StringIO(pasadas), {"GITHUB_OUTPUT": str(out)}) == 0
+    assert out.read_text() == "due=false\ndue_carril=false\n"
+    assert "Carril de las categorías mayores: no toca: la 1 de activar.yml o historico.yml está in_progress" \
+        in capsys.readouterr().out
+    # Sin el carril: lo de siempre, y due_carril=false.
+    out.unlink()
+    assert R.main(["--now", "2026-12-01T10:40:00Z"], io.StringIO(pasadas), {"GITHUB_OUTPUT": str(out)}) == 0
+    assert out.read_text() == "due=false\ndue_carril=false\n"
+    assert "Carril" not in capsys.readouterr().out
+    # El carril sin acabar: tampoco la del bot, aunque toque.
+    out.unlink()
+    _json(tmp_path / "carril.json", [run(tue - 10 * M, status="in_progress")])
+    late = json.dumps(bot_a_las(tue, 200))
+    assert R.main(args, io.StringIO(late), {"GITHUB_OUTPUT": str(out)}) == 0
+    assert out.read_text() == "due=false\ndue_carril=false\n"
+
+
+def test_the_command_line_with_the_lane_fails_without_writing_anything(tmp_path, capsys):
+    """Una lista del carril o de la activación que no se lee (un fallo de gh): en rojo y sin escribir nada; ni
+    la pasada del bot se lanza (no se sabe si el carril está en marcha). --carril sin --activar, o al revés: uso."""
+    out = tmp_path / "salida"
+    pasadas = json.dumps(bot_a_las(TUE, 300))
+    good = _json(tmp_path / "bien.json", [])
+    bad = tmp_path / "mal.json"
+    bad.write_text("no es json", encoding="utf-8")
+    for args in (["--carril", str(bad), "--activar", good], ["--carril", good, "--activar", str(bad)],
+                 ["--carril", str(tmp_path / "no-esta.json"), "--activar", good]):
+        assert R.main(["--now", "2026-10-20T12:00:00Z", *args], io.StringIO(pasadas), {"GITHUB_OUTPUT": str(out)}) == 1
+    assert not out.exists()
+    assert "no se lanza nada" in capsys.readouterr().err
+    for args in (["--carril", good], ["--activar", good], ["--carril"], ["--carril", good, "--activar"]):
+        assert R.main(args, io.StringIO(pasadas), {"GITHUB_OUTPUT": str(out)}) == 2, args
+    assert not out.exists()

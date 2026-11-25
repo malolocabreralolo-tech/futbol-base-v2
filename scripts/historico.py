@@ -233,17 +233,29 @@ def cupo_hoy(estado, now, env=None):
     return max(0, paginas_dia(env) - usadas)
 
 
+def _frenado(run):
+    """¿Esta pasada esperó el freno en Azure? (pauses >= 1, cloud "azure" y no refusedRunner)."""
+    try:
+        return (isinstance(run, dict) and int(run.get("pauses") or 0) >= 1 and run.get("cloud") == "azure"
+                and not run.get("refusedRunner"))
+    except (TypeError, ValueError):
+        return False
+
+
 def freno_del_bot(salud, now):
     """¿El bot en vivo ha esperado hoy el freno en Azure? Con el data-health.json publicado: su checkedAt es de hoy
-    en Canarias y su `run` tiene pauses >= 1, cloud "azure" y no refusedRunner (un runner de AWS no es el freno: es
-    la federación que no sirve a AWS). Sin fichero, sin `run` o con algo que no se entiende, False: no se para por
-    un dato que no se lee."""
+    en Canarias y la última pasada de alguno de sus carriles (`run`, la del bot de siempre; `carriles.mayores.run`,
+    la del carril de infantil, cadete y juvenil: docs/categorias-mayores.md) tiene pauses >= 1, cloud "azure" y no
+    refusedRunner (un runner de AWS no es el freno: es la federación que no sirve a AWS). Los dos leen la misma
+    federación: si cualquiera vio hoy el freno de verdad, el histórico no lee más ese día. Sin fichero, sin
+    `run` o con algo que no se entiende, False: no se para por un dato que no se lee."""
     try:
-        run = salud.get("run")
         visto = _instante(salud.get("checkedAt"))
-        if not isinstance(run, dict) or visto is None or fecha_de(visto) != fecha_de(now):
+        if visto is None or fecha_de(visto) != fecha_de(now):
             return False
-        return int(run.get("pauses") or 0) >= 1 and run.get("cloud") == "azure" and not run.get("refusedRunner")
+        carriles = salud.get("carriles")
+        mayores = (carriles.get("mayores") or {}) if isinstance(carriles, dict) else {}
+        return _frenado(salud.get("run")) or _frenado(mayores.get("run") if isinstance(mayores, dict) else None)
     except (AttributeError, TypeError, ValueError):
         return False
 

@@ -261,16 +261,6 @@ def test_un_equipo_de_lanzarote_en_una_interinsular_conserva_su_nombre():
 
 # ── quitar_categoria.py ──────────────────────────────────────────────────────
 
-def _copia_real(path):
-    """Una copia de la base real del árbol (con la API de copia de SQLite), en `path`."""
-    src = sqlite3.connect(f"file:{ROOT / 'futbolbase.db'}?mode=ro", uri=True)
-    dst = sqlite3.connect(path)
-    src.backup(dst)
-    dst.close()
-    src.close()
-    return path
-
-
 def _fin_de_pasada(path):
     """Lo que hace el final de una pasada con la base: las fichas y los enlaces de la liga de escuelas."""
     import enlace_mygol
@@ -329,13 +319,21 @@ def _por_categoria(path):
         conn.close()
 
 
+_NUEVAS = ("INFANTIL/", "CADETE/", "JUVENIL/", "ALEVIN/lanzarote", "ALEVIN/fuerteventura")
+
+
 @pytest.fixture(scope="module")
-def nunca(tmp_path_factory):
+def nunca(bases_reales, tmp_path_factory):
     """La copia de la base real en la que nunca se activaron las categorías nuevas (ni el alevín de islas), tras el
-    final de una pasada. Con la base de después (la del bot con las mayores ya leídas: prueba_mayores.py), lo que ya
-    hubiera de ellas se quita primero: lo que se compara es lo que añade poblar. Una para todo el módulo: las fichas
-    de la base real tardan ~12 s."""
-    path = _copia_real(tmp_path_factory.mktemp("nunca") / "nunca.db")
+    final de una pasada. Con la base de hoy, la resuelta de conftest.bases_reales tal cual (no tiene nada de ellas:
+    quitar_categoria no quitaría nada). Con la base de después (la del bot con las mayores ya leídas:
+    prueba_mayores.py), lo que ya hubiera de ellas se quita primero y se pasan las fichas: lo que se compara es lo
+    que añade poblar."""
+    resuelta = bases_reales["resuelta"]
+    if not any(k.startswith(_NUEVAS) for k in _por_categoria(resuelta)):
+        return resuelta
+    path = tmp_path_factory.mktemp("nunca") / "nunca.db"
+    shutil_copy(resuelta, path)
     for argv in (["--categoria", "INFANTIL"], ["--categoria", "CADETE"], ["--categoria", "JUVENIL"],
                  ["--categoria", "ALEVIN", "--isla", "lanzarote"], ["--categoria", "ALEVIN", "--isla", "fuerteventura"]):
         assert _quitar(path, *argv, "--apply")[0] == 0
@@ -343,15 +341,27 @@ def nunca(tmp_path_factory):
     return path
 
 
-def test_quitar_categoria(tmp_path, capsys, nunca):
+@pytest.fixture(scope="module")
+def mayores_leidas(nunca, bases_reales, tmp_path_factory):
+    """La de nunca con infantil, cadete y juvenil activados y leídos (base_mayores.poblar) y el final de una pasada:
+    (ruta, lo que devolvió poblar). Con la base de hoy, la de conftest.bases_reales (la misma cuenta, ya hecha)."""
+    if nunca == bases_reales["resuelta"]:
+        return bases_reales["mayores"], bases_reales["hecho"]
+    path = tmp_path_factory.mktemp("mayores") / "mayores.db"
+    shutil_copy(nunca, path)
+    hecho = _poblar(path)
+    _fin_de_pasada(path)
+    return path, hecho
+
+
+def test_quitar_categoria(tmp_path, capsys, nunca, mayores_leidas):
     """Sobre una copia de la base real con las mayores leídas (base_mayores.poblar), el ensayo cuenta lo de infantil
     sin tocar nada; con --apply lo quita y deja benjamín, alevín, cadete y juvenil igual; y quitadas las tres, la
     base es EXACTAMENTE (tabla a tabla, fila a fila: identidades, fichas y enlaces de la liga de escuelas incluidos)
     la de una copia en la que nunca se activaron. Con una categoría de las de siempre, error sin tocar nada."""
     activada = tmp_path / "activada.db"
-    shutil_copy(nunca, activada)
-    hecho = _poblar(activada)
-    _fin_de_pasada(activada)
+    shutil_copy(mayores_leidas[0], activada)
+    hecho = mayores_leidas[1]
     antes = _por_categoria(activada)
     assert {k.split("/")[0] for k in antes} >= {"INFANTIL", "CADETE", "JUVENIL"}
     assert any(k.endswith("/interinsular") for k in antes)          # base_mayores trae una interinsular
@@ -385,19 +395,24 @@ def test_quitar_categoria(tmp_path, capsys, nunca):
     assert _distinto(activada, intacta) == []
 
 
-def test_quitar_el_alevin_de_lanzarote(tmp_path, nunca):
+def test_quitar_el_alevin_de_lanzarote(tmp_path, nunca, bases_reales):
     """El paso D6 hacia atrás: --categoria ALEVIN --isla lanzarote quita solo el alevín de Lanzarote (el de Gran
     Canaria se queda) y, tras la pasada siguiente (sus fichas, que sí miraban esos grupos: alevín es de la web), la
     base es la de nunca."""
     activada = tmp_path / "activada.db"
-    shutil_copy(nunca, activada)
-    hecho = _poblar(activada, categorias=(), islas=True)
+    if nunca == bases_reales["resuelta"]:               # la base de hoy: la de bases_reales (la misma cuenta, ya hecha)
+        shutil_copy(bases_reales["islas"], activada)
+        hecho = bases_reales["hecho_islas"]
+    else:
+        shutil_copy(nunca, activada)
+        hecho = _poblar(activada, categorias=(), islas=True)
+        _fin_de_pasada(activada)
     assert hecho["grupos"] and all(g.startswith("ALUL") for g in hecho["grupos"])
-    _fin_de_pasada(activada)
-    alevin_gc = _por_categoria(activada)["ALEVIN/grancanaria"]
+    antes = _por_categoria(activada)
+    assert "ALEVIN/lanzarote" in antes
     assert _quitar(activada, "--categoria", "ALEVIN", "--isla", "lanzarote", "--apply")[0] == 0
     quedan = _por_categoria(activada)
-    assert "ALEVIN/lanzarote" not in quedan and quedan["ALEVIN/grancanaria"] == alevin_gc
+    assert "ALEVIN/lanzarote" not in quedan and quedan["ALEVIN/grancanaria"] == antes["ALEVIN/grancanaria"]
     _fin_de_pasada(activada)
     assert _distinto(activada, nunca) == []
 
