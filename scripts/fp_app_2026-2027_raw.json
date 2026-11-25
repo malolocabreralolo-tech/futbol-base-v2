@@ -48,7 +48,7 @@
   "2026-11-21": "2026-11-22T03:14:09",
   "2026-11-22": "2026-11-23T11:23:47",
   "2026-11-24": "2026-11-25T01:39:31",
-  "2026-11-25": "2026-11-25T17:11:59"
+  "2026-11-25": "2026-11-25T19:41:21"
  },
  "ligas": {
   "121": {
@@ -71762,7 +71762,7 @@
    "arbitro_principal_nombre": null,
    "asistente1_nombre": null,
    "asistente2_nombre": null,
-   "campo_gps": "https://google.com28.13503910,-15.48249950",
+   "campo_gps": "https://goo.gl/maps/eMyWhiRXaQ52",
    "campo_latitud": "28.13503910",
    "campo_longitud": "-15.48249950",
    "club_padre_local": "Costa Ayala",
@@ -71770,15 +71770,15 @@
    "escudo_local": "100x100costayala.png",
    "escudo_visitante": "angosturaEscudo.png",
    "estadio": "Costa Ayala",
-   "estado": "no_iniciado",
+   "estado": "finalizado",
    "fase_eliminatoria": "",
    "fecha_programada": "2026-11-25 18:00:00",
    "goleadores_local": null,
    "goleadores_visitante": null,
    "goles_ida_local": 0,
    "goles_ida_visitante": 0,
-   "goles_local": 0,
-   "goles_visitante": 0,
+   "goles_local": 4,
+   "goles_visitante": 4,
    "hora_inicio": null,
    "id": 26397,
    "id_local": 2524,
@@ -71795,8 +71795,12 @@
    "penaltis_visitante": "",
    "permitir_comentarios": 1,
    "permitir_comentarios_liga": 1,
-   "racha_local": [],
-   "racha_visitante": [],
+   "racha_local": [
+    "E"
+   ],
+   "racha_visitante": [
+    "E"
+   ],
    "tecnico_local": null,
    "tecnico_visitante": null,
    "total_comentarios": 0,
