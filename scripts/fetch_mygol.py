@@ -7,9 +7,11 @@ federación: la lleva la organización ACADEE en la plataforma MyGol, con una AP
                                 estado, campo). Contesta también con los torneos ocultos (los de
                                 temporadas pasadas), que en /tournaments/<id> dan 400.
   /matches/<id>                 un partido: los nombres de los dos equipos y la plantilla de cada uno
-                                (id del jugador, estable de una temporada a otra, nombre y apellidos) con
+                                (id del jugador, nombre y apellidos) con
                                 `dayResultSummary.gamesPlayed`: si el niño jugó esa jornada.
 No hay marcadores ni goles (las escuelas no los publican) ni fecha de nacimiento (sale 0001-01-01).
+El id del jugador (y `idUser`) es propio de cada temporada: MyGol crea las fichas de nuevo cada año, y
+el mismo niño tiene otro id al siguiente. Entre temporadas solo se le puede seguir por nombre y apellidos.
 
 De qué temporada y categoría es cada torneo no lo dice la API de los ocultos: lo dice una tabla revisada
 a mano, scripts/mygol_torneos.json. Un torneo que no está en ella no se pide nunca.

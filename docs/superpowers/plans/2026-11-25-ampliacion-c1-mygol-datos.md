@@ -104,6 +104,7 @@
                           jugo INTEGER NOT NULL, PRIMARY KEY (partido_id, jugador_id)) WITHOUT ROWID
     ```
     y el índice `idx_mygol_participaciones_jugador` sobre `(jugador_id)`. `norm` es `identidad.normalizar("<apellidos>, <nombre>")` (solo `identidad.normalizar("<nombre>")` si no hay apellidos).
+  - `mygol_jugadores.id` es el id de MyGol, propio de cada temporada: el mismo niño tiene una fila por temporada. Cruzarlos entre temporadas (por `norm`) es de la parte C2.
   - `raws(raiz=None) -> list[Path]` — los `scripts/mygol_*_raw.json` que existan, en orden.
   - `importar(conn, rutas=None) -> dict` — rehace **enteras** las cinco tablas con lo que digan los originales, en una transacción (si algo falla, la base queda como estaba), y devuelve los recuentos por tabla. El nombre de un jugador o de un equipo que cambia entre originales: el del original de la temporada más reciente.
   - `huella(rutas) -> str` (sha1 del contenido de todos, en orden) y `importar_si_cambia(conn, raiz=None, registro=print) -> bool` — compara con la huella guardada en `raw_imports` (mira cómo la usan `import_fiflp_actas.import_changed_raws` y compañía y haz lo mismo, con la clave `mygol`); importa y guarda la huella solo si cambia; `True` si importó.

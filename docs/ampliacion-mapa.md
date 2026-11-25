@@ -136,8 +136,10 @@ bajar el histórico por tandas es cuestión de meses; sin él, de días (antes d
 ## 5. Liga de escuelas (MyGol)
 
 API `https://tusligascanarias.mygol.es/api`: `/tournaments` (visibles), `/tournaments/<id>` (400 si está
-oculto), `/matches/fortournament/<id>` (también los ocultos), `/matches/<id>` (equipos y jugadores con id
-estable, nombre y apellidos; `birthDate` en blanco; `dayResultSummary.gamesPlayed`).
+oculto), `/matches/fortournament/<id>` (también los ocultos), `/matches/<id>` (equipos y jugadores con id,
+nombre y apellidos; `birthDate` en blanco; `dayResultSummary.gamesPlayed`). El id del jugador (y `idUser`)
+es propio de cada temporada: MyGol crea las fichas de nuevo cada año, y entre temporadas solo se puede cruzar
+a un niño por nombre y apellidos.
 
 | Temporada | Torneos de escuela (equipos, partidos) |
 |---|---|
