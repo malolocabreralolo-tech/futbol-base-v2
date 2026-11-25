@@ -181,6 +181,7 @@ Cada categoría admite unos años de nacimiento. En la temporada 2025-26:
 
 | Categoría | Nacidos en |
 |---|---|
+| Miniprebenjamín (solo en la liga de escuelas) | 2020 o 2021 |
 | Prebenjamín | 2018 o 2019 |
 | Benjamín | 2016 o 2017 |
 | Alevín | 2014 o 2015 |
@@ -194,6 +195,13 @@ Cada temporada, todo se mueve un año.
 
 **Ejemplo inventado:** un niño juega en prebenjamín en 2024-25 (2017 o 2018) y en benjamín en 2025-26
 (2016 o 2017). El único año que encaja con las dos es 2017.
+
+**La liga de escuelas también cuenta.** Si la ficha está enlazada con la liga de escuelas (MyGol: el
+mismo nombre y los dos apellidos, y solo cuando no hay duda; [mygol.md](mygol.md)), cada temporada de escuela
+es una más para el año, con las jornadas que jugó (una temporada en la plantilla sin ninguna jugada
+apuntada cuenta poco). Como muchos niños pasan por la escuela antes de federarse, suele cerrar la duda: de
+las fichas enlazadas que tenían dos años posibles, unas cinco de cada seis pasan a uno. En el ranking la
+escuela no suma nada (no tiene goles): solo cambia en qué lista de año sale el niño.
 
 No es un simple cruce. Un niño puede jugar una temporada con los mayores, y un acta puede estar mal. Por
 eso la web no descarta nada: lo que no encaja lo hace menos probable. Y una temporada entera pesa más que

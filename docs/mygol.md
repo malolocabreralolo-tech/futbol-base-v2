@@ -4,8 +4,9 @@ La liga de escuelas de Gran Canaria (miniprebenjamín, prebenjamín, benjamín y
 pasa por la federación: la organiza ACADEE en la plataforma MyGol (`tusligascanarias.mygol.es`), que tiene
 una API pública. De ahí se bajan, desde 2022-23 (antes no hay liga de escuelas en MyGol), los torneos, los
 equipos, los partidos y qué niños estaban convocados en cada partido y si jugaron. Entra en tablas propias
-de la base (`mygol_*`); enlazar a estos niños con sus fichas de la federación y enseñarlo en la web es de
-otra parte (C2), todavía no.
+de la base (`mygol_*`). Cuando un niño de escuela se puede enlazar con seguridad con su ficha de la
+federación, la ficha dice en qué equipos de escuela estuvo y cuándo, y esas temporadas afinan su año de
+nacimiento ([más abajo](#el-enlace-con-las-fichas)).
 
 ## Qué hay y qué no
 
@@ -116,3 +117,50 @@ LEFT JOIN mygol_equipos e ON e.id = p.equipo_id
 GROUP BY t.id, j.id, p.equipo_id
 ORDER BY t.temporada, t.categoria, equipo, j.norm;
 ```
+
+## El enlace con las fichas
+
+MyGol no da ningún identificador que sirva en la federación ni la fecha de nacimiento: solo el nombre y los
+apellidos. Así que el enlace es por el nombre, y muy prudente, porque es peor enseñar en la ficha de un niño
+la escuela de otro que no enseñar ninguna. La regla, en `scripts/enlace_mygol.py` (`enlazar`): un niño de
+MyGol (un id de una temporada) va a una ficha solo si
+
+1. tiene nombre y **dos apellidos** («APELLIDO APELLIDO, NOMBRE», igual que en la federación, sin tildes);
+2. esa temporada no hay en MyGol **otro niño con el mismo nombre en un club que no tenga nada que ver** (el
+   club es `identidad.club` del nombre del equipo). Si lo hay, son dos niños y no se sabe cuál es cuál: no se
+   enlaza ninguno de los dos. El mismo club dos veces (los equipos A y E de un club) es el mismo niño apuntado
+   dos veces, y sí;
+3. en la federación hay **una sola ficha** con ese nombre exacto (en su identidad principal o en una unida).
+   Con dos, ninguna, aunque solo una tenga la edad;
+4. **la edad cuadra**: alguno de los años de nacimiento de la ficha, estimado solo con la federación, cabe
+   en la categoría de esa temporada de escuela, con un año de margen por el lado joven (en la escuela muchos
+   juegan con los mayores);
+5. y a la ficha no le llegan, de la misma temporada, dos niños de MyGol en clubes sin nada en común (por
+   dos nombres distintos de sus identidades). Si pasa, ninguno de esa temporada.
+
+Un id de MyGol que sale en dos torneos (dos categorías la misma temporada, o, rara vez, el mismo id en dos
+temporadas) se enlaza solo si todos sus torneos llevan a la misma ficha.
+
+**Lo que no se enlaza, a propósito:** los niños de un solo apellido (MyGol solo guarda el primero en algunos
+equipos): enlazarlos por el nombre y el primer apellido falla en torno a una de cada seis veces. Tampoco se
+usa el club para enlazar más: los nombres de club de MyGol y de la federación no casan bien («Vet. del
+Pilar» frente a «Veteranos»…), y exigir el mismo club solo añadiría 6 niños.
+
+**Las cifras** (25/11/2026, con los cinco originales y la base de ese día): de 5.191 niños de MyGol (4.907
+con nombre y dos apellidos), se enlazan **1.521 con 968 fichas**. Se quedan fuera 3.235 sin ninguna ficha
+con su nombre (la mayoría no se ha federado), 58 por repetirse su nombre en dos clubes la misma temporada,
+39 con dos o más fichas candidatas y 55 por la edad. Error estimado: por debajo del 1,3 % (los homónimos de
+edad compatible que cabe esperar por azar). De las 968 fichas, 928 tienen la escuela antes de su primera
+temporada federada; y 409 de las 485 que tenían dos años de nacimiento posibles pasan a uno.
+
+**Dónde está:** la pasada del bot (`fetch_futbolaspalmas.enlazar_mygol`), después de resolver las fichas y
+antes de publicar, rehace entera la tabla `mygol_enlaces(jugador_id, player_id)`: el id de MyGol y el de la
+principal de su ficha. Es derivada (si el resolvedor cambia la principal, el enlace la sigue en la misma
+pasada) y no se escribe si no cambia. Un fallo del enlace nunca para la pasada (`! MyGol (enlaces): …`): la
+web sale como en la pasada anterior. El generador (`generate_js._escuela`) le pone a cada ficha enlazada
+`"e"`: `[temporada, equipo, categoría, jornadas jugadas]` por temporada y equipo, y la ficha de la web lo
+enseña en «Liga de escuelas», siempre como «enlazado por el nombre y los dos apellidos». Sin enlaces (o sin
+las tablas), lo publicado es igual byte a byte que sin la liga de escuelas.
+
+**Si un enlace está mal:** hoy no hay una lista para separarlo a mano. Lo que sí deshace un enlace es
+cualquier cosa que rompa una de las cinco condiciones (por ejemplo, una ficha más con ese nombre).

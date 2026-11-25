@@ -2,8 +2,9 @@
 """import_mygol.py — La liga de escuelas de MyGol, de sus originales (scripts/mygol_<S>_raw.json) a la base.
 
 Puro de red: lee lo que bajó fetch_mygol.py y rehace ENTERAS sus cinco tablas propias, mygol_*, en una
-transacción. No toca ninguna otra tabla: enlazar a estos niños con las fichas de la federación es otra
-parte (C2), y lo que se ve en la web, también.
+transacción. No toca ninguna otra tabla: enlazar a estos niños con las fichas de la federación es de
+enlace_mygol.py (la tabla mygol_enlaces, después de resolver las fichas), y lo que se ve en la web, del
+generador.
 
   mygol_torneos          id de MyGol, temporada, categoría (NULL = sin decidir) y nombre
   mygol_equipos          id de MyGol y nombre (el de la temporada más reciente, si cambia)
