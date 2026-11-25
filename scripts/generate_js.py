@@ -5,12 +5,13 @@ Generate all data-*.js files from the SQLite database.
 Reads futbolbase.db and produces:
   - data-benjamin.js
   - data-prebenjamin.js
-  - data-alevin.js (alevín de la temporada en curso, carga perezosa; siempre, aunque vacío)
+  - data-alevin.js, data-infantil.js, data-cadete.js y data-juvenil.js (cada categoría perezosa de la
+    temporada en curso, LAZY; siempre, aunque vacíos)
   - data-history.js (solo benjamín y prebenjamín: es carga inicial)
-  - data-matchdetail.js
+  - data-matchdetail.js (sin infantil, cadete ni juvenil, que van en data-matchdetail-<clave>.js)
   - data-goleadores.js
-  - data-seasons.js and data-season-<S>.js (the past seasons; su alevín, aparte, en
-    data-season-<S>-alevin.js: docs/alevin.md)
+  - data-seasons.js and data-season-<S>.js (the past seasons; cada categoría perezosa, aparte, en
+    data-season-<S>-<clave>.js: docs/alevin.md)
   - data-lineups-<S>-<grupo>.js (one per group with actas)
   - data-jugadores-<k>.js (las fichas, 64 trozos), data-buscar-<xy>.js (el buscador de jugadores) y
     data-ranking.js con data-ranking-<año>.js (los mejores de cada año de nacimiento): de las mismas filas
@@ -133,6 +134,23 @@ def get_groups_for_category(conn, category_name):
 # docs/alevin.md): sus 32 grupos harían crecer la carga inicial sin avisar.
 EAGER_CATEGORIES = ("BENJAMIN", "PREBENJAMIN")
 ALEVIN = "ALEVIN"
+# Las categorías perezosas: categoría de la base → (clave de la web y del fichero, constante de sus grupos,
+# sufijo de las demás constantes). Alevín, como siempre (data-alevin.js con ALEVIN, ALEV_STATS, HISTORY_ALEV…;
+# nombres que la web ya lee y que no cambian); infantil, cadete y juvenil (parte E), igual, cada una en SU
+# fichero: una familia que sigue a un niño de infantil no baja cadete ni juvenil (~0,5 MB cada una al acabar la
+# temporada), y la portada no baja ninguna.
+LAZY = {"ALEVIN": ("alevin", "ALEVIN", "ALEV"), "INFANTIL": ("infantil", "INFANTIL", "INF"),
+        "CADETE": ("cadete", "CADETE", "CAD"), "JUVENIL": ("juvenil", "JUVENIL", "JUV")}
+# Las de la parte E: sus campos (CAMPOS_<S>) y la cronología de sus partidos (data-matchdetail-<clave>.js) van
+# en sus ficheros. Los de alevín siguen donde estaban (CAMPOS de data-history.js y MATCH_DETAIL), como los
+# publica hoy: así ni la carga inicial ni data-matchdetail.js crecen con fútbol 11, y alevín sale igual.
+NUEVAS = ("INFANTIL", "CADETE", "JUVENIL")
+
+
+def _en_web():
+    """Las categorías que enseña la web (categorias.EN_WEB, leída al llamar: las pruebas la parchean)."""
+    import categorias
+    return tuple(categorias.EN_WEB)
 
 
 def teams_by_category(conn, season_id):
@@ -149,14 +167,21 @@ def teams_by_category(conn, season_id):
     return out
 
 
-def _alevin_only(conn, season_id):
-    """Los equipos que esa temporada solo juegan en alevín: fuera de lo de benjamín y prebenjamín."""
-    return {t for t, cats in teams_by_category(conn, season_id).items() if cats == {ALEVIN}}
+def _lazy_only(conn, season_id):
+    """Los equipos que esa temporada solo juegan en categorías perezosas (LAZY): fuera de lo de benjamín y
+    prebenjamín. El club que juega en benjamín y en juvenil (la misma fila de teams) se queda."""
+    return {t for t, cats in teams_by_category(conn, season_id).items() if cats <= set(LAZY)}
 
 
-def _in_alevin(conn, season_id):
-    """Los equipos que esa temporada juegan en alevín (también en otra categoría)."""
-    return {t for t, cats in teams_by_category(conn, season_id).items() if ALEVIN in cats}
+def _new_only(conn, season_id):
+    """Los equipos que esa temporada solo juegan en infantil, cadete o juvenil (NUEVAS): sus campos no van en el
+    CAMPOS de data-history.js."""
+    return {t for t, cats in teams_by_category(conn, season_id).items() if cats <= set(NUEVAS)}
+
+
+def _in_category(conn, season_id, category):
+    """Los equipos que esa temporada juegan en esa categoría (también en otra)."""
+    return {t for t, cats in teams_by_category(conn, season_id).items() if category in cats}
 
 
 def _match_key(home, away, hs, as_):
@@ -305,8 +330,12 @@ def _is_league_group(code, phase):
     if "copa" in (phase or "").lower():
         return False
     # Finales, semifinales («Semifinal Liga Primera Lanzarote»), torneos de cierre o clausura y
-    # eliminatorias (EL, PEL, ALEL: docs/alevin.md) (isCupGroup de src/state.js).
-    if re.match(r"(semi)?final\b|torneo\b|clausura\b|eliminatoria", (phase or "").lower()):
+    # eliminatorias (EL, PEL, ALEL: docs/alevin.md) (isCupGroup de src/state.js). Y las fases de ascenso
+    # de infantil, cadete y juvenil («Fase de Ascenso a Interinsular», CADIA…; las «Eliminatorias de Ascenso
+    # a …» ya caen en lo de antes): se juegan a eliminatoria o en liguillas cortas con su propio orden, y la
+    # parte E las trata como copas (decisión 3).
+    if re.match(r"(semi)?final\b|torneo\b|clausura\b|eliminatoria|fase de ascenso\b",
+                (phase or "").lower()):
         return False
     if (code or "").upper().startswith(("PCC", "BC")):
         return False
@@ -454,7 +483,7 @@ def get_current_jornada_matches(conn, group_id, current_jornada):
 
 
 def generate_category_js(conn, category_name, var_name, stats_var):
-    """Generate the JS content for a category (BENJAMIN, PREBENJAMIN or ALEVIN)."""
+    """Generate the JS content for a category (BENJAMIN, PREBENJAMIN or one of LAZY)."""
     groups = get_groups_for_category(conn, category_name)
     result = []
     total_teams = 0
@@ -553,34 +582,58 @@ def generate_history_js(conn):
     # El directorio de campos va con el calendario (CAMPOS, para «Cómo llegar»):
     # un fichero inmediato nuevo rompería la primera apertura sin red con el SW
     # anterior, que no lo tiene y devolvería index.html en su lugar. De toda la
-    # temporada, alevín incluido (data-alevin.js no lleva campos).
+    # temporada, alevín incluido (data-alevin.js no lleva campos); los de infantil,
+    # cadete y juvenil, no: van en su fichero (CAMPOS_<S>), y la carga inicial no crece.
     js = "const HISTORY=" + js_val(history) + ";\n" + generate_campos_js(conn) + "\n"
     js += f"const HIST_MATCHES={total_matches};"
     # Y con ellos, por la misma razón, la ficha de cada equipo de la temporada (equipación y campo,
     # EQUIPOS) y el estado de los partidos que da la app de futbolaspalmas (ESTADOS). Sin los
-    # equipos que solo juegan en alevín ni los partidos de alevín (EQUIPOS_ALEV, ESTADOS_ALEV).
+    # equipos que solo juegan en categorías perezosas ni sus partidos (EQUIPOS_<S>, ESTADOS_<S>).
     row = conn.execute("SELECT id FROM seasons WHERE is_current = 1").fetchone()
-    only = _alevin_only(conn, row[0]) if row else set()
+    only = _lazy_only(conn, row[0]) if row else set()
     js += "\nconst EQUIPOS=" + js_val(team_info_map(conn, row[0], keep=lambda t: t not in only) if row else {}) + ";"
     js += "\nconst ESTADOS=" + js_val(match_states_map(conn, row[0], EAGER_CATEGORIES) if row else {}) + ";"
     js += "\nconst COBERTURA=" + js_val(coverage_summary(conn)) + ";"
     return js
 
 
-def generate_alevin_js(conn):
-    """data-alevin.js: el alevín de la temporada en curso, con la forma de lo de benjamín y en este
-    orden (docs/alevin.md §4): ALEVIN y ALEV_STATS (como BENJAMIN y BENJ_STATS),
-    HISTORY_ALEV (HISTORY), GOL_ALEV (GOL_BENJ), ESTADOS_ALEV (ESTADOS) y EQUIPOS_ALEV (EQUIPOS, de
-    los equipos que juegan en alevín). Siempre, aunque esté vacío: la web lo pide sin saber si hay."""
-    js = generate_category_js(conn, ALEVIN, "ALEVIN", "ALEV_STATS")
-    history, _ = history_map(conn, (ALEVIN,))
+def generate_lazy_js(conn, category):
+    """data-<clave>.js: una categoría perezosa (LAZY) de la temporada en curso, con la forma de lo de
+    benjamín y en este orden (docs/alevin.md §4): <GRUPOS> y <S>_STATS (como BENJAMIN y BENJ_STATS),
+    HISTORY_<S> (HISTORY), GOL_<S> (GOL_BENJ), ESTADOS_<S> (ESTADOS), EQUIPOS_<S> (EQUIPOS, de los equipos
+    que juegan en ella) y, solo en las NUEVAS, CAMPOS_<S> (los campos de sus partidos y de sus equipos que no
+    están en el CAMPOS de data-history.js, con su forma). Siempre, aunque esté vacío (también si la categoría
+    no está en categorias.EN_WEB): la web lo pide sin saber si hay."""
+    _clave, grupos, s = LAZY[category]
     row = conn.execute("SELECT id FROM seasons WHERE is_current = 1").fetchone()
-    teams = _in_alevin(conn, row[0]) if row else set()
-    js += "const HISTORY_ALEV=" + js_val(history) + ";\n"
-    js += "const GOL_ALEV=" + js_val(goleadores_entries(conn, ALEVIN)) + ";\n"
-    js += "const ESTADOS_ALEV=" + js_val(match_states_map(conn, row[0], (ALEVIN,)) if row else {}) + ";\n"
-    js += "const EQUIPOS_ALEV=" + js_val(team_info_map(conn, row[0], keep=lambda t: t in teams) if row else {}) + ";\n"
+    if category not in _en_web():
+        row = None                    # no se enseña: como una temporada sin grupos de ella
+        js = f"const {grupos}=" + js_val([]) + ";\n"
+        js += f"const {s}_STATS=" + js_val({"groups": 0, "teams": 0}) + ";\n"
+        history, gol = {}, []
+    else:
+        js = generate_category_js(conn, category, grupos, f"{s}_STATS")
+        history, _ = history_map(conn, (category,))
+        gol = goleadores_entries(conn, category)
+    teams = _in_category(conn, row[0], category) if row else set()
+    js += f"const HISTORY_{s}=" + js_val(history) + ";\n"
+    js += f"const GOL_{s}=" + js_val(gol) + ";\n"
+    js += f"const ESTADOS_{s}=" + js_val(match_states_map(conn, row[0], (category,)) if row else {}) + ";\n"
+    js += f"const EQUIPOS_{s}=" + js_val(team_info_map(conn, row[0], keep=lambda t: t in teams) if row else {}) + ";\n"
+    if category in NUEVAS:
+        campos = {}
+        if row:
+            eager = set(_eager_campos(conn, row[0]))
+            campos = {k: v for k, v in campos_entries(conn, season_venue_names(
+                conn, row[0], (category,), keep=lambda t: t in teams)).items() if k not in eager}
+        js += f"const CAMPOS_{s}=" + js_val(campos) + ";\n"
     return js
+
+
+def generate_alevin_js(conn):
+    """data-alevin.js (docs/alevin.md §4): generate_lazy_js de alevín. Se queda por las pruebas y los
+    scripts que la llaman."""
+    return generate_lazy_js(conn, ALEVIN)
 
 
 def coverage_summary(conn):
@@ -636,20 +689,34 @@ def _keyed_or_dup(pairs):
             for k, v in buckets.items()}
 
 
-def _match_details(conn):
+def _category_filter(category):
+    """(condición SQL, parámetros) sobre la categoría `c` del grupo (por LEFT JOIN): con
+    `category`, solo los suyos; sin ella, los de data-matchdetail.js, todos menos los de las NUEVAS (los de un
+    grupo sin categoría se quedan, como siempre)."""
+    if category:
+        return "upper(c.name) = ?", (category,)
+    return f"(c.name IS NULL OR upper(c.name) NOT IN ({','.join('?' * len(NUEVAS))}))", NUEVAS
+
+
+def _match_details(conn, category=None):
     """{clave: {s, gr, g}} (o dup) con la cronología de goles de TODAS las
     temporadas. s = temporada y gr = código de grupo, para que la interfaz
-    distinga dos partidos con la misma clave."""
+    distinga dos partidos con la misma clave. Sin `category`, los de
+    data-matchdetail.js (todas menos infantil, cadete y juvenil); con una de
+    NUEVAS, los de su data-matchdetail-<clave>.js."""
+    where, args = _category_filter(category)
     rows = conn.execute(
-        """SELECT DISTINCT m.id, h.name, a.name, m.home_score, m.away_score,
+        f"""SELECT DISTINCT m.id, h.name, a.name, m.home_score, m.away_score,
                   s.name, gr.code
            FROM matches m
            JOIN teams h ON m.home_team_id = h.id
            JOIN teams a ON m.away_team_id = a.id
            JOIN groups gr ON gr.id = m.group_id
+           LEFT JOIN categories c ON c.id = gr.category_id
            JOIN seasons s ON s.id = gr.season_id
            JOIN goals g ON g.match_id = m.id
-           ORDER BY m.id""",
+           WHERE {where}
+           ORDER BY m.id""", args,
     ).fetchall()
 
     pairs = []
@@ -661,7 +728,7 @@ def _match_details(conn):
         ).fetchall()
         pairs.append((_match_key(home, away, hs, as_),
                       {"s": season, "gr": code, "g": [list(g) for g in goals]}))
-    return _keyed_or_dup(pairs + _fp_goal_entries(conn))
+    return _keyed_or_dup(pairs + _fp_goal_entries(conn, category))
 
 
 def _running(goals):
@@ -677,23 +744,26 @@ def _running(goals):
     return out
 
 
-def _fp_goal_entries(conn):
+def _fp_goal_entries(conn, category=None):
     """[(clave, entrada)] de MATCH_DETAIL con los goleadores de la app de futbolaspalmas (fp_goals),
     para los partidos sin cronología de futbolaspalmas del portal antiguo (goals) cuyos goles en la
     app cuadran con el marcador: sin acta, los de la app; con un acta que tiene goles sin nombre
     (niños que la federación no publica), la cronología del acta con esos nombres de pila puestos
-    por lado y minuto. Un acta con todos los nombres manda: no sale aquí."""
+    por lado y minuto. Un acta con todos los nombres manda: no sale aquí. `category`, como en _match_details."""
     if not (_has_table(conn, "fp_goals") and _has_table(conn, "fp_matches")):
         return []
+    where, args = _category_filter(category)
     rows = conn.execute(
-        """SELECT m.id, h.name, a.name, m.home_score, m.away_score, s.name, g.code, f.fp_id, m.cod_acta,
+        f"""SELECT m.id, h.name, a.name, m.home_score, m.away_score, s.name, g.code, f.fp_id, m.cod_acta,
                   m.home_team_id
            FROM fp_matches f JOIN matches m ON m.id = f.match_id JOIN groups g ON g.id = m.group_id
+           LEFT JOIN categories c ON c.id = g.category_id
            JOIN seasons s ON s.id = g.season_id
            JOIN teams h ON h.id = m.home_team_id JOIN teams a ON a.id = m.away_team_id
            WHERE m.home_score IS NOT NULL AND m.away_score IS NOT NULL
              AND NOT EXISTS (SELECT 1 FROM goals x WHERE x.match_id = m.id)
-           ORDER BY m.id""").fetchall()
+             AND {where}
+           ORDER BY m.id""", args).fetchall()
     pairs = []
     for mid, home, away, hs, as_, season, code, fp_id, cod, home_id in rows:
         fp = conn.execute("SELECT side, minute, name FROM fp_goals WHERE fp_id = ? ORDER BY ord", (fp_id,)).fetchall()
@@ -739,6 +809,20 @@ def generate_matchdetail_js(conn, details=None):
     details = _match_details(conn) if details is None else details
     js = header + "const MATCH_DETAIL=" + js_val(details) + ";"
     return js
+
+
+def generate_matchdetail_lazy_js(conn, category):
+    """data-matchdetail-<clave>.js de una categoría de NUEVAS: const MATCH_DETAIL_<S>=…; con la forma de
+    MATCH_DETAIL (las claves repetidas, dentro de la categoría). Siempre, aunque vacío ({}), también si la
+    categoría no está en categorias.EN_WEB. Aparte porque sus actas de fútbol 11 harían crecer
+    data-matchdetail.js para todos."""
+    clave, _grupos, s = LAZY[category]
+    header = (
+        f"// data-matchdetail-{clave}.js — generado por scripts/generate_js.py\n"
+        "// NO editar manualmente — usar scripts/update.sh para regenerar\n\n"
+    )
+    details = _match_details(conn, category) if category in _en_web() else {}
+    return header + f"const MATCH_DETAIL_{s}=" + js_val(details) + ";"
 
 
 def detail_seasons(details):
@@ -1509,10 +1593,13 @@ def _goleadores_group_name(code, full_name, category_name):
     """
     upper = full_name.upper()
 
-    if category_name == ALEVIN:
+    if category_name in LAZY:
         # 'ALEVIN PRIMERA FASE GC - GRUPO 1' -> 'ALEVIN PRIMERA FASE GC - GRUPO 1'
-        cleaned = re.sub(r"\bALEVIN\b\s*", "", upper).strip()
-        return f"ALEVIN {cleaned}".strip()
+        # 'LIGA INFANTIL PREFERENTE DE GRAN CANARIA - GRUPO 1' -> 'INFANTIL LIGA PREFERENTE DE GRAN CANARIA - GRUPO 1'
+        # («INFANTILL», así en el catálogo de 2024-25, también se quita).
+        word = r"\bINFANTILL?\b" if category_name == "INFANTIL" else rf"\b{category_name}\b"
+        cleaned = re.sub(word + r"\s*", "", upper).strip()
+        return f"{category_name} {cleaned}".strip()
 
     if category_name == "PREBENJAMIN":
         # 'PREBENJAMIN PRIMERA GRAN CANARIA G-N' -> 'PREBENJAMIN GC GRUPO N'
@@ -1589,12 +1676,20 @@ def venue_key(name):
     return re.sub(r"\s+", " ", text).strip()
 
 
+def _eager_campos(conn, season_id):
+    """Los campos del CAMPOS de data-history.js: los de los partidos y los equipos de la temporada, sin los de
+    infantil, cadete y juvenil (NUEVAS: sus partidos y los equipos que solo juegan en ellas)."""
+    only = _new_only(conn, season_id)
+    return campos_entries(conn, season_venue_names(conn, season_id, keep=lambda t: t not in only,
+                                                   exclude=NUEVAS))
+
+
 def generate_campos_js(conn):
     """CAMPOS (en data-history.js) = {campo: [dirección, localidad, superficie, tipo(, latitud,
     longitud)]} de los partidos y los equipos de la temporada actual (directorio y fichas de campos
-    de la federación, campos_entries)."""
+    de la federación, campos_entries), sin los que solo son de infantil, cadete o juvenil (CAMPOS_<S>)."""
     row = conn.execute("SELECT id FROM seasons WHERE is_current = 1").fetchone()
-    out = campos_entries(conn, season_venue_names(conn, row[0])) if row else {}
+    out = _eager_campos(conn, row[0]) if row else {}
     return "const CAMPOS=" + js_val(out) + ";"
 
 
@@ -1732,15 +1827,18 @@ def campos_entries(conn, venue_names):
     return out
 
 
-def season_venue_names(conn, season_id, categories=None, keep=None):
+def season_venue_names(conn, season_id, categories=None, keep=None, exclude=None):
     """Los campos de los partidos de la temporada y los de sus equipos (team_seasons). Con
-    `categories`, solo los partidos de esas categorías; con `keep(equipo)`, solo los de esos equipos."""
+    `categories`, solo los partidos de esas categorías; con `exclude`, sin los de esas; con
+    `keep(equipo)`, solo los de esos equipos."""
     cats = tuple(categories or ())
+    fuera = tuple(exclude or ())
     only = f" AND upper(c.name) IN ({','.join('?' * len(cats))})" if cats else ""
+    only += f" AND upper(c.name) NOT IN ({','.join('?' * len(fuera))})" if fuera else ""
     names = {r[0] for r in conn.execute(
         f"""SELECT DISTINCT m.venue FROM matches m JOIN groups g ON g.id = m.group_id
            JOIN categories c ON c.id = g.category_id
-           WHERE g.season_id = ? AND m.venue IS NOT NULL AND m.venue <> ''{only}""", (season_id, *cats))}
+           WHERE g.season_id = ? AND m.venue IS NOT NULL AND m.venue <> ''{only}""", (season_id, *cats, *fuera))}
     if _has_table(conn, "team_seasons"):
         names |= {venue for team, venue in conn.execute(
             """SELECT DISTINCT t.name, ts.venue_name FROM team_seasons ts LEFT JOIN teams t ON t.id = ts.team_id
@@ -1817,8 +1915,8 @@ def generate_seasons_js(conn, details=None):
             if any(gol.values()):
                 entry["gol"] = gol
             # La ficha de cada equipo (equipación y campo) y los campos de la temporada, con sus
-            # coordenadas, si la base los tiene. Sin lo que solo es de alevín, que va en su fichero.
-            only = _alevin_only(conn, season_id)
+            # coordenadas, si la base los tiene. Sin lo que solo es de las perezosas, que va en su fichero.
+            only = _lazy_only(conn, season_id)
             equipos = team_info_map(conn, season_id, keep=lambda t: t not in only)
             if equipos:
                 entry["equipos"] = equipos
@@ -1826,10 +1924,9 @@ def generate_seasons_js(conn, details=None):
                                                              keep=lambda t: t not in only))
             if campos:
                 entry["campos"] = campos
-            # El alevín de la temporada, aparte (data-season-<S>-alevin.js), si lo tiene.
-            alevin = archive_alevin(conn, season_id, season_name)
-            if alevin:
-                entry["_alevin"] = alevin
+            # Cada categoría perezosa de la temporada, aparte (data-season-<S>-<clave>.js), si la tiene.
+            lazy = {cat: archive_lazy(conn, season_id, season_name, cat) for cat in LAZY}
+            entry["_lazy"] = {cat: v for cat, v in lazy.items() if v}
 
         seasons_list.append(entry)
 
@@ -1871,25 +1968,33 @@ def archive_groups(conn, season_id, season_name, cat_name):
     return groups_data
 
 
-def archive_alevin(conn, season_id, season_name):
-    """{name, alevin, gol?, equipos?, campos?} del alevín de una temporada pasada (docs/alevin.md §5:
-    la clave alevin con la forma de la clave benjamin de data-season-<S>.js), o None si esa temporada no
-    tiene grupos de alevín."""
-    groups = archive_groups(conn, season_id, season_name, ALEVIN)
+def archive_lazy(conn, season_id, season_name, category):
+    """{name, <clave>, gol?, equipos?, campos?} de una categoría perezosa (LAZY) de una temporada pasada
+    (docs/alevin.md §5: la clave de la categoría con la forma de la clave benjamin de data-season-<S>.js), o
+    None si esa temporada no tiene grupos de ella (o la categoría no está en categorias.EN_WEB)."""
+    if category not in _en_web():
+        return None
+    clave = LAZY[category][0]
+    groups = archive_groups(conn, season_id, season_name, category)
     if not groups:
         return None
-    out = {"name": season_name, "alevin": groups}
-    gol = goleadores_entries(conn, ALEVIN, season_name)
+    out = {"name": season_name, clave: groups}
+    gol = goleadores_entries(conn, category, season_name)
     if gol:
-        out["gol"] = {"alevin": gol}
-    teams = _in_alevin(conn, season_id)
+        out["gol"] = {clave: gol}
+    teams = _in_category(conn, season_id, category)
     equipos = team_info_map(conn, season_id, keep=lambda t: t in teams)
     if equipos:
         out["equipos"] = equipos
-    campos = campos_entries(conn, season_venue_names(conn, season_id, (ALEVIN,), keep=lambda t: t in teams))
+    campos = campos_entries(conn, season_venue_names(conn, season_id, (category,), keep=lambda t: t in teams))
     if campos:
         out["campos"] = campos
     return out
+
+
+def archive_alevin(conn, season_id, season_name):
+    """El alevín de una temporada pasada: archive_lazy de alevín."""
+    return archive_lazy(conn, season_id, season_name, ALEVIN)
 
 
 def generate_per_season_files(seasons_list):
@@ -1906,20 +2011,21 @@ def generate_per_season_files(seasons_list):
         name = s["name"]  # "2021-2022"
         var_name = "SEASON_" + name.replace("-", "_")
         out_path = os.path.join(PROJECT_ROOT, f"data-season-{name}.js")
-        alevin = s.get("_alevin")
-        s = {k: v for k, v in s.items() if k != "_alevin"}
+        lazy = s.get("_lazy") or {}
+        s = {k: v for k, v in s.items() if k != "_lazy"}
         content = f"const {var_name}=" + js_val(s) + ";\n"
         escribir_atomico(out_path, content)
         written.append((name, len(content)))
-        # El alevín, en su fichero (perezoso, fuera del precache del SW: docs/alevin.md §5); el de una
-        # temporada que ya no tiene alevín, fuera (la web trata su 404 como «sin alevín»).
-        alevin_path = os.path.join(PROJECT_ROOT, f"data-season-{name}-alevin.js")
-        if alevin:
-            escribir_atomico(alevin_path, f"const {var_name}_ALEVIN=" + js_val(alevin) + ";\n")
-            print(f"  data-season-{name}-alevin.js: {os.path.getsize(alevin_path):,} bytes")
-        elif os.path.exists(alevin_path):
-            os.remove(alevin_path)
-            print(f"  data-season-{name}-alevin.js: borrado (la temporada no tiene alevín)")
+        # Cada categoría perezosa, en su fichero (fuera del precache del SW: docs/alevin.md §5); el de una
+        # temporada que ya no la tiene, fuera (la web trata su 404 como «sin esa categoría»).
+        for cat, (clave, grupos, _s) in LAZY.items():
+            path = os.path.join(PROJECT_ROOT, f"data-season-{name}-{clave}.js")
+            if lazy.get(cat):
+                escribir_atomico(path, f"const {var_name}_{grupos}=" + js_val(lazy[cat]) + ";\n")
+                print(f"  data-season-{name}-{clave}.js: {os.path.getsize(path):,} bytes")
+            elif os.path.exists(path):
+                os.remove(path)
+                print(f"  data-season-{name}-{clave}.js: borrado (la temporada no tiene {clave})")
     return written
 
 
@@ -2051,9 +2157,11 @@ def main():
     print("2. data-prebenjamin.js")
     write_file("data-prebenjamin.js", generate_category_js(conn, "PREBENJAMIN", "PREBENJAMIN", "PREBENJ_STATS"))
 
-    # Alevín, perezoso y siempre (vacío si no hay): no va en index.html; en el precache del SW, opcional.
-    print("2b. data-alevin.js")
-    write_file("data-alevin.js", generate_alevin_js(conn))
+    # Las perezosas, siempre (vacías si no hay): no van en index.html; en el precache del SW, solo
+    # data-alevin.js, opcional (scripts/precache.py).
+    for cat, (clave, _grupos, _s) in LAZY.items():
+        print(f"2b. data-{clave}.js")
+        write_file(f"data-{clave}.js", generate_lazy_js(conn, cat))
 
     print("3. data-history.js")
     write_file("data-history.js", generate_history_js(conn))
@@ -2061,6 +2169,10 @@ def main():
     print("4. data-matchdetail.js")
     details = _match_details(conn)
     write_file("data-matchdetail.js", generate_matchdetail_js(conn, details))
+    # La cronología de infantil, cadete y juvenil, cada una en el suyo (siempre, aunque vacío).
+    for cat in NUEVAS:
+        print(f"4b. data-matchdetail-{LAZY[cat][0]}.js")
+        write_file(f"data-matchdetail-{LAZY[cat][0]}.js", generate_matchdetail_lazy_js(conn, cat))
 
     print("5. data-goleadores.js")
     write_file("data-goleadores.js", generate_goleadores_js(conn))

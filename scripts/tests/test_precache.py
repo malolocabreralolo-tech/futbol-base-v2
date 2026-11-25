@@ -149,6 +149,18 @@ def test_un_opcional_que_falta_no_entra(tmp_path):
     assert "data-alevin.js" not in entries and opcionales == OPCIONALES[1:]
 
 
+def test_las_categorias_nuevas_no_entran(tmp_path):
+    # Infantil, cadete y juvenil (parte E2) se bajan al usarse: ni obligatorios ni opcionales. Una familia que
+    # sigue a un niño de benjamín no instala sus ~0,5 MB por categoría.
+    site = _arbol(tmp_path)
+    for rel in ("data-infantil.js", "data-matchdetail-cadete.js", "data-season-2025-2026-juvenil.js"):
+        (site / rel).write_text("const X={};\n", encoding="utf-8")
+    entries, opcionales = precache.entradas(site)
+    for rel in ("data-infantil.js", "data-matchdetail-cadete.js", "data-season-2025-2026-juvenil.js"):
+        assert rel not in entries and rel not in opcionales, rel
+    assert opcionales == OPCIONALES
+
+
 def test_arbol_parcial_no_se_toca(tmp_path):
     sin_origen = _arbol(tmp_path / "a")
     (sin_origen / "dist" / "origen.json").unlink()
