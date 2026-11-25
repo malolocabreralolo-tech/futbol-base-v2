@@ -402,11 +402,19 @@ def test_published_lineups_match_the_database(conn):
             publicadas = _lineup_count(f.read())
         if en_db != publicadas:
             descuadres.append(f"{temporada} {grupo}: base={en_db} publicado={publicadas}")
-    # Y ningún grupo con actas en la base se queda sin su fichero.
-    for temporada, grupo in conn.execute(
-            """SELECT DISTINCT s.name, g.code FROM matches m JOIN groups g ON g.id=m.group_id
-               JOIN seasons s ON s.id=g.season_id WHERE m.cod_acta IS NOT NULL"""):
-        if (temporada, grupo) not in publicados:
+    # Y ningún grupo con actas en la base se queda sin su fichero, si es de una categoría que enseña la web
+    # (categorias.EN_WEB): las de infantil, cadete y juvenil están en la base desde que su carril las lee, pero
+    # no se publican hasta su parte (E2; el generador trabaja sobre vista_web.copia_web). Esas, al revés: ni un
+    # fichero.
+    from categorias import EN_WEB
+    for temporada, grupo, categoria in conn.execute(
+            """SELECT DISTINCT s.name, g.code, upper(c.name) FROM matches m JOIN groups g ON g.id=m.group_id
+               JOIN seasons s ON s.id=g.season_id JOIN categories c ON c.id=g.category_id
+               WHERE m.cod_acta IS NOT NULL"""):
+        if categoria not in EN_WEB:
+            if (temporada, grupo) in publicados:
+                descuadres.append(f"{temporada} {grupo}: publicado, y su categoría ({categoria}) no la enseña la web")
+        elif (temporada, grupo) not in publicados:
             descuadres.append(f"{temporada} {grupo}: sin data-lineups-{temporada}-{grupo}.js")
 
     assert not descuadres, ("Alineaciones publicadas que la base no respalda: "

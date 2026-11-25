@@ -2030,8 +2030,14 @@ def write_file(filename, content):
 
 
 def main():
-    conn = get_connection()
-    conn.row_factory = None  # ensure tuples
+    base = get_connection()
+    base.row_factory = None  # ensure tuples
+    # Solo lo que la web enseña (categorias.EN_WEB): infantil, cadete y juvenil están en la base desde que su
+    # carril los lee, pero no salen hasta su parte (E2). Sin ningún grupo de otra categoría es la misma conexión
+    # (cero coste); si los hay, una copia en memoria sin ellos (scripts/vista_web.py). coverage_summary sigue
+    # midiendo el fichero de verdad (PROJECT_ROOT/futbolbase.db).
+    import vista_web
+    conn = vista_web.copia_web(base)
 
     print("=== Generating JS data files from SQLite ===\n")
 
@@ -2093,6 +2099,8 @@ def main():
     precache.escribir(PROJECT_ROOT)
 
     conn.close()
+    if conn is not base:
+        base.close()
     print("\nDone!")
 
 

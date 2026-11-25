@@ -372,7 +372,11 @@ def test_base_real(tmp_path):
     conn.execute("DROP TABLE IF EXISTS mygol_enlaces")
     conn.commit()
     fichas = E.fichas_de(conn)
-    datos = G._datos_fichas(conn, confirmados={})
+    # El generador trabaja sobre lo que ve la web (vista_web.copia_web: sin infantil, cadete ni juvenil hasta
+    # E2); fichas_de mira lo mismo. Con la base de hoy es la misma conexión.
+    import vista_web
+    web = vista_web.copia_web(conn)
+    datos = G._datos_fichas(web, confirmados={})
     anios = {f.id: f.anios for f in fichas}
     assert all(anios[p] == a for p, (a, _) in datos["anios"].items())
     n = E.guardar_enlaces(conn, registro=quiet)
