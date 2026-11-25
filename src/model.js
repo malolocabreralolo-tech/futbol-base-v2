@@ -1027,13 +1027,15 @@ export function timelineFor(match, matchDetail, lineups) {
 /* ── Registro de datos y modelo ───────────────────────────────────────────
  *
  * datasets = { ...readGlobals(), seasonRaw: {}, matchDetail: null, lineups: {}, health: undefined,
- * alevin: undefined, seasonAlevin: {} }: los globales inmediatos y lo que traen los cargadores
- * perezosos de state.js (health: undefined sin pedir y null si falló). El modelo los lee al pedirlos,
- * así que una temporada pasada aparece en cuanto se guarda en seasonRaw. El alevín va aparte, porque
- * nunca está en la carga inicial: el de la temporada del portal en `alevin`
- * (alevinData de state.js: { groups, stats, history, gol, estados, equipos }; undefined sin pedir) y el
- * de cada temporada pasada en seasonAlevin[S] (el SEASON_<S>_ALEVIN de data-season-<S>-alevin.js, o {}
- * si esa temporada no tiene); la temporada se reconstruye en cuanto llega. */
+ * lazy: { alevin: undefined, infantil: undefined, cadete: undefined, juvenil: undefined },
+ * seasonLazy: { alevin: {}, infantil: {}, cadete: {}, juvenil: {} } }: los globales inmediatos y lo que
+ * traen los cargadores perezosos de state.js (health: undefined sin pedir y null si falló). El modelo
+ * los lee al pedirlos, así que una temporada pasada aparece en cuanto se guarda en seasonRaw. Las
+ * categorías perezosas (LAZY_CATS) van aparte, porque nunca están en la carga inicial: la de la
+ * temporada del portal en lazy[cat] (lazyData de state.js: { groups, stats, history, gol, estados,
+ * equipos, campos? }; undefined sin pedir) y la de cada temporada pasada en seasonLazy[cat][S] (el
+ * SEASON_<S>_<CAT> de data-season-<S>-<cat>.js, o {} si esa temporada no la tiene); la temporada se
+ * reconstruye en cuanto llega. */
 
 // La Maspalomas Cup es de 2025/26 y lo sigue siendo después de activar 2026/27.
 const CUPS_SEASON = '2025-2026';
@@ -1058,39 +1060,43 @@ export function createModel(datasets, { portalSeason, buildClubIndex = null } = 
   // El data-season-<S>.js ya cargado de una temporada pasada, o null.
   const seasonRawOf = season => (SEASON_RE.test(String(season)) && data.seasonRaw && Object.hasOwn(data.seasonRaw, season)
     ? data.seasonRaw[season] || null : null);
-  // El alevín de una temporada: el de data-alevin.js (alevinData) en la del portal y el
-  // SEASON_<S>_ALEVIN en una pasada; null mientras no se ha pedido.
-  const alevinOf = (season) => {
-    const value = season === portalSeason ? data.alevin
-      : (data.seasonAlevin && SEASON_RE.test(String(season)) && Object.hasOwn(data.seasonAlevin, season) ? data.seasonAlevin[season] : null);
+  // Una categoría perezosa (LAZY_CATS) de una temporada: la de su data-<cat>.js (lazyData de state.js) en
+  // la del portal y su SEASON_<S>_<CAT> en una pasada; null mientras no se ha pedido.
+  const lazyOf = (cat, season) => {
+    const past = data.seasonLazy && data.seasonLazy[cat];
+    const value = season === portalSeason ? (data.lazy || {})[cat]
+      : (past && SEASON_RE.test(String(season)) && Object.hasOwn(past, season) ? past[season] : null);
     return value && typeof value === 'object' ? value : null;
   };
-  // Cada Season memorizada va con el alevín con el que se construyó: si llega otro (o el primero), se
-  // reconstruye: si no, alevín no saldría hasta recargar la página.
+  const lazyAll = season => LAZY_CATS.map(cat => lazyOf(cat, season));
+  // Cada Season memorizada va con las perezosas con las que se construyó: si llega otra (o la primera), se
+  // reconstruye: si no, no saldría hasta recargar la página.
   const seasons = new Map();
   let cups = null;
   let index = null;
   let indexCollections = null;
   const camposMemo = new Map();
   const model = {
-    // Season memorizada. La del portal, de benjamin, prebenjamin e history, más alevin.groups con su
-    // alevin.history; una pasada, de seasonRaw[name] (lo que devuelve ensureSeasonData) más el `alevin`
-    // de seasonAlevin[name], o null mientras no esté cargada.
+    // Season memorizada. La del portal, de benjamin, prebenjamin e history, más los grupos de cada
+    // perezosa con su history; una pasada, de seasonRaw[name] (lo que devuelve ensureSeasonData) más lo
+    // de cada perezosa de seasonLazy[cat][name] (su clave, la de la categoría), o null mientras no esté
+    // cargada.
     season(name) {
-      const alevin = alevinOf(name);
+      const lazy = lazyAll(name);
       const memo = seasons.get(name);
-      if (memo && memo.alevin === alevin) return memo.season;
+      if (memo && memo.lazy.every((value, i) => value === lazy[i])) return memo.season;
       let built = null;
       if (name === portalSeason) {
-        const history = alevin && alevin.history ? { ...(data.history || {}), ...alevin.history } : data.history;
-        built = buildSeason({ name, current: true, benjamin: data.benjamin, prebenjamin: data.prebenjamin,
-          alevin: alevin ? alevin.groups : [], history });
+        const extra = lazy.filter(value => value && value.history);
+        const history = extra.length ? Object.assign({}, data.history || {}, ...extra.map(value => value.history)) : data.history;
+        built = buildSeason({ name, current: true, benjamin: data.benjamin, prebenjamin: data.prebenjamin, history,
+          ...Object.fromEntries(LAZY_CATS.map((cat, i) => [cat, lazy[i] ? lazy[i].groups : []])) });
       } else if (SEASON_RE.test(String(name)) && data.seasonRaw && Object.hasOwn(data.seasonRaw, name) && data.seasonRaw[name]) {
         const raw = data.seasonRaw[name];
         built = buildSeason({ name, current: false, benjamin: raw.benjamin, prebenjamin: raw.prebenjamin,
-          alevin: alevin ? alevin.alevin : [] });
+          ...Object.fromEntries(LAZY_CATS.map((cat, i) => [cat, lazy[i] ? lazy[i][cat] : []])) });
       }
-      if (built) seasons.set(name, { season: built, alevin });
+      if (built) seasons.set(name, { season: built, lazy });
       return built;
     },
     group(season, id) {
@@ -1105,7 +1111,7 @@ export function createModel(datasets, { portalSeason, buildClubIndex = null } = 
       return cups;
     },
     // Índice de clubes sobre los nombres de las temporadas cargadas y los torneos,
-    // con los escudos. Se rehace cuando se carga otra temporada, llegan los torneos o llega el alevín
+    // con los escudos. Se rehace cuando se carga otra temporada, llegan los torneos o llega una perezosa
     // de una temporada ya construida (que la reconstruye): cada colección se compara por identidad.
     clubIndex() {
       const loaded = [portalSeason, ...Object.keys(data.seasonRaw || {}).filter(name => name !== portalSeason).sort()];
@@ -1121,54 +1127,55 @@ export function createModel(datasets, { portalSeason, buildClubIndex = null } = 
     },
     // Ficha de un equipo en una temporada: { shirt, shorts, socks, venue, surface, kit } (directorio de la
     // federación y app de futbolaspalmas: EQUIPOS en la del portal, `equipos` de su data-season-<S>.js en
-    // una pasada, y los de alevín, EQUIPOS_ALEV o el `equipos` de su data-season-<S>-alevin.js), o null.
-    // `cat`, la categoría del grupo: un homónimo (Las Mesas Hu. en prebenjamín y en alevín) lleva la
-    // ficha de la suya y, si esa no la trae, la de la otra.
+    // una pasada, y los de cada perezosa, EQUIPOS_<S> o el `equipos` de su data-season-<S>-<cat>.js), o
+    // null. `cat`, la categoría del grupo: un homónimo (Las Mesas Hu. en prebenjamín y en alevín; el club
+    // de benjamín y de juvenil) lleva la ficha de la suya y, si esa no la trae, la de las otras.
     teamInfo(season, team, cat = null) {
       const main = season === portalSeason ? data.equipos : (seasonRawOf(season) || {}).equipos;
-      const alevin = (alevinOf(season) || {}).equipos;
-      const row = (cat === 'alevin' ? [alevin, main] : [main, alevin])
-        .map(map => (map && typeof map === 'object' && Object.hasOwn(map, team) ? map[team] : null)).find(Array.isArray);
+      const lazy = LAZY_CATS.map(c => [c, (lazyOf(c, season) || {}).equipos]);
+      const own = lazy.find(([c]) => c === cat);
+      const maps = own ? [own[1], main, ...lazy.filter(([c]) => c !== cat).map(([, m]) => m)] : [main, ...lazy.map(([, m]) => m)];
+      const row = maps.map(map => (map && typeof map === 'object' && Object.hasOwn(map, team) ? map[team] : null)).find(Array.isArray);
       if (!Array.isArray(row)) return null;
       const [shirt, shorts, socks, venue, surface, kit] = row;
       return { shirt: shirt || null, shorts: shorts || null, socks: socks || null, venue: venue || null,
         surface: surface || null, kit: kit || null };
     },
     // Los campos de una temporada ({campo: [dirección, localidad, superficie, tipo(, lat, lon)]}): CAMPOS
-    // en la del portal (ya de toda la temporada, alevín incluido) y `campos` de su data-season-<S>.js en
-    // una pasada, con los que añada su data-season-<S>-alevin.js; null si no hay. La unión se memoriza
-    // por los dos mapas: el mismo objeto mientras no cambien.
+    // en la del portal (los de benjamín, prebenjamín y alevín) con los CAMPOS_<S> de infantil, cadete y
+    // juvenil, y `campos` de su data-season-<S>.js en una pasada con los de sus data-season-<S>-<cat>.js;
+    // null si no hay. La unión se memoriza por los mapas: el mismo objeto mientras no cambien.
     campos(season) {
       const own = season === portalSeason ? data.campos : (seasonRawOf(season) || {}).campos;
       const map = own && typeof own === 'object' ? own : null;
-      const extra = season === portalSeason ? null : (alevinOf(season) || {}).campos;
-      if (!extra || typeof extra !== 'object') return map;
+      const extras = LAZY_CATS.map(cat => (lazyOf(cat, season) || {}).campos).filter(extra => extra && typeof extra === 'object');
+      if (!extras.length) return map;
       const memo = camposMemo.get(season);
-      if (memo && memo.map === map && memo.extra === extra) return memo.merged;
-      const merged = { ...extra, ...(map || {}) };
-      camposMemo.set(season, { map, extra, merged });
+      if (memo && memo.map === map && memo.extras.length === extras.length && memo.extras.every((e, i) => e === extras[i])) return memo.merged;
+      const merged = Object.assign({}, ...extras, map || {});
+      camposMemo.set(season, { map, extras, merged });
       return merged;
     },
     // Lo que la app de futbolaspalmas dice de un partido de la temporada del portal que el marcador no
     // dice: { state: 'aplazado' | 'suspendido' | 'retirado' | 'anulado' | null, note, start } o null. De
-    // ESTADOS o, en un grupo de alevín, de ESTADOS_ALEV (los códigos no se repiten entre categorías).
+    // ESTADOS o, en un grupo de una perezosa, de su ESTADOS_<S> (los códigos no se repiten entre categorías).
     matchStatus(match) {
       if (!match || match.season !== portalSeason) return null;
-      const alevin = alevinOf(portalSeason);
-      const states = [data.estados, alevin && alevin.estados]
+      const states = [data.estados, ...lazyAll(portalSeason).map(lazy => lazy && lazy.estados)]
         .find(map => map && typeof map === 'object' && Object.hasOwn(map, match.groupId));
       if (!states) return null;
       const round = states[match.groupId][match.roundKey] || {};
       const row = round[`${match.home}|${match.away}`];
       return Array.isArray(row) ? { state: row[0] || null, note: row[1] || null, start: row[2] || null } : null;
     },
-    // Goleadores (GOL_BENJ, GOL_PREBENJ o GOL_ALEV: [{ id, g, s: [[jugador, equipo, goles, partidos]] }]),
-    // los que recibe teamScorers. De una temporada pasada, los de su data-season-<S>.js (`gol`) o, en
-    // alevín, los de su data-season-<S>-alevin.js, si los trae; si no, o sin cargar, [].
+    // Goleadores (GOL_BENJ, GOL_PREBENJ o el GOL_<S> de una perezosa: [{ id, g, s: [[jugador, equipo,
+    // goles, partidos]] }]), los que recibe teamScorers. De una temporada pasada, los de su
+    // data-season-<S>.js (`gol`) o, en una perezosa, los de su data-season-<S>-<cat>.js, si los trae; si
+    // no, o sin cargar, [].
     scorers(season, cat) {
-      if (cat === 'alevin') {
-        const alevin = alevinOf(season);
-        const gol = !alevin ? null : season === portalSeason ? alevin.gol : (alevin.gol || {}).alevin;
+      if (LAZY_CATS.includes(cat)) {
+        const lazy = lazyOf(cat, season);
+        const gol = !lazy ? null : season === portalSeason ? lazy.gol : (lazy.gol || {})[cat];
         return Array.isArray(gol) ? gol : [];
       }
       if (season !== portalSeason) {

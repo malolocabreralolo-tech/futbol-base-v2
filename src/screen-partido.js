@@ -14,12 +14,12 @@ import {
   shareStatus,
 } from './ui.js';
 import {
-  actaFor, competitionKey, findGroup, findMatch, headToHead, lastResults, matchState, penaltyWinner, playerName,
+  LAZY_CATS, actaFor, competitionKey, findGroup, findMatch, headToHead, lastResults, matchState, penaltyWinner, playerName,
   roleLabel, roundOf, seasonLabel, teamShort, timelineFor,
 } from './model.js';
 import { countdownLabel, dayMonth, matchHref, playerHref, shareAndAnnounce, venueDetails, venueUrl, weekdayDate } from './links.js';
 import {
-  ensureLineups, ensureMatchDetail, ensureSeasonData, lineupsKey, loadAlevinSeasons, loadSeasons, normalizeTeamName,
+  ensureLineups, ensureMatchDetail, ensureSeasonData, lineupsKey, loadAlevinSeasons, loadLazySeasons, loadSeasons, normalizeTeamName,
 } from './state.js';
 import { errorBox, retryBlock } from './shell.js';
 import { forecastMatch, topScores } from './pronostico.js';
@@ -380,12 +380,13 @@ export function previousMeetings(model, names, match, cat) {
 }
 
 // Lo que se pinta al desplegar «Ver temporadas anteriores», ya cargadas (o no) en datasets.seasonRaw.
-// En un partido de alevín, también su alevín (datasets.seasonAlevin): sin él,
-// «No encontramos partidos» sería falso, así que es la caja de error, como una temporada sin cargar.
+// En un partido de una categoría perezosa (alevín, infantil, cadete o juvenil), también la suya de cada
+// temporada (datasets.seasonLazy[cat]): sin ella, «No encontramos partidos» sería falso, así que es la caja
+// de error, como una temporada sin cargar.
 export function previousBlock(ctx, match, group) {
   const names = pastSeasons(ctx.datasets.seasons, match.season);
-  const alevin = ctx.datasets.seasonAlevin || {};
-  if (names.some((name) => !ctx.model.season(name) || (group.cat === 'alevin' && !Object.hasOwn(alevin, name)))) {
+  const lazy = LAZY_CATS.includes(group.cat) ? ((ctx.datasets.seasonLazy || {})[group.cat] || {}) : null;
+  if (names.some((name) => !ctx.model.season(name) || (lazy && !Object.hasOwn(lazy, name)))) {
     return errorBox('las temporadas anteriores');
   }
   const found = previousMeetings(ctx.model, names, match, group.cat);
@@ -487,6 +488,7 @@ export async function previousPanelContent(ctx, match, group, alevinLoaders = {}
     const names = pastSeasons(ctx.datasets.seasons, match.season);
     await loadSeasons(ctx.datasets, names);
     if (group.cat === 'alevin') await loadAlevinSeasons(ctx.datasets, names, ctx.portal.season, alevinLoaders);
+    else if (LAZY_CATS.includes(group.cat)) await loadLazySeasons(ctx.datasets, names, ctx.portal.season, [group.cat]);
     return previousBlock(ctx, match, group);
   } catch (err) {
     console.error('[partido] temporadas anteriores', err);

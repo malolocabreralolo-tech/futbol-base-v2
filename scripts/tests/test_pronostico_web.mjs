@@ -11,7 +11,7 @@ import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
 import { fixture } from './fixtures/rediseno/load.mjs';
 import { currentAt, alevinRaw } from './fixtures/rediseno/simulate.mjs';
-import { ctxFor, datasetsFor, cssRules, PORTAL_SEASON } from './fixtures/rediseno/screens.mjs';
+import { ctxFor, datasetsFor, cssRules, lazyEmpty, PORTAL_SEASON } from './fixtures/rediseno/screens.mjs';
 import { screen as jornada } from '../../src/screen-jornada.js';
 import { screen as partido } from '../../src/screen-partido.js';
 import { screen as home } from '../../src/screen-home.js';
@@ -297,7 +297,7 @@ test('Jornada de benjamín y de alevín: ningún pronóstico, aunque lleven dos 
     assert.ok(forecastRound(group, round, forecastOptions(ctx)).every((f) => f === null), g);
   }
   // Alevín (AL1, contrato común de alevín): el 15/10/2025, con tres jornadas jugadas y la 4 por jugar.
-  const alevin = at('2025-10-15', currentAt('2025-10-15'), { alevin: alevinData(alevinRaw({ season: PORTAL_SEASON, today: '2025-10-15' })) });
+  const alevin = at('2025-10-15', currentAt('2025-10-15'), { lazy: { ...lazyEmpty().lazy, alevin: alevinData(alevinRaw({ season: PORTAL_SEASON, today: '2025-10-15' })) } });
   const out = renderJornada({ g: 'AL1', r: 'Jornada 4' }, alevin);
   assert.ok(rows(out).length > 0 && out.includes('match-score is-pending'));
   assert.doesNotMatch(out, /match-forecast|Pronóstico/);
@@ -432,7 +432,7 @@ test('Partido: nada si se ha jugado, en benjamín ni en alevín', () => {
   assert.doesNotMatch(benj, /odds-|Pronóstico/);
   const raw = alevinRaw({ season: PORTAL_SEASON, today: '2025-10-15' });
   const [, h, a] = raw.HISTORY_ALEV.AL1['Jornada 4'][1];
-  const alev = renderPartido({ g: 'AL1', r: 'Jornada 4', h, a }, at('2025-10-15', currentAt('2025-10-15'), { alevin: alevinData(raw) }));
+  const alev = renderPartido({ g: 'AL1', r: 'Jornada 4', h, a }, at('2025-10-15', currentAt('2025-10-15'), { lazy: { ...lazyEmpty().lazy, alevin: alevinData(raw) } }));
   assert.match(alev, /pt-score is-pending/);
   assert.doesNotMatch(alev, /odds-|Pronóstico/);
 });

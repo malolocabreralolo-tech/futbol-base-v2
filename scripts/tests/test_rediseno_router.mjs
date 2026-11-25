@@ -14,7 +14,7 @@ import { SCREENS, parseRoute, routeHref } from '../../src/links.js';
 import * as routerModule from '../../src/router.js';
 import { resolveParams, historyMode, parentOf, activeTab, startRouter } from '../../src/router.js';
 import { SCREEN_MAP } from '../../src/screens.js';
-import { alevinData } from '../../src/state.js';
+import { lazyEmpty } from './fixtures/rediseno/screens.mjs';
 
 const PORTAL = '2025-2026';
 const raw = fixture('current-2025-2026');
@@ -50,7 +50,7 @@ function context({ resolution = OK, loaded = [] } = {}) {
     model: model(loaded), resolution, myTeam: MY_TEAM, today: '2026-09-23', health: null,
     // El alevín ya pedido y vacío (contrato común de alevín): estas pruebas no lo esperan; las de
     // alevín están en test_rediseno_alevin.mjs.
-    datasets: { seasons: SEASONS, seasonRaw: {}, alevin: alevinData({}), seasonAlevin: { '2024-2025': {} } },
+    datasets: { seasons: SEASONS, seasonRaw: {}, ...lazyEmpty(['2024-2025']) },
   });
 }
 const resolve = (hash, options) => resolveParams(parseRoute(hash), context(options)());

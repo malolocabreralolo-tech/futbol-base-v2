@@ -10,10 +10,10 @@
 // No toca el navegador al importarse: startRouter recibe `window`.
 import { Html } from './html.js';
 import { isPlayerKey, parseRoute, routeHref, translateLegacy } from './links.js';
-import { CATEGORIES, competitions, findGroup, findMatch, findRound, seasonLabel } from './model.js';
+import { CATEGORIES, CAT_WORDS, LAZY_CATS, competitions, findGroup, findMatch, findRound, seasonLabel } from './model.js';
 import { defaultCategory, myTeamIn, routeIsMine, sameClub } from './myteam.js';
 import { skeleton, errorScreen, routeNotice, routeTitle, updateTabbar } from './shell.js';
-import { alevinNeeds, normalizeTeamName, seasonNeeds } from './state.js';
+import { lazyNeeds, normalizeTeamName, seasonNeeds } from './state.js';
 import { forecastOptions } from './ui.js';
 import { projectionApplies, standingsStart } from './proyeccion.js';
 
@@ -63,77 +63,120 @@ function identity(ctx) {
   return r?.status === 'ok' ? { name: r.name, cat: r.cat } : { name: ctx.myTeam?.name || '', cat: ctx.myTeam?.cat || '' };
 }
 
-// ── Alevín ──────────────────────────────────────────────────────────────
+// ── Las categorías perezosas ────────────────────────────────────────────
 //
-// El alevín nunca está en la carga inicial: el router lo pide (loadAlevin) antes de pintar una ruta
-// que lo necesita, una vez por navegación. Lo necesita para validarse (resolveParams lo devuelve como
-// `alevin: <temporada>`, igual que `pending` con una temporada sin cargar): un grupo que no está, que
-// puede ser de alevín, antes de darlo por perdido, y Jornada y Tabla de mi equipo cuando este se
-// resuelve con alevín; o para pintarse (needsAlevin).
+// Alevín, infantil, cadete y juvenil (LAZY_CATS) nunca están en la carga inicial: el router pide las que
+// necesita una ruta (loadLazy, lazyNeeds de state.js) antes de pintarla, una vez por navegación. Cada una
+// es { cat, season, soft }: la categoría, la temporada y si, al no llegar, la ruta se pinta sin ella y lo
+// dice (soft) o da la caja de error («No se pudieron cargar los datos de cadete»). Las necesita para
+// validarse (resolveParams las devuelve en `lazy`, igual que `pending` con una temporada sin cargar): un
+// grupo que no está, que puede ser de una de ellas, antes de darlo por perdido, y Jornada y Tabla de mi
+// equipo cuando este se resuelve con una de ellas; o para pintarse (needsLazy).
 
-// ¿Está sin pedir el alevín de la temporada `s`? El de la del portal es datasets.alevin y el de una
-// pasada, datasets.seasonAlevin[s] (el registro de app.js): sin pedir mientras no tiene valor.
-function alevinMissing(ctx, s) {
-  const data = ctx.datasets || {};
-  if (!s) return false;
-  return s === ctx.portal.season ? data.alevin === undefined : !(data.seasonAlevin && Object.hasOwn(data.seasonAlevin, s));
+// La categoría perezosa de un código de grupo por su prefijo (scripts/convenio.py: INF, CAD y JUV; los de
+// alevín, AL…), o null si el código no la dice.
+const LAZY_PREFIXES = [['INF', 'infantil'], ['CAD', 'cadete'], ['JUV', 'juvenil'], ['AL', 'alevin']];
+function lazyCatOf(id) {
+  const code = String(id || '').toUpperCase();
+  const hit = LAZY_PREFIXES.find(([prefix]) => code.startsWith(prefix));
+  return hit ? hit[1] : null;
 }
 
-// ¿Espera mi equipo al alevín de la temporada del portal para resolverse? → null | { soft }
-// - Si es de alevín: sin él, X por error (soft: false, la caja de error si no llega).
-// - Si es de otra temporada: el paso 1 de resolveMyTeam busca en las tres categorías, y sin alevín daría
+// ¿Está sin pedir la categoría perezosa `cat` de la temporada `s`? La de la del portal es
+// datasets.lazy[cat] y la de una pasada, datasets.seasonLazy[cat][s] (el registro de app.js): sin pedir
+// mientras no tiene valor.
+function lazyMissing(ctx, cat, s) {
+  const data = ctx.datasets || {};
+  if (!s) return false;
+  if (s === ctx.portal.season) return !(data.lazy && data.lazy[cat] !== undefined);
+  const past = data.seasonLazy && data.seasonLazy[cat];
+  return !(past && Object.hasOwn(past, s));
+}
+const triedKey = (cat, season) => `${cat}|${season}`;
+// Las de `cats` que faltan en la temporada `s`, con su `soft`. Con `skipTried`, sin las ya pedidas en esta
+// navegación (ctx.lazyTried): lo soft que ya se pidió y no llegó no se espera más.
+function wantsOf(ctx, cats, s, soft, skipTried = false) {
+  return cats.filter((cat) => lazyMissing(ctx, cat, s) && !(skipTried && ctx.lazyTried?.has(triedKey(cat, s))))
+    .map((cat) => ({ cat, season: s, soft }));
+}
+
+// ¿Espera mi equipo a una perezosa de la temporada del portal para resolverse? → [{ cat, season, soft }]
+// - Si es de una de ellas: sin ella, X por error (soft: false, la caja de error si no llega).
+// - Si es de otra temporada: el paso 1 de resolveMyTeam busca en todas las categorías, y sin alevín daría
 //   «ok» en silencio y, al cargarlo, la pregunta. No es «una vez al año»: un
 //   cambio de temporada nunca se guarda solo (myTeamToSave), así que, mientras la familia no lo confirme,
 //   se espera en cada carga en frío de toda la temporada (con el SW, data-alevin.js sale del precache,
-//   donde va como opcional). Por eso es soft: si no llega (ctx.alevinTried, la temporada ya pedida en esta
-//   navegación), se resuelve sin él, como antes de alevín, nunca con la caja de error en su portada.
+//   donde va como opcional). Por eso es soft: si no llega (ctx.lazyTried, ya pedida en esta navegación),
+//   se resuelve sin él, como antes de alevín, nunca con la caja de error en su portada. Solo alevín, como
+//   siempre: la portada de un equipo de benjamín no baja infantil, cadete ni juvenil.
 function mineWaits(ctx) {
   const mine = ctx.myTeam;
   const portal = ctx.portal.season;
-  if (!mine || !mine.name || !alevinMissing(ctx, portal)) return null;
-  if (mine.cat === 'alevin') return { soft: false };
-  return mine.season !== portal && !ctx.alevinTried?.has(portal) ? { soft: true } : null;
+  if (!mine || !mine.name) return [];
+  if (LAZY_CATS.includes(mine.cat)) return wantsOf(ctx, [mine.cat], portal, false);
+  return mine.season !== portal ? wantsOf(ctx, ['alevin'], portal, true, true) : [];
+}
+
+// Un grupo `id` que no está en la temporada `s`: lo que falta de la categoría de su prefijo (o de `cat`,
+// la de la ruta) o, si no se sabe, de todas, soft (que, si no llegan, dan el grupo por perdido).
+function groupWants(ctx, id, s, cat = null) {
+  const own = cat || lazyCatOf(id);
+  return own ? wantsOf(ctx, [own], s, false) : wantsOf(ctx, LAZY_CATS, s, true, true);
 }
 
 const SCORER_SCREENS = new Set(['goleadores', 'records']);
 
-/* Lo que una pantalla ya validada pinta con el alevín → { season, soft } | null (null también si ya
- * se pidió). soft: si falla, la pantalla se pinta igual, con benjamín y prebenjamín, un aviso y
- * «Reintentar» (Explorar y Ligas sin `c`); si no, la caja de error «No se pudieron cargar los datos de
- * alevín», nunca una pantalla a medias que lo calle:
- * - la portada, y la categoría por defecto de Goleadores y Récords, si mi equipo lo espera (mineWaits);
- * - `c=alevin` (o, en Goleadores y Récords, alevín como categoría por defecto), de la temporada `s`;
- * - Explorar y Ligas sin `c`, que enseñan las tres categorías (soft).
- * La portada de un equipo de benjamín o prebenjamín nunca lo pide: tiene que abrir en 3 s. */
-export function needsAlevin(route, ctx) {
+/* Lo que una pantalla ya validada pinta con las perezosas → [{ cat, season, soft }] ([] si no hace
+ * falta ninguna o ya se pidieron). soft: si no llega, la pantalla se pinta igual, con las demás, un aviso
+ * y «Reintentar» (Explorar y Ligas sin `c`; ctx.lazyFailed); si no, la caja de error «No se pudieron
+ * cargar los datos de <categoría>», nunca una pantalla a medias que lo calle:
+ * - la portada, y la categoría por defecto de Goleadores y Récords, si mi equipo la espera (mineWaits);
+ * - `c=<perezosa>` (o, en Goleadores y Récords, una perezosa como categoría por defecto), de la temporada `s`;
+ * - Explorar y Ligas sin `c`, que enseñan todas las categorías (soft);
+ * - un grupo de la ruta que no está: la de su prefijo (AL, INF, CAD, JUV) o, si no se sabe, todas (soft).
+ * La portada de un equipo de benjamín o prebenjamín nunca pide nada: tiene que abrir en 3 s. */
+export function needsLazy(route, ctx) {
   const screen = route?.screen ?? '';
   const params = route?.params || {};
   const portal = ctx.portal.season;
   const s = params.s || portal;
   const byDefault = SCORER_SCREENS.has(screen) && !params.c && !params.g;
-  const waits = screen === '' || byDefault ? mineWaits(ctx) : null;
-  if (waits) return { season: portal, soft: waits.soft };
+  if (screen === '' || byDefault) {
+    const waits = mineWaits(ctx);
+    if (waits.length) return waits;
+  }
   const cat = params.c || (byDefault ? defaultCategory(ctx.resolution, ctx.portal.defaultTeam) : null);
-  if (cat === 'alevin' && (screen === 'ligas' || SCORER_SCREENS.has(screen))) return alevinMissing(ctx, s) ? { season: s, soft: false } : null;
-  if (screen === 'explorar' || (screen === 'ligas' && !params.c)) return alevinMissing(ctx, s) ? { season: s, soft: true } : null;
-  return null;
+  if (LAZY_CATS.includes(cat) && (screen === 'ligas' || SCORER_SCREENS.has(screen))) return wantsOf(ctx, [cat], s, false);
+  if (screen === 'explorar' || (screen === 'ligas' && !params.c)) return wantsOf(ctx, LAZY_CATS, s, true);
+  if (params.g && ctx.model && ctx.model.season(s) && !findGroup(ctx.model, s, params.g)) return groupWants(ctx, params.g, s);
+  return [];
 }
 
-// Un grupo `g` que no está en la temporada `s`: con su alevín sin pedir, la ruta queda pendiente de él
-// (puede ser un grupo alevín de un enlace compartido o de «Vistos hace poco»); si ya está, `lost`.
-const missingGroup = (params, ctx, lost) => (alevinMissing(ctx, params.s) ? { params, alevin: params.s } : lost());
+// needsAlevin de antes: lo de alevín de needsLazy → { season, soft } | null.
+export function needsAlevin(route, ctx) {
+  const want = needsLazy(route, ctx).find((w) => w.cat === 'alevin');
+  return want ? { season: want.season, soft: want.soft } : null;
+}
+
+// Un grupo `g` que no está en la temporada `s`: con su categoría perezosa sin pedir (la de su prefijo, la
+// `cat` de la ruta o, si no se sabe, todas), la ruta queda pendiente de ella (puede ser un grupo de un
+// enlace compartido o de «Vistos hace poco»); si ya está, `lost`.
+const missingGroup = (params, ctx, lost, cat = null) => {
+  const wants = groupWants(ctx, params.g, params.s, cat);
+  return wants.length ? { params, lazy: wants } : lost();
+};
 
 // ── Valores por defecto y redirecciones ─────────────────────────────────
 //
-// resolveParams(route, ctx) → { params, pending?, alevin?, soft? } | { redirect: { screen, params, notice } }
-//   ctx: { portal: { season }, model, resolution, myTeam, datasets: { seasons, alevin, seasonAlevin },
-//   alevinTried? }
+// resolveParams(route, ctx) → { params, pending?, lazy? } | { redirect: { screen, params, notice } }
+//   ctx: { portal: { season }, model, resolution, myTeam, datasets: { seasons, lazy, seasonLazy },
+//   lazyTried? }
 //   params: los de la ruta con `s` (y `g` en Jornada y Tabla) ya puestos; pending: la temporada
 //   pasada aún no está cargada y no se puede validar la ruta (el router la carga y la vuelve a
-//   resolver cuando termina `needs`); alevin: lo mismo con el alevín de esa temporada (la temporada
-//   cuyo alevín falta), y soft, que si no llega la ruta se resuelve sin él (mineWaits): el router pasa
-//   en alevinTried las temporadas cuyo alevín ya pidió en esta navegación. Las redirecciones se
-//   aplican con replaceState.
+//   resolver cuando termina `needs`); lazy: lo mismo con las categorías perezosas que faltan,
+//   [{ cat, season, soft }], con soft si, al no llegar, la ruta se resuelve sin ella: el router pasa en
+//   lazyTried ('<cat>|<temporada>') las que ya pidió en esta navegación. Las redirecciones se aplican
+//   con replaceState.
 export function resolveParams(route, ctx) {
   const screen = route.screen;
   const raw = route.params || {};
@@ -186,16 +229,16 @@ function leagueParams(screen, raw, params, ctx) {
     }
     if (group.kind !== 'league') return redirect('copa', { s, g: group.id });
   } else if (params.s === portal) {
-    // Mi equipo que se resuelve con alevín (mineWaits): antes, su alevín (soft en un cambio de temporada).
+    // Mi equipo que se resuelve con una perezosa (mineWaits): antes, ella (alevín soft en un cambio de temporada).
     const waits = mineWaits(ctx);
-    if (waits) return waits.soft ? { params, alevin: portal, soft: true } : { params, alevin: portal };
+    if (waits.length) return { params, lazy: waits };
     // Mi equipo sin resolver (E, pregunta pendiente; X, ausente): a Ligas de la temporada actual.
     if (ctx.resolution?.status !== 'ok') return redirect('ligas', { to: screen }, 'Elige tu equipo en Mi equipo');
     group = ctx.resolution.group;
   } else {
-    // Temporada pasada: el primer grupo de liga de la categoría de mi equipo con su nombre (en alevín,
-    // con el alevín de esa temporada).
-    if (mine.cat === 'alevin' && alevinMissing(ctx, params.s)) return { params, alevin: params.s };
+    // Temporada pasada: el primer grupo de liga de la categoría de mi equipo con su nombre (en una
+    // perezosa, con la de esa temporada).
+    if (LAZY_CATS.includes(mine.cat) && lazyMissing(ctx, mine.cat, params.s)) return { params, lazy: [{ cat: mine.cat, season: params.s, soft: false }] };
     group = mine.name ? season.groups.find((g) => g.cat === mine.cat && g.kind === 'league' && hasTeam(g, mine.name)) : null;
     if (!group) {
       return redirect('ligas', { s, c: mine.cat, to: screen },
@@ -233,8 +276,10 @@ function competitionParams(raw, params, ctx) {
     .find((e) => e.key === raw.f && e.groups.some((g) => g.kind === 'league'));
   if (!entry) {
     const lost = () => redirect('ligas', { s, c: raw.c, to: 'jornada' }, `No encontramos la competición ${raw.f} en la temporada ${seasonLabel(params.s)}`);
-    // La de alevín (o, sin `c`, la que puede serlo), como un grupo que no está: antes, su alevín.
-    return !raw.c || raw.c === 'alevin' ? missingGroup(params, ctx, lost) : lost();
+    // La de una perezosa (o, sin `c`, la que puede serlo: todas, soft), como un grupo que no está: antes, ella.
+    if (raw.c && !LAZY_CATS.includes(raw.c)) return lost();
+    const wants = raw.c ? wantsOf(ctx, [raw.c], params.s, false) : wantsOf(ctx, LAZY_CATS, params.s, true, true);
+    return wants.length ? { params, lazy: wants } : lost();
   }
   if (raw.c !== entry.cat) return redirect('jornada', { ...raw, c: entry.cat });
   if (raw.r && !entry.groups.some((g) => g.kind === 'league' && findRound(g, raw.r))) return redirect('jornada', omit(raw, 'r'));
@@ -444,10 +489,13 @@ function legacyMine(ctx) {
 // poco» y clearData() borra los datos de la app; session: { getItem, setItem } para el último
 // destino principal;
 // loadSeason(name, datasets, portalSeason) → Promise[]: la carga de una temporada pasada pendiente,
-// seasonNeeds de state.js (las pruebas pasan otra); loadAlevin(name, datasets, portalSeason) →
-// Promise[]: la del alevín de una temporada, alevinNeeds de state.js. Devuelve { nav, idle, current }:
-// idle() es la promesa del último pintado.
-export function startRouter({ screens, root, getContext, window: win, actions = {}, session = null, loadSeason = seasonNeeds, loadAlevin = alevinNeeds }) {
+// seasonNeeds de state.js (las pruebas pasan otra); loadLazy(cat, name, datasets, portalSeason) →
+// Promise[]: la de una categoría perezosa de una temporada, lazyNeeds de state.js; loadAlevin(name,
+// datasets, portalSeason), la de antes solo para alevín (las pruebas de alevín la pasan; si no, la de
+// loadLazy). Devuelve { nav, idle, current }: idle() es la promesa del último pintado.
+export function startRouter({ screens, root, getContext, window: win, actions = {}, session = null, loadSeason = seasonNeeds, loadLazy = lazyNeeds, loadAlevin = null }) {
+  const loadOne = (cat, season, datasets, portalSeason) => (cat === 'alevin' && loadAlevin
+    ? loadAlevin(season, datasets, portalSeason) : loadLazy(cat, season, datasets, portalSeason));
   const doc = win.document;
   const hist = win.history;
   const baseTitle = doc.title;
@@ -488,8 +536,8 @@ export function startRouter({ screens, root, getContext, window: win, actions = 
   }
 
   // Enlace antiguo → ruta nueva, y valores por defecto y redirecciones, cada paso con
-  // replaceState. Devuelve la ruta resuelta, si falta cargar su temporada (pending) o su alevín (alevin,
-  // la temporada) y el primer aviso.
+  // replaceState. Devuelve la ruta resuelta, si falta cargar su temporada (pending) o alguna perezosa
+  // (lazy: [{ cat, season, soft }]) y el primer aviso.
   function settle(base) {
     let hash = win.location.hash;
     const legacy = translateLegacy(hash, { isMine: legacyMine(base) });
@@ -501,7 +549,7 @@ export function startRouter({ screens, root, getContext, window: win, actions = 
     let notice = null;
     for (let i = 0; i <= MAX_REDIRECTS; i++) {
       const res = resolveParams(route, base);
-      if (!res.redirect) return { route: { screen: route.screen, params: res.params }, pending: !!res.pending, alevin: res.alevin || null, soft: !!res.soft, notice };
+      if (!res.redirect) return { route: { screen: route.screen, params: res.params }, pending: !!res.pending, lazy: res.lazy || [], notice };
       notice = notice || res.redirect.notice || null;
       const href = routeHref(res.redirect.screen, res.redirect.params);
       hist.replaceState(hist.state, '', href);
@@ -561,20 +609,20 @@ export function startRouter({ screens, root, getContext, window: win, actions = 
     return latest;
   }
 
-  // El alevín que le falta a una ruta ya resuelta (settle), para validarse (`alevin` de resolveParams) o
-  // para pintarse (needsAlevin): { season, soft } o null.
-  const alevinWant = (settled, base) => (settled.alevin ? { season: settled.alevin, soft: settled.soft } : needsAlevin(settled.route, base));
+  // Las perezosas que le faltan a una ruta ya resuelta (settle), para validarse (`lazy` de resolveParams)
+  // o para pintarse (needsLazy): [{ cat, season, soft }].
+  const lazyWant = (settled, base) => (settled.lazy.length ? settled.lazy : needsLazy(settled.route, base));
 
-  // tried: las temporadas cuyo alevín ya se pidió en esta navegación (con sus redirecciones), que no se
-  // vuelve a pedir hasta la siguiente (Reintentar, u otra pantalla que lo necesite). Va al contexto de
-  // resolveParams y de needsAlevin como alevinTried: lo soft que ya se pidió y no llegó no se espera más.
+  // tried: las perezosas ('<cat>|<temporada>') ya pedidas en esta navegación (con sus redirecciones), que no
+  // se vuelven a pedir hasta la siguiente (Reintentar, u otra pantalla que las necesite). Va al contexto de
+  // resolveParams y de needsLazy como lazyTried: lo soft que ya se pidió y no llegó no se espera más.
   async function run(mode, carried, depth, target, focusId, tried = new Set()) {
     const my = ++token;
     let route = parseRoute(win.location.hash);
     let screen = screenOf(route.screen);
     let base = null;
     try {
-      base = { ...getContext(), alevinTried: tried };
+      base = { ...getContext(), lazyTried: tried };
       const first = settle(base);
       let settled = first;
       route = first.route;
@@ -592,18 +640,16 @@ export function startRouter({ screens, root, getContext, window: win, actions = 
       // router, junto a los needs de la pantalla, pida esta su temporada o no: pending es justo
       // seasonNeeds(s). Si la carga falla, la caja de error con «Reintentar», que vuelve a pedirla
       // (ensureSeasonData no memoriza un fallo).
-      // El alevín, igual, a la vez: si falla, la caja de error con
-      // «Reintentar» («No se pudieron cargar los datos de alevín»), salvo en Explorar y Ligas sin `c`
-      // (soft), que se pintan sin él y lo dicen (ctx.alevinFailed).
-      const want = alevinWant(first, base);
-      const alevinLoads = want && !tried.has(want.season)
-        ? loadAlevin(want.season, base.datasets, portalSeason)
-          .map((load) => (want.soft ? load.catch((err) => console.warn('[router] alevín', err)) : load))
-        : [];
-      if (want) tried.add(want.season);
+      // Las perezosas, igual, a la vez: si una falla, la caja de error con «Reintentar» («No se pudieron
+      // cargar los datos de cadete»), salvo las soft (Explorar y Ligas sin `c`), que se pintan sin ella y
+      // lo dicen (ctx.lazyFailed).
+      const fresh = lazyWant(first, base).filter((w) => !tried.has(triedKey(w.cat, w.season)));
+      const lazyLoads = fresh.flatMap((w) => loadOne(w.cat, w.season, base.datasets, portalSeason)
+        .map((load) => (w.soft ? load.catch((err) => console.warn(`[router] ${w.cat}`, err)) : load)));
+      fresh.forEach((w) => tried.add(triedKey(w.cat, w.season)));
       const needs = [
         ...(first.pending ? loadSeason(route.params.s, base.datasets, portalSeason) : []),
-        ...alevinLoads,
+        ...lazyLoads,
         ...((screen.needs && screen.needs(route.params, base.datasets, { portalSeason })) || []),
       ];
       if (needs.length) {
@@ -611,32 +657,34 @@ export function startRouter({ screens, root, getContext, window: win, actions = 
         await Promise.all(needs);
         if (my !== token) return latest;   // otra navegación empezó mientras cargaba: no se pinta; que idle() la espere
       }
-      if (needs.length || first.pending || first.alevin) {
-        base = { ...getContext(), alevinTried: tried };
+      if (needs.length || first.pending || first.lazy.length) {
+        base = { ...getContext(), lazyTried: tried };
         const again = settle(base);
         if (again.pending) throw Object.assign(new Error('temporada sin cargar'), { what: `la temporada ${seasonLabel(again.route.params.s)}` });
-        // Con la temporada ya cargada, su alevín (un grupo que no está): otra vuelta, que lo pide.
-        const more = alevinWant(again, base);
-        if (more && !tried.has(more.season)) {
+        // Con la temporada ya cargada, sus perezosas (un grupo que no está): otra vuelta, que las pide.
+        const more = lazyWant(again, base).filter((w) => !tried.has(triedKey(w.cat, w.season)));
+        if (more.length) {
           if (depth >= MAX_REDIRECTS) throw new RangeError('Demasiadas redirecciones');
           return run(mode, notice || again.notice, depth + 1, target, focusId, tried);
         }
-        if (again.alevin) throw Object.assign(new Error('alevín sin cargar'), { what: 'alevín' });
+        if (again.lazy.length) throw Object.assign(new Error(`${again.lazy[0].cat} sin cargar`), { what: CAT_WORDS[again.lazy[0].cat] });
         if (routeHref(again.route.screen, again.route.params) !== routeHref(route.screen, route.params)) {
           if (depth >= MAX_REDIRECTS) throw new RangeError('Demasiadas redirecciones');
           return run(mode, notice || again.notice, depth + 1, target, focusId, tried);
         }
         settled = again;
-        // La barra, otra vez con lo cargado: mi equipo alevín solo se resuelve con su alevín, y su ficha
+        // La barra, otra vez con lo cargado: mi equipo alevín solo se resuelve con su alevín (y uno de
+        // infantil, cadete o juvenil, con la suya), y su ficha
         // o un partido suyo, abiertos en frío, marcaban Explorar o Jornada en vez de Mi equipo.
         const loadedTab = activeTab(route, lastPrimary, routeIsMine(route, base.resolution));
         updateTabbar(loadedTab.active, loadedTab.current, doc, tabTargets(route, base));
       }
-      // Lo que la pantalla quería del alevín y no llegó: solo puede ser lo `soft` (lo demás ya dio su
-      // caja de error), que la pantalla pinta con su aviso y «Reintentar».
-      const left = alevinWant(settled, base);
-      const { alevinTried: _tried, ...data } = base;   // alevinTried es del router, no de las pantallas
-      const ctx = { ...data, route, params: route.params, lastPrimary, backHref: backHref(route, base.model), alevinFailed: Boolean(left && left.soft) };
+      // Lo que la pantalla quería de las perezosas y no llegó: solo puede ser lo `soft` (lo demás ya dio su
+      // caja de error), que la pantalla pinta con su aviso y «Reintentar». lazyFailed, las categorías;
+      // alevinFailed, el de antes (las pantallas de hoy lo leen).
+      const lazyFailed = [...new Set(lazyWant(settled, base).filter((w) => w.soft).map((w) => w.cat))];
+      const { lazyTried: _tried, ...data } = base;   // lazyTried es del router, no de las pantallas
+      const ctx = { ...data, route, params: route.params, lastPrimary, backHref: backHref(route, base.model), lazyFailed, alevinFailed: lazyFailed.includes('alevin') };
       // Solo se pinta Html de html``, que escapa cada interpolación.
       const view = screen.render(ctx);
       if (!(view instanceof Html)) throw new TypeError(`render de ${screen.id} no devolvió Html`);
