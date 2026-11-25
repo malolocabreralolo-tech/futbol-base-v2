@@ -1,0 +1,347 @@
+name: Histórico de la federación (un solo carril)
+
+# Baja de la federación las temporadas pasadas (el histórico) con la misma lectura que el bot, en UN solo carril
+# (scripts/historico.py, docs/federacion.md, «El carril del histórico»). Sustituye a las tandas de goleadores y
+# de detalle, que daban por leída una página vacía: con el freno de la federación habrían guardado grupos vacíos
+# como buenos.
+#
+# Cada ejecución hace UNA cosa, la que diga «¿Qué toca?»: bajar lo pendiente del encargo (lo barato primero:
+# goleadores, actas de la temporada más reciente y de la liga de más nivel, detalle, calendario y escudos), probar
+# sobre una copia lo ya bajado de una temporada, o nada (sin encargo, parado, en una ventana de partidos, con el
+# tope del día gastado o con el freno de verdad visto hoy). Lo bajado va a scripts/historico/ (la cuarentena, que
+# el bot no mira) y solo pasa a scripts/, donde el bot lo importa, lo probado en verde (cuarentena.py promover).
+# El carril nunca sube la base ni lo publicado (futbolbase.db, base/, data-*.js, index.html, sw.js): eso es del
+# bot (update.yml y activar.yml, grupo update-data), y un fallo aquí no lo deja sin publicar.
+#
+# No se intenta saltar ni el freno ni el rechazo a AWS: una ejecución cada vez (concurrencia historico-federacion,
+# sin cancelar), un navegador y 7 s entre peticiones; 2.000 páginas al día para empezar (HISTORICO_PAGINAS_DIA,
+# variable del repositorio: la rampa la sube quien dirige); y una ejecución que cae en un runner que la federación
+# no sirve acaba en uno o dos minutos y NO se relanza (historico.RELANZAR_SI_RUNNER_RECHAZADO = 0, decisión del
+# dueño pendiente): la retoma el disparo siguiente.
+#
+# El disparo, cada 3 h a y 47: lejos de los ticks del reloj (reloj.yml, a y 7, 22, 37 y 52) y de las horas en
+# punto (GitHub pierde o retrasa más esas). Con la mitad de los runners en AWS, alguno de los ≤ 8 disparos del día
+# cae en Azure, y una sola ejecución en Azure llega al tope; tras una ejecución servida (60 páginas o más) o una
+# prueba, la siguiente se lanza en seguida (paso «Siguiente», sin entradas).
+#
+# Como el reloj, GitHub lo desactiva tras 60 días sin actividad en el repositorio: gh workflow enable historico.yml.
+on:
+  schedule:
+    - cron: '47 */3 * * *'
+  workflow_dispatch:
+    inputs:
+      accion:
+        description: 'seguir (una ejecución), encargar (un encargo nuevo con las entradas de abajo), parar, reanudar o reintentar (lo que falló en su prueba)'
+        required: false
+        type: choice
+        options: ['seguir', 'encargar', 'parar', 'reanudar', 'reintentar']
+        default: 'seguir'
+      temporadas:
+        description: 'Con encargar: CodTemporada en el orden en que se bajan (21=2025-26, 20=2024-25 … 15=2019-20)'
+        required: false
+        default: ''
+      categorias:
+        description: 'Con encargar: alevin, o benjamin,prebenjamin'
+        required: false
+        default: 'alevin'
+      trabajos:
+        description: 'Con encargar: goleadores, actas, detalle, escudos (y calendario, con sus temporadas abajo)'
+        required: false
+        default: 'goleadores,actas,detalle,escudos'
+      calendario:
+        description: 'Con encargar: temporadas de las que bajar también el calendario completo (de las de arriba)'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  # El encargo, en su propio job y su propio grupo: queda escrito (plan.json, subido) antes de que el carril haga
+  # cola. Si GitHub cancela un carril en espera (guarda uno solo por grupo), el encargo ya está en main y la
+  # ejecución siguiente lo lee. Solo escribe plan.json; estado.json es del carril: nunca chocan al rebasar.
+  encargo:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.accion != 'seguir' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    concurrency:
+      group: historico-encargo
+      cancel-in-progress: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: main
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      # Un encargo que no vale (una temporada, una categoría o un trabajo que no existen; de la temporada en
+      # curso, otra cosa que actas o detalle) sale en rojo sin escribir nada, y el carril no corre.
+      - name: Encargo
+        env:
+          ACCION: ${{ inputs.accion }}
+          TEMPORADAS: ${{ inputs.temporadas }}
+          CATEGORIAS: ${{ inputs.categorias }}
+          TRABAJOS: ${{ inputs.trabajos }}
+          CALENDARIO: ${{ inputs.calendario }}
+        run: |
+          if [ "$ACCION" = encargar ]; then
+            python3 scripts/historico.py encargar --temporadas "$TEMPORADAS" --categorias "$CATEGORIAS" --trabajos "$TRABAJOS" --calendario "$CALENDARIO"
+          else
+            python3 scripts/historico.py "$ACCION"
+          fi
+
+      - name: Subir el encargo
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add scripts/historico/plan.json
+          if git diff --cached --quiet; then
+            echo "Nada nuevo que subir."
+            exit 0
+          fi
+          git commit -m "histórico: $(python3 scripts/historico.py estado | head -n 1)"
+          for intento in 1 2 3; do
+            if git push; then break; fi
+            if [ "$intento" = 3 ]; then exit 1; fi
+            git pull --rebase --autostash origin main || { git rebase --abort; echo "conflicto con main: vuelve a encargarlo"; exit 1; }
+          done
+
+  carril:
+    needs: encargo
+    # Tras el encargo (o sin él: el disparo y «seguir» lo saltan), salvo si el encargo no valió o se canceló.
+    if: ${{ always() && needs.encargo.result != 'failure' && needs.encargo.result != 'cancelled' }}
+    runs-on: ubuntu-24.04
+    # 350: la descarga, como mucho 335 (historico.MINUTOS_EJECUCION, 300, y la instalación), y la subida.
+    timeout-minutes: 350
+    # De job, no del workflow: una cancelación del carril en espera no se lleva el encargo, ya subido. Nunca el
+    # grupo del bot (update-data): el carril no le quita ni una pasada.
+    concurrency:
+      group: historico-federacion
+      cancel-in-progress: false
+    # El tope del día (la rampa: gh variable set HISTORICO_PAGINAS_DIA) y las esperas del freno por ejecución
+    # (ninguna por defecto), en todos los pasos que preguntan a historico.py: «¿Qué toca?», la descarga y su registro
+    # tienen que ver el mismo tope.
+    env:
+      HISTORICO_PAGINAS_DIA: ${{ vars.HISTORICO_PAGINAS_DIA }}
+      HISTORICO_ESPERAS: ${{ vars.HISTORICO_ESPERAS }}
+    steps:
+      # ref: main, el main de ahora: un disparo en cola trabaja si no sobre el commit de cuando se lanzó, sin el
+      # encargo ni el estado que subió la ejecución anterior.
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: main
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      # Sin pip: historico.py es de la biblioteca estándar. Lee el data-health.json publicado (el freno del bot).
+      - name: ¿Qué toca?
+        id: toca
+        run: |
+          python3 scripts/historico.py siguiente
+          {
+            echo '```'
+            python3 scripts/historico.py estado
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Instalar Playwright
+        if: steps.toca.outputs.accion == 'descargar'
+        run: |
+          pip install -r scripts/requirements-bot.txt
+          playwright install chromium --with-deps
+
+      # Como en update.yml: la IP pública y la nube del runner («Microsoft Corporation» en Azure, «Amazon EC2» en
+      # AWS, al que la federación no sirve desde el 13/11/2026). Solo en el log y nunca para el job.
+      - name: IP pública del runner
+        if: steps.toca.outputs.accion == 'descargar'
+        continue-on-error: true
+        timeout-minutes: 1
+        run: |
+          echo "IP pública del runner: $(curl -s --max-time 5 https://api.ipify.org || echo desconocida)"
+          echo "Nube del runner: $(cat /sys/class/dmi/id/sys_vendor 2>/dev/null || echo desconocida)"
+
+      # historico.py vuelve a calcular la acción (el plazo cuenta desde ahora), la guarda y ejecuta el descargador.
+      # Una parada de la federación (el freno, el tope, el plazo, un runner rechazado: este acaba aquí en uno o dos
+      # minutos) sale con 0; una excepción, no (el job acaba en rojo, al final).
+      - name: Descargar
+        id: descargar
+        if: steps.toca.outputs.accion == 'descargar'
+        continue-on-error: true
+        timeout-minutes: 335
+        env:
+          PYTHONUNBUFFERED: '1'
+        run: python3 scripts/historico.py descargar --accion "$RUNNER_TEMP/accion.json" --resumen "$RUNNER_TEMP/resumen.json"
+
+      # ── La prueba, sobre una copia (otro árbol: lo que la importación y generate_js escriben allí no llega nunca
+      # al que se sube). Lo mismo que hará el bot con esos raws: importar sin red, la base sana y las dos suites.
+      - name: Instalar dependencias de test
+        if: steps.toca.outputs.accion == 'probar'
+        run: pip install -r scripts/requirements-tests.txt
+
+      - name: Set up Node
+        if: steps.toca.outputs.accion == 'probar'
+        uses: actions/setup-node@v5
+        with:
+          node-version: '22'
+
+      - name: Preparar la copia
+        if: steps.toca.outputs.accion == 'probar'
+        env:
+          TRABAJOS: ${{ steps.toca.outputs.trabajos }}
+        run: |
+          git worktree add --detach "$RUNNER_TEMP/prueba" HEAD
+          python3 scripts/cuarentena.py promover --raiz "$RUNNER_TEMP/prueba" --trabajos "$TRABAJOS"
+
+      - name: Importar sin red
+        id: importar
+        if: steps.toca.outputs.accion == 'probar'
+        continue-on-error: true
+        working-directory: ${{ runner.temp }}/prueba
+        run: python3 scripts/prueba_historico.py importar --raiz . --medida "$RUNNER_TEMP/medida.json"
+
+      # Sin --salud: escribiría data-health.json (el de la copia, pero no hace falta).
+      - name: Base sana
+        id: base
+        if: steps.importar.outcome == 'success'
+        continue-on-error: true
+        working-directory: ${{ runner.temp }}/prueba
+        run: python3 scripts/base_sana.py
+
+      - name: Tests Python
+        id: pytest
+        if: steps.base.outcome == 'success'
+        continue-on-error: true
+        working-directory: ${{ runner.temp }}/prueba
+        run: python3 -m pytest scripts/tests/ -q
+
+      - name: Tests Node
+        id: node
+        if: steps.pytest.outcome == 'success'
+        continue-on-error: true
+        working-directory: ${{ runner.temp }}/prueba
+        run: node --test scripts/tests/test_*.mjs
+
+      # Todo o nada: verde solo si la importación, la base sana y las dos suites salieron bien, la base no llega a
+      # 80 MB y la importación cabe en una pasada del bot (prueba_historico.py). Sale con 0: el rojo, en `verde`.
+      - name: Veredicto
+        id: veredicto
+        if: ${{ !cancelled() && steps.toca.outputs.accion == 'probar' }}
+        env:
+          IMPORTAR: ${{ steps.importar.outcome }}
+          BASE: ${{ steps.base.outcome }}
+          PYTEST: ${{ steps.pytest.outcome }}
+          NODE: ${{ steps.node.outcome }}
+        run: |
+          PRUEBAS=failure
+          if [ "$IMPORTAR" = success ] && [ "$BASE" = success ] && [ "$PYTEST" = success ] && [ "$NODE" = success ]; then
+            PRUEBAS=success
+          fi
+          python3 scripts/prueba_historico.py veredicto --medida "$RUNNER_TEMP/medida.json" --pruebas "$PRUEBAS" --salida "$RUNNER_TEMP/veredicto.json"
+
+      # En el checkout de verdad: lo probado pasa de scripts/historico/ a scripts/, y la lista dice qué subir.
+      - name: Promover
+        id: promover
+        if: steps.veredicto.outputs.verde == 'true'
+        env:
+          TRABAJOS: ${{ steps.toca.outputs.trabajos }}
+        run: python3 scripts/cuarentena.py promover --trabajos "$TRABAJOS" --lista "$RUNNER_TEMP/promovidos.txt"
+
+      # always(): una descarga cortada (el plazo del paso, una excepción) apunta lo que lleva; sin resumen, la
+      # ejecución sin cuentas. Una prueba sin veredicto o sin promover, «fallo»: no se repite sola.
+      - name: Registrar
+        id: registrar
+        if: ${{ always() && (steps.toca.outputs.accion == 'descargar' || steps.toca.outputs.accion == 'probar') }}
+        env:
+          ACCION: ${{ steps.toca.outputs.accion }}
+          TRABAJOS: ${{ steps.toca.outputs.trabajos }}
+          PROMOVER: ${{ steps.promover.outcome }}
+        run: |
+          if [ "$ACCION" = probar ]; then
+            python3 scripts/historico.py registrar --prueba "$RUNNER_TEMP/veredicto.json" --trabajos "$TRABAJOS" --promover "$PROMOVER"
+          else
+            python3 scripts/historico.py registrar --accion "$RUNNER_TEMP/accion.json" --resumen "$RUNNER_TEMP/resumen.json"
+          fi
+          {
+            echo '```'
+            python3 scripts/historico.py estado
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # Solo lo del carril: la cuarentena (lo bajado, la lista de grupos de los goleadores, plan y estado) y lo
+      # promovido a scripts/ (una línea de promovidos.txt cada uno). Rebasa como el bot; un conflicto no se fuerza:
+      # aborta en rojo y la ejecución siguiente parte de main. También el día parado por el freno que vio el bot
+      # (sin descargar nada: apuntado), para que la rampa lo vea en dias_frenados.
+      - name: Subir
+        id: subir
+        if: ${{ always() && (steps.toca.outputs.accion == 'descargar' || steps.toca.outputs.accion == 'probar' || steps.toca.outputs.apuntado == 'true') }}
+        env:
+          ACCION: ${{ steps.toca.outputs.accion }}
+        run: |
+          git config user.name "GitHub Actions"
+          git config user.email "actions@github.com"
+          git add scripts/historico
+          if [ -f "$RUNNER_TEMP/promovidos.txt" ]; then
+            while IFS= read -r f; do
+              [ -n "$f" ] && git add "$f"
+            done < "$RUNNER_TEMP/promovidos.txt"
+          fi
+          if git diff --cached --quiet; then
+            echo "Nada nuevo que subir."
+            exit 0
+          fi
+          if [ "$ACCION" = nada ]; then
+            MENSAJE="hoy, parado por el freno de verdad que vio el bot en vivo"
+          else
+            MENSAJE=$(python3 scripts/historico.py estado --linea)
+          fi
+          git commit -m "histórico: $MENSAJE"
+          for intento in 1 2 3; do
+            if git push; then break; fi
+            if [ "$intento" = 3 ]; then exit 1; fi
+            git pull --rebase --autostash origin main || { git rebase --abort; echo "conflicto con main: no se sube; la ejecución siguiente parte de main"; exit 1; }
+          done
+
+      # El bot importa lo promovido en su pasada; las descargas ya no lo lanzan (no le dan nada que importar).
+      # Si ya está corriendo, queda en cola (concurrency update-data).
+      - name: Importar y publicar (bot)
+        if: ${{ !cancelled() && steps.registrar.outputs.promovido == 'true' && steps.subir.outcome == 'success' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run update.yml --ref main || echo "no se pudo lanzar el bot; lo lanzará el reloj (reloj.yml)"
+
+      # Sin entradas (seguir): la ejecución siguiente saca su trabajo de scripts/historico/. Solo tras una prueba o
+      # una descarga que la federación sirvió (historico.relanzar); nunca tras un runner rechazado.
+      - name: Siguiente
+        if: ${{ !cancelled() && steps.registrar.outputs.relanzar == 'true' && steps.subir.outcome == 'success' }}
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run historico.yml --ref main
+
+      # En rojo solo lo que es un fallo: una descarga que acabó con error (una excepción, no una parada) o una
+      # prueba en rojo. Una parada por el freno, el plazo, el tope o un runner rechazado acaba en verde.
+      - name: En rojo si falló
+        if: ${{ !cancelled() }}
+        env:
+          ACCION: ${{ steps.toca.outputs.accion }}
+          DESCARGA: ${{ steps.descargar.outcome }}
+          VERDE: ${{ steps.veredicto.outputs.verde }}
+          PROMOVIDO: ${{ steps.registrar.outputs.promovido }}
+        run: |
+          if [ "$ACCION" = descargar ] && [ "$DESCARGA" = failure ]; then
+            echo "La descarga acabó con un error (no una parada de la federación): lo leído hasta ahí ya está subido."
+            exit 1
+          fi
+          if [ "$ACCION" = probar ] && { [ "$VERDE" != true ] || [ "$PROMOVIDO" != true ]; }; then
+            echo "La prueba sobre la copia salió en rojo (o no se pudo promover): no pasa nada a scripts/."
+            exit 1
+          fi
+          echo "Bien."

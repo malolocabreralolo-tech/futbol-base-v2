@@ -864,12 +864,11 @@ def test_the_next_tanda_follows_the_state_of_the_lote_of_the_chain(tmp_path):
 
 
 def test_the_other_workflows_need_no_new_files():
-    """goleadores y detalle no se parten (pesan poco: actas_lotes.py) y suben sus raws por glob; el bot
-    nunca sube raws de actas (los suben las tandas de actas-federacion.yml)."""
-    gol = next(s for s in steps("goleadores-federacion.yml", "scrape") if s.get("name") == "Subir los raw")
-    assert "scripts/fiflp_goleadores_*_raw.json" in gol["run"]
-    det = next(s for s in steps("detalle-federacion.yml", "scrape") if s.get("name") == "Subir los raw")
-    assert "scripts/fiflp_detalle_*_raw.json" in det["run"]
+    """goleadores y detalle no se parten (pesan poco: actas_lotes.py): el carril del histórico (historico.yml) sube
+    toda su cuarentena y lo promovido, fichero a fichero (cuarentena.py promover --lista); el bot nunca sube raws
+    de actas (los suben el carril y las tandas de actas-federacion.yml)."""
+    subir = next(s for s in steps("historico.yml", "carril") if s.get("name") == "Subir")
+    assert "git add scripts/historico" in subir["run"] and 'git add "$f"' in subir["run"]
     bot = " ".join(s.get("run") or "" for s in steps("update.yml", "update"))
     assert "fiflp_actas" not in bot.replace("fiflp_actas_unmatched.json", "")
 

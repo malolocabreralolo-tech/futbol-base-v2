@@ -227,18 +227,15 @@ def test_actas_workflow_has_2026_27_and_propagates_the_categories_to_every_dispa
     assert len(dispatches) == 2 and all('-f categorias="$CATS_INPUT"' in line for line in dispatches), dispatches
 
 
-def test_goleadores_and_detalle_workflows_take_and_chain_the_categories():
-    gol = load("goleadores-federacion.yml")
-    assert inputs(gol)["categorias"]["default"] == "benjamin,prebenjamin"
-    scrape = next(s for s in gol["jobs"]["scrape"]["steps"] if "fetch_fiflp_goleadores.py" in s.get("run", ""))
-    assert "--categorias" in scrape["run"] and "${{" not in scrape["run"]
-    det = load("detalle-federacion.yml")
-    assert inputs(det)["categorias"]["default"] == "benjamin,prebenjamin"
-    steps = det["jobs"]["scrape"]["steps"]
-    scrape = next(s for s in steps if "fetch_fiflp_detalle.py" in s.get("run", ""))
-    assert "--categorias" in scrape["run"] and "${{" not in scrape["run"]
-    nxt = next(s for s in steps if s.get("name") == "Siguiente tanda")
-    assert '-f categorias="$CATEGORIAS"' in nxt["run"]
+def test_historico_toma_las_categorias():
+    """El carril del histórico (historico.yml) lleva la entrada categorias, por defecto alevin, y la pasa a
+    historico.py por env: (nunca interpolada en el guion), que la valida (categorias.parse_categories) y la da a
+    cada descargador (--categorias: historico.argumentos)."""
+    data = load("historico.yml")
+    assert inputs(data)["categorias"]["default"] == "alevin"
+    paso = next(s for s in data["jobs"]["encargo"]["steps"] if "historico.py encargar" in s.get("run", ""))
+    assert paso["env"]["CATEGORIAS"] == "${{ inputs.categorias }}"
+    assert '--categorias "$CATEGORIAS"' in paso["run"] and "${{" not in paso["run"]
 
 
 def test_islas_workflow_documents_the_alevin_tanda_and_runs_on_node24():

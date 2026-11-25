@@ -45,9 +45,8 @@ WF_DIR = ROOT / ".github" / "workflows"
 OWNED = ["update.yml", "tests.yml", "reloj.yml", "activar.yml"]
 
 # Los workflows que hay: uno nuevo o uno que vuelve se piensa antes (¿escribe la base?, ¿va en cola?) y se apunta aquí.
-WORKFLOWS = {"actas-federacion.yml", "activar.yml", "detalle-federacion.yml", "discover-fiflp.yml",
-             "fetch-fiflp-islas.yml", "freno-fiflp.yml", "goleadores-federacion.yml", "probe-fiflp.yml",
-             "reloj.yml", "tests.yml", "update.yml"}
+WORKFLOWS = {"actas-federacion.yml", "activar.yml", "discover-fiflp.yml", "fetch-fiflp-islas.yml", "freno-fiflp.yml",
+             "historico.yml", "probe-fiflp.yml", "reloj.yml", "tests.yml", "update.yml"}
 # Lo que publica una pasada: quien lo sube tiene que hacer cola con el bot, o dos subidas se pisan la base. Las
 # piezas de la base (base/, docs/almacenamiento.md), también.
 PUBLICADO = ("futbolbase.db", "data-*.js", "index.html", "sw.js", "base/*")
@@ -127,13 +126,17 @@ def test_git_add_paths_sees_through_a_wrapper():
 
 def test_quien_sube_va_en_cola():
     """Todo el que empuja a main va en un grupo de concurrencia (no se adelanta a otra subida suya) y rebasa
-    con --autostash, nunca con git stash: un stash pop que choca deja el árbol a medias y sube igual."""
+    con --autostash, nunca con git stash: un stash pop que choca deja el árbol a medias y sube igual. El grupo,
+    del workflow o del job que empuja (historico.yml: el encargo y el carril, cada uno en el suyo)."""
     for path in sorted(WF_DIR.glob("*.yml")):
-        runs = _all_runs(path.name)
-        if not any(re.search(r"\bgit push\b", run) for run in runs):
-            continue
-        assert (_load(path.name).get("concurrency") or {}).get("group"), path.name
-        assert not any(re.search(r"\bgit stash\b", run) for run in runs), path.name
+        data = _load(path.name)
+        for job_name, job in data["jobs"].items():
+            runs = [step.get("run") or "" for step in job.get("steps", [])]
+            if not any(re.search(r"\bgit push\b", run) for run in runs):
+                continue
+            grupo = (job.get("concurrency") or data.get("concurrency") or {}).get("group")
+            assert grupo, (path.name, job_name)
+            assert not any(re.search(r"\bgit stash\b", run) for run in runs), (path.name, job_name)
 
 
 @pytest.mark.parametrize("name", ["discover-fiflp.yml", "fetch-fiflp-islas.yml"])
@@ -328,10 +331,10 @@ def test_a_gh_failure_fails_the_clock_and_launches_nothing(tmp_path):
 def test_every_workflow_that_launches_the_bot_is_named_where_the_bot_is():
     """Quien lanza update.yml sube GITHUB_RUN_NUMBER (el orden de cada pasada) y, para parar las pasadas, hay
     que desactivarlo: los comentarios de update.yml y de reloj.yml los nombran a todos (el reloj, que lo
-    lanza, y las tandas de la federación que lo lanzan al subir sus raw)."""
+    lanza, el carril del histórico al promover lo probado y lo que quede de las tandas de la federación)."""
     launchers = sorted(f.name for f in WF_DIR.glob("*.yml")
                        if "gh workflow run update.yml" in f.read_text(encoding="utf-8"))
-    assert "reloj.yml" in launchers and "detalle-federacion.yml" in launchers, launchers
+    assert "reloj.yml" in launchers and "historico.yml" in launchers, launchers
     for name in ("update.yml", "reloj.yml"):
         head = "\n".join(line for line in (WF_DIR / name).read_text(encoding="utf-8").splitlines()
                          if line.lstrip().startswith("#"))
@@ -1161,7 +1164,7 @@ NODE24 = {"actions/checkout": "v5", "actions/setup-python": "v6", "actions/setup
 
 
 @pytest.mark.parametrize("name", ["tests.yml", "update.yml", "reloj.yml", "activar.yml", "discover-fiflp.yml",
-                                  "fetch-fiflp-islas.yml"])
+                                  "fetch-fiflp-islas.yml", "historico.yml"])
 def test_actions_run_on_node24(name):
     data = _load(name)
     uses = [step["uses"] for job in data["jobs"].values() for step in job["steps"] if "uses" in step]
@@ -1192,35 +1195,10 @@ def test_update_push_rebases_and_retries():
     assert "git rebase --abort" in commit_run
 
 
-# ----------------------------------------------- goleadores-federacion.yml
-
-def test_goleadores_federacion_only_commits_its_raws_even_when_cut():
-    """Solo descarga y sube sus raw (la base la toca el bot al importarlos):
-    con if: always() para no perder una descarga cortada, y push rebasando."""
-    data = _load("goleadores-federacion.yml")
-    steps = data["jobs"]["scrape"]["steps"]
-    upload = next(s for s in steps if s.get("name") == "Subir los raw")
-    assert upload.get("if") == "always()"
-    assert "scripts/fiflp_goleadores_*_raw.json" in upload["run"]
-    assert "futbolbase.db" not in upload["run"] and "data-*.js" not in upload["run"]
-    assert "git pull --rebase origin main" in upload["run"]
-    scrape = next(s for s in steps if "fetch_fiflp_goleadores.py" in s.get("run", ""))
-    assert "$TEMPORADAS" in scrape["run"] and "${{" not in scrape["run"], "la entrada va por env, no interpolada"
-
-
-def test_el_detalle_no_se_relanza_frenado():
-    """La cadena de detalle-federacion.yml solo sigue con «Incompleto.» (el plazo, el tope, lo pendiente de una
-    página muerta): con «Frenada.» (el freno de verdad o un runner al que la federación no sirve) no se relanza
-    contra la federación, y con «Completo.» tampoco."""
-    steps = _load("detalle-federacion.yml")["jobs"]["scrape"]["steps"]
-    nxt = next(s for s in steps if s.get("name") == "Siguiente tanda")
-    run = nxt["run"]
-    assert "! grep -q '^Incompleto\\.' detalle.log" in run and "^Completo" not in run
-    # La comprobación va antes que el relanzamiento: sin «Incompleto.», no se llega a él.
-    assert run.index("! grep -q '^Incompleto") < run.index("gh workflow run detalle-federacion.yml")
-    scrape = next(s for s in steps if "fetch_fiflp_detalle.py" in s.get("run", ""))
-    assert "tee detalle.log" in scrape["run"]
-
+# ----------------------------------------------- actas-federacion.yml
+#
+# Se queda hasta que el dueño decida (PENDIENTE_DEL_DUENO, abajo): hace dos cosas que el carril del histórico no
+# cubre, --reindex y --refrescar.
 
 def test_actas_federacion_chains_per_season_survives_a_timeout_and_stops_when_stuck():
     data = _load("actas-federacion.yml")
@@ -1239,7 +1217,7 @@ def test_actas_federacion_no_cancela_una_tanda_en_marcha():
 
 
 def test_scrapes_launch_the_bot_to_import_what_they_uploaded():
-    for name in ("actas-federacion.yml", "goleadores-federacion.yml"):
+    for name in ("actas-federacion.yml",):
         data = _load(name)
         assert data["permissions"].get("actions") == "write", name
         step = next(s for s in data["jobs"]["scrape"]["steps"] if s.get("name") == "Importar y publicar (bot)")
@@ -1252,6 +1230,263 @@ def test_the_bot_works_on_the_current_main_not_on_the_dispatch_commit():
     steps = _load("update.yml")["jobs"]["update"]["steps"]
     checkout = next(s for s in steps if str(s.get("uses", "")).startswith("actions/checkout"))
     assert checkout.get("with", {}).get("ref") == "main"
+
+
+# ------------------------------------------------------------ historico.yml
+#
+# El carril del histórico (scripts/historico.py): un solo workflow, con un job para el encargo y otro para el
+# carril, que no comparte grupo con el bot, sube solo lo suyo y no se relanza tras un runner rechazado.
+
+HISTORICO = "historico.yml"
+CONDICION_CARRIL = "${{ always() && needs.encargo.result != 'failure' && needs.encargo.result != 'cancelled' }}"
+# actas-federacion.yml se queda hasta que el dueño decida: hace dos cosas que el carril no cubre (--reindex, volver
+# a enumerar una competición ya enumerada, y --refrescar, releer actas sin todo el cuerpo técnico; 316 de 2025-26
+# por releer el 25/11/2026). Cuando se quite, se quita de aquí y de WORKFLOWS.
+PENDIENTE_DEL_DUENO = {"actas-federacion.yml"}
+
+
+def _historico():
+    data = _load(HISTORICO)
+    assert set(data["jobs"]) == {"encargo", "carril"}
+    return data
+
+
+def _carril_step(name):
+    return next(s for s in _steps(_historico(), "carril") if s.get("name") == name)
+
+
+def test_historico_un_solo_carril():
+    data = _historico()
+    carril = data["jobs"]["carril"]
+    assert carril["concurrency"] == {"group": "historico-federacion", "cancel-in-progress": False}
+    assert carril["concurrency"]["group"] != "update-data" and "concurrency" not in data
+    assert data["name"] == "Histórico de la federación (un solo carril)"
+    for path in sorted(WF_DIR.glob("*.yml")):
+        if path.name == HISTORICO:
+            continue
+        texto = path.read_text(encoding="utf-8")
+        assert "fetch_fiflp_goleadores.py" not in texto and "fetch_fiflp_detalle.py" not in texto, path.name
+        if "fetch_fiflp_actas.py" in texto:
+            assert path.name in PENDIENTE_DEL_DUENO, path.name
+    # El carril lo ejecuta todo por historico.py (la orden de cada descargador sale de historico.argumentos).
+    assert "historico.py descargar" in _carril_step("Descargar")["run"]
+
+
+def test_el_encargo_no_se_pierde_si_cancelan_el_carril():
+    data = _historico()
+    encargo, carril = data["jobs"]["encargo"], data["jobs"]["carril"]
+    assert encargo["concurrency"] == {"group": "historico-encargo", "cancel-in-progress": False}
+    assert encargo["if"] == "${{ github.event_name == 'workflow_dispatch' && inputs.accion != 'seguir' }}"
+    adds = [p for step in encargo["steps"] for p in _git_add_paths(step.get("run") or "")]
+    assert adds == ["scripts/historico/plan.json"], adds
+    assert carril["needs"] == "encargo" and carril["if"] == CONDICION_CARRIL
+    checkout = next(s for s in encargo["steps"] if str(s.get("uses", "")).startswith("actions/checkout"))
+    assert checkout["with"]["ref"] == "main"
+    paso = next(s for s in encargo["steps"] if "historico.py" in (s.get("run") or "") and "encargar" in s["run"])
+    for entrada in ("ACCION", "TEMPORADAS", "CATEGORIAS", "TRABAJOS", "CALENDARIO"):
+        assert f'"${entrada}"' in paso["run"], entrada
+
+
+def test_historico_disparadores_y_entradas():
+    data = _historico()
+    trig = _triggers(data)
+    assert set(trig) == {"schedule", "workflow_dispatch"}
+    assert [e["cron"] for e in trig["schedule"]] == ["47 */3 * * *"]
+    entradas = trig["workflow_dispatch"]["inputs"]
+    assert entradas["accion"]["type"] == "choice"
+    assert entradas["accion"]["options"] == ["seguir", "encargar", "parar", "reanudar", "reintentar"]
+    assert entradas["accion"]["default"] == "seguir"
+    assert {k: v.get("default") for k, v in entradas.items() if k != "accion"} == {
+        "temporadas": "", "categorias": "alevin", "trabajos": "goleadores,actas,detalle,escudos", "calendario": ""}
+    assert data["permissions"] == {"contents": "write", "actions": "write"}
+    for run in _all_runs(HISTORICO):
+        assert "${{ inputs." not in run and "${{" not in run, run
+    # Las acciones del encargo son las órdenes de historico.py.
+    import sys
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import historico
+    assert historico.TRABAJOS == ("goleadores", "actas", "detalle", "calendario", "escudos")
+    assert set(entradas["trabajos"]["default"].split(",")) <= set(historico.TRABAJOS)
+
+
+def test_historico_prueba_en_una_copia():
+    for name in ("Importar sin red", "Base sana", "Tests Python", "Tests Node"):
+        step = _carril_step(name)
+        assert step["working-directory"] == "${{ runner.temp }}/prueba", name
+        assert step.get("continue-on-error") is True, name
+    assert _carril_step("Importar sin red")["if"] == "steps.toca.outputs.accion == 'probar'"
+    assert _carril_step("Base sana")["if"] == "steps.importar.outcome == 'success'"
+    assert _carril_step("Tests Python")["if"] == "steps.base.outcome == 'success'"
+    assert _carril_step("Tests Node")["if"] == "steps.pytest.outcome == 'success'"
+    assert "--salud" not in _carril_step("Base sana")["run"]
+    preparar = _carril_step("Preparar la copia")["run"]
+    assert 'git worktree add --detach "$RUNNER_TEMP/prueba" HEAD' in preparar
+    assert 'cuarentena.py promover --raiz "$RUNNER_TEMP/prueba" --trabajos "$TRABAJOS"' in preparar
+    veredicto = _carril_step("Veredicto")
+    assert veredicto["if"] == "${{ !cancelled() && steps.toca.outputs.accion == 'probar' }}"
+    for paso in ("importar", "base", "pytest", "node"):
+        assert f"steps.{paso}.outcome" in str(veredicto["env"]), paso
+    promover = _carril_step("Promover")
+    assert promover["if"] == "steps.veredicto.outputs.verde == 'true'"
+    assert "working-directory" not in promover and "--raiz" not in promover["run"]
+    assert '--lista "$RUNNER_TEMP/promovidos.txt"' in promover["run"]
+    steps = [s.get("name") for s in _steps(_historico(), "carril")]
+    orden = ["Preparar la copia", "Importar sin red", "Base sana", "Tests Python", "Tests Node", "Veredicto",
+             "Promover", "Registrar", "Subir"]
+    assert [n for n in steps if n in orden] == orden
+
+
+def _run_veredicto(tmp_path, outcomes):
+    """El guion de «Veredicto» con un prueba_historico.py de mentira que apunta sus argumentos."""
+    step = _carril_step("Veredicto")
+    (tmp_path / "scripts").mkdir(parents=True)
+    (tmp_path / "scripts" / "prueba_historico.py").write_text(
+        "import sys\nopen(sys.argv[0] + '.args', 'w').write(' '.join(sys.argv[1:]))\n", encoding="utf-8")
+    env = {**os.environ, "RUNNER_TEMP": str(tmp_path), **dict(zip(("IMPORTAR", "BASE", "PYTEST", "NODE"), outcomes))}
+    subprocess.run(["bash", "-e", "-c", step["run"]], cwd=tmp_path, env=env, check=True, timeout=60)
+    return (tmp_path / "scripts" / "prueba_historico.py.args").read_text(encoding="utf-8")
+
+
+def test_el_veredicto_solo_es_success_con_los_cuatro(tmp_path):
+    assert "--pruebas success" in _run_veredicto(tmp_path / "a", ["success"] * 4)
+    assert "--pruebas failure" in _run_veredicto(tmp_path / "b", ["success", "success", "success", "skipped"])
+    assert "--pruebas failure" in _run_veredicto(tmp_path / "c", ["failure", "skipped", "skipped", "skipped"])
+
+
+def test_historico_sube_lo_bajado_aunque_se_corte():
+    registrar, subir = _carril_step("Registrar"), _carril_step("Subir")
+    assert registrar["if"].startswith("${{ always() && ") and subir["if"].startswith("${{ always() && ")
+    assert registrar.get("id") == "registrar" and subir.get("id") == "subir"
+    run = subir["run"]
+    assert "for intento in 1 2 3" in run and "git pull --rebase --autostash origin main" in run
+    assert "git rebase --abort" in run and "--force" not in run and "git stash" not in run
+    adds = _git_add_paths(run)
+    assert adds == ["scripts/historico", "$f"], adds
+    assert not any(_publica(p) for p in adds)
+    assert 'done < "$RUNNER_TEMP/promovidos.txt"' in run
+    assert "historico.py estado --linea" in run and 'git commit -m "histórico: $MENSAJE"' in run
+    # Ningún paso del carril (ni del encargo) sube la base, sus piezas ni lo publicado.
+    for run in _all_runs(HISTORICO):
+        assert not any(_publica(p) for p in _git_add_paths(run)), run
+
+
+def _run_subir(tmp_path, promovidos):
+    """El guion de «Subir» en un repositorio de mentira con su remoto: (lo que sube el último commit, su asunto)."""
+    remote, work = tmp_path / "remote.git", tmp_path / "work"
+    git = lambda *a, cwd=work: subprocess.run(["git", *a], cwd=cwd, check=True, capture_output=True, text=True)
+    subprocess.run(["git", "init", "-q", "--bare", "-b", "main", str(remote)], check=True)
+    git("init", "-q", "-b", "main", str(work), cwd=tmp_path)
+    git("config", "user.email", "t@t")
+    git("config", "user.name", "t")
+    (work / "scripts" / "historico").mkdir(parents=True)
+    for name, text in {"scripts/historico/fiflp_goleadores_2025-2026_raw.json": "viejo",
+                       "scripts/fiflp_goleadores_2025-2026_raw.json": "publicado", "futbolbase.db": "base",
+                       "data-x.js": "publicado", "scripts/historico.py": "print('sin ejecuciones.')\n"}.items():
+        (work / name).write_text(text, encoding="utf-8")
+    git("add", "-A")
+    git("commit", "-q", "-m", "inicio")
+    git("remote", "add", "origin", str(remote))
+    git("push", "-q", "origin", "main")
+    git("branch", "--set-upstream-to=origin/main")
+    # La ejecución: la cuarentena cambia, lo promovido pasa a scripts/ y lo publicado también cambia en el árbol
+    # (no lo sube: es del bot).
+    (work / "scripts" / "historico" / "estado.json").write_text("{}", encoding="utf-8")
+    (work / "futbolbase.db").write_text("otra", encoding="utf-8")
+    (work / "data-x.js").write_text("otro", encoding="utf-8")
+    temp = tmp_path / "temp"
+    temp.mkdir()
+    if promovidos:
+        os.replace(work / "scripts" / "historico" / "fiflp_goleadores_2025-2026_raw.json",
+                   work / "scripts" / "fiflp_goleadores_2025-2026_raw.json")
+        (temp / "promovidos.txt").write_text("scripts/fiflp_goleadores_2025-2026_raw.json\n", encoding="utf-8")
+    env = {**os.environ, "RUNNER_TEMP": str(temp), "ACCION": "probar"}
+    subprocess.run(["bash", "-e", "-c", _carril_step("Subir")["run"]], cwd=work, env=env, check=True,
+                   capture_output=True, text=True, timeout=60)
+    return [line for line in git("show", "--name-status", "--format=%s", "origin/main").stdout.splitlines() if line]
+
+
+def test_historico_sube_solo_lo_suyo(tmp_path):
+    lineas = _run_subir(tmp_path / "a", promovidos=True)
+    assert lineas[0] == "histórico: sin ejecuciones."
+    assert sorted(lineas[1:]) == sorted(["M\tscripts/fiflp_goleadores_2025-2026_raw.json",
+                                         "A\tscripts/historico/estado.json",
+                                         "D\tscripts/historico/fiflp_goleadores_2025-2026_raw.json"]), lineas
+    lineas = _run_subir(tmp_path / "b", promovidos=False)
+    assert sorted(lineas[1:]) == ["A\tscripts/historico/estado.json"], lineas
+
+
+def _run_siguiente(tmp_path, name):
+    """El guion de un paso que lanza workflows, con un gh de mentira que apunta sus llamadas."""
+    step = _carril_step(name)
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir(parents=True)
+    (bin_dir / "gh").write_text(f'#!/bin/sh\necho "gh $*" >> {tmp_path / "gh.txt"}\n', encoding="utf-8")
+    (bin_dir / "gh").chmod(0o755)
+    env = {**os.environ, "PATH": f"{bin_dir}{os.pathsep}{os.environ['PATH']}", "GH_TOKEN": "x"}
+    subprocess.run(["bash", "-e", "-c", step["run"]], cwd=tmp_path, env=env, check=True, timeout=60)
+    return (tmp_path / "gh.txt").read_text(encoding="utf-8").splitlines(), step
+
+
+def test_historico_relanza_solo_cuando_toca(tmp_path):
+    calls, step = _run_siguiente(tmp_path, "Siguiente")
+    assert calls == ["gh workflow run historico.yml --ref main"], calls
+    assert "steps.registrar.outputs.relanzar == 'true'" in step["if"] and "!cancelled()" in step["if"]
+    assert step["env"]["GH_TOKEN"] == "${{ github.token }}"
+    # Es el único paso que lanza el carril otra vez, y sin entradas (seguir): nada de -f.
+    lanzan = [s for s in _steps(_historico(), "carril") if "historico.yml" in (s.get("run") or "")]
+    assert lanzan == [step] and " -f " not in step["run"]
+    import sys
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import historico
+    assert historico.RELANZAR_SI_RUNNER_RECHAZADO == 0, "relanzar tras un runner rechazado lo decide el dueño"
+
+
+def test_historico_lanza_el_bot_solo_tras_promover(tmp_path):
+    calls, step = _run_siguiente(tmp_path, "Importar y publicar (bot)")
+    assert calls == ["gh workflow run update.yml --ref main"], calls
+    assert "steps.registrar.outputs.promovido == 'true'" in step["if"]
+    lanzan = [s for s in _steps(_historico(), "carril") if "update.yml" in (s.get("run") or "")]
+    assert lanzan == [step]
+    assert "gh workflow run update.yml" not in " ".join(s.get("run") or "" for s in _steps(_historico(), "encargo"))
+
+
+def test_historico_cabe():
+    import sys
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import historico
+    descargar = _carril_step("Descargar")
+    job = _historico()["jobs"]["carril"]["timeout-minutes"]
+    assert historico.MINUTOS_EJECUCION + 30 <= descargar["timeout-minutes"] == 335 <= job == 350
+    assert descargar["continue-on-error"] is True and descargar["id"] == "descargar"
+    assert descargar["env"]["PYTHONUNBUFFERED"] == "1"
+    env = _historico()["jobs"]["carril"]["env"]
+    assert env == {"HISTORICO_PAGINAS_DIA": "${{ vars.HISTORICO_PAGINAS_DIA }}",
+                   "HISTORICO_ESPERAS": "${{ vars.HISTORICO_ESPERAS }}"}
+    assert descargar["run"] == ('python3 scripts/historico.py descargar --accion "$RUNNER_TEMP/accion.json" '
+                                '--resumen "$RUNNER_TEMP/resumen.json"')
+
+
+def test_historico_dice_la_nube():
+    step = _carril_step("IP pública del runner")
+    assert step.get("continue-on-error") is True and step.get("timeout-minutes", 99) <= 1
+    assert "/sys/class/dmi/id/sys_vendor" in step["run"] and "api.ipify.org" in step["run"]
+    names = [s.get("name") for s in _steps(_historico(), "carril")]
+    assert names.index("Instalar Playwright") < names.index("IP pública del runner") < names.index("Descargar")
+
+
+def test_historico_en_rojo_solo_por_un_fallo(tmp_path):
+    step = _carril_step("En rojo si falló")
+    assert step["if"] == "${{ !cancelled() }}"
+
+    def code(**env):
+        return subprocess.run(["bash", "-c", step["run"]], env={**os.environ, **env}, capture_output=True,
+                              timeout=60).returncode
+    assert code(ACCION="descargar", DESCARGA="success") == 0           # una parada de la federación: verde
+    assert code(ACCION="descargar", DESCARGA="failure") == 1
+    assert code(ACCION="probar", VERDE="true", PROMOVIDO="true") == 0
+    assert code(ACCION="probar", VERDE="false", PROMOVIDO="false") == 1
+    assert code(ACCION="probar", VERDE="true", PROMOVIDO="false") == 1
+    assert code(ACCION="nada") == 0
 
 
 # ------------------------------------------------------------ activar.yml

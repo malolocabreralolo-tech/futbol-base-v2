@@ -14,8 +14,8 @@ name: Reloj de las pasadas
 # pasada (update_fiflp.run_number: los turnos de ROTATION_PASSES, priority_slot, closed_turn y extras_turn):
 # con ~90 ejecuciones vacías al día entre dos pasadas de verdad, el número saltaría de 4 en 4 o de 8 en 8 y
 # la rotación sin estado dejaría turnos sin leer. Con el reloj aparte, el número de update.yml solo sube en
-# pasadas de verdad (y en las que lanzan las tandas de la federación al subir sus raw: actas-federacion.yml,
-# goleadores-federacion.yml y detalle-federacion.yml; o a mano, como siempre).
+# pasadas de verdad (y en las que lanzan el carril del histórico al promover lo probado, historico.yml, y las
+# tandas de actas que quedan al subir su raw, actas-federacion.yml; o a mano, como siempre; activar.yml no).
 #
 # Ligero: checkout disperso de reloj_pasadas.py, el python3 del sistema, sin pip; y los permisos justos para
 # leer y lanzar workflows (actions: write) y leer el repositorio (contents: read). Un fallo de gh o una
