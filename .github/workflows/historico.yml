@@ -324,7 +324,12 @@ jobs:
         if: ${{ !cancelled() && steps.registrar.outputs.relanzar == 'true' && steps.subir.outcome == 'success' }}
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh workflow run historico.yml --ref main
+        # GitHub falla a veces al crear el disparo (un HTTP 500 el 25/11/2026, que dejó en rojo una ejecución que
+        # había bajado bien): un segundo intento a los 20 s y, si tampoco, no es un fallo del carril: lo retoma el
+        # disparo programado.
+        run: |
+          gh workflow run historico.yml --ref main || { sleep 20; gh workflow run historico.yml --ref main; } \
+            || echo "no se pudo lanzar la ejecución siguiente; la retoma el disparo programado"
 
       # En rojo solo lo que es un fallo: una descarga que acabó con error (una excepción, no una parada) o una
       # prueba en rojo. Una parada por el freno, el plazo, el tope o un runner rechazado acaba en verde.

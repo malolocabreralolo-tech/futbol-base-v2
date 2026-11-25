@@ -1453,6 +1453,24 @@ def _run_siguiente(tmp_path, name):
     return (tmp_path / "gh.txt").read_text(encoding="utf-8").splitlines(), step
 
 
+def test_historico_si_github_no_deja_relanzar_no_es_un_fallo(tmp_path):
+    """Un 500 de GitHub al crear el disparo (25/11/2026) no pone en rojo una ejecución que bajó bien: se intenta
+    otra vez y, si tampoco, lo retoma el disparo programado."""
+    step = _carril_step("Siguiente")
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir(parents=True)
+    (bin_dir / "gh").write_text(f'#!/bin/sh\necho "gh $*" >> {tmp_path / "gh.txt"}\nexit 1\n', encoding="utf-8")
+    (bin_dir / "gh").chmod(0o755)
+    (bin_dir / "sleep").write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")     # sin esperar los 20 s
+    (bin_dir / "sleep").chmod(0o755)
+    env = {**os.environ, "PATH": f"{bin_dir}{os.pathsep}{os.environ['PATH']}", "GH_TOKEN": "x"}
+    done = subprocess.run(["bash", "-e", "-c", step["run"]], cwd=tmp_path, env=env, capture_output=True, text=True,
+                          timeout=60)
+    assert done.returncode == 0, done.stderr
+    assert (tmp_path / "gh.txt").read_text(encoding="utf-8").splitlines() == ["gh workflow run historico.yml --ref main"] * 2
+    assert "la retoma el disparo programado" in done.stdout
+
+
 def test_historico_relanza_solo_cuando_toca(tmp_path):
     calls, step = _run_siguiente(tmp_path, "Siguiente")
     assert calls == ["gh workflow run historico.yml --ref main"], calls
