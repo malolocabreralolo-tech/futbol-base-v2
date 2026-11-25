@@ -29,7 +29,8 @@ copa. Cada acta, 18 jugadores por equipo: un tercio con el id de la federación 
 de 2019-20 a 2021-22 que ya está en la base (el mismo niño, más mayor: la misma fila de players), el resto con
 ids nuevos. Y en el primer grupo de Gran Canaria, los equipos de un grupo de la liga prebenjamín de Gran Canaria
 de esta temporada (que va sin id) llevan además a dos niños sin id con el nombre de dos de ese equipo y
-temporada: la misma identidad sin id (nombre, equipo y temporada), como lo haría el importador.
+temporada: el mismo nombre, club y temporada que dos prebenjamines sin id, pero NO la misma identidad (la de
+infantil lleva su categoría: migrate_identidad.norm_sin_id), como lo hace el importador.
 
 Los nombres de los niños nuevos son inventados (f"JUGADOR {n:06d}, PRUEBA"); los de los reutilizados no se
 escriben (con id, la fila conserva el suyo) salvo los dos sin id, que se leen de la copia al vuelo para que sean
@@ -37,7 +38,8 @@ el mismo nombre (nunca se imprimen ni salen de la copia). Con `islas`, también 
 LANZAROTE FASE 1» (con categorias.ALEVIN_ISLAS a True durante la llamada: el paso D6).
 
 Devuelve {"grupos": [códigos], "partidos": n jugados, "actas": n, "jugadores_reutilizados": n ids de la base,
-"sin_id_reutilizados": n}.
+"sin_id_reutilizados": n nombres sin id de un prebenjamín del mismo club y temporada, "sin_id_en_fila_ajena": n
+identidades sin id con apariciones en una de las mayores y en otra categoría (tiene que ser 0)}.
 """
 import contextlib
 import random
@@ -447,7 +449,23 @@ def poblar(conn, categorias=("INFANTIL", "CADETE", "JUVENIL"), temporada="2026-2
                 out["actas"] += leidas
     out["jugadores_reutilizados"] = len(fab.reutilizados)
     out["sin_id_reutilizados"] = len(fab.sin_id_usados)
+    out["sin_id_en_fila_ajena"] = sin_id_en_fila_ajena(conn)
     return out
+
+
+def sin_id_en_fila_ajena(conn):
+    """Cuántas identidades sin id tienen apariciones en una de las mayores (infantil, cadete, juvenil) y también
+    en otra categoría: un cadete sin id en la fila de un prebenjamín sin id del mismo nombre, club y temporada
+    (migrate_identidad.categoria_sin_id lo impide). Tiene que ser 0."""
+    mayores = ",".join("?" * len(MAYORES))
+    return conn.execute(
+        f"""SELECT count(*) FROM (SELECT a.player_id FROM appearances a JOIN players p ON p.id = a.player_id
+              JOIN matches m ON m.id = a.match_id JOIN groups g ON g.id = m.group_id
+              JOIN categories c ON c.id = g.category_id
+             WHERE p.fiflp_id IS NULL AND p.team_id IS NOT NULL
+             GROUP BY a.player_id
+            HAVING sum(upper(c.name) IN ({mayores})) > 0 AND sum(upper(c.name) NOT IN ({mayores})) > 0)""",
+        MAYORES + MAYORES).fetchone()[0]
 
 
 # ── Las bases de las pruebas sobre la base real (fixture de sesión bases_reales, conftest.py) ─────────────

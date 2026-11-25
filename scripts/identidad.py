@@ -97,13 +97,17 @@ def intervalo(anio: int, nivel: int) -> tuple[int, int]:
     return anio - a, anio - b
 
 
-def clave_publica(fiflp_id: int | None, norm: str, equipo: str, anio: int) -> str:
+def clave_publica(fiflp_id: int | None, norm: str, equipo: str, anio: int, categoria: str | None = None) -> str:
     """El id de la federación en decimal o, sin id, 'n' + las 9 primeras cifras en base 36 (minúsculas,
     rellenas con ceros hasta 31) del SHA-1 de '<nombre normalizado>|<equipo>|<año de inicio>' en UTF-8.
-    `norm` lleva el ordinal si lo tiene ('X#2'): si no, los dos «X» de una alineación tendrían la misma."""
+    `norm` lleva el ordinal si lo tiene ('X#2'): si no, los dos «X» de una alineación tendrían la misma.
+    `categoria`: la de la identidad sin id de infantil, cadete o juvenil (migrate_identidad.categoria_de), que
+    va detrás ('…|<año>|CADETE'): un cadete sin id es otra identidad que el prebenjamín sin id del mismo nombre,
+    club y temporada, y no puede tener su clave. Sin ella (prebenjamín, benjamín, alevín), la de siempre."""
     if fiflp_id is not None:
         return str(int(fiflp_id))
-    n = int(hashlib.sha1(f"{norm}|{equipo}|{anio}".encode("utf-8")).hexdigest(), 16)
+    texto = f"{norm}|{equipo}|{anio}" + (f"|{categoria}" if categoria else "")
+    n = int(hashlib.sha1(texto.encode("utf-8")).hexdigest(), 16)
     cifras = []
     while n:
         n, resto = divmod(n, 36)

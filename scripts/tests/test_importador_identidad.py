@@ -116,6 +116,45 @@ def test_sin_id_guarda_su_clave_al_crearla_y_un_renombre_no_la_cambia():
     assert conn.execute("SELECT id, clave FROM players WHERE norm_name='ROMERO DIAZ, NOA@1.1'").fetchone() == noa
 
 
+def test_sin_id_en_las_mayores_es_otra_fila_con_su_categoria():
+    """Los clubes son la misma fila de teams en todas las categorías: sin la categoría, un cadete sin id caería
+    en la fila del prebenjamín sin id del mismo nombre, club y temporada. En infantil, cadete y juvenil, la
+    categoría del grupo va en la identidad (y en su clave); en prebenjamín, benjamín y alevín, la de siempre (un
+    niño de prebenjamín que juega en benjamín sigue siendo una fila)."""
+    from identidad import clave_publica
+    conn = base()
+    conn.executescript("""
+      INSERT INTO categories(id, name) VALUES (3, 'CADETE'), (4, 'INFANTIL');
+      INSERT INTO groups(id, season_id, category_id, code, name, island) VALUES
+        (4, 2, 3, 'CADNG1', 'Grupo 1', 'grancanaria'), (5, 2, 4, 'INF1G1', 'Grupo 1', 'grancanaria');
+      INSERT INTO matches(id, group_id, jornada, date, home_team_id, away_team_id, home_score, away_score) VALUES
+        (5, 4, 'Jornada 1', '2026-10-04', 1, 2, 1, 0), (6, 5, 'Jornada 1', '2026-10-05', 1, 3, 0, 0);
+    """)
+    leo = "PRUEBA SOSA, LEO"
+    importa(conn, 3, acta([(4, leo, None)], [(6, "PRUEBA VEGA, IAN", None)]))         # benjamín
+    importa(conn, 4, acta((), [(6, "PRUEBA VEGA, IAN", None)]))                       # prebenjamín
+    importa(conn, 5, acta([(4, leo, None), (5, leo, None)], (), [("home", "PRUEBA NUEVO, GOL", "goal")]))
+    importa(conn, 6, acta([(4, leo, None)]))                                          # infantil
+    filas = dict(conn.execute("SELECT norm_name, id FROM players"))
+    assert sorted(n for n in filas if n.startswith("PRUEBA")) == [
+        "PRUEBA NUEVO, GOL@1.2.CADETE", "PRUEBA SOSA, LEO@1.2", "PRUEBA SOSA, LEO@1.2.CADETE",
+        "PRUEBA SOSA, LEO@1.2.CADETE#2", "PRUEBA SOSA, LEO@1.2.INFANTIL", "PRUEBA VEGA, IAN@2.2"]
+    # Benjamín y prebenjamín del mismo club y temporada: la misma fila, como siempre.
+    assert {p for (p,) in conn.execute("SELECT player_id FROM appearances WHERE match_id IN (3, 4) AND team_id=2")} == {
+        filas["PRUEBA VEGA, IAN@2.2"]}
+    assert fila(conn, filas["PRUEBA SOSA, LEO@1.2.CADETE#2"]) == ("PRUEBA SOSA, LEO@1.2.CADETE#2", None, 1, 2, 2)
+    claves = dict(conn.execute("SELECT norm_name, clave FROM players"))
+    assert claves["PRUEBA SOSA, LEO@1.2"] == clave_publica(None, leo, "Atletico Inventado", 2026)
+    assert claves["PRUEBA SOSA, LEO@1.2.CADETE"] == clave_publica(None, leo, "Atletico Inventado", 2026, "CADETE")
+    assert claves["PRUEBA SOSA, LEO@1.2.CADETE#2"] == clave_publica(None, f"{leo}#2", "Atletico Inventado", 2026,
+                                                                     "CADETE")
+    assert len({claves[n] for n in filas}) == len(filas)
+    # Reimportar deja las mismas filas.
+    antes = conn.execute("SELECT * FROM players ORDER BY id").fetchall()
+    importa(conn, 5, acta([(4, leo, None), (5, leo, None)], (), [("home", "PRUEBA NUEVO, GOL", "goal")]))
+    assert conn.execute("SELECT * FROM players ORDER BY id").fetchall() == antes
+
+
 def test_sin_id_y_sin_equipo_o_temporada_es_un_error_claro():
     conn = base()
     for equipo, temporada in ((None, None), (1, None), (None, 1)):

@@ -65,15 +65,18 @@ def _fiflp_id(valor):
 
 
 def _get_or_create_player(conn, name: str, fiflp_id: int = None, team_id: int = None, season_id: int = None,
-                          ordinal: int = 1) -> int:
+                          ordinal: int = 1, categoria: str = None) -> int:
     """La identidad de acta del jugador (docs/identidad.md), creándola si falta.
 
     Con id de la federación: la fila de ese id (el mismo niño de prebenjamín a benjamín), en cualquier
     equipo y temporada; nueva con 'NOMBRE', o 'NOMBRE#id' si otra fila ya tiene ese nombre. Nunca se le
     pone el id a una fila que no lo tenía ni se devuelve la de otro id por el nombre.
     Sin id: la fila sin id de (nombre normalizado, equipo, temporada, ordinal), con norm_name
-    'NOMBRE@<equipo>.<temporada>' ('#n' si es el n-ésimo homónimo de la alineación). Sin equipo o
-    temporada no se puede saber cuál es: error, nunca un pegado por nombre."""
+    'NOMBRE@<equipo>.<temporada>' ('#n' si es el n-ésimo homónimo de la alineación); en infantil, cadete y
+    juvenil (`categoria`, la del grupo del partido), además la categoría: 'NOMBRE@<equipo>.<temporada>.CADETE'
+    (migrate_identidad.norm_sin_id), para que nunca sea la fila de un niño de prebenjamín, benjamín o alevín
+    sin id del mismo nombre, club y temporada. Sin equipo o temporada no se puede saber cuál es: error, nunca
+    un pegado por nombre."""
     norm = _norm_player(name)
     if fiflp_id is not None:
         r = conn.execute("SELECT id FROM players WHERE fiflp_id=? ORDER BY id LIMIT 1", (fiflp_id,)).fetchone()
@@ -93,7 +96,7 @@ def _get_or_create_player(conn, name: str, fiflp_id: int = None, team_id: int = 
                            "migrate_identidad.asegurar_esquema(conn) antes de importar")
     # El primero del nombre guarda el ordinal vacío, como la migración (migrate_identidad.separar).
     ordinal = ordinal if ordinal and ordinal > 1 else None
-    clave = norm_sin_id(norm, team_id, season_id, ordinal)
+    clave = norm_sin_id(norm, team_id, season_id, ordinal, categoria)
     r = conn.execute("SELECT id FROM players WHERE norm_name=?", (clave,)).fetchone()
     if r:
         return r[0]
@@ -215,10 +218,11 @@ def _import_one(conn, cod_acta: int, acta: dict, mid: int = None) -> bool:
 
     # Insert appearances and build name -> (player_id, team_id) map. ord: el orden del acta (local,
     # visitante y los que solo salen en los sucesos), que desempata la alineación publicada.
-    # La identidad sin id es de un equipo y una temporada: las del partido.
-    home_id, away_id, season_id = conn.execute(
-        "SELECT m.home_team_id, m.away_team_id, g.season_id FROM matches m JOIN groups g ON g.id=m.group_id "
-        "WHERE m.id=?", (mid,)).fetchone()
+    # La identidad sin id es de un equipo y una temporada: las del partido; y en infantil, cadete y juvenil, de
+    # su categoría (la del grupo: categoria_sin_id), para no caer en la fila de un niño de las pequeñas.
+    home_id, away_id, season_id, categoria = conn.execute(
+        "SELECT m.home_team_id, m.away_team_id, g.season_id, c.name FROM matches m JOIN groups g ON g.id=m.group_id "
+        "LEFT JOIN categories c ON c.id=g.category_id WHERE m.id=?", (mid,)).fetchone()
     team_of = {"home": home_id, "away": away_id}
     lineups = acta.get("lineups") or {}
     ordinal = _ordinales(lineups, team_of)
@@ -230,7 +234,7 @@ def _import_one(conn, cod_acta: int, acta: dict, mid: int = None) -> bool:
         for i, p in enumerate(lineups.get(side) or []):
             fid = _fiflp_id(p.get("fiflp_id"))
             pid = _get_or_create_player(conn, p["name"], fid, team_id, season_id,
-                                        1 if fid is not None else ordinal[(side, i)])
+                                        1 if fid is not None else ordinal[(side, i)], categoria=categoria)
             name_to_pid[(side, p["name"])] = (pid, team_id)
             norm_to_pids.setdefault((side, _norm_player(p["name"])), []).append((pid, team_id))
             conn.execute(
@@ -272,7 +276,7 @@ def _import_one(conn, cod_acta: int, acta: dict, mid: int = None) -> bool:
         # equipo y temporada (los goleadores vienen sin id), nunca la de otro niño por el nombre.
         if key not in name_to_pid:
             team_id = _team_id_by_side(conn, mid, side)
-            pid = _get_or_create_player(conn, ev["player_name"], None, team_id, season_id)
+            pid = _get_or_create_player(conn, ev["player_name"], None, team_id, season_id, categoria=categoria)
             order += conn.execute(
                 """INSERT OR IGNORE INTO appearances
                        (match_id, team_id, player_id, dorsal, role, goals, yellow, red, ord)

@@ -934,7 +934,7 @@ def _fichas(conn):
     temporada borrados, la de su equipo y temporada más frecuentes en sus apariciones; y si ni así, la
     ficha sale con la clave de otra identidad suya."""
     from identidad import clave_publica          # aquí: identidad.py importa generate_js
-    from migrate_identidad import equipo_de_sus_apariciones, nombre_base
+    from migrate_identidad import categoria_de, equipo_de_sus_apariciones, nombre_base
     cols = {r[1] for r in conn.execute("PRAGMA table_info(players)")}
     if "fiflp_id" not in cols:
         return {"clave": {}, "ficha": {}, "por": {}, "publicadas": set(), "nombre": {}}
@@ -946,7 +946,7 @@ def _fichas(conn):
     filas = conn.execute(f"SELECT p.id, p.norm_name, p.fiflp_id, {sel} FROM players p {join}").fetchall()
     existe = {r[0] for r in filas}
     clave, ficha, por, nombre = {}, {}, {}, {}
-    sin_equipo = {}             # player_id -> nombre con su ordinal: el equipo o la temporada ya no existen
+    sin_equipo = {}             # player_id -> (nombre con su ordinal, categoría): el equipo o la temporada ya no existen
     for pid, norm_name, fid, ficha_id, union_por, team_id, equipo, anio, ordinal, guardada in filas:
         base = nombre_base(norm_name)
         nombre[pid] = base
@@ -962,11 +962,11 @@ def _fichas(conn):
         elif base and not base.startswith("#") and (team_id is not None or equipo is not None):
             norm = base + (f"#{ordinal}" if ordinal and ordinal > 1 else "")
             if equipo is not None and anio is not None:
-                clave[pid] = clave_publica(None, norm, equipo, anio)
+                clave[pid] = clave_publica(None, norm, equipo, anio, categoria_de(norm_name))
             else:
-                sin_equipo[pid] = norm
+                sin_equipo[pid] = (norm, categoria_de(norm_name))
     for pid, (equipo, anio) in equipo_de_sus_apariciones(conn, sin_equipo).items():
-        clave[pid] = clave_publica(None, sin_equipo[pid], equipo, anio)
+        clave[pid] = clave_publica(None, sin_equipo[pid][0], equipo, anio, sin_equipo[pid][1])
     # Una principal que sigue sin clave: la de otra identidad de su ficha (la numérica menor, si hay).
     sin_clave = {ficha[pid] for pid in ficha if ficha[pid] not in clave}
     if sin_clave:

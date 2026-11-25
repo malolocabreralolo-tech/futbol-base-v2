@@ -160,6 +160,7 @@ def test_generador_igual_con_y_sin_mayores(tmp_path, bases_reales):
     from paralelo import en_paralelo
     hecho = bases_reales["hecho"]
     assert hecho["grupos"] and hecho["actas"] and hecho["jugadores_reutilizados"] and hecho["sin_id_reutilizados"]
+    assert hecho["sin_id_en_fila_ajena"] == 0
     a, b = en_paralelo((generado, (tmp_path, "a", bases_reales["resuelta"])),
                        (generado, (tmp_path, "b", bases_reales["mayores"])))
     assert sorted(a) == sorted(b)
@@ -167,3 +168,23 @@ def test_generador_igual_con_y_sin_mayores(tmp_path, bases_reales):
     assert distintos == [], distintos
     codigos = re.compile(r"\b(?:" + "|".join(map(re.escape, hecho["grupos"])) + r")\b")
     assert [n for n, t in b.items() if n.startswith("data-") and codigos.search(t)] == []
+
+
+def test_los_sin_id_de_las_mayores_no_caen_en_la_fila_de_un_pequeno(bases_reales):
+    """En la base de después (conftest.bases_reales), los niños sin id de infantil que se llaman como un
+    prebenjamín sin id del mismo club y temporada (base_mayores los pone a propósito) son OTRA identidad, con su
+    categoría (migrate_identidad.norm_sin_id): ninguna identidad sin id tiene apariciones en una de las mayores y
+    en otra categoría. Sin eso, sus partidos se mezclarían en la base desde la primera acta."""
+    import base_mayores
+    import migrate_identidad as M
+    hecho = bases_reales["hecho"]
+    conn = sqlite3.connect(f"file:{bases_reales['mayores']}?mode=ro", uri=True)
+    try:
+        filas = conn.execute("SELECT norm_name, team_id, season_id FROM players "
+                             "WHERE fiflp_id IS NULL AND team_id IS NOT NULL").fetchall()
+        pequenos = {(M.nombre_base(n), t, s) for n, t, s in filas if M.categoria_de(n) is None}
+        homonimos = [n for n, t, s in filas if M.categoria_de(n) and (M.nombre_base(n), t, s) in pequenos]
+        assert len(homonimos) >= hecho["sin_id_reutilizados"] > 0
+        assert base_mayores.sin_id_en_fila_ajena(conn) == 0
+    finally:
+        conn.close()
