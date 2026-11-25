@@ -31,6 +31,10 @@ Si la comprobación diaria sale en rojo en una de las partes que se rehacen, la 
 originales no explican, y la salida dice qué. Por ejemplo, el 17/11/2026 un partido de 2026-27 estaba dos
 veces en la base (la federación cambió el nombre de un equipo después de jugarse y el bot lo entró otra vez
 con el nombre nuevo): el acta no sabe a cuál de los dos va, y la comprobación lo dice con el código del acta.
+El 24/11/2026, `app` salió con 156 equipos de más en `fp_teams`: los de 10 ligas de la app (la segunda fase de
+benjamín de Gran Canaria y la eliminatoria A-B) que una pasada casaron con un grupo y la siguiente con
+ninguno; el importador no tocaba los equipos de una liga sin grupo y se quedaban los de la pasada anterior.
+Ahora los de cada liga son siempre los de su tabla en el original, con o sin grupo.
 
 ## Lo que no se puede rehacer, y por qué
 

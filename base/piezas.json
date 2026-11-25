@@ -1,0 +1,100 @@
+{
+  "formato": 1,
+  "piezas": {
+    "actas-2019-2020.db": {
+      "bytes": 2220032,
+      "filas": {
+        "appearances": 43511,
+        "match_events": 15297,
+        "match_staff_all": 6265
+      }
+    },
+    "actas-2020-2021.db": {
+      "bytes": 1159168,
+      "filas": {
+        "appearances": 22918,
+        "match_events": 7498,
+        "match_staff_all": 3323
+      }
+    },
+    "actas-2021-2022.db": {
+      "bytes": 2605056,
+      "filas": {
+        "appearances": 52696,
+        "match_events": 16440,
+        "match_staff_all": 7787
+      }
+    },
+    "actas-2022-2023.db": {
+      "bytes": 3039232,
+      "filas": {
+        "appearances": 61775,
+        "match_events": 19031,
+        "match_staff_all": 9027
+      }
+    },
+    "actas-2023-2024.db": {
+      "bytes": 3866624,
+      "filas": {
+        "appearances": 80727,
+        "match_events": 23951,
+        "match_staff_all": 11397
+      }
+    },
+    "actas-2024-2025.db": {
+      "bytes": 3735552,
+      "filas": {
+        "appearances": 76666,
+        "match_events": 23782,
+        "match_staff_all": 10571
+      }
+    },
+    "actas-2025-2026.db": {
+      "bytes": 4005888,
+      "filas": {
+        "appearances": 71743,
+        "match_events": 27529,
+        "match_staff_all": 17787
+      }
+    },
+    "actas-2026-2027.db": {
+      "bytes": 1724416,
+      "filas": {
+        "appearances": 28711,
+        "match_events": 13417,
+        "match_staff_all": 6944
+      }
+    },
+    "comun.db": {
+      "bytes": 11235328,
+      "filas": {
+        "categories": 3,
+        "detalle_groups": 7,
+        "fiflp_full_pending": 9,
+        "fiflp_groups": 137,
+        "fiflp_scorer_groups": 216,
+        "fp_goals": 248,
+        "fp_ligas": 53,
+        "fp_matches": 2870,
+        "fp_teams": 512,
+        "goals": 10961,
+        "groups": 495,
+        "matches": 41234,
+        "players": 19960,
+        "portal_groups": 102,
+        "raw_imports": 52,
+        "scorers": 26436,
+        "seasons": 15,
+        "standings": 4745,
+        "standings_detail": 3584,
+        "team_seasons": 2235,
+        "teams": 470,
+        "tournament_matches": 464,
+        "tournament_standings": 92,
+        "tournaments": 1,
+        "venue_details": 250,
+        "venues": 249
+      }
+    }
+  }
+}

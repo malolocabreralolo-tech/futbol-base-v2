@@ -372,6 +372,93 @@ def test_app_nunca_cambia_un_marcador_que_ya_esta(tmp_path):
     assert conn.execute("SELECT home_score, away_score FROM matches WHERE id=1").fetchone() == (4, 1)
 
 
+# ── App: la segunda fase, con los clubes de la primera (24/11/2026) ───────────
+# Una eliminatoria de la primera fase reúne a todos los clubes que luego se reparten en los grupos de la
+# segunda: cada grupo de la segunda cabe entero en ella. Medido sobre la plantilla más pequeña, el grupo de
+# la segunda y la eliminatoria casaban igual de bien (empate: la liga se quedaba sin grupo) y, antes de que
+# la base tuviera los grupos de la segunda, una liga de la segunda casaba con la eliminatoria.
+
+ELIM = ["Arucas", "Moya", "Gáldar CF", "CD Firgas", "UD Guía", "Tamaraceite", "Acodetti", "Corazón Mª"]
+
+
+def base_fases(segunda=True, eliminatoria=True):
+    """2026-27 con la eliminatoria de benjamín (EL1, los ocho clubes) y, si se pide, los dos grupos de la
+    segunda fase (A1 con los cuatro primeros, A2 con los otros cuatro). Sin eliminatoria, los ocho clubes
+    solo en la segunda."""
+    conn = sqlite3.connect(":memory:")
+    conn.executescript(SCHEMA)
+    migrate(conn)
+    conn.executescript("""
+      INSERT INTO seasons(id, name, start_year, end_year, is_current) VALUES (1, '2026-2027', 2026, 2027, 1);
+      INSERT INTO categories(id, name) VALUES (1, 'BENJAMIN');
+      INSERT INTO groups(id, season_id, category_id, code, name) VALUES (1, 1, 1, 'EL1', 'Eliminatoria');""")
+    for i, name in enumerate(ELIM, start=1):
+        conn.execute("INSERT INTO teams(id, name) VALUES (?, ?)", (i, name))
+        if eliminatoria:
+            conn.execute("INSERT INTO standings(group_id, team_id, position) VALUES (1, ?, ?)", (i, i))
+    if segunda:
+        poner_grupo(conn, 2, "A1", ELIM[:4])
+        poner_grupo(conn, 3, "A2", ELIM[4:])
+    return conn
+
+
+def poner_grupo(conn, gid, code, names):
+    conn.execute("INSERT INTO groups(id, season_id, category_id, code, name) VALUES (?, 1, 1, ?, 'Grupo')",
+                 (gid, code))
+    for pos, name in enumerate(names, start=1):
+        tid = conn.execute("SELECT id FROM teams WHERE name=?", (name,)).fetchone()[0]
+        conn.execute("INSERT INTO standings(group_id, team_id, position) VALUES (?, ?, ?)", (gid, tid, pos))
+
+
+def liga_app(name, names, first_id):
+    return {"name": name, "fetched": "2026-11-24T10:00:00", "meta": {},
+            "tabla": [{"id": first_id + i, "nombre": n, "escudo": "e.png", "equipacion": f"2026-{i}.png",
+                       "banderas": "b.png", "sanciones": 0} for i, n in enumerate(names)]}
+
+
+def test_cada_liga_de_la_app_casa_con_el_grupo_de_su_tamano():
+    conn = base_fases()
+    assert A.match_liga(conn, 1, liga_app("Benjamín Gran Canaria Fase-A Grupo 1", ELIM[:4], 1)) == 2
+    assert A.match_liga(conn, 1, liga_app("Benjamín Gran Canaria Fase-A Grupo 2", ELIM[4:], 1)) == 3
+    # La eliminatoria entera, con la eliminatoria: no con un grupo de la segunda que cabe en ella.
+    assert A.match_liga(conn, 1, liga_app("Benjamín Eliminatoria A-B", ELIM, 1)) == 1
+
+
+def test_una_liga_de_la_segunda_fase_no_casa_con_la_eliminatoria_antes_de_que_la_base_tenga_su_grupo():
+    conn = base_fases(segunda=False)
+    assert A.match_liga(conn, 1, liga_app("Benjamín Gran Canaria Fase-A Grupo 1", ELIM[:4], 1)) is None
+    assert A.match_liga(conn, 1, liga_app("Benjamín Eliminatoria A-B", ELIM, 1)) == 1
+
+
+def fp_equipos(conn):
+    return conn.execute("SELECT fp_team_id, liga_id, team_id, name, equipacion FROM fp_teams ORDER BY fp_team_id"
+                        ).fetchall()
+
+
+def test_los_equipos_de_una_liga_sin_grupo_son_los_del_original(tmp_path):
+    """Una liga que casaba y deja de casar (dos grupos con los mismos equipos: empate) no conserva los
+    equipos ni el equipo de la base de la pasada anterior: la base, igual que rehecha desde el original."""
+    raw = {"ligas": {"226": liga_app("Benjamín Gran Canaria Fase-A Grupo 1", ELIM[:4], 500)}, "partidos": {}}
+    path = tmp_path / "fp_app_2026-2027_raw.json"
+    path.write_text(json.dumps(raw), encoding="utf-8")
+    conn = base_fases(eliminatoria=False)
+    A.import_changed_fp_app(conn, folder=str(tmp_path), log=lambda *a: None)
+    assert [r[2] for r in fp_equipos(conn)] == [1, 2, 3, 4]
+    # La base gana un grupo gemelo de A1 (empate) y la app quita un equipo de la liga.
+    poner_grupo(conn, 4, "A9", ELIM[:4])
+    raw["ligas"]["226"]["tabla"].pop()
+    path.write_text(json.dumps(raw), encoding="utf-8")
+    A.import_changed_fp_app(conn, folder=str(tmp_path), log=lambda *a: None)
+    assert conn.execute("SELECT group_id FROM fp_ligas WHERE liga_id=226").fetchone() == (None,)
+    assert fp_equipos(conn) == [(500, 226, None, "Arucas", "2026-0.png"), (501, 226, None, "Moya", "2026-1.png"),
+                                (502, 226, None, "Gáldar CF", "2026-2.png")]
+    # Lo mismo que sale de importar el original de cero.
+    fresh = base_fases(eliminatoria=False)
+    poner_grupo(fresh, 4, "A9", ELIM[:4])
+    A.import_changed_fp_app(fresh, folder=str(tmp_path), log=lambda *a: None)
+    assert fp_equipos(fresh) == fp_equipos(conn)
+
+
 # ── El bot completa la ficha de los equipos nuevos de la temporada en curso ───
 
 class _Page:
