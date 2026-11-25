@@ -650,7 +650,8 @@
     "status": "pending"
   },
   "runHealth": {
-    "ok": true
+    "ok": true,
+    "drySince": "2026-11-25T23:11:40+00:00"
   },
   "activation": {
     "at": "2026-11-24T10:28:44+00:00",
@@ -670,24 +671,21 @@
     "attempts": 7
   },
   "run": {
-    "pass": 196,
+    "pass": 197,
     "groups": 107,
-    "refreshed": 35,
+    "refreshed": 0,
     "priority": [
-      "ALC1",
       "EL2",
       "ALEL1",
-      "ALB2",
-      "C1",
-      "ALB1"
+      "ALB2"
     ],
-    "hot": {
-      "ALC1": "resultado"
-    },
     "fresh": [
       "PG2",
+      "C1",
       "FF5",
+      "ALB1",
       "ALB3",
+      "ALC1",
       "ALEL2"
     ],
     "resting": [
@@ -711,7 +709,6 @@
       "AL19",
       "AL20",
       "AL21",
-      "AL22",
       "AL23",
       "AL24",
       "AL25",
@@ -723,70 +720,92 @@
       "AL32"
     ],
     "deferred": [
-      "FF11",
-      "F1",
-      "FF1",
+      "ALEL1",
+      "ALB2",
+      "AL22",
+      "FF3",
+      "ALC2",
+      "PFV3",
+      "FF4",
+      "ALC3",
+      "FF6",
+      "ALD1",
+      "FF7",
+      "FF8",
+      "ALA3",
+      "FF9",
+      "ALD3",
       "PG1",
+      "FF10",
+      "FF11",
+      "ALE1",
+      "F1",
+      "ALE2",
+      "FF1",
+      "ALD2",
       "FF2",
       "FF15",
-      "ALD3",
+      "PG3",
       "FF16",
       "FF17",
       "FF18",
-      "ALE1",
       "FF19",
-      "PG3",
       "FF20",
+      "PG4",
       "FF21",
-      "ALE2",
       "FF22",
       "FF12",
       "FF13",
-      "PG4",
-      "ALD2",
       "FF14",
       "FV12",
+      "PLZ1",
       "FV13",
-      "FV14",
       "ALE3",
+      "FV14",
       "LZ1",
       "LZ2",
-      "PLZ1",
-      "LZ3",
       "ALF1",
+      "LZ3",
+      "PLZ2",
       "LZ4",
       "LZ5",
-      "FF23",
       "ALF2",
+      "FF23",
       "FF24",
-      "PLZ2",
-      "FV11"
+      "FV11",
+      "ALA2",
+      "E2",
+      "PFV2",
+      "EL1",
+      "A1",
+      "AL11",
+      "A2",
+      "B1",
+      "B2",
+      "PFV1",
+      "C2",
+      "AL31",
+      "CGC1",
+      "D1",
+      "D2",
+      "ALA1",
+      "E1"
     ],
-    "unserved": [],
-    "extrasDeferred": [
-      "ALD1"
+    "unserved": [
+      "EL2"
     ],
-    "seconds": 959,
-    "pages": 137,
-    "extras": [
-      "competiciones",
-      "directorio"
-    ],
-    "calendarShows": {
-      "other": 26
-    },
-    "groupSelects": {
-      "seen": 35,
-      "of": 35
-    },
+    "extrasDeferred": [],
+    "seconds": 9,
+    "pages": 2,
+    "blocked": true,
     "rawBackfill": {
-      "read": 11,
+      "read": 0,
       "left": 124
     },
-    "cloud": "azure",
-    "deadPages": 1
+    "cloud": "aws",
+    "refusedRunner": true
   },
-  "checkedAt": "2026-11-25T21:32:27+00:00",
+  "checkedAt": "2026-11-25T23:12:06+00:00",
   "lastDataChange": "2026-11-25",
   "dataVersion": "20261125j",
   "summary": {
