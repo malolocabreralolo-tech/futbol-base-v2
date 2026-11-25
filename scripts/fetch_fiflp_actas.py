@@ -52,6 +52,7 @@ _SCRIPTS = str(Path(actas_lotes.__file__).resolve().parent)
 if _SCRIPTS not in sys.path:
     sys.path.append(_SCRIPTS)
 import fiflp_carga  # noqa: E402
+import cuarentena  # noqa: E402
 from fiflp_carga import MAX_INTENTOS, RELANZAR_MIN, guardar_resumen, parada_de  # noqa: E402
 
 # Playwright is only needed at runtime (inside main()). Importing it at module
@@ -61,6 +62,23 @@ from fiflp_carga import MAX_INTENTOS, RELANZAR_MIN, guardar_resumen, parada_de  
 # ── Constants ─────────────────────────────────────────────────────────────────
 
 HERE = Path(__file__).parent   # donde van los raws, índices y estados (las pruebas lo cambian)
+# La carpeta de la cuarentena (--carpeta: cuarentena.py): None, lo de siempre. Con ella, raw, índice y estado
+# se leen de la cuarentena si están (si no, los publicados: se empieza por lo que ya hay) y se escriben en ella;
+# también el raw del otro lote que lee RawStore.
+CARPETA = None
+
+
+def _de(path):
+    """De dónde se lee `path` (un raw, un índice o un estado publicados, en HERE): él mismo sin CARPETA; con
+    ella, cuarentena.leer (si no está en ningún sitio, el de la cuarentena, que no existe)."""
+    if CARPETA is None:
+        return path
+    return cuarentena.leer(path.name, CARPETA, path.parent) or Path(CARPETA) / path.name
+
+
+def _a(path):
+    """Dónde se escribe `path`: él mismo sin CARPETA; con ella, en la cuarentena (cuarentena.escribir)."""
+    return path if CARPETA is None else cuarentena.escribir(path.name, CARPETA, path.parent)
 BASE = "https://www.fiflp.com/pnfg/NPcd"
 UA   = ("Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
         "(KHTML, like Gecko) Chrome/120 Safari/537")
@@ -207,7 +225,7 @@ def chain_state(season_code, lote=""):
     página muerta no está atascada (cada tanda le gasta un intento). Con el antiguo, como hasta noviembre de
     2026: atascada si no trajo ninguna acta ni dejó competiciones sin enumerar."""
     try:
-        status = json.loads(status_path(season_code, lote).read_text(encoding="utf-8"))
+        status = json.loads(_de(status_path(season_code, lote)).read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return {"pending": 1, "stuck": 0, "lote": lote}
     pending = int(status.get("pending", 1))
@@ -301,7 +319,7 @@ def is_empty_acta(acta):
 
 
 def load_raw(season_code, lote=""):
-    p = raw_path(season_code, lote)
+    p = _de(raw_path(season_code, lote))
     if not p.exists():
         return {}
     data = json.loads(p.read_text(encoding="utf-8"))
@@ -316,7 +334,7 @@ def load_raw(season_code, lote=""):
 
 
 def save_raw(season_code, data, lote=""):
-    escribir_atomico(raw_path(season_code, lote), json.dumps(data, ensure_ascii=False, indent=2))
+    escribir_atomico(_a(raw_path(season_code, lote)), json.dumps(data, ensure_ascii=False, indent=2))
 
 
 def acta_lote(acta, default=None):
@@ -796,6 +814,8 @@ def parse_args():
                     help="Volver a leer las actas ya descargadas sin todo el cuerpo técnico (needs_refresh)")
     ap.add_argument("--lote", choices=list(LOTE_ARG), default=None,
                     help="El lote de la cadena (su grupo de concurrencia): para si las categorías son de otro")
+    ap.add_argument("--carpeta", default="",
+                    help="La cuarentena (scripts/historico): leer y escribir raw, índice y estado allí")
     ap.add_argument("--estado", action="store_true",
                     help="Sin navegador: imprime en JSON lo que queda del lote de la tanda (chain_state)")
     return ap.parse_args()
@@ -871,6 +891,15 @@ def main():
     # Lazy import — keeps the module importable in environments without playwright
     # (the Tests CI pytest job doesn't install it).
     args = parse_args()
+    global CARPETA
+    CARPETA = Path(args.carpeta) if args.carpeta else None
+    try:
+        _main(args)
+    finally:
+        CARPETA = None                    # la carpeta es de esta tanda (las pruebas llaman a main varias veces)
+
+
+def _main(args):
     GROUP_FILTER[:] = [g.strip() for g in args.grupos.split(",") if g.strip()]
     season = args.temporada
     comps_arg = [c.strip() for c in args.comps.split(",") if c.strip()]
@@ -933,10 +962,12 @@ def _tanda(page, F, season, lote, categories, comps_arg, args, over, resumen):
 
     store = RawStore(season, lote)
     print(f"Resume state ({raw_path(season, lote).name}): {len(store.data)} actas already scraped")
-    ipath, spath = index_path(season, lote), status_path(season, lote)
-    index = json.loads(ipath.read_text(encoding="utf-8")) if ipath.exists() else {}
+    # Leídos de la cuarentena si hay CARPETA (si no están allí, los publicados); escritos en ella (_de, _a).
+    ipath, spath = _a(index_path(season, lote)), _a(status_path(season, lote))
+    de_i, de_s = _de(index_path(season, lote)), _de(status_path(season, lote))
+    index = json.loads(de_i.read_text(encoding="utf-8")) if de_i.exists() else {}
     try:
-        old = json.loads(spath.read_text(encoding="utf-8")) if spath.exists() else {}
+        old = json.loads(de_s.read_text(encoding="utf-8")) if de_s.exists() else {}
     except ValueError:
         old = {}
     nuevo = old.get("formato") == 2

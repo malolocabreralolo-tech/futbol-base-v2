@@ -45,10 +45,13 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from fiflp_detalle import parse_campo, parse_clasificacion, parse_directorio  # noqa: E402
 from escritura import escribir_atomico  # noqa: E402
+import cuarentena  # noqa: E402
 from fiflp_carga import (MAX_INTENTOS, guardar_resumen, para_tanda, parada_de, preparar,  # noqa: E402
                          ultima_linea, un_intento)
 
 HERE = Path(__file__).resolve().parent
+# La carpeta de la cuarentena (--carpeta: cuarentena.py): None, lo de siempre (leer y escribir en scripts/).
+CARPETA = None
 DB_PATH = HERE.parent / "futbolbase.db"
 CAMPOS_RAW = HERE / "fiflp_campos_raw.json"
 DIRECTORIO_URL = ("/NFG_LstDirectorioEquipos?cod_primaria=1000117&search=1&Buscar=1"
@@ -101,12 +104,27 @@ def live_comps(page, F, code, categories=None):
     return benjamin_comps(comps, categories)
 
 
+def _origen(path):
+    """De dónde se lee `path`: él mismo; con CARPETA (--carpeta), la copia de la cuarentena si existe y si no
+    el publicado (cuarentena.leer: se empieza por lo que ya hay)."""
+    if CARPETA is None:
+        return path
+    return cuarentena.leer(path.name, CARPETA, path.parent) or path
+
+
+def _destino(path):
+    """Dónde se escribe `path`: él mismo; con CARPETA, en la cuarentena (cuarentena.escribir): lo publicado no
+    se toca hasta que se promueve."""
+    return path if CARPETA is None else cuarentena.escribir(path.name, CARPETA, path.parent)
+
+
 def load(path):
+    path = _origen(path)
     return json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
 
 
 def save(path, data):
-    escribir_atomico(path, json.dumps(data, ensure_ascii=False, indent=1, sort_keys=True) + "\n")
+    escribir_atomico(_destino(path), json.dumps(data, ensure_ascii=False, indent=1, sort_keys=True) + "\n")
 
 
 def group_done(entry, jornadas):
@@ -345,10 +363,16 @@ def run_groups(page, F, seasons, jornadas_seasons, deadline, log=print, categori
 
 
 def venue_codes(seasons):
-    """Códigos de campo de los directorios descargados y de la tabla venues."""
+    """Códigos de campo de los directorios descargados y de la tabla venues. Con CARPETA, también los de los
+    raws de la cuarentena, que mandan sobre los de scripts/ del mismo nombre."""
     codes = set()
-    for path in HERE.glob("fiflp_detalle_*_raw.json"):
-        for key, entry in load(path).items():
+    paths = {p.name: p for p in HERE.glob("fiflp_detalle_*_raw.json")}
+    if CARPETA is not None and Path(CARPETA).is_dir():
+        paths.update({p.name: p for p in Path(CARPETA).glob("fiflp_detalle_*_raw.json")})
+    for _, path in sorted(paths.items()):
+        with open(path, encoding="utf-8") as f:
+            data = json.load(f)
+        for key, entry in data.items():
             if key.startswith("_"):
                 continue
             codes.update(t.get("venue_code") for t in entry.get("directorio") or [] if t.get("venue_code"))
@@ -416,7 +440,17 @@ def main(argv=None):
     ap.add_argument("--max-paginas", type=int, default=0, help="tope de peticiones de la ejecución (0, sin tope)")
     ap.add_argument("--resumen", default="", help="dónde escribir el resumen de la ejecución (JSON)")
     ap.add_argument("--categorias", default="", help="'benjamin,prebenjamin' (por defecto) o 'alevin'")
+    ap.add_argument("--carpeta", default="", help="la cuarentena (scripts/historico): leer y escribir allí")
     args = ap.parse_args(argv)
+    global CARPETA
+    CARPETA = Path(args.carpeta) if args.carpeta else None
+    try:
+        _main(args)
+    finally:
+        CARPETA = None                    # la carpeta es de esta tanda (las pruebas llaman a main varias veces)
+
+
+def _main(args):
     from categorias import parse_categories
     categories = parse_categories(args.categorias)
     seasons = [s.strip() for s in args.temporadas.split(",") if s.strip()]

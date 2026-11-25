@@ -43,10 +43,13 @@ from fetch_fiflp_actas import SEASON_NAME, catalog_comps, _options  # noqa: E402
 from fiflp_render import flatten, fiflp_launch_args  # noqa: E402
 from update_fiflp import GOLEADORES_URL, parse_goleadores  # noqa: E402
 from escritura import escribir_atomico  # noqa: E402
+import cuarentena  # noqa: E402
 from fiflp_carga import (MAX_INTENTOS, guardar_resumen, para_tanda, parada_de, ultima_linea,  # noqa: E402
                          un_intento)
 
 HERE = Path(__file__).resolve().parent
+# La carpeta de la cuarentena (--carpeta: cuarentena.py): None, lo de siempre (leer y escribir en scripts/).
+CARPETA = None
 
 
 def raw_path(season_code):
@@ -59,12 +62,27 @@ def comp_names(season_code):
     return {c["id"]: c["name"] for c in entry.get("all", [])}
 
 
+def _origen(path):
+    """De dónde se lee `path`: él mismo; con CARPETA (--carpeta), la copia de la cuarentena si existe y si no
+    el publicado (cuarentena.leer: se empieza por lo que ya hay)."""
+    if CARPETA is None:
+        return path
+    return cuarentena.leer(path.name, CARPETA, path.parent) or path
+
+
+def _destino(path):
+    """Dónde se escribe `path`: él mismo; con CARPETA, en la cuarentena (cuarentena.escribir): lo publicado no
+    se toca hasta que se promueve."""
+    return path if CARPETA is None else cuarentena.escribir(path.name, CARPETA, path.parent)
+
+
 def load(path):
+    path = _origen(path)
     return json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
 
 
 def save(path, data):
-    escribir_atomico(path, json.dumps(data, ensure_ascii=False, indent=1, sort_keys=True) + "\n")
+    escribir_atomico(_destino(path), json.dumps(data, ensure_ascii=False, indent=1, sort_keys=True) + "\n")
 
 
 def grupos_path(season_code):
@@ -291,7 +309,17 @@ def main(argv=None):
     ap.add_argument("--escudos", action="store_true", help="solo los escudos de los grupos ya leídos")
     ap.add_argument("--sin-escudos", action="store_true", help="sin las jornadas de los escudos (van después)")
     ap.add_argument("--categorias", default="", help="'benjamin,prebenjamin' (por defecto) o 'alevin'")
+    ap.add_argument("--carpeta", default="", help="la cuarentena (scripts/historico): leer y escribir allí")
     args = ap.parse_args(argv)
+    global CARPETA
+    CARPETA = Path(args.carpeta) if args.carpeta else None
+    try:
+        _main(args)
+    finally:
+        CARPETA = None                    # la carpeta es de esta tanda (las pruebas llaman a main varias veces)
+
+
+def _main(args):
     from categorias import parse_categories
     categories = parse_categories(args.categorias)
     seasons = [s.strip() for s in args.temporadas.split(",") if s.strip()]
