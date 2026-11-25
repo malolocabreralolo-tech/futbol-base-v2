@@ -333,6 +333,10 @@ def test_base_real(tmp_path):
     src.backup(conn)
     src.close()
     import_mygol.importar(conn)
+    # La base de una pasada del bot ya trae sus enlaces (enlazar_mygol va antes de las pruebas): se quitan de la
+    # copia, porque lo que se compara es el año SIN la escuela. guardar_enlaces, abajo, los rehace.
+    conn.execute("DROP TABLE IF EXISTS mygol_enlaces")
+    conn.commit()
     fichas = E.fichas_de(conn)
     datos = G._datos_fichas(conn, confirmados={})
     anios = {f.id: f.anios for f in fichas}
