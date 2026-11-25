@@ -232,11 +232,138 @@ def test_registrar_sin_resumen_y_lo_completo():
     assert e["trabajos"]["goleadores:2025-2026"]["estado"] == "completo"
     assert e["trabajos"]["goleadores:2025-2026"]["no_disponible"] == 1
     assert e["dia"] == {"fecha": "2026-11-25", "paginas": 120, "freno": None} and len(e["ejecuciones"]) == 2
-    # Lo promovido que se vuelve a ver entero se queda promovido; con un fichero nuevo en la cuarentena, a probar.
-    e["trabajos"]["goleadores:2025-2026"]["estado"] = "promovido"
+    # Lo promovido que se vuelve a ver entero se queda promovido; con otro contenido en la cuarentena, a probar.
+    e["trabajos"]["goleadores:2025-2026"].update(estado="promovido",
+                                                 huellas={"fiflp_goleadores_2025-2026_raw.json": "a1"})
     assert H.registrar(e, accion, resumen, MIERCOLES)["trabajos"]["goleadores:2025-2026"]["estado"] == "promovido"
-    otra = H.registrar(e, accion, resumen, MIERCOLES, en_carpeta=lambda k: True)
+    otra = H.registrar(e, accion, resumen, MIERCOLES,
+                       huellas=lambda k: {"fiflp_goleadores_2025-2026_raw.json": "b2"})
     assert otra["trabajos"]["goleadores:2025-2026"]["estado"] == "completo"
+
+
+RAW_DETALLE, RAW_CAMPOS = "fiflp_detalle_2024-2025_raw.json", "fiflp_campos_raw.json"
+
+
+def _fallo_de_detalle_y_campos():
+    """La prueba de 2025-26 (detalle y campos, juntos) salió en rojo: los dos, «fallo», con lo que se probó."""
+    e = H.estado_vacio()
+    e["trabajos"]["detalle:2025-2026"] = {"estado": "fallo", "pendientes": 0, "no_disponible": 0,
+                                          "huellas": {"fiflp_detalle_2025-2026_raw.json": "d25"}}
+    e["trabajos"]["campos"] = {"estado": "fallo", "pendientes": 0, "no_disponible": 0,
+                               "huellas": {RAW_CAMPOS: "c1"}}
+    e["pruebas"] = [{"at": "2026-11-25T08:00:00+00:00", "trabajos": ["detalle:2025-2026", "campos"],
+                     "verde": False, "motivo": "las pruebas fallaron"}]
+    return e
+
+
+def _descarga_del_detalle_de_2024():
+    accion = {"accion": "descargar", "trabajo": "detalle", "temporadas": ["20"], "dia": "2026-11-25",
+              "inicio": "2026-11-25T10:00:00+00:00", "partes": ["detalle:2024-2025"], "categorias": ["alevin"]}
+    # La descarga del detalle recorre siempre los campos (run_campos) y devuelve su parte: entera.
+    resumen = {"pedidas": 90, "servidas": 90, "muertas": 0, "esperas": 0, "frenos": 0, "frenos_tras": [],
+               "parada": None, "nube": "azure", "runner_rechazado": False,
+               "partes": {"detalle:2024-2025": {"completo": True, "pendientes": 0, "no_disponible": 0},
+                          "campos": {"completo": True, "pendientes": 0, "no_disponible": 0}}}
+    return accion, resumen
+
+
+def test_un_fallo_no_vuelve_solo_a_completo():
+    """I1 de la revisión: tras una prueba en rojo los ficheros se quedan en la cuarentena; que estén no quiere decir
+    que haya algo nuevo. Un «fallo» solo vuelve a «completo» si el contenido de alguno de sus ficheros en la
+    cuarentena ha cambiado desde que se probó, y entonces se prueba solo: no arrastra a la temporada de al lado."""
+    plan = {**PLAN, "trabajos": ["detalle"]}
+    accion, resumen = _descarga_del_detalle_de_2024()
+    # Los campos siguen en la cuarentena con lo mismo que se probó: siguen en «fallo», y 2024-25 se prueba sola.
+    igual = H.registrar(_fallo_de_detalle_y_campos(), accion, resumen, MIERCOLES,
+                        huellas=lambda k: {RAW_CAMPOS: "c1"} if k == "campos" else {RAW_DETALLE: "d24"})
+    assert igual["trabajos"]["campos"]["estado"] == "fallo"
+    assert igual["trabajos"]["campos"]["huellas"] == {RAW_CAMPOS: "c1"}      # lo probado no se olvida
+    assert igual["trabajos"]["detalle:2024-2025"]["estado"] == "completo"
+    assert H.siguiente(plan, igual, MIERCOLES, env={}) == {"accion": "probar", "trabajos": ["detalle:2024-2025"]}
+    # Sin poder mirar la cuarentena (o sin nada en ella), lo mismo: no se reprueba a ciegas.
+    assert H.registrar(_fallo_de_detalle_y_campos(), accion, resumen, MIERCOLES)["trabajos"]["campos"]["estado"] == "fallo"
+    # Los campos han cambiado (fichas nuevas de 2024-25): a probar otra vez, pero solos y después de la temporada.
+    cambio = H.registrar(_fallo_de_detalle_y_campos(), accion, resumen, MIERCOLES,
+                         huellas=lambda k: {RAW_CAMPOS: "c2"} if k == "campos" else {RAW_DETALLE: "d24"})
+    assert cambio["trabajos"]["campos"]["estado"] == "completo"
+    assert H.siguiente(plan, cambio, MIERCOLES, env={}) == {"accion": "probar", "trabajos": ["detalle:2024-2025"]}
+    cambio["trabajos"]["detalle:2024-2025"]["estado"] = "promovido"
+    assert H.siguiente(plan, cambio, MIERCOLES, env={}) == {"accion": "probar", "trabajos": ["campos"]}
+    # Con reintentar, lo que falló junto se prueba cada uno por su lado: se sabe cuál rompía.
+    reintento = {**plan, "reintentar_desde": "2026-11-25T09:30:00+00:00"}
+    assert H.siguiente(reintento, _fallo_de_detalle_y_campos(), MIERCOLES, env={}) == {
+        "accion": "probar", "trabajos": ["detalle:2025-2026"]}
+
+
+def test_lo_promovido_solo_vuelve_a_probarse_si_cambia():
+    """Tras promover, los ficheros salen de la cuarentena; una descarga que no lee nada nuevo no escribe (no hay
+    fichero) o escribe lo mismo que se probó: se queda promovido. Con otro contenido, a probar."""
+    e = H.estado_vacio()
+    e["trabajos"]["campos"] = {"estado": "promovido", "pendientes": 0, "no_disponible": 0,
+                               "huellas": {RAW_CAMPOS: "c1"}}
+    e["trabajos"]["detalle:2024-2025"] = {"estado": "pendiente", "pendientes": 4, "no_disponible": 0}
+    accion, resumen = _descarga_del_detalle_de_2024()
+    for actual, estado in (({RAW_CAMPOS: None}, "promovido"), ({RAW_CAMPOS: "c1"}, "promovido"),
+                           ({RAW_CAMPOS: "c2"}, "completo")):
+        despues = H.registrar(e, accion, resumen, MIERCOLES, huellas=lambda k: actual if k == "campos" else {})
+        assert despues["trabajos"]["campos"]["estado"] == estado, actual
+
+
+def test_la_prueba_apunta_lo_que_se_probo():
+    e = _fallo_de_detalle_y_campos()
+    e["trabajos"]["detalle:2024-2025"] = {"estado": "completo", "pendientes": 0, "no_disponible": 0}
+    r = H.registrar_prueba(e, ["detalle:2024-2025"], {"verde": False, "motivo": "x"}, MIERCOLES,
+                           huellas=lambda k: {RAW_DETALLE: "d24"})
+    assert r["trabajos"]["detalle:2024-2025"]["huellas"] == {RAW_DETALLE: "d24"}
+    assert r["trabajos"]["campos"]["huellas"] == {RAW_CAMPOS: "c1"}              # el de otra prueba, intacto
+
+
+def test_la_orden_compara_el_contenido_de_la_cuarentena(tmp_path, monkeypatch):
+    """Con los ficheros de verdad: registrar --prueba guarda la huella (sha1) de cada fichero del trabajo (el de la
+    cuarentena si está; si no, el publicado: lo que fue a la copia), y registrar una descarga la compara."""
+    raiz = tmp_path / "scripts"
+    carpeta = raiz / "historico"
+    carpeta.mkdir(parents=True)
+    monkeypatch.setenv("HISTORICO_CARPETA", str(carpeta))
+    salud = tmp_path / "no-esta.json"
+    _main(["encargar", "--temporadas", "21,20", "--categorias", "alevin", "--trabajos", "detalle",
+           "--calendario", ""], tmp_path, monkeypatch)
+    (carpeta / "fiflp_detalle_2025-2026_raw.json").write_text('{"a": 1}\n')
+    (carpeta / RAW_CAMPOS).write_text('{"c": 1}\n')
+    e = H.estado_vacio()
+    for k in ("detalle:2025-2026", "campos"):
+        e["trabajos"][k] = {"estado": "completo", "pendientes": 0, "no_disponible": 0, "categorias": ["alevin"]}
+    (carpeta / "estado.json").write_text(json.dumps(e))
+    veredicto = tmp_path / "rojo.json"
+    veredicto.write_text(json.dumps({"verde": False, "motivo": "las pruebas fallaron"}))
+    _main(["registrar", "--prueba", str(veredicto), "--trabajos", "detalle:2025-2026,campos", "--promover",
+           "skipped", "--salud", str(salud)], tmp_path, monkeypatch)
+    e = json.loads((carpeta / "estado.json").read_text())
+    import hashlib
+    assert e["trabajos"]["campos"]["huellas"] == {RAW_CAMPOS: hashlib.sha1(b'{"c": 1}\n').hexdigest()}
+    accion, resumen = tmp_path / "accion.json", tmp_path / "resumen.json"
+    a, r = _descarga_del_detalle_de_2024()
+    accion.write_text(json.dumps(a))
+    resumen.write_text(json.dumps(r))
+    _main(["registrar", "--accion", str(accion), "--resumen", str(resumen), "--salud", str(salud)], tmp_path,
+          monkeypatch)
+    assert json.loads((carpeta / "estado.json").read_text())["trabajos"]["campos"]["estado"] == "fallo"
+    (carpeta / RAW_CAMPOS).write_text('{"c": 1, "d": 2}\n')
+    _main(["registrar", "--accion", str(accion), "--resumen", str(resumen), "--salud", str(salud)], tmp_path,
+          monkeypatch)
+    assert json.loads((carpeta / "estado.json").read_text())["trabajos"]["campos"]["estado"] == "completo"
+    # Promovido (verde): los ficheros pasan a scripts/; la huella es la del publicado, que es lo que se probó.
+    e = json.loads((carpeta / "estado.json").read_text())
+    e["trabajos"]["detalle:2025-2026"]["estado"] = "completo"
+    (carpeta / "estado.json").write_text(json.dumps(e))
+    (carpeta / "fiflp_detalle_2025-2026_raw.json").replace(raiz / "fiflp_detalle_2025-2026_raw.json")
+    veredicto.write_text(json.dumps({"verde": True, "motivo": ""}))
+    _main(["registrar", "--prueba", str(veredicto), "--trabajos", "detalle:2025-2026", "--promover", "success",
+           "--salud", str(salud)], tmp_path, monkeypatch)
+    e = json.loads((carpeta / "estado.json").read_text())
+    assert e["trabajos"]["detalle:2025-2026"]["estado"] == "promovido"
+    assert e["trabajos"]["detalle:2025-2026"]["huellas"] == {
+        "fiflp_detalle_2025-2026_raw.json": hashlib.sha1(b'{"a": 1}\n').hexdigest()}
 
 
 def test_registrar_lo_que_vio_el_bot():

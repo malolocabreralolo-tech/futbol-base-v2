@@ -37,7 +37,8 @@ Las reglas del carril, y el porqué de cada número:
     completo se prueba sobre una copia (prueba_historico.py: importar sin red, la base sana y todas las suites),
     una temporada cada vez y con MARGEN_PRUEBA (60 min) antes de la ventana siguiente (la importación del bot en
     su pasada siguiente no puede caer en ella); solo lo verde pasa a scripts/ (promovido) y lo importa el bot. Lo
-    rojo queda «fallo» con su motivo y no se repite solo (reintentar).
+    rojo queda «fallo» con su motivo y no se repite solo (reintentar): solo vuelve a probarse si la cuarentena
+    trae otro contenido que el probado (las huellas de cada prueba), y entonces solo, para no arrastrar a nadie.
 
 Los ficheros del carril (en carpeta(): HISTORICO_CARPETA o cuarentena.CARPETA):
   plan.json    el encargo (solo lo escribe el job del encargo: encargar, parar, reanudar, reintentar);
@@ -53,6 +54,7 @@ Los ficheros del carril (en carpeta(): HISTORICO_CARPETA o cuarentena.CARPETA):
 """
 import argparse
 import copy
+import hashlib
 import json
 import math
 import os
@@ -323,6 +325,13 @@ def _ultima_prueba(estado, clave):
     return pruebas[-1] if pruebas else None
 
 
+def _suelto(estado, clave):
+    """¿Su última prueba salió en rojo? Entonces se prueba solo (siguiente): en la prueba que falló iba con otros
+    y no se sabe cuál rompía."""
+    prueba = _ultima_prueba(estado, clave)
+    return bool(prueba) and not prueba.get("verde")
+
+
 def _a_probar(plan, estado, clave):
     """Completo (sin probar), o «fallo» con su prueba anterior a plan["reintentar_desde"] (reintentar)."""
     est = _estado_de(estado, clave)
@@ -392,15 +401,22 @@ def siguiente(plan, estado, now, env=None, salud=None):
         return _nada("ventana de partidos")
     claves = trabajos_del_plan(plan)
     if fin - now >= MARGEN_PRUEBA:
-        # Una temporada cada vez: si su prueba falla, solo esa se queda fuera. Los campos, con la que toque.
-        campos = ["campos"] if "campos" in claves and _a_probar(plan, estado, "campos") else []
+        # Una temporada cada vez: si su prueba falla, solo esa se queda fuera. Los campos, con la que toque. Lo
+        # que ya falló una prueba (vuelve a probarse porque cambió o por reintentar), solo y al final: si volviera
+        # a romper, no se llevaría a «fallo» lo que se prueba con ello.
+        probar = [k for k in claves if _a_probar(plan, estado, k)]
+        juntos = [k for k in probar if not _suelto(estado, k)]
+        campos = ["campos"] if "campos" in juntos else []
         for t in plan.get("temporadas") or []:
             nombre = SEASON_NAME[t]
-            suyos = [k for k in claves if _temporada(k) == nombre and _a_probar(plan, estado, k)]
+            suyos = [k for k in juntos if _temporada(k) == nombre]
             if suyos:
                 return {"accion": "probar", "trabajos": suyos + campos}
         if campos:
             return {"accion": "probar", "trabajos": campos}
+        sueltos = [k for k in probar if _suelto(estado, k)]
+        if sueltos:
+            return {"accion": "probar", "trabajos": sueltos[:1]}
     cupo = cupo_hoy(estado, now, env)
     if cupo == 0:
         return _nada("tope del día")
@@ -489,15 +505,29 @@ def apuntar_freno_del_bot(estado, salud, now):
     return estado
 
 
-def registrar(estado, accion, resumen, now, salud=None, en_carpeta=None):
+def _cambiado(previo, actuales):
+    """¿Hay en la cuarentena algo distinto de lo que se probó? `actuales`, {nombre: sha1 o None} de los ficheros
+    del trabajo en la cuarentena ahora (None: no está); previo["huellas"], los de su última prueba (registrar_prueba).
+    Un fichero que no está en la cuarentena no es nada nuevo (tras promover, sale de ella; tras una prueba en rojo,
+    se queda con lo mismo). Sin huellas guardadas no se sabe qué se probó: nada nuevo (no se reprueba a ciegas)."""
+    guardadas = previo.get("huellas")
+    if not isinstance(guardadas, dict):
+        return False
+    return any(h is not None and h != guardadas.get(n) for n, h in (actuales or {}).items())
+
+
+def registrar(estado, accion, resumen, now, salud=None, huellas=None):
     """El estado tras una descarga: suma las páginas pedidas al día de accion["dia"] (si es otro que el de
     estado["dia"], empieza uno nuevo), pasa cada parte del resumen a su trabajo (completo o pendiente) y apunta la
     ejecución. Un runner rechazado no cambia ningún trabajo ni gasta el tope del día. Si la federación frenó de
     verdad (parada «freno», o `frenos` > 0: un freno cortado por el tope da parada «tope»), el día queda parado
     («carril») y en dias_frenados; si el bot lo vio hoy (`salud`), también («bot»). Lo que ya estaba «fallo» o
-    «promovido» y vuelve entero se queda como estaba (no se prueba otra vez solo), salvo que el descargador haya
-    dejado un fichero suyo nuevo en la cuarentena (`en_carpeta(clave)`: entonces, a probar). Sin resumen (el
-    descargador no llegó a escribirlo), la ejecución con "pedidas": None y un aviso."""
+    «promovido» y vuelve entero se queda como estaba (no se prueba otra vez solo), salvo que el contenido de alguno
+    de sus ficheros en la cuarentena haya cambiado desde su prueba (`huellas(clave)`, {nombre: sha1 o None}, contra
+    las que guardó registrar_prueba: _cambiado). No basta con que el fichero esté: tras una prueba en rojo se queda
+    en la cuarentena, y un «fallo» volvería solo a «completo» y se probaría otra vez (los campos, que recorre cada
+    descarga del detalle, arrastraban así a cada temporada). Sin resumen (el descargador no llegó a escribirlo), la
+    ejecución con "pedidas": None y un aviso."""
     estado = copy.deepcopy(estado)
     estado.setdefault("trabajos", {})
     rechazado = bool(resumen and resumen.get("runner_rechazado"))
@@ -508,11 +538,14 @@ def registrar(estado, accion, resumen, now, salud=None, en_carpeta=None):
     elif not rechazado:
         estado["dia"]["paginas"] = int(estado["dia"].get("paginas") or 0) + int(resumen.get("pedidas") or 0)
         for clave, parte in (resumen.get("partes") or {}).items():
-            antes = (estado["trabajos"].get(clave) or {}).get("estado")
+            previo = estado["trabajos"].get(clave) or {}
+            antes = previo.get("estado")
             nuevo = "completo" if parte.get("completo") else "pendiente"
-            if nuevo == "completo" and antes in ("fallo", "promovido") and not (en_carpeta and en_carpeta(clave)):
+            if nuevo == "completo" and antes in ("fallo", "promovido") and \
+                    not _cambiado(previo, huellas(clave) if huellas else {}):
                 nuevo = antes
-            estado["trabajos"][clave] = {"estado": nuevo, "pendientes": int(parte.get("pendientes") or 0),
+            # Sobre lo de antes: las huellas de su última prueba no se pierden con una descarga.
+            estado["trabajos"][clave] = {**previo, "estado": nuevo, "pendientes": int(parte.get("pendientes") or 0),
                                          "no_disponible": int(parte.get("no_disponible") or 0),
                                          "actualizado": _iso(now)}
         if resumen.get("parada") == "freno" or int(resumen.get("frenos") or 0) > 0:
@@ -529,15 +562,18 @@ def registrar(estado, accion, resumen, now, salud=None, en_carpeta=None):
     return apuntado or estado
 
 
-def registrar_prueba(estado, trabajos, veredicto, now):
+def registrar_prueba(estado, trabajos, veredicto, now, huellas=None):
     """El estado tras una prueba: verde, sus trabajos «promovido»; rojo, «fallo» (no se repite sola). La prueba,
-    apuntada con su motivo y sus medidas."""
+    apuntada con su motivo y sus medidas. Con `huellas` (clave → {nombre: sha1 o None} de lo que se probó), cada
+    trabajo guarda las suyas: registrar solo lo vuelve a «completo» si la cuarentena trae otra cosa (_cambiado)."""
     estado = copy.deepcopy(estado)
     estado.setdefault("trabajos", {})
     verde = bool(veredicto.get("verde"))
     for clave in trabajos:
         previo = estado["trabajos"].get(clave) or {"pendientes": 0, "no_disponible": 0}
         estado["trabajos"][clave] = {**previo, "estado": "promovido" if verde else "fallo", "actualizado": _iso(now)}
+        if huellas:
+            estado["trabajos"][clave]["huellas"] = huellas(clave)
     estado["pruebas"] = (estado["pruebas"] + [{
         "at": _iso(now), "trabajos": list(trabajos), "verde": verde, "motivo": veredicto.get("motivo") or "",
         "mb_antes": veredicto.get("mb_antes"), "mb_despues": veredicto.get("mb_despues"),
@@ -755,12 +791,32 @@ def _sino(valor):
     return "true" if valor else "false"
 
 
-def _en_carpeta(clave):
-    """¿Hay en la cuarentena algún fichero de ese trabajo (uno nuevo, aún sin probar)?"""
+def _sha1(path):
     try:
-        return any((carpeta() / n).exists() for n in ficheros(clave))
+        return hashlib.sha1(Path(path).read_bytes()).hexdigest()
+    except OSError:
+        return None
+
+
+def _huellas(clave, publicado=False):
+    """{nombre: sha1 o None} de los ficheros del trabajo en la cuarentena (None: no está). Con `publicado`, el de
+    scripts/ (la carpeta de encima de la cuarentena) si en la cuarentena no está: lo que fue a la copia de la
+    prueba, y lo que queda en scripts/ tras promover (registrar --prueba corre después de «Promover»)."""
+    try:
+        nombres = ficheros(clave)
     except ValueError:
-        return False
+        return {}
+    out = {}
+    for n in nombres:
+        h = _sha1(carpeta() / n) if (carpeta() / n).exists() else None
+        if h is None and publicado:
+            h = _sha1(carpeta().parent / n)
+        out[n] = h
+    return out
+
+
+def _huellas_probadas(clave):
+    return _huellas(clave, publicado=True)
 
 
 def main(argv=None):
@@ -854,7 +910,7 @@ def main(argv=None):
             veredicto = {"verde": False, "motivo": "la prueba no acabó (sin veredicto)"}
         elif veredicto.get("verde") and args.promover != "success":
             veredicto = {**veredicto, "verde": False, "motivo": "no se pudo pasar a scripts/ (cuarentena.py promover)"}
-        estado = registrar_prueba(estado, trabajos, veredicto, now)
+        estado = registrar_prueba(estado, trabajos, veredicto, now, huellas=_huellas_probadas)
         rel = relanzar(None, siguiente(plan, estado, now, salud=salud), estado)
         guardar_estado(estado)
         print(estado_legible(plan, estado, now))
@@ -867,7 +923,7 @@ def main(argv=None):
         return 0
     resumen = _leer_json(args.resumen) if args.resumen else None
     resumen = resumen if isinstance(resumen, dict) else None
-    estado = registrar(estado, accion, resumen, now, salud=salud, en_carpeta=_en_carpeta)
+    estado = registrar(estado, accion, resumen, now, salud=salud, huellas=_huellas)
     # Sin resumen (el descargador falló), como una que no sirvió: no se relanza en seguida.
     rel = relanzar(resumen or {"servidas": 0, "runner_rechazado": False}, siguiente(plan, estado, now, salud=salud),
                    estado)
