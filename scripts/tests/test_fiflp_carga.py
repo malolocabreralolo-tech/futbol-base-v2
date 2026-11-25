@@ -7,6 +7,7 @@ Sin red: una página falsa o un servidor local con Chromium (si no está, esas p
 """
 from datetime import datetime, timedelta, timezone
 import http.server
+import json
 import sys
 import threading
 import time
@@ -16,6 +17,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import fiflp_carga as C  # noqa: E402
+from federacion_falsa import FederacionFalsa, Pagina, Reloj  # noqa: E402
 
 BASE = "https://www.fiflp.com/pnfg/NPcd"
 GROUP = f"{BASE}/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54976988&CodGrupo=55234218"
@@ -683,6 +685,7 @@ def test_a_closed_browser_is_not_the_federation_braking():
     assert "      el navegador se ha cerrado: nada más en esta pasada" in b.said
     assert not any("frena" in s for s in b.said)
     assert not fed.goto(page, GROUP) and len(page.gotos) == 3                # nada más
+    assert fed.parada == "navegador"
     # También si se cierra al probar otra página (tras una racha de 500): sin pausa ni señal del freno.
     b = Brake(start=10 ** 9)
     fed = b.fed(deadline=1000.0 + 25 * 60)
@@ -751,6 +754,132 @@ def test_the_bot_adapter_keeps_the_readers_and_counts_pages(monkeypatch):
     assert fed.goto(page, GROUP)
     fed.delay()
     assert fed.pages == 1 and page.waits
+
+
+# ── Las tandas del histórico: tope de peticiones, motivo de parada y resumen ──
+# (la federación falsa de federacion_falsa.py: el cupo con sus bloqueos, la página muerta, el runner rechazado)
+
+URL = "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=21&CodCompeticion=9&CodGrupo=1"
+
+
+def jornadas(n):
+    return [f"{URL}&CodJornada={k}" for k in range(1, n + 1)]
+
+
+def test_una_tanda_para_en_su_tope_de_peticiones():
+    f = FederacionFalsa(lambda url: Pagina(), Reloj())
+    fed, page = f.fed(deadline=1000.0 + 3600, max_pages=5), f.page()
+    assert [fed.goto(page, u) for u in jornadas(7)] == [True] * 5 + [False, False]
+    assert len(f.pedidas) == 5 and fed.pages == 5 and fed.topped and fed.blocked and fed.parada == "tope"
+
+
+def test_ninguna_peticion_pasa_del_tope_ni_en_un_freno():
+    f = FederacionFalsa(lambda url: Pagina(), Reloj(), cupo=3, bloqueos=(None,))
+    fed, page = f.fed(deadline=1000.0 + 3600, max_pages=5, max_pauses=1), f.page()
+    for u in jornadas(6):
+        fed.goto(page, u)
+    assert len(f.pedidas) <= 5 and fed.parada == "tope"
+
+
+def test_parada_dice_por_que_para():
+    f = FederacionFalsa(lambda url: Pagina(), Reloj(), cupo=15, bloqueos=(None,))
+    fed, page = f.fed(deadline=1000.0 + 3600, max_pauses=0), f.page()
+    assert fed.parada is None
+    for u in jornadas(20):
+        fed.goto(page, u)
+    assert fed.parada == "freno" and fed.served == 15
+    aws = FederacionFalsa(lambda url: Pagina(), Reloj(), nube="aws", rechaza=True)
+    fed = aws.fed(deadline=1000.0 + 3600)
+    assert not fed.goto(aws.page(), URL) and fed.parada == "runner" and len(aws.pedidas) <= 2
+    tarde = FederacionFalsa(lambda url: Pagina(), Reloj())
+    fed = tarde.fed(deadline=999.0)                            # el plazo ya pasó
+    assert not fed.goto(tarde.page(), URL) and fed.parada == "plazo"
+
+
+def test_una_pagina_muerta_no_para_la_tanda():
+    muerta = jornadas(3)[1]
+    f = FederacionFalsa(lambda url: Pagina(html="") if url == muerta else Pagina(), Reloj())
+    fed, page = f.fed(deadline=1000.0 + 3600, max_pauses=0), f.page()
+    assert [fed.goto(page, u) for u in jornadas(3)] == [True, False, True]
+    assert fed.dead == 1 and fed.parada is None and fed.pauses == 0
+
+
+def test_el_resumen_de_una_tanda(tmp_path):
+    muerta = jornadas(8)[5]
+    f = FederacionFalsa(lambda url: Pagina(html="") if url == muerta else Pagina(), Reloj())
+    fed, page = f.fed(deadline=1000.0 + 3600), f.page()
+    for u in jornadas(8):
+        fed.goto(page, u)
+    r = fed.resumen()
+    assert r["muertas"] == 1 and r["servidas"] >= 7 and r["esperas"] == 0 and r["frenos"] == 0
+    assert r["parada"] is None and r["nube"] == "azure" and r["runner_rechazado"] is False
+    C.guardar_resumen(tmp_path / "r.json", fed, {"goleadores:2025-2026": {"completo": False, "pendientes": 3, "no_disponible": 0}})
+    data = json.loads((tmp_path / "r.json").read_text(encoding="utf-8"))
+    assert data["muertas"] == 1 and data["partes"]["goleadores:2025-2026"]["pendientes"] == 3 and "escrito" in data
+    C.guardar_resumen(None, fed, {})                           # sin ruta, nada (y no lanza)
+
+
+def test_para_tanda():
+    import fetch_fiflp_2425 as F
+    fed = C.para_tanda(F, 30, 0, clock=lambda: 100.0, cloud="azure", env={})
+    assert fed.deadline == 1900.0 and fed.max_pages is None and fed.max_pauses == 0
+    assert (fed.interval, fed.cap_seconds) == (C.DEFAULT_INTERVAL, C.BRAKE_CAP)
+    assert C.para_tanda(F, 30, 2000, cloud="azure", env={"HISTORICO_ESPERAS": "1"}).max_pauses == 1
+    assert C.para_tanda(F, 30, 2000, cloud="azure", env={"HISTORICO_ESPERAS": "mucho"}).max_pauses == 0
+    assert C.para_tanda(F, 30, 2000, cloud="azure", env={}).max_pages == 2000
+
+
+def test_el_bot_sigue_sin_tope():
+    import fetch_fiflp_2425 as F
+    fed = C.Federacion(F, cloud="azure")
+    assert fed.max_pages is None and not fed.topped and fed.parada is None and fed.max_pauses == C.BRAKE_PAUSES
+    assert C.parada_de(object()) is None and C.parada_de(fed) is None
+
+
+def test_el_tope_se_dice_una_vez_en_el_registro():
+    f = FederacionFalsa(lambda url: Pagina(), Reloj())
+    fed, page = f.fed(deadline=1000.0 + 3600, max_pages=2), f.page()
+    for u in jornadas(5):
+        fed.goto(page, u)
+    assert f.dicho.count("      se llega al tope de 2 peticiones de esta ejecución: nada más") == 1
+
+
+def test_el_tope_en_la_comprobacion_de_otra_pagina_no_es_ni_freno_ni_muerta():
+    """Si el tope llega justo cuando una página sale vacía, no se puede preguntar por otra: no se sabe si es
+    el freno o esta página. Ni una cosa ni otra: queda sin leer (lo pendiente de la tanda) y para por el tope."""
+    muerta = jornadas(3)[2]
+    f = FederacionFalsa(lambda url: Pagina(html="") if url == muerta else Pagina(), Reloj())
+    fed, page = f.fed(deadline=1000.0 + 3600, max_pages=3), f.page()
+    assert [fed.goto(page, u) for u in jornadas(3)] == [True, True, False]
+    assert f.pedidas == jornadas(3) and fed.dead == 0 and fed.brakes == 0 and fed.pauses == 0
+    assert fed.parada == "tope" and C.BRAKE_PAUSE not in f.reloj.dormido
+
+
+def test_el_tope_corta_la_espera_del_freno_sin_dormir_de_mas():
+    """Con esperas (HISTORICO_ESPERAS) y un tope que llega durante los sondeos: el sondeo que no cabe ni se
+    pide, la espera acaba en ese momento (sin otro minuto de espera para nada) y el registro dice el tope,
+    no el plazo."""
+    f = FederacionFalsa(lambda url: Pagina(), Reloj(), cupo=2, bloqueos=(None,))
+    fed, page = f.fed(deadline=1000.0 + 3600, max_pages=6, max_pauses=1), f.page()
+    for u in jornadas(4):
+        fed.goto(page, u)
+    # 2 servidas, la vacía y la otra; tras 4 min, el sondeo y la otra (la 6.ª): sin esperar al siguiente sondeo.
+    assert len(f.pedidas) == 6 and fed.pauses == 1 and fed.probes == 1 and fed.parada == "tope"
+    assert f.reloj.dormido.count(C.BRAKE_PAUSE) == 1 and C.BRAKE_PROBE - 9.0 not in f.reloj.dormido
+    assert not any("se acaba el plazo" in s for s in f.dicho)
+    assert "      se llega al tope de 6 peticiones de esta ejecución: nada más" in f.dicho
+
+
+def test_sin_tope_la_federacion_pide_lo_mismo_que_la_del_bot():
+    """La norma: la Federacion del bot no cambia. Con el mismo cupo, la misma página muerta y el mismo plazo,
+    sin max_pages y con max_pages=None, petición a petición lo mismo."""
+    def correr(**kw):
+        muerta = jornadas(30)[20]
+        f = FederacionFalsa(lambda url: Pagina(html="") if url == muerta else Pagina(), Reloj(), cupo=15,
+                            bloqueos=(300, 900))
+        fed, page = f.fed(deadline=1000.0 + 16 * 60, **kw), f.page()
+        return [fed.goto(page, u) for u in jornadas(30)], f.pedidas, f.reloj.dormido, f.dicho
+    assert correr() == correr(max_pages=None)
 
 
 # ── Con un navegador de verdad ────────────────────────────────────────────────

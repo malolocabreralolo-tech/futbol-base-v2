@@ -76,16 +76,26 @@ Por eso (Federacion):
   - el coste: en un freno de verdad, una petición más al frenar y una más por sondeo (la otra página). El
     experimento de octubre midió que los sondeos no alargan el bloqueo.
 No cambia cómo se aplana ni cómo se lee el HTML: solo cuándo. Lo usa el bot (update_fiflp,
-Federacion); las tandas de temporadas pasadas (fetch_fiflp_actas, _goleadores, _detalle, _islas)
-siguen con el paso de fetch_fiflp_2425, sin prisa.
+Federacion).
+
+LAS TANDAS DEL HISTÓRICO (fetch_fiflp_actas, _goleadores, _detalle: las temporadas pasadas) leen con
+para_tanda: la misma Federacion y la misma detección que el bot (una página vacía solo es el freno si la
+federación tampoco sirve otra; si la sirve, es una página muerta), pero sin esperas por defecto (ESPERAS_TANDA:
+con el freno de verdad la tanda para, no lo espera) y con un TOPE de peticiones por ejecución (`max_pages`,
+`topped`). Al acabar, la Federacion dice por qué paró (`parada`: el navegador, el runner rechazado, el tope,
+el freno o el plazo) y da su resumen (guardar_resumen: el carril del histórico decide con él qué hace
+después). Hasta noviembre de 2026 leían con el paso de fetch_fiflp_2425 y daban por buena una página vacía;
+solo fetch_fiflp_islas (la activación de la temporada en curso) sigue con ese paso, sin prisa.
 """
 from datetime import datetime, timedelta, timezone
+import json
 import os
 import random
 import re
 import time
 
 import fiflp_render
+from escritura import escribir_atomico
 from fiflp_render import FIFLP_HOSTS
 
 DEFAULT_DELAY = (1.0, 1.5)
@@ -124,6 +134,20 @@ CLOSED = "navegador cerrado"
 # El fabricante de la máquina (nube): «Microsoft Corporation» en los runners de GitHub en Azure, «Amazon EC2»
 # en los de AWS, a los que la federación no sirve desde el 13/11/2026 (docs/freno-2026-11.md).
 SYS_VENDOR = "/sys/class/dmi/id/sys_vendor"
+# Las tandas del histórico (para_tanda). RELANZAR_MIN: las páginas servidas en una ejecución por debajo de
+# las cuales no se relanza en seguida. En Azure, sin freno, una ejecución lee ~500 por hora; con menos de 60
+# (unos 7 min de lectura) algo iba mal (el freno, un runner rechazado, una caída) y se deja al disparo
+# siguiente.
+RELANZAR_MIN = 60
+# Las ejecuciones (cada una con su runner y su IP) en que una página no carga aunque la federación sirve
+# otras, antes de dejarla «no disponible en la federación». Tres y no los cuatro de las actas del bot: el bot
+# reintenta en pasadas de horas para dar tiempo a que la federación complete un acta recién jugada; en
+# temporadas cerradas no hay nada que esperar, y tres IPs distintas con la misma página muerta bastan.
+MAX_INTENTOS = 3
+# Las esperas del freno por ejecución de una tanda (HISTORICO_ESPERAS). Cero: con el freno de verdad el
+# carril para la ejecución y el día, no lo espera; la detección es la del bot (la vacía solo es freno si la
+# federación tampoco sirve otra).
+ESPERAS_TANDA = 0
 
 _OPTION = ' option:not([value=""]):not([value="0"])'
 
@@ -211,6 +235,14 @@ def brake_pauses(env=None):
     if text == "sin":
         return None
     return int(text) if text.isdigit() else BRAKE_PAUSES
+
+
+def esperas_tanda(env=None):
+    """Cuántos frenos espera una ejecución de una tanda del histórico (HISTORICO_ESPERAS): por defecto
+    ninguno (ESPERAS_TANDA). Lo que no se entiende, también ninguno: a diferencia del bot, el carril no
+    tiene prisa por leer y lo prudente es parar."""
+    text = (os.environ if env is None else env).get("HISTORICO_ESPERAS", "").strip()
+    return int(text) if text.isdigit() else ESPERAS_TANDA
 
 
 def nube(leer=None):
@@ -367,14 +399,20 @@ class Federacion:
         federación que no sirve a AWS (desde el 13/11/2026: siempre, desde la primera petición), no un
         cupo: sin la espera ni los sondeos, `halted`. En Azure, o con alguna página servida, la espera;
       - `closed`: el navegador se cerró (Chromium caído). No es el freno (ni señal ni espera): `halted`,
-        y el bot da por error el grupo que se estaba leyendo.
+        y el bot da por error el grupo que se estaba leyendo;
+      - `max_pages`, el tope de peticiones de la ejecución (las tandas del histórico, para_tanda; None, sin
+        tope: el bot). Cuenta como `pages` (los sondeos y las comprobaciones de otra página también) y ninguna
+        petición pasa de él, tampoco dentro de la espera del freno o de _serving: no se pide, `topped` y
+        `blocked`. Si el tope corta la comprobación de otra página, la vacía no es ni el freno ni una muerta:
+        no se sabe, y queda sin leer (lo pendiente de la tanda);
+      - `parada`: por qué no se le pide nada más (o None, si aún se puede), y resumen(), las cuentas.
     Toda petición pasa por goto y fiflp_render.goto: una URL que el navegador ya pidió en la pasada (la otra
     página de _serving, los sondeos, lo que el bot vuelve a pedir) va a la red, no a la caché HTTP. Lo
     recuerda el navegador (su contexto), no esta clase: vale igual para cualquier lector."""
 
     def __init__(self, scraper, deadline=None, interval=None, clock=time.monotonic, sleep=time.sleep,
                  pause_seconds=None, max_pauses=DEFAULT, probe_seconds=None, cap_seconds=None, wall=None, log=print,
-                 cloud=None):
+                 cloud=None, max_pages=None):
         self._scraper = scraper
         self.BASE = scraper.BASE
         self.deadline = deadline
@@ -390,6 +428,8 @@ class Federacion:
         self.pauses = self.resumed = self.probes = 0
         self.paused = 0.0
         self.halted = self.closed = False
+        self.max_pages = max_pages        # None: sin tope (el bot)
+        self.topped = False
         self._clock, self._sleep, self._last = clock, sleep, None
         self._good = None                 # la última página que cargó (_serving)
         self._run = 0                     # las páginas servidas desde el último freno (su cupo)
@@ -398,12 +438,50 @@ class Federacion:
 
     @property
     def blocked(self):
-        return self.halted or self.failures >= BLOCKED_AFTER
+        return self.halted or self.topped or self.failures >= BLOCKED_AFTER
+
+    @property
+    def parada(self):
+        """Por qué no se le pide nada más a la federación en esta ejecución, o None si aún se puede: "navegador"
+        (se cerró), "runner" (la federación no sirve a este runner), "tope" (el de peticiones), "freno" (frenó y
+        no volvió, o no se esperó) o "plazo" (ya pasó). En ese orden: un freno cortado por el tope es el tope."""
+        if self.closed:
+            return "navegador"
+        if self.refused_runner:
+            return "runner"
+        if self.topped:
+            return "tope"
+        if self.halted:
+            return "freno"
+        if self.deadline is not None and self._clock() > self.deadline:
+            return "plazo"
+        return None
+
+    def resumen(self):
+        """Las cuentas de la ejecución, para el resumen de una tanda (guardar_resumen)."""
+        return {"pedidas": self.pages, "servidas": self.served, "muertas": self.dead, "esperas": self.pauses,
+                "reanudadas": self.resumed, "frenos": self.brakes, "frenos_tras": list(self.brake_after),
+                "parada": self.parada, "nube": self.cloud, "runner_rechazado": self.refused_runner,
+                "segundos_en_espera": round(self.paused)}
+
+    def _at_cap(self):
+        """¿Se gastó ya el tope de peticiones de la ejecución (`max_pages`)? Entonces `topped`, y el registro lo
+        dice (una vez). Sin tope (el bot), nunca."""
+        if self.max_pages is None or self.pages < self.max_pages:
+            return False
+        if not self.topped:
+            self.topped = True
+            self._log(f"      se llega al tope de {self.max_pages} petici{'ón' if self.max_pages == 1 else 'ones'} "
+                      "de esta ejecución: nada más")
+        return True
 
     def _request(self, page, url, retries=3):
         """Una petición (con sus reintentos cortos: goto) al ritmo de `interval`. (¿cargó?, los motivos de
         sus intentos fallidos: goto `why`), o None si, tras la espera del intervalo, ya ha pasado el plazo:
-        entonces ni se pide."""
+        entonces ni se pide. Lo mismo, None, si ya se gastó el tope de peticiones (`max_pages`), mirado antes
+        de la espera del intervalo: ninguna espera cambia el tope, y no se duerme para no pedir."""
+        if self._at_cap():
+            return None
         if self._last is not None:
             wait = self._last + self.interval - self._clock()
             if wait > 0:
@@ -474,6 +552,9 @@ class Federacion:
                       f"      la federación frena otra vez, y ya se {'esperó' if self.pauses == 1 else 'esperaron'} "
                       f"{self.pauses} (FIFLP_BRAKE_PAUSES): nada más en esta pasada")
             return False, False
+        if self._at_cap():
+            # Sin una petición más (el tope de la tanda), ningún sondeo diría nada: la espera, para nada.
+            return False, False
         began = self._clock()
         if self.deadline is not None and began + self.pause_seconds + BRAKE_ROOM > self.deadline:
             self._log(f"      la federación frena y no queda plazo para esperarla ({self.pause_seconds / 60:g} min y "
@@ -487,8 +568,9 @@ class Federacion:
         self._idle(self.pause_seconds)
         while True:
             got = self._request(page, url, retries=1)
-            if got is None:                       # tras el intervalo, pasado el plazo: ni se pidió
-                self._log("      la federación sigue frenando y se acaba el plazo: nada más en esta pasada")
+            if got is None:                       # tras el intervalo, pasado el plazo (o el tope): ni se pidió
+                if not self.topped:
+                    self._log("      la federación sigue frenando y se acaba el plazo: nada más en esta pasada")
                 return False, False
             self.probes += 1
             at = self._last                       # cuándo empezó el sondeo
@@ -502,6 +584,8 @@ class Federacion:
                 self._log(f"      la federación vuelve a servir a los {at - began:.0f} s"
                           f"{'' if loaded else ', pero no esta página'}: se sigue")
                 return loaded, True
+            if self._at_cap():                    # el tope de la tanda: ni el sondeo siguiente ni su espera
+                return False, False
             following = at + self.probe_seconds
             if following - began > self.cap_seconds:
                 self._log(f"      la federación sigue frenando a los {at - began:.0f} s (tope de "
@@ -515,8 +599,8 @@ class Federacion:
             self._idle(following - self._clock())
 
     def goto(self, page, url):
-        if self.halted or (self.deadline is not None and self._clock() > self.deadline):
-            return False                  # frenada sin remedio, o pasado el plazo: ni se pide
+        if self.halted or self.topped or (self.deadline is not None and self._clock() > self.deadline):
+            return False                  # frenada sin remedio, en el tope o pasado el plazo: ni se pide
         try:
             return self._goto(page, url)
         except _Closed:                   # el navegador, no la federación: ni señal del freno ni espera
@@ -548,6 +632,10 @@ class Federacion:
             self.dead += 1
             self._log(f"      {BLOCKED_AFTER} páginas seguidas sin cargar, pero la federación sirve otra: no es "
                       "el freno, es esta página")
+        if self.topped:
+            # El tope de la tanda cortó la comprobación de otra página: no se sabe si es el freno o esta
+            # página. Ni señal ni muerta (una muerta gasta un intento de la tanda): queda sin leer, pendiente.
+            return False
         if signal or streak:
             self.brakes += 1
             self.brake_marks.append(self.served)
@@ -570,3 +658,32 @@ class Federacion:
 
     def __getattr__(self, name):          # parse_standings, parse_matches…: los del raspador
         return getattr(self._scraper, name)
+
+
+def para_tanda(scraper, minutos, max_pages, log=print, clock=time.monotonic, sleep=time.sleep, wall=None, cloud=None,
+               env=None):
+    """La Federacion de una ejecución de una tanda del histórico: plazo de `minutos` desde ahora, tope de
+    `max_pages` peticiones (0 o None, sin tope) y HISTORICO_ESPERAS esperas del freno (esperas_tanda: ninguna
+    por defecto). El intervalo entre peticiones, los sondeos y el tope de cada freno, los del bot
+    (min_interval, brake_*), del mismo entorno: la tanda lee al ritmo del bot, no más deprisa."""
+    return Federacion(scraper, deadline=clock() + minutos * 60, interval=min_interval(env), clock=clock, sleep=sleep,
+                      pause_seconds=brake_pause_seconds(env), max_pauses=esperas_tanda(env),
+                      probe_seconds=brake_probe_seconds(env), cap_seconds=brake_cap_seconds(env), wall=wall, log=log,
+                      cloud=cloud, max_pages=max_pages or None)
+
+
+def parada_de(F):
+    """Por qué paró la federación `F` (Federacion.parada), o None. Los lectores lo usan igual con una Federacion
+    que con las federaciones falsas de las pruebas, que no la tienen."""
+    return getattr(F, "parada", None)
+
+
+def guardar_resumen(path, fed, partes):
+    """Escribe en `path` (de forma atómica: el carril lo lee después) el resumen de la ejecución de una tanda:
+    las cuentas de `fed` (Federacion.resumen), `partes` ({clave de trabajo: {"completo", "pendientes",
+    "no_disponible"}}) y cuándo se escribió (en UTC, con el reloj de pared de `fed`). Sin `path`, nada."""
+    if path is None:
+        return
+    escrito = fed._wall().astimezone(timezone.utc).isoformat(timespec="seconds")
+    data = {**fed.resumen(), "partes": partes, "escrito": escrito}
+    escribir_atomico(path, json.dumps(data, ensure_ascii=False, indent=1, sort_keys=True) + "\n")

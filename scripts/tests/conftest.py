@@ -1,12 +1,16 @@
 """Las pruebas no leen la tabla de nombres revisados del proyecto (scripts/fiflp_team_names.json):
 describe la base de verdad, no las de prueba. La que la necesita pone la suya (test_fed_names.py).
-Tampoco escriben los originales de las actas del bot (actas_bot) en scripts/: cada una, en su carpeta."""
+Tampoco escriben los originales de las actas del bot (actas_bot) en scripts/: cada una, en su carpeta.
+Esta carpeta va al final de sys.path para que las pruebas importen sus piezas comunes por su nombre (la
+federación de mentira: `from federacion_falsa import …`); al final, para no tapar ningún módulo de scripts/."""
 import sys
 from pathlib import Path
 
 import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+if str(Path(__file__).resolve().parent) not in sys.path:
+    sys.path.append(str(Path(__file__).resolve().parent))
 
 
 @pytest.fixture(autouse=True)
