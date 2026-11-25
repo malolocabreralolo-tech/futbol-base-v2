@@ -1,23 +1,27 @@
 """actas_lotes.py — Los ficheros de actas de la federación de una temporada, por lote.
 
-Las actas de alevín van APARTE de las de benjamín y prebenjamín: un raw de actas pesa
-unos 20 MB por temporada y el histórico alevín (2019-26) lo duplicaría, cerca del aviso
-de GitHub (50 MB por fichero; tope duro, 100 MB). Cada lote tiene su raw, su índice y su
-estado:
+Las actas de cada categoría que no es benjamín ni prebenjamín van APARTE, una categoría por
+lote: un raw de actas de benjamín y prebenjamín pesa unos 20 MB por temporada y el histórico
+alevín (2019-26) lo duplicaría, cerca del aviso de GitHub (50 MB por fichero; tope duro,
+100 MB). Un raw de fútbol 11 son ~2.300 actas por categoría y temporada, ~20 MB: dos
+categorías juntas ya se acercarían al aviso. Cada lote tiene su raw, su índice y su estado:
 
-    lote ''        scripts/fiflp_actas_<S>_raw.json         (benjamín y prebenjamín: los de siempre)
-                   scripts/fiflp_actas_<S>_index.json
-                   scripts/fiflp_actas_<S>_status.json
-    lote 'alevin'  scripts/fiflp_actas_<S>_alevin_raw.json  (alevín de Gran Canaria)
-                   scripts/fiflp_actas_<S>_alevin_index.json
-                   scripts/fiflp_actas_<S>_alevin_status.json
+    lote ''          scripts/fiflp_actas_<S>_raw.json           (benjamín y prebenjamín: los de siempre)
+                     scripts/fiflp_actas_<S>_index.json
+                     scripts/fiflp_actas_<S>_status.json
+    lote 'alevin'    scripts/fiflp_actas_<S>_alevin_raw.json    (alevín)
+                     scripts/fiflp_actas_<S>_alevin_index.json
+                     scripts/fiflp_actas_<S>_alevin_status.json
+    lote 'infantil'  scripts/fiflp_actas_<S>_infantil_raw.json  (infantil; y su índice y su estado)
+    lote 'cadete'    scripts/fiflp_actas_<S>_cadete_raw.json    (cadete)
+    lote 'juvenil'   scripts/fiflp_actas_<S>_juvenil_raw.json   (juvenil)
 
 Los escribe fetch_fiflp_actas.py, cada tanda los de UN lote (los de su cadena de
 actas-federacion.yml, una por temporada y lote: dos cadenas nunca escriben el mismo fichero), y
 los leen los importadores: import_fiflp_actas importa cada raw por separado (su huella, por
 fichero); los que buscan una acta o un grupo de la federación en el índice o en el raw
 de la temporada (grupos, goleadores, detalle, escudos) leen los de todos los lotes
-juntos (load_merged). Sin ficheros de alevín, todo es exactamente lo de antes.
+juntos (load_merged). Sin ficheros de los otros lotes, todo es exactamente lo de antes.
 
 Los goleadores (fiflp_goleadores_<S>_raw.json) y el detalle (fiflp_detalle_<S>_raw.json)
 no se parten: pesan entre 0,1 y 1,3 MB por temporada y alevín no los acerca a ningún
@@ -29,10 +33,12 @@ import re
 import unicodedata
 
 # El lote de cada categoría que no va al raw de siempre (benjamín y prebenjamín, las que no están aquí). Un
-# lote por categoría nueva: un raw de fútbol 11 (~3.300 actas por categoría y temporada) ya ronda los 20-25 MB,
-# y dos juntos se acercarían al aviso de 50 MB de GitHub. Infantil, cadete y juvenil los añade la parte E (una
-# línea cada uno, y sus nombres en categorias.py); fuera de esta tabla nadie supone «alevín o no».
-LOTE_DE_CATEGORIA = {"ALEVIN": "alevin"}
+# lote por categoría: un raw de fútbol 11 (~2.300 actas por categoría y temporada) ya ronda los 20 MB, y dos
+# juntos se acercarían al aviso de 50 MB de GitHub. Fuera de esta tabla nadie supone «alevín o no».
+LOTE_DE_CATEGORIA = {"ALEVIN": "alevin", "INFANTIL": "infantil", "CADETE": "cadete", "JUVENIL": "juvenil"}
+# La palabra de la categoría en el nombre de una competición que no se publica (sala, femenino, alevín de otra
+# isla): su lote, nunca el de siempre. «INFANTILL», así en el catálogo de 2024-25, contiene «INFANTIL».
+_LOTE_POR_PALABRA = {"ALEVIN": "alevin", "INFANTIL": "infantil", "CADETE": "cadete", "JUVENIL": "juvenil"}
 # En este orden: el de siempre primero (al importar, al juntar índices y raws), y los demás sin repetir.
 LOTES = ("",) + tuple(dict.fromkeys(LOTE_DE_CATEGORIA.values()))
 # Un raw de actas de cualquier lote: grupo 1, la temporada; grupo 2, el lote (None = el de siempre).
@@ -62,20 +68,21 @@ def lote_of(category):
 
 def lote_of_name(name):
     """El lote de una competición por su nombre (el del catálogo o el de la cabecera de un acta,
-    con «(GRUPO 7)» detrás), o None si el nombre no dice su categoría. Alevín de otra isla (que la
-    web no publica: category_of da None) también es del lote de alevín: nunca va al de siempre."""
+    con «(GRUPO 7)» detrás), o None si el nombre no dice su categoría. Una que la web no publica
+    (category_of da None: sala, femenino, alevín de otra isla) va al lote de la palabra de su
+    categoría (alevín, infantil, cadete o juvenil, sin benjamín): nunca al de siempre. Con dos de
+    esas palabras, None (no se sabe)."""
     C = _categorias()
     category = C.category_of(name)
-    # Solo las que tienen lote aquí (las de siempre y alevín): una categoría que se conoce pero aún no lo
-    # tiene, como si no dijera la suya (None), nunca al de siempre.
-    if category and (category in LOTE_DE_CATEGORIA or category in C.DEFAULT_CATEGORIES):
+    if category:
         return lote_of(category)
     folded = "".join(c for c in unicodedata.normalize("NFD", name or "")
                      if unicodedata.category(c) != "Mn").upper()
     compact = re.sub(r"[\s\-_.]", "", folded)
-    if "ALEVIN" in compact and "BENJAMIN" not in compact:
-        return "alevin"
-    return None
+    if "BENJAMIN" in compact:
+        return None
+    found = {lote for palabra, lote in _LOTE_POR_PALABRA.items() if palabra in compact}
+    return found.pop() if len(found) == 1 else None
 
 
 def lotes_of(categories):
@@ -96,14 +103,14 @@ def path(folder, season, kind, lote=""):
 
 
 def lote_of_file(name):
-    """El lote de un raw de actas por su nombre ('' o 'alevin'), o None si no es un raw de actas."""
+    """El lote de un raw de actas por su nombre ('', 'alevin', 'infantil'…), o None si no es un raw de actas."""
     m = RAW_FILE.match(os.path.basename(str(name)))
     return (m.group(2) or "") if m else None
 
 
 def raw_files(folder):
     """[(nombre, temporada, lote)] de los raws de actas de `folder`, por temporada y, dentro de cada
-    una, el de siempre antes que el de alevín (el orden de importación)."""
+    una, en el orden de LOTES: el de siempre primero (el orden de importación)."""
     out = []
     for name in os.listdir(folder):
         m = RAW_FILE.match(name)
@@ -119,8 +126,9 @@ def _load(p):
 
 def load_merged(folder, season, kind):
     """El índice o el raw de actas de la temporada con los de todos los lotes juntos (un dict por
-    cod_acta; un índice antiguo en forma de lista, también). Sin ficheros de alevín, el del lote de
-    siempre tal cual (las mismas claves en el mismo orden); sin ninguno, {}."""
+    cod_acta; un índice antiguo en forma de lista, también). Sin ficheros de los otros lotes, el del
+    lote de siempre tal cual (las mismas claves en el mismo orden); sin ninguno, {}. En una clave
+    repetida manda el primero de LOTES que la tiene (el de siempre)."""
     if kind not in ("raw", "index"):
         raise ValueError(f"solo se juntan raws e índices, no {kind!r}")
     merged = {}
@@ -139,7 +147,7 @@ def load_merged(folder, season, kind):
 def sibling_raw_keys(raw_path):
     """Las claves (cod_acta) de los raws de los OTROS lotes de la misma temporada y carpeta que
     `raw_path`: la purga de huérfanas de un raw no deja sin acta a los partidos cuyas actas están
-    en el raw del otro lote. Vacío si el nombre no es el de un raw de actas."""
+    en el raw de otro lote. Vacío si el nombre no es el de un raw de actas."""
     m = RAW_FILE.match(os.path.basename(str(raw_path)))
     if not m:
         return set()

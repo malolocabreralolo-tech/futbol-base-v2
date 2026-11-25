@@ -307,20 +307,19 @@ def test_excluded(name, expected):
     assert excluded(name) is expected
 
 
-def test_conocer_una_categoria_no_le_da_codigo_ni_lote():
-    """Infantil, cadete y juvenil se conocen, pero los que dan código y lote no las tratan como benjamín
-    («LIGA PRIMERA INFANTIL DE LANZAROTE» saldría LZ1, un código de benjamín, y sus actas irían al raw de
-    benjamín y prebenjamín): su código es el de su convenio (scripts/convenio.py) y, sin lote propio, ninguno."""
+def test_conocer_una_categoria_no_le_da_codigo_ni_lote_de_benjamin():
+    """Infantil, cadete y juvenil nunca con lo de benjamín («LIGA PRIMERA INFANTIL DE LANZAROTE» saldría
+    LZ1, un código de benjamín, y sus actas irían al raw de benjamín y prebenjamín): su código es el de su
+    convenio (scripts/convenio.py) y sus actas, su lote."""
     import actas_lotes
     import fiflp_manifest
     import import_fiflp_grupos
-    for name, prefijo in (("LIGA PRIMERA INFANTIL DE LANZAROTE", "INF1L"), ("LIGA CADETE INSULAR DE LANZAROTE", "CADNL"),
-                          ("ELIMINATORIAS COPA CADETE PREFERENTE DE LANZAROTE", "CADPLCE"),
-                          ("LIGA JUVENIL PREFERENTE LANZAROTE", "JUVPL")):
+    for name, prefijo, lote in (("LIGA PRIMERA INFANTIL DE LANZAROTE", "INF1L", "infantil"),
+                                ("LIGA CADETE INSULAR DE LANZAROTE", "CADNL", "cadete"),
+                                ("ELIMINATORIAS COPA CADETE PREFERENTE DE LANZAROTE", "CADPLCE", "cadete"),
+                                ("LIGA JUVENIL PREFERENTE LANZAROTE", "JUVPL", "juvenil")):
         assert import_fiflp_grupos.meta_by_name(name)[0] == prefijo
         assert fiflp_manifest.comp_meta(name)[0] == prefijo
-        assert actas_lotes.lote_of_name(name) is None
-    # Y una tanda o un encargo de actas con ellas para antes de bajar nada: sus actas, nunca al raw de siempre.
+        assert actas_lotes.lote_of_name(name) == lote
     for cat in categorias.MAYORES:
-        with pytest.raises(ValueError, match="sin lote"):
-            actas_lotes.lotes_of((cat,))
+        assert actas_lotes.lotes_of((cat,)) == (cat.lower(),)

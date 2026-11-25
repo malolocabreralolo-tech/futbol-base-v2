@@ -41,7 +41,7 @@ on:
         required: false
         default: ''
       categorias:
-        description: 'Con encargar: alevin, o benjamin,prebenjamin'
+        description: 'Con encargar: alevin, infantil, cadete, juvenil (cada una con su lote de actas) o benjamin,prebenjamin'
         required: false
         default: 'alevin'
       trabajos:

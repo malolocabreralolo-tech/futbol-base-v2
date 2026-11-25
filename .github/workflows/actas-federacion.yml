@@ -29,7 +29,7 @@ on:
         required: false
         default: ''
       categorias:
-        description: 'Categorías del catálogo: benjamin,prebenjamin o alevin (solo Gran Canaria, a su raw aparte; nunca las dos cosas); pasa a las tandas y a la cola'
+        description: 'Categorías del catálogo: benjamin,prebenjamin o alevin (solo Gran Canaria, a su raw aparte; nunca las dos cosas); infantil, cadete y juvenil, con el carril del histórico (historico.yml); pasa a las tandas y a la cola'
         required: false
         default: 'benjamin,prebenjamin'
       reindex:

@@ -112,7 +112,8 @@ MAX_DIAS_FRENADOS = 60
 # congelado (el vivo lo cambia discover-fiflp.yml).
 CATALOGO = None
 
-NOMBRE_CATEGORIA = {"benjamin": "benjamín", "prebenjamin": "prebenjamín", "alevin": "alevín"}
+NOMBRE_CATEGORIA = {"benjamin": "benjamín", "prebenjamin": "prebenjamín", "alevin": "alevín",
+                    "infantil": "infantil", "cadete": "cadete", "juvenil": "juvenil"}
 PARADAS = {"tope": "tope del día", "freno": "freno de verdad", "plazo": "plazo", "navegador": "navegador cerrado",
            "runner": "runner rechazado", None: "sin cortes"}
 
@@ -376,10 +377,24 @@ def _catalogo():
     return _leer_json(SCRIPTS / "fiflp_comps_catalog.json") or {}
 
 
+# Infantil, cadete, juvenil y el alevín de Lanzarote y Fuerteventura (scripts/convenio.py), por el nivel de su
+# liga: División de Honor, Autonómica, Interinsular y Preferente, 0; Primera, 10; las demás ligas (Segunda,
+# Insular, sin nivel…), 30; copas, ascensos, eliminatorias y finales (y lo que no tiene convenio), 40.
+RANGO_NIVEL = {"H": 0, "A": 0, "I": 0, "P": 0, "1": 10}
+
+
 def rango_competicion(nombre):
     """De más nivel (0) a menos: «PREFERENTE» 0; una Segunda Fase con letra 1 + su posición (A 1, B 2…); otra liga
     (Primera, Fase Previa) 30; lo demás (copas, Campeones, Clausura, eliminatorias, finales) 40. Las actas de las
-    ligas de más nivel, primero: si el carril se para a medias, lo que queda es lo que menos dice."""
+    ligas de más nivel, primero: si el carril se para a medias, lo que queda es lo que menos dice. Las de las
+    categorías nuevas, por el convenio (RANGO_NIVEL)."""
+    import convenio
+    if convenio.aplica(nombre):
+        try:
+            c = convenio.convenio(nombre)
+        except convenio.SinConvenio:
+            return 40
+        return RANGO_NIVEL.get(convenio.nivel(c), 30) if c.tipo == "liga" else 40
     n = " ".join(fold(nombre).split())
     if "PREFERENTE" in n:
         return 0
@@ -641,7 +656,8 @@ def encargar(plan, temporadas, categorias, trabajos, calendario, now):
     _estado_de). ValueError si una
     temporada no está en SEASON_NAME, una categoría no existe, un trabajo no está en TRABAJOS, la temporada en curso
     lleva otro trabajo que actas o detalle (sus goleadores y su calendario los lee el bot) o el calendario pide una
-    temporada que no está en `temporadas`. Con benjamín o prebenjamín, las dos: comparten el lote de siempre."""
+    temporada que no está en `temporadas`. Con benjamín o prebenjamín, las dos: comparten el lote de siempre. Las
+    demás (alevín, infantil, cadete, juvenil), cada una en su lote de actas (actas:<S>:infantil…)."""
     temporadas, trabajos, calendario = _lista(temporadas), _lista(trabajos), _lista(calendario)
     if not temporadas:
         raise ValueError("sin temporadas")
@@ -686,8 +702,9 @@ def _corta(nombre):
 
 
 def _categorias_legibles(categorias):
+    """«alevín», «benjamín y prebenjamín», «infantil, cadete y juvenil»."""
     nombres = [NOMBRE_CATEGORIA.get(c, c) for c in categorias]
-    return " y ".join(nombres) if len(nombres) == 2 else ", ".join(nombres)
+    return ", ".join(nombres[:-1]) + " y " + nombres[-1] if len(nombres) > 1 else "".join(nombres)
 
 
 def _lote_legible(lote):

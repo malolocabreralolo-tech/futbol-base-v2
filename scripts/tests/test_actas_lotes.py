@@ -51,8 +51,10 @@ def test_each_lote_has_its_raw_index_and_status():
     assert L.file_name("2025-2026", "raw", "alevin") == "fiflp_actas_2025-2026_alevin_raw.json"
     assert L.file_name("2019-2020", "index", "alevin") == "fiflp_actas_2019-2020_alevin_index.json"
     assert L.file_name("2019-2020", "status", "alevin") == "fiflp_actas_2019-2020_alevin_status.json"
+    assert L.file_name("2025-2026", "raw", "juvenil") == "fiflp_actas_2025-2026_juvenil_raw.json"
+    assert L.file_name("2025-2026", "status", "infantil") == "fiflp_actas_2025-2026_infantil_status.json"
     with pytest.raises(ValueError):
-        L.file_name("2025-2026", "raw", "cadete")
+        L.file_name("2025-2026", "raw", "senior")
     assert A.raw_path("21").name == "fiflp_actas_2025-2026_raw.json"           # el de siempre, igual
     assert A.raw_path("21", "alevin").name == "fiflp_actas_2025-2026_alevin_raw.json"
     assert A.index_path("15", "alevin").name == "fiflp_actas_2019-2020_alevin_index.json"
@@ -69,8 +71,11 @@ def test_the_importer_recognises_both_raws_and_nothing_else():
     assert (m.group(1), m.group(2)) == ("2025-2026", None)
     for other in ("fiflp_actas_2025-2026_index.json", "fiflp_actas_2025-2026_alevin_index.json",
                   "fiflp_actas_2025-2026_alevin_status.json", "fiflp_actas_unmatched.json",
-                  "fiflp_actas_2025-2026_cadete_raw.json", "fiflp_goleadores_2025-2026_raw.json"):
+                  "fiflp_actas_2025-2026_senior_raw.json", "fiflp_goleadores_2025-2026_raw.json"):
         assert not I.RAW_FILE.match(other), other
+    for lote in ("infantil", "cadete", "juvenil"):
+        m = I.RAW_FILE.match(f"fiflp_actas_2025-2026_{lote}_raw.json")
+        assert (m.group(1), m.group(2)) == ("2025-2026", lote)
 
 
 def test_import_order_is_by_season_and_the_usual_raw_first(tmp_path):
@@ -81,6 +86,35 @@ def test_import_order_is_by_season_and_the_usual_raw_first(tmp_path):
     assert [n for n, _, _ in L.raw_files(tmp_path)] == [
         "fiflp_actas_2024-2025_raw.json", "fiflp_actas_2024-2025_alevin_raw.json",
         "fiflp_actas_2025-2026_raw.json", "fiflp_actas_2025-2026_alevin_raw.json"]
+
+
+def test_cinco_lotes_cada_uno_con_sus_ficheros(tmp_path):
+    """Un lote por categoría que no es benjamín ni prebenjamín: un raw de fútbol 11 son ~2.300 actas por
+    categoría y temporada (~20 MB), y dos juntos se acercarían al aviso de 50 MB de GitHub."""
+    assert L.lote_of("INFANTIL") == "infantil"
+    assert L.lotes_of(("JUVENIL", "CADETE")) == ("cadete", "juvenil")       # el orden de LOTES
+    assert L.file_name("2025-2026", "raw", "juvenil") == "fiflp_actas_2025-2026_juvenil_raw.json"
+    for lote in ("juvenil", "cadete", "", "infantil", "alevin"):
+        (tmp_path / L.file_name("2025-2026", "raw", lote)).write_text(
+            json.dumps({"1": {"lote": lote or "siempre"}, f"9{lote}": {}}), encoding="utf-8")
+        (tmp_path / L.file_name("2025-2026", "index", lote)).write_text("{}", encoding="utf-8")
+    assert [lote for _, _, lote in L.raw_files(tmp_path)] == ["", "alevin", "infantil", "cadete", "juvenil"]
+    merged = L.load_merged(tmp_path, "2025-2026", "raw")
+    assert merged["1"] == {"lote": "siempre"}                                # el de siempre manda
+    assert set(merged) == {"1", "9", "9alevin", "9infantil", "9cadete", "9juvenil"}
+    assert L.sibling_raw_keys(tmp_path / L.file_name("2025-2026", "raw", "cadete")) == \
+        {"1", "9", "9alevin", "9infantil", "9juvenil"}
+    assert L.lote_of_name("LIGA PRIMERA INFANTIL DE GRAN CANARIA (GRUPO 3)") == "infantil"
+    assert L.lote_of_name("LIGA INFANTIL FUTBOL SALA GRAN CANARIA") == "infantil"   # no se publica: su lote
+    assert L.lote_of_name("FINAL COPA CABILDO DE LANZAROTE PRIMERA INFANTILL") == "infantil"
+    assert L.lote_of_name("LIGA CADETE INSULAR DE LANZAROTE") == "cadete"
+    assert L.lote_of_name("LIGA JUVENIL FEMENINA") == "juvenil"
+    assert L.lote_of_name("COPA ALEVIN E INFANTIL") is None                    # dos: no se sabe
+    # misplaced: un acta con cabecera de infantil en el raw de cadete.
+    (tmp_path / L.file_name("2025-2026", "raw", "cadete")).write_text(json.dumps({
+        "5": {"header": {"competition": "LIGA PRIMERA INFANTIL DE GRAN CANARIA (GRUPO 1)"}},
+        "6": {"header": {"competition": "LIGA CADETE INSULAR DE LANZAROTE (GRUPO 2)"}}}), encoding="utf-8")
+    assert L.misplaced(tmp_path) == {"fiflp_actas_2025-2026_cadete_raw.json": ["5"]}
 
 
 def test_the_lote_of_a_competition_by_its_name():
@@ -324,6 +358,9 @@ def test_an_alevin_tanda_never_touches_the_usual_files_and_viceversa(fed):
     ("--comps", "54422881,54422885", "--categorias", "alevin"),
     ("--comps", "1", "--categorias", "benjamin,alevin"),
     ("--categorias", "alevines"),                             # no existe
+    ("--categorias", "infantil,cadete"),                      # dos lotes nuevos
+    ("--categorias", "infantil", "--lote", "siempre"),        # la cadena es de otro lote
+    ("--temporada", "22", "--comps", "54976908"),             # infantil (el congelado) en una tanda de siempre
 ])
 def test_a_tanda_outside_one_lote_stops_before_writing_and_its_chain_stops(fed, capsys, argv):
     with pytest.raises(ValueError):
@@ -332,6 +369,15 @@ def test_a_tanda_outside_one_lote_stops_before_writing_and_its_chain_stops(fed, 
     fed["run"](*argv, "--estado")
     state = json.loads(capsys.readouterr().out)
     assert (state["pending"], state["stuck"]) == (0, 1) and state["error"]
+
+
+def test_una_tanda_de_infantil_en_su_lote(fed):
+    """Con su lote (--lote infantil), una tanda de infantil sigue: solo escribe los ficheros del suyo."""
+    fed["run"]("--categorias", "infantil", "--lote", "infantil", "--comps", "54422877")
+    assert {p.name for p in fed["dir"].glob("fiflp_actas_*")} <= {
+        f"fiflp_actas_2025-2026_infantil_{kind}.json" for kind in L.KINDS}
+    with pytest.raises(ValueError, match="la cadena es del lote benjamín/prebenjamín"):
+        fed["run"]("--categorias", "infantil", "--lote", "siempre")
 
 
 def test_an_acta_left_in_the_other_raw_by_an_older_tanda_moves_to_its_own(fed, capsys):
@@ -434,13 +480,16 @@ def test_la_cadena_vieja_para_con_el_freno(tmp_path, monkeypatch):
 
 
 def test_los_lotes_salen_de_una_tabla():
-    assert L.LOTES == ("", "alevin") and L.LOTE_DE_CATEGORIA == {"ALEVIN": "alevin"}
+    assert L.LOTES == ("", "alevin", "infantil", "cadete", "juvenil")
+    assert L.LOTE_DE_CATEGORIA == {"ALEVIN": "alevin", "INFANTIL": "infantil", "CADETE": "cadete",
+                                   "JUVENIL": "juvenil"}
     assert L.lote_of("ALEVIN") == "alevin" and L.lote_of("BENJAMIN") == "" and L.lote_of(None) == ""
-    assert A.LOTE_ARG == {"siempre": "", "alevin": "alevin"}
+    assert A.LOTE_ARG == {"siempre": "", "alevin": "alevin", "infantil": "infantil", "cadete": "cadete",
+                          "juvenil": "juvenil"}
     for lote in L.LOTES:
         m = L.RAW_FILE.match(L.file_name("2025-2026", "raw", lote))
         assert m and (m.group(1), m.group(2) or "") == ("2025-2026", lote), lote
-    assert not L.RAW_FILE.match("fiflp_actas_2025-2026_cadete_raw.json")
+    assert not L.RAW_FILE.match("fiflp_actas_2025-2026_senior_raw.json")
 
 
 def test_the_store_only_writes_the_raw_of_its_lote(tmp_path, monkeypatch):

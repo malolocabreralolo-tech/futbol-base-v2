@@ -30,8 +30,11 @@ def test_trabajo_de_cada_fichero():
     assert C.trabajo_de("fiflp_actas_2019-2020_raw.json") == "actas:2019-2020:siempre"
     for nombre in ("fiflp_goleadores_2025-2026_grupos.json", "plan.json", "estado.json",
                    "actas_bot_2026-2027_alevin.jsonl", "fiflp_actas_unmatched.json",
-                   "fiflp_actas_2025-2026_cadete_raw.json", "fiflp_detalle_2025_raw.json"):
+                   "fiflp_actas_2025-2026_senior_raw.json", "fiflp_detalle_2025_raw.json"):
         assert C.trabajo_de(nombre) is None, nombre
+    # Cada categoría nueva, su lote de actas (actas_lotes.LOTES).
+    assert C.trabajo_de("fiflp_actas_2025-2026_cadete_raw.json") == "actas:2025-2026:cadete"
+    assert C.trabajo_de("fiflp_actas_2024-2025_juvenil_index.json") == "actas:2024-2025:juvenil"
 
 
 def test_ficheros_de_cada_trabajo():
@@ -45,7 +48,10 @@ def test_ficheros_de_cada_trabajo():
         "fiflp_goleadores_2025-2026_raw.json"]
     assert C.ficheros("calendario:2019-2020") == ["fiflp_detalle_2019-2020_raw.json"]
     assert C.ficheros("campos") == ["fiflp_campos_raw.json"]
-    for malo in ("actas:2025-2026:infantil", "fotos:2025-2026", "goleadores:2025", "actas:2025-2026", "campos:x",
+    assert C.ficheros("actas:2025-2026:infantil") == ["fiflp_actas_2025-2026_infantil_raw.json",
+                                                     "fiflp_actas_2025-2026_infantil_index.json",
+                                                     "fiflp_actas_2025-2026_infantil_status.json"]
+    for malo in ("actas:2025-2026:senior", "fotos:2025-2026", "goleadores:2025", "actas:2025-2026", "campos:x",
                  "goleadores"):
         with pytest.raises(ValueError):
             C.ficheros(malo)
@@ -93,7 +99,7 @@ def test_promover_solo_mueve_lo_de_sus_trabajos(tmp_path):
         C.promover(["fotos:2025-2026"], carpeta, principal)
     # Un trabajo desconocido entre otros: no se mueve nada.
     with pytest.raises(ValueError):
-        C.promover(["goleadores:2025-2026", "actas:2025-2026:infantil"], carpeta, principal)
+        C.promover(["goleadores:2025-2026", "actas:2025-2026:senior"], carpeta, principal)
     assert (carpeta / "fiflp_goleadores_2025-2026_raw.json").exists()
     # Un trabajo sin ficheros en la cuarentena: nada.
     assert C.promover(["detalle:2019-2020"], carpeta, principal) == []

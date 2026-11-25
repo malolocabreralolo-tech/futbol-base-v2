@@ -203,6 +203,35 @@ def test_detail_of_an_alevin_group_is_not_written_into_benjamin(tmp_path):
     assert conn.execute("SELECT count(*) FROM team_seasons").fetchone()[0] == 0
 
 
+def test_el_calendario_de_infantil_en_una_temporada_pasada_y_nada_en_benjamin(tmp_path):
+    """Infantil no tiene portal (como alevín): en una temporada pasada, su calendario es el de la
+    federación. El de un grupo de «LIGA PRIMERA INFANTIL DE GRAN CANARIA» de 2025-26 se importa en su
+    grupo y nada va al grupo de benjamín con los mismos clubes."""
+    import import_fiflp_detalle as D
+    conn = base(season="2025-2026", current=0)
+    conn.execute("INSERT INTO categories(id,name) VALUES (4,'INFANTIL')")
+    url = "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=21&CodCompeticion=999&CodGrupo=1"
+    conn.execute("""INSERT INTO groups(id,season_id,category_id,code,name,full_name,phase,island,url)
+                    VALUES (3,1,4,'INF1G1','Grupo 1','INFANTIL PRIMERA GC - GRUPO 1','Primera GC','grancanaria',?)""", (url,))
+    for pos, tid in enumerate(range(1, 7), 1):
+        conn.execute("""INSERT INTO standings(group_id,team_id,position,points,played,won,drawn,lost,gf,gc,gd)
+                        VALUES (3,?,?,0,0,0,0,0,0,0,0)""", (tid, pos))
+    conn.commit()
+    D.migrate(conn)
+    before = conn.execute("SELECT * FROM matches WHERE group_id=1 ORDER BY id").fetchall()
+    det = {"comp": "999", "grupo": "1", "comp_name": "LIGA PRIMERA INFANTIL DE GRAN CANARIA", "grupo_name": "GRUPO 1",
+           "ok": True, "clasificacion": [],
+           "jornadas": {"Jornada 1": [{"home": "ARUCAS, C.F.", "away": "MOYA, U.D.", "hs": 5, "as": 0,
+                                       "date": "2025-10-04", "time": "10:00", "venue": "CAMPO"}]}}
+    path = tmp_path / "fiflp_detalle_2025-2026_raw.json"
+    path.write_text(json.dumps({"999:1": det}), encoding="utf-8")
+    # Sin la lista de temporadas con calendario (CALENDAR_SEASONS, que hoy lleva 2025-26): por la categoría.
+    report = D.import_raw(conn, str(path), log=lambda *a: None, calendar_seasons=())
+    assert report["groups"] == 1 and report["matches"] == 1
+    assert conn.execute("SELECT home_score, away_score FROM matches WHERE group_id=3").fetchall() == [(5, 0)]
+    assert conn.execute("SELECT * FROM matches WHERE group_id=1 ORDER BY id").fetchall() == before
+
+
 def test_a_cup_of_an_archived_season_is_created_in_its_category_with_its_code():
     """create_cup_group (finales y copas de las archivadas, desde su calendario): la copa alevín
     va a ALEVIN con su código ALCC1, no a BENJAMIN con BC1."""

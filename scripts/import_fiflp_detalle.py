@@ -55,6 +55,8 @@ DETALLE_VERSION = "4"
 # desvío de las cerradas, de 295 a 175 goles, sin ningún grupo peor (2025-26, con sus 65 grupos).
 # Alevín (sin portal: el calendario de la federación es el único que hay) entra en todas las temporadas
 # pasadas; sus grupos son claves nuevas de score_deviation, que no pueden empeorar la línea base.
+# Las categorías con portal (futbolaspalmas.com): las demás, el calendario de la federación en las pasadas.
+CON_PORTAL = ("BENJAMIN", "PREBENJAMIN")
 CALENDAR_SEASONS = ("2016-2017", "2017-2018", "2018-2019", "2019-2020", "2020-2021", "2021-2022",
                     "2024-2025", "2025-2026")
 
@@ -565,8 +567,10 @@ def import_raw(conn, path, log=print, calendar_seasons=None):
             report["unmatched"] += 1
             continue
         claimed.add(gid)
-        # Alevín no tiene portal: su calendario es el de la federación en todas las temporadas pasadas.
-        calendar = season in calendar_seasons or (not current and category_of(det.get("comp_name")) == "ALEVIN")
+        # Solo benjamín y prebenjamín tienen portal (futbolaspalmas): alevín, infantil, cadete y juvenil, el
+        # calendario de la federación en todas las temporadas pasadas (es el único que hay).
+        category = category_of(det.get("comp_name"))
+        calendar = season in calendar_seasons or (not current and category not in (None, *CON_PORTAL))
         detail, cards, new = write_group(conn, season_id, gid, det, entry, archived, log,
                                          calendar=calendar, acta_scores=scores() if calendar else {})
         report["groups"] += 1

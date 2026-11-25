@@ -69,6 +69,35 @@ def test_orden_competiciones():
     assert H.rango_competicion("copa de campeones categoria alevin fase c") == 40
 
 
+def test_rango_de_las_categorias_nuevas():
+    """Por el convenio (scripts/convenio.py): División de Honor, Autonómica, Interinsular y Preferente primero;
+    después la Primera; las demás ligas; y al final copas, ascensos, eliminatorias, finales y lo que no tiene
+    convenio. Lo de benjamín y alevín, igual."""
+    nombres = ["LIGA DIVISION DE HONOR JUVENIL GRUPO 6", "LIGA JUVENIL INTERINSULAR", "LIGA JUVENIL PREFERENTE GRAN CANARIA",
+               "LIGA PRIMERA JUVENIL GRAN CANARIA", "LIGA SEGUNDA JUVENIL GRAN CANARIA",
+               "COPA JUVENIL PREFERENTE FUERTEVENTURA", "ELIMINATORIA DESEMPATE CADETE INSULAR"]
+    assert [H.rango_competicion(n) for n in nombres] == [0, 0, 0, 10, 30, 40, 40]
+    assert H.rango_competicion("LIGA CADETE AUTONÓMICA") == 0
+    assert H.rango_competicion("FASE DE ASCENSO A CADETE INTERINSULAR") == 40
+    assert H.rango_competicion("LIGA INFANTIL LANZAROTE FASE 1") == 30
+    for nombre, rango in (("LIGA PREFERENTE ALEVIN F-8 GRAN CANARIA", 0), ("LIGA ALEVIN GRAN CANARIA FASE A", 1),
+                          ("LIGA ALEVIN GRAN CANARIA FASE PREVIA", 30), ("LIGA BENJAMIN GRAN CANARIA FASE PREVIA", 30),
+                          ("COPA CAMPEONES ALEVÍN", 40), ("CLAUSURA ALEVÍN", 40)):
+        assert H.rango_competicion(nombre) == rango, nombre
+
+
+def test_un_encargo_de_infantil_va_a_su_lote():
+    plan = H.encargar(None, "21", "infantil", "goleadores,actas", "", MIERCOLES)
+    assert plan["categorias"] == ["infantil"]
+    assert H.trabajos_del_plan(plan) == ["goleadores:2025-2026", "actas:2025-2026:infantil"]
+    assert H._lotes(["infantil", "cadete"]) == {"infantil": ["infantil"], "cadete": ["cadete"]}
+    assert H.encargar(None, "21", "juvenil,cadete,infantil", "actas", "", MIERCOLES)["categorias"] == \
+        ["infantil", "cadete", "juvenil"]
+    assert H._categorias_legibles(["infantil", "cadete", "juvenil"]) == "infantil, cadete y juvenil"
+    assert H._categorias_legibles(["benjamin", "prebenjamin"]) == "benjamín y prebenjamín"
+    assert H._categorias_legibles(["alevin"]) == "alevín"
+
+
 def test_primero_los_goleadores_de_todas_las_temporadas():
     a = H.siguiente(PLAN, H.estado_vacio(), MIERCOLES, env={})
     assert (a["accion"], a["trabajo"], a["temporadas"], a["categorias"]) == ("descargar", "goleadores", ["21", "20"], ["alevin"])
@@ -473,7 +502,7 @@ def test_el_freno_de_verdad_para_el_dia():
 def test_encargar_valida():
     p = H.encargar(None, "21,20", "alevín", "goleadores,actas", "", MIERCOLES)
     assert p == {**PLAN, "encargado": "2026-11-25T10:00:00+00:00"}
-    for mal in (("23", "alevin", "actas", ""), ("21", "infantil", "actas", ""), ("21", "alevin", "fotos", ""),
+    for mal in (("23", "alevin", "actas", ""), ("21", "senior", "actas", ""), ("21", "alevin", "fotos", ""),
                 ("22", "alevin", "goleadores", ""), ("21", "alevin", "detalle", "20"), ("", "alevin", "actas", ""),
                 ("21", "alevin", "", ""), ("21", "alevin", "calendario", "")):
         with pytest.raises(ValueError):

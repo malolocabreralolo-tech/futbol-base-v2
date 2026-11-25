@@ -246,3 +246,10 @@ def eliminatoria_de_liga(c):
     """Los grupos de eliminatoria publicados dentro de una liga («Eliminatoria de Primeros…»): el prefijo
     de la liga más EL y la fase «Eliminatorias <fase de la liga>» (punto 9), como EL, PEL y ALEL."""
     return Convenio(c.prefijo + "EL", "Eliminatorias " + c.fase, c.isla, "eliminatorias")
+
+
+def nivel(c):
+    """El token del nivel de un Convenio (H, A, I, T, S, P, 1, 2, NB, N o U: NIVELES), el que va tras la
+    categoría en su prefijo. Lo usa historico.rango_competicion (las ligas de más nivel, primero)."""
+    resto = next(c.prefijo[len(cat):] for cat in CATEGORIA.values() if c.prefijo.startswith(cat))
+    return "NB" if resto.startswith("NB") else resto[:1]

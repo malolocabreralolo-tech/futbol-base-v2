@@ -25,10 +25,10 @@ pendiente. Nada que vino vacío se guarda como leído.
 CLI:
   --temporada NN      (required) CodTemporada: 12..22
   --comps "id,id"     (optional) override comp list; otherwise auto-discover
-  --categorias LISTA  (optional) 'benjamin,prebenjamin' (por defecto) o 'alevin' (solo
-                      Gran Canaria, sin sala): las competiciones del catálogo que se recorren;
-                      las de un solo lote
-  --lote siempre|alevin (optional) el lote de la tanda (el de su trabajo en historico.py, o el de
+  --categorias LISTA  (optional) 'benjamin,prebenjamin' (por defecto), 'alevin' (solo
+                      Gran Canaria, sin sala), 'infantil', 'cadete' o 'juvenil': las competiciones
+                      del catálogo que se recorren; las de un solo lote (actas_lotes.LOTES)
+  --lote siempre|alevin|infantil|cadete|juvenil (optional) el lote de la tanda (el de su trabajo en historico.py, o el de
                       su grupo de concurrencia en actas-federacion.yml): si las categorías son de
                       otro, para
   --max-actas N       (optional) cap for spike runs
@@ -155,10 +155,11 @@ def catalog_names(season_code):
 
 
 def comp_lotes(season_code, comps, categories=None, names=None):
-    """{competición: lote} (actas_lotes: '' benjamín y prebenjamín, 'alevin' alevín), por el nombre
-    de la competición en el catálogo o en `names` (el desplegable que lee discover_comps). Una que
-    no está en ninguno va al lote de las categorías pedidas si son de uno solo; si son de los dos,
-    no se sabe dónde guardarla y se para (ValueError): mejor no bajar que mezclar."""
+    """{competición: lote} (actas_lotes: '' benjamín y prebenjamín, 'alevin' alevín, 'infantil',
+    'cadete', 'juvenil'), por el nombre de la competición en el catálogo o en `names` (el desplegable
+    que lee discover_comps). Una que no está en ninguno va al lote de las categorías pedidas si son
+    de uno solo; si son de más, no se sabe dónde guardarla y se para (ValueError): mejor no bajar que
+    mezclar."""
     categories = categories or _categorias().DEFAULT_CATEGORIES
     known = {**catalog_names(season_code), **{str(k): v for k, v in (names or {}).items()}}
     asked = actas_lotes.lotes_of(categories)
@@ -168,8 +169,8 @@ def comp_lotes(season_code, comps, categories=None, names=None):
         if lote is None:
             if len(asked) != 1:
                 raise ValueError(f"competición {comp}: no está en el catálogo y las categorías "
-                                 f"({', '.join(categories)}) son de los dos lotes; "
-                                 "pide --categorias alevin o benjamin,prebenjamin")
+                                 f"({', '.join(categories)}) son de más de un lote; "
+                                 f"pide las de uno ({_LOTES_LEGIBLES})")
             lote = asked[0]
         out[str(comp)] = lote
     return out
@@ -184,18 +185,22 @@ def _lote_label(lote):
     return lote or "benjamín/prebenjamín"
 
 
+# Las categorías de cada lote, para los mensajes: «benjamin,prebenjamin; alevin; infantil; cadete; juvenil».
+_LOTES_LEGIBLES = "; ".join(["benjamin,prebenjamin"] + [lote for lote in actas_lotes.LOTES if lote])
+
+
 def tanda_lote(season_code, categories=None, comps=None, names=None, expected=None):
     """El lote de una tanda, que es UNO: el de sus categorías. Una cadena de actas-federacion.yml
     escribe y sube solo los ficheros de su lote (su grupo de concurrencia es por temporada y lote):
     si escribiera los del otro, chocaría con la cadena de ese lote y una de las dos perdería su
-    tanda al subir. Por eso para (ValueError) si las categorías mezclan los dos lotes, si una
+    tanda al subir. Por eso para (ValueError) si las categorías mezclan lotes, si una
     competición de --comps es del otro lote (por su nombre en el catálogo o en `names`) o si el lote
     no es el que espera la cadena (`expected`, el de --lote)."""
     categories = categories or _categorias().DEFAULT_CATEGORIES
     lotes = actas_lotes.lotes_of(categories)
     if len(lotes) != 1:
-        raise ValueError(f"las categorías ({', '.join(categories)}) son de los dos lotes: una tanda baja "
-                         "las de uno solo; lanza alevin y benjamin,prebenjamin por separado")
+        raise ValueError(f"las categorías ({', '.join(categories)}) son de más de un lote: una tanda baja "
+                         f"las de uno solo; lanza cada lote por separado ({_LOTES_LEGIBLES})")
     lote = lotes[0]
     if comps:
         other = sorted(c for c, lt in comp_lotes(season_code, comps, categories, names).items() if lt != lote)
@@ -821,7 +826,8 @@ def parse_args():
     ap.add_argument("--comps", default="",
                     help="Optional comma-separated comp IDs (override auto-discovery)")
     ap.add_argument("--categorias", default="",
-                    help="Categorías del catálogo: 'benjamin,prebenjamin' (por defecto) o 'alevin'")
+                    help="Categorías del catálogo, las de un lote: 'benjamin,prebenjamin' (por defecto), "
+                         "'alevin', 'infantil', 'cadete' o 'juvenil'")
     ap.add_argument("--max-actas", type=int, default=0,
                     help="Cap on number of actas to process (0 = unlimited)")
     ap.add_argument("--max-minutes", type=int, default=0,
