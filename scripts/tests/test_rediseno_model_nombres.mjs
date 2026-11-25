@@ -5,7 +5,7 @@ import { fixture } from './fixtures/rediseno/load.mjs';
 import { spawnSync } from 'node:child_process';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { buildSeason, playerName, playerPrefixes, playerSearchPrefix, searchPlayers, teamShort, timelineFor } from '../../src/model.js';
+import { buildSeason, categoryName, playerName, playerPrefixes, playerSearchPrefix, searchPlayers, teamShort, timelineFor } from '../../src/model.js';
 
 const current = fixture('current-2025-2026');
 const matchDetail = fixture('matchdetail');
@@ -255,4 +255,12 @@ test('searchPlayers: de la última temporada más reciente a la más antigua y d
   assert.equal(two.total, 4);
   assert.deepEqual(two.list.map(p => p.id), ['1004', '1002']);
   assert.equal(searchPlayers(Array.from({ length: 40 }, (_, i) => [String(i + 1), `GOMEZ, LUIS${i}`, 'X', '2025-2026', []]), 'gomez').list.length, 30);
+});
+
+test('categoryName: el miniprebenjamín (solo de la liga de escuelas) con su tilde; las demás, como siempre', () => {
+  assert.equal(categoryName('miniprebenjamin'), 'Miniprebenjamín');
+  assert.equal(categoryName('prebenjamin'), 'Prebenjamín');
+  assert.equal(categoryName('benjamin'), 'Benjamín');
+  assert.equal(categoryName('alevin'), 'Alevín');
+  assert.equal(categoryName('infantil'), 'Infantil');
 });

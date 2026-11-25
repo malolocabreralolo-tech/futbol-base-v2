@@ -519,3 +519,42 @@ test('acta.css: en la ficha del jugador el nombre parte línea en vez de cortars
   assert.match(rule[1], /overflow: visible/);
   assert.match(css, /\.screen-head h1 \{ overflow: hidden; text-overflow: ellipsis; white-space: nowrap; \}/);
 });
+
+// La liga de escuelas (MyGol): "e" de data-jugadores, [temporada, equipo, categoría, jornadas], en orden de
+// temporada y de equipo (generate_js._escuela). Equipos inventados.
+const ESCUELA = [
+  ['2022-2023', 'CD UNO A', 'miniprebenjamin', 1],
+  ['2024-2025', 'CD UNO A', 'prebenjamin', 12],
+  ['2024-2025', 'ESCUELA TRES', null, 0],
+];
+const schoolRows = (out) => {
+  const at = out.indexOf('<h2 class="block-title">Liga de escuelas</h2>');
+  if (at < 0) return null;
+  const block = out.slice(at, out.indexOf('</section>', at));
+  return [...block.matchAll(/<div class="traj-row"><span class="traj-team">([^<]+)<\/span><span class="traj-group">([^<]+)<\/span><span class="traj-pts">([^<]+)<\/span><\/div>/g)]
+    .map(m => m.slice(1));
+};
+
+test('ficha: «Liga de escuelas» tras la trayectoria, enlazada por el nombre, de la temporada más reciente a la más antigua', () => {
+  const out = renderRaul({ ...RAUL_ENTRY, e: ESCUELA, h: [['900001', 'UD Otra', '2023-2024']] });
+  assert.deepEqual(schoolRows(out), [
+    ['CD UNO A', 'Prebenjamín · 2024/25', '12 jornadas'],
+    ['ESCUELA TRES', '2024/25', 'en la plantilla'],
+    ['CD UNO A', 'Miniprebenjamín · 2022/23', '1 jornada'],
+  ]);
+  assert.match(out, /<h2 class="block-title">Liga de escuelas<\/h2><p class="block-context">enlazado por el nombre y los dos apellidos<\/p>/);
+  // Después de «Trayectoria» y antes de «Otras fichas con este mismo nombre»; las filas no son enlaces.
+  const at = out.indexOf('Liga de escuelas');
+  assert.ok(out.indexOf('Trayectoria') < at && at < out.indexOf('Otras fichas con este mismo nombre'));
+  const block = out.slice(at, out.indexOf('</section>', at));
+  assert.doesNotMatch(block, /<a /);
+  // La cabecera no cambia: ni temporadas ni partidos de la escuela.
+  assert.match(out, /<p class="screen-sub">Nacido en 2014 o 2015 \(estimado\) · 2 temporadas · 42 partidos · 61 goles<\/p>/);
+});
+
+test('ficha: sin "e" (o vacío), sin «Liga de escuelas»', () => {
+  assert.doesNotMatch(renderRaul(RAUL_ENTRY), /Liga de escuelas/);
+  assert.doesNotMatch(renderRaul({ ...RAUL_ENTRY, e: [] }), /Liga de escuelas/);
+  assert.equal(categoryName('miniprebenjamin'), 'Miniprebenjamín');
+  assert.equal(categoryName('prebenjamin'), 'Prebenjamín');
+});

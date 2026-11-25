@@ -2,7 +2,8 @@
 // prebenjamín a benjamín y de una temporada a otra, con o sin id de la federación): su año de nacimiento
 // (estimado, salvo que sea seguro), un resumen por categoría, su trayectoria según
 // las actas, de la temporada más reciente a la más antigua (equipo, grupo, partidos, de titular, goles y
-// tarjetas; la fila que llegó por una unión dice por qué), las otras fichas con su mismo nombre y
+// tarjetas; la fila que llegó por una unión dice por qué), la liga de escuelas si está enlazada con MyGol,
+// las otras fichas con su mismo nombre y
 // «Seguir», que lo pone en Mi equipo. Los datos son el trozo de su clave de data-jugadores-<k>.js
 // (ensureJugadores); una clave que es alias de otra ficha («a» de su trozo) abre esa, sin cambiar la URL.
 // La ficha no depende de ninguna temporada cargada. render(ctx) es pura; mount pone «Seguir».
@@ -120,6 +121,23 @@ function summary(shard, player) {
   return block('Resumen', html`${box(html`${rows}`)}${rankingLinks(player)}`, { context: 'por categoría' });
 }
 
+// «Liga de escuelas»: las temporadas de MyGol de una ficha enlazada ("e": [[temporada, equipo, categoría,
+// jornadas jugadas]], en orden de temporada y de equipo; generate_js._escuela), de la más reciente a la más
+// antigua y, dentro de una temporada, en el orden del trozo. El enlace es por el nombre y los dos apellidos
+// (docs/mygol.md): se dice siempre. Las filas no son enlaces (la web no tiene páginas de la liga de
+// escuelas); sin jornadas jugadas apuntadas, «en la plantilla». Sin "e", nada.
+function school(player) {
+  const rows = Array.isArray(player.e) ? player.e.filter(r => Array.isArray(r) && r.length >= 4) : [];
+  if (!rows.length) return '';
+  const recent = rows.map((r, i) => [r, i]).sort((a, b) => String(b[0][0]).localeCompare(String(a[0][0])) || a[1] - b[1]).map(([r]) => r);
+  const line = ([season, team, cat, played]) => {
+    const where = [cat ? categoryName(cat) : '', seasonLabel(season)].filter(Boolean).join(' · ');
+    const n = Number(played) | 0;
+    return html`<div class="traj-row"><span class="traj-team">${team}</span><span class="traj-group">${where}</span><span class="traj-pts">${n ? countLabel(n, 'jornada', 'jornadas') : 'en la plantilla'}</span></div>`;
+  };
+  return block('Liga de escuelas', box(html`${recent.map(line)}`), { context: 'enlazado por el nombre y los dos apellidos' });
+}
+
 // Las otras fichas con el mismo nombre ("h": [[clave, último equipo, temporada]]), cada una a la suya.
 function namesakes(player) {
   const list = Array.isArray(player.h) ? player.h.filter(([key]) => playerHref(key)) : [];
@@ -145,7 +163,7 @@ function render(ctx) {
   const only = player.s ? notice(null, 'En las actas figura solo con este nombre.') : '';
   const resumen = summary(shard, player);
   const below = resumen ? '' : rankingLinks(player);
-  return wrap(html`${head(playerName(player.n), { sub, action })}${resumen}${block('Trayectoria', html`${career(shard, player)}${only}${below}`, { context: 'según las actas de la federación' })}${namesakes(player)}`);
+  return wrap(html`${head(playerName(player.n), { sub, action })}${resumen}${block('Trayectoria', html`${career(shard, player)}${only}${below}`, { context: 'según las actas de la federación' })}${school(player)}${namesakes(player)}`);
 }
 
 function mount(root, ctx, nav) {
