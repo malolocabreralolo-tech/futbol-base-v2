@@ -976,6 +976,47 @@ async function mayoresWidths() {
   }
 }
 
+// Ligas de cadete y la Tabla de CADI1 (la Interinsular) a 320 px (mundo M), en claro y en oscuro: sin
+// desplazamiento horizontal de la página y con la barra en su sitio; Ligas lista las dos ligas de cadete y abre
+// la Interinsular, cuya Tabla dice su categoría y su fase y lleva los seis equipos, sin errores de JavaScript.
+async function mayoresM() {
+  const viewport = { width: 320, height: 568 };
+  for (const colorScheme of ['light', 'dark']) {
+    const label = `${nameOf(viewport, colorScheme)}, cadete (mundo M)`;
+    const context = await newContext(viewport, colorScheme);
+    try {
+      await useWorld(context, 'M');
+      const page = await context.newPage();
+      page.setDefaultTimeout(8000);
+      const errors = [];
+      page.on('pageerror', (error) => errors.push(error.message));
+      await page.goto(`${base}#/ligas?c=cadete`);
+      await paintedAs(page, 'ligas', { label: `${label}, Ligas` });
+      let m = await checkLayout(page, viewport.width, `${label}, Ligas`);
+      assert.equal(m.paper, PAPER[colorScheme], `${label}, Ligas: fondo del tema`);
+      assert.deepEqual(await page.locator('#contenido .link-row-title').allTextContents(), ['Insular', 'Interinsular'], `${label}, Ligas`);
+      await click(page, '#contenido a.link-row:has-text("Interinsular")', label);
+      await paintedAs(page, 'ligas', { label: `${label}, la Interinsular` });
+      await click(page, '#contenido a.link-row[href*="g=CADI1"]', label);
+      const s = await paintedAs(page, 'tabla', { hash: '#/tabla?s=2026-2027&g=CADI1', label: `${label}, Tabla de CADI1` });
+      assert.equal(s.h1, 'Tabla');
+      assert.equal(await page.locator('#contenido .screen-sub').textContent(), 'Cadete, Interinsular, Grupo 1');
+      assert.equal(await page.locator('#contenido table.standings:not(.group-scorers) tbody tr').count(), 6, `${label}: seis equipos`);
+      m = await checkLayout(page, viewport.width, `${label}, Tabla de CADI1`);
+      assert.equal(m.paper, PAPER[colorScheme], `${label}, Tabla: fondo del tema`);
+      // En frío, por su dirección: igual.
+      await page.goto(`${base}#/tabla?g=CADI1`);
+      await labeled(`${label}: recargar en la Tabla de CADI1`, () => page.reload());
+      await paintedAs(page, 'tabla', { label: `${label}, Tabla de CADI1 en frío` });
+      assert.equal(await page.locator('#contenido .screen-sub').textContent(), 'Cadete, Interinsular, Grupo 1');
+      await checkLayout(page, viewport.width, `${label}, Tabla de CADI1 en frío`);
+      assert.deepEqual(errors, [], `${label}: sin errores de JavaScript`);
+    } finally {
+      await context.close();
+    }
+  }
+}
+
 // Mundo E: «Las Mesas Hu. B» guardado en FF13 pregunta; la respuesta se guarda en el
 // almacén y, al recargar, la portada es la de ese equipo, sin preguntar.
 async function answerE() {
@@ -1037,6 +1078,8 @@ try {
   console.log('PASS: 320 y 390px, en claro y en oscuro, alevín (mundo L): el selector de tres categorías de Goleadores y Récords, entero y de 44 px, y Ligas y Explorar sin desplazamiento horizontal');
   await mayoresWidths();
   console.log('PASS: Goleadores a 320 px con seis categorías y Récords a 320 px con seis categorías (mundo S), en claro y en oscuro: sin desplazamiento horizontal de la página, la fila del selector se desliza, los seis nombres enteros y de 44 px, y juvenil marcado y a la vista');
+  await mayoresM();
+  console.log('PASS: Ligas de cadete y la Tabla de CADI1 a 320 px (mundo M), en claro y en oscuro: sin desplazamiento horizontal, las dos ligas de cadete, la Interinsular abre su Tabla con sus seis equipos, también en frío');
 } finally {
   if (browser) await browser.close();
   server.closeAllConnections();

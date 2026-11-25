@@ -3,16 +3,19 @@
 check_missing_shields.py - Lista equipos sin escudo en data-shields.js.
 Util para identificar equipos historicos que necesitan escudo manual.
 """
-import json, os, re, unicodedata
+import json, os, re, sys, unicodedata
+
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from categorias import DB_NAME  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SHIELDS_PATH = os.path.join(ROOT, 'data-shields.js')
 SEASONS_PATH = os.path.join(ROOT, 'data-seasons.js')
-BENJAMIN_PATH = os.path.join(ROOT, 'data-benjamin.js')
-PREBENJAMIN_PATH = os.path.join(ROOT, 'data-prebenjamin.js')
-# Alevín (docs/alevin.md): la temporada en curso en data-alevin.js y las pasadas en
-# data-season-<S>-alevin.js, solo si la temporada tiene alevín.
-ALEVIN_PATH = os.path.join(ROOT, 'data-alevin.js')
+# Las seis categorías de la web (categorias.DB_NAME), no unas cuantas a mano. La temporada en curso, cada una
+# en data-<cat>.js (const BENJAMIN, PREBENJAMIN, ALEVIN, INFANTIL...: el nombre de la base); las pasadas,
+# benjamín y prebenjamín en data-season-<S>.js y las perezosas (alevín, infantil, cadete y juvenil;
+# docs/alevin.md §5) en data-season-<S>-<cat>.js, que solo existe si la temporada la tiene.
+EN_SU_TEMPORADA = ('benjamin', 'prebenjamin')
 
 STRIP = re.compile(r'\b(CF|UD|CD|AD|SD|AFC|SC|CP|CE|CEF|SSD|ATLETICO|ATL)\b', re.IGNORECASE)
 
@@ -32,16 +35,24 @@ def normalize(name):
     name = STRIP.sub('', name)
     return re.sub(r'\s+', ' ', name.lower()).strip()
 
-def alevin_of_season(sname):
-    """Los grupos alevín de una temporada pasada (data-season-<S>-alevin.js), o []."""
-    path = os.path.join(ROOT, f'data-season-{sname}-alevin.js')
+def lazy_of_season(sname, cat):
+    """Los grupos de una categoría perezosa (alevín, infantil, cadete o juvenil) de una temporada pasada
+    (data-season-<S>-<cat>.js), o [] si la temporada no la tiene."""
+    path = os.path.join(ROOT, f'data-season-{sname}-{cat}.js')
     if not os.path.exists(path):
         return []
     try:
-        return load_json_var(path, f"SEASON_{sname.replace('-', '_')}_ALEVIN").get('alevin', [])
+        return load_json_var(path, f"SEASON_{sname.replace('-', '_')}_{DB_NAME[cat]}").get(cat, [])
     except Exception as e:
         print(f"[{sname}] WARNING: parse error in {path}: {e}")
         return []
+
+
+def current_of(cat):
+    """Los grupos de una categoría en la temporada en curso (data-<cat>.js), o [] si el fichero no está (una
+    web de antes de esa categoría)."""
+    path = os.path.join(ROOT, f'data-{cat}.js')
+    return load_json_var(path, DB_NAME[cat]) if os.path.exists(path) else []
 
 
 def load_json_var(path, varname):
@@ -95,15 +106,12 @@ def main():
     for s in seasons:
         sname = s['name']
         if s.get('current'):
-            # Current season uses data-benjamin.js / data-prebenjamin.js
+            # La temporada en curso, en data-<cat>.js.
             try:
-                ben = load_json_var(BENJAMIN_PATH, 'BENJAMIN')
-                pre = load_json_var(PREBENJAMIN_PATH, 'PREBENJAMIN')
-                ale = load_json_var(ALEVIN_PATH, 'ALEVIN') if os.path.exists(ALEVIN_PATH) else []
-                season_groups[sname] = {'benjamin': ben, 'prebenjamin': pre, 'alevin': ale}
+                season_groups[sname] = {cat: current_of(cat) for cat in DB_NAME}
             except Exception as e:
                 print(f"[{sname}] WARNING: can't load current data: {e}")
-                season_groups[sname] = {'benjamin': s.get('benjamin', []), 'prebenjamin': s.get('prebenjamin', [])}
+                season_groups[sname] = {cat: s.get(cat, []) for cat in EN_SU_TEMPORADA}
         else:
             # Historical seasons may be embedded in seasons or in data-season-XXXX.js
             ben = s.get('benjamin', [])
@@ -118,7 +126,8 @@ def main():
                         pre = d.get('prebenjamin', [])
                     except Exception as e:
                         print(f"[{sname}] WARNING: parse error in {path}: {e}")
-            season_groups[sname] = {'benjamin': ben, 'prebenjamin': pre, 'alevin': alevin_of_season(sname)}
+            season_groups[sname] = {'benjamin': ben, 'prebenjamin': pre,
+                                    **{cat: lazy_of_season(sname, cat) for cat in DB_NAME if cat not in EN_SU_TEMPORADA}}
 
     grand_missing = set()
     for sname, cats in season_groups.items():

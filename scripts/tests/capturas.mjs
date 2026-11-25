@@ -3,10 +3,11 @@
 // en A y en D con su plantilla y su trayectoria abiertas, Explorar con resultados, Ligas con
 // «Comparar grupos» abierto, el cuadro y la liguilla de Copa, Goleadores, Récords, Temporadas, Fuentes
 // y Ajustes; la portada con la plantilla y la trayectoria abiertas (Guayarmina en A1); y las
-// de alevín (mundo L), a 390 px en claro y en oscuro y a 1440 px en claro. Salen de los mundos de fixtures de
-// fixture-site.mjs (datos congelados y reloj fijado), así que no dependen del día. Cada captura es la
-// pantalla entera: la ventana crece hasta el alto de la página, con la barra en su sitio.
-// Uso, desde la raíz del repo: OUT=<directorio> node scripts/tests/capturas.mjs
+// de alevín (mundo L) y de infantil, cadete y juvenil (mundo M), a 390 px en claro y en oscuro y a 1440 px en
+// claro. Salen de los mundos de fixtures de fixture-site.mjs (datos congelados y reloj fijado), así que no
+// dependen del día. Cada captura es la pantalla entera: la ventana crece hasta el alto de la página, con la
+// barra en su sitio.
+// Uso, desde la raíz del repo: OUT=<directorio> node scripts/tests/capturas.mjs (con MUNDOS=M, solo las del mundo M)
 import { strict as assert } from 'node:assert';
 import { createRequire } from 'node:module';
 import { mkdirSync } from 'node:fs';
@@ -81,7 +82,20 @@ const SHOTS = [
   ['alevin-eliminatorias', 'L', '#/copa?s=2025-2026&g=ALEL1', ['copa', null]],
   ['alevin-explorar-sin-datos', 'L', '#/explorar', ['explorar', null], { fail: ['data-alevin.js'] }],
   ['alevin-tabla-sin-datos', 'L', '#/tabla?g=AL1', ['tabla', 'error'], { fail: ['data-alevin.js'] }],
+  // Infantil, cadete y juvenil (parte E2), en el mundo M (14/10/2026, las seis categorías): Explorar, las Ligas de
+  // juvenil, la Tabla de la Interinsular de cadete (CADI1), la ficha de Guayarmina en CADI1 con su plantilla (de
+  // las actas) y su trayectoria (benjamín y cadete) abiertas, un partido de CADI1 con su acta, y Goleadores y
+  // Récords de cadete.
+  ['e2-explorar', 'M', '#/explorar', ['explorar', null]],
+  ['e2-ligas-juvenil', 'M', '#/ligas?c=juvenil', ['ligas', null]],
+  ['e2-tabla-cadi1', 'M', '#/tabla?g=CADI1', ['tabla', null]],
+  ['e2-equipo-trayectoria', 'M', '#/equipo?s=2026-2027&g=CADI1&t=Guayarmina', ['equipo', 'A'], { act: OPEN_SQUAD_AND_TRAJECTORY }],
+  ['e2-partido-cadi1', 'M', '#/partido?s=2026-2027&g=CADI1&r=Jornada%201&h=Guayarmina&a=Las%20Torres', ['partido', null]],
+  ['e2-goleadores-cadete', 'M', '#/goleadores?c=cadete', ['goleadores', null]],
+  ['e2-records-cadete', 'M', '#/records?c=cadete', ['records', null]],
 ];
+// MUNDOS=M,L: solo las de esos mundos (para mirar lo de una parte sin rehacer todas).
+const WORLDS_ONLY = (process.env.MUNDOS || '').split(',').map((w) => w.trim()).filter(Boolean);
 const VARIANTS = [[390, 844, 'light', 'claro'], [390, 844, 'dark', 'oscuro'], [1440, 900, 'light', 'claro']];
 
 const server = await startServer();
@@ -91,6 +105,7 @@ const problems = [];
 let count = 0;
 try {
   for (const [name, world, hash, [screen, state], options = {}] of SHOTS) {
+    if (WORLDS_ONLY.length && !WORLDS_ONLY.includes(world)) continue;
     for (const [width, height, colorScheme, theme] of VARIANTS) {
       const label = `${name}-${width}-${theme}`;
       const context = await browser.newContext({

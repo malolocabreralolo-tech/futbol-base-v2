@@ -80,8 +80,8 @@ test('los datos de B3: goleadores congelados, la Copa de Campeones el 23/09, las
 
 // Alevín (contrato común de alevín, puntos 4 y 5): el mundo L sirve data-alevin.js, con las seis
 // constantes en su orden y los grupos AL1 y AL2, y el alevín de 2025-26; los demás, no (un 404, «sin
-// alevín», que no notan: los smoke de siempre).
-test('el mundo L sirve data-alevin.js (AL1 y AL2) y data-season-2025-2026-alevin.js; los demás, ninguno', () => {
+// alevín», que no notan: los smoke de siempre), salvo M, el de las seis categorías, que sirve lo mismo que L.
+test('el mundo L sirve data-alevin.js (AL1 y AL2) y data-season-2025-2026-alevin.js; los demás, ninguno (M, lo de L)', () => {
   const l = worldFiles('L');
   const alevin = globalsOf(l['data-alevin.js']);
   assert.deepEqual(Object.keys(alevin), ['ALEVIN', 'ALEV_STATS', 'HISTORY_ALEV', 'GOL_ALEV', 'ESTADOS_ALEV', 'EQUIPOS_ALEV']);
@@ -89,7 +89,41 @@ test('el mundo L sirve data-alevin.js (AL1 y AL2) y data-season-2025-2026-alevin
   assert.deepEqual(Object.keys(alevin.HISTORY_ALEV), ['AL1', 'AL2']);
   const past = globalsOf(l['data-season-2025-2026-alevin.js']).SEASON_2025_2026_ALEVIN;
   assert.deepEqual(past.alevin.map((g) => `${g.id} ${g.phase}`), ['ALA1 Segunda Fase A', 'ALF1 Segunda Fase F', 'ALEL1 Eliminatorias']);
-  for (const name of Object.keys(WORLDS).filter((w) => w !== 'L')) {
+  for (const name of Object.keys(WORLDS).filter((w) => w !== 'L' && w !== 'M')) {
     assert.deepEqual(Object.keys(worldFiles(name)).filter((f) => /alevin/.test(f)), [], name);
   }
+  const m = worldFiles('M');
+  for (const file of ['data-alevin.js', 'data-season-2025-2026-alevin.js']) assert.equal(m[file].body, l[file].body, file);
+});
+
+test('el mundo M: infantil, cadete y juvenil con clubes de benjamín, CADI1 interinsular con actas y cronología, y SEASONS lo dice', () => {
+  const m = worldFiles('M');
+  const g = (file, name) => globalsOf(m[file])[name];
+  assert.deepEqual(seasonsOf(m)[0], { name: '2026-2027', current: true, lazy: ['infantil', 'cadete', 'juvenil'] });
+  assert.deepEqual(g('data-infantil.js', 'INFANTIL').map((x) => x.id), ['INFPG1', 'INF1G1']);
+  const cadete = g('data-cadete.js', 'CADETE');
+  assert.deepEqual(cadete.map((x) => [x.id, x.island, x.phase]), [['CADI1', 'interinsular', 'Interinsular'], ['CADNG1', 'grancanaria', 'Insular GC']]);
+  assert.deepEqual(g('data-juvenil.js', 'JUVENIL').map((x) => x.id), ['JUV2G1']);
+  // Clubes que también están en benjamín: el mismo nombre en dos categorías.
+  const benjamin = new Set(g('data-benjamin.js', 'BENJAMIN').flatMap((x) => x.standings.map((row) => row[1])));
+  assert.ok(benjamin.has('Guayarmina') && cadete[0].standings.some((row) => row[1] === 'Guayarmina'));
+  assert.ok(benjamin.has('Arucas') && g('data-juvenil.js', 'JUVENIL')[0].standings.some((row) => row[1] === 'Arucas'));
+  // Las actas de CADI1, una por partido jugado (tres jornadas de tres), con los goles de su marcador, y su cronología.
+  const actas = g('data-lineups-2026-2027-CADI1.js', 'LINEUPS_2026_2027_CADI1');
+  const detail = g('data-matchdetail-cadete.js', 'MATCH_DETAIL_CAD');
+  assert.equal(Object.keys(actas).length, 9);
+  assert.deepEqual(Object.keys(detail), Object.keys(actas));
+  for (const [key, acta] of Object.entries(actas)) {
+    const [hs, as] = key.split('|')[2].split('-').map(Number);
+    assert.deepEqual([acta.home.reduce((n, p) => n + p.g, 0), acta.away.reduce((n, p) => n + p.g, 0)], [hs, as], key);
+    assert.equal(detail[key].g.length, hs + as, key);
+    assert.ok([...acta.home, ...acta.away].every((p) => p.n.startsWith('PRUEBA ')), `${key}: nombres inventados`);
+  }
+  // Los goleadores de cada grupo, inventados, y los de CADI1, los de sus actas.
+  const gol = g('data-cadete.js', 'GOL_CAD');
+  assert.deepEqual(gol.map((x) => x.id), ['CADI1', 'CADNG1']);
+  assert.ok(gol.every((x) => x.s.length && x.s.every((row) => row[0].startsWith('PRUEBA '))));
+  const total = Object.values(actas).reduce((n, a) => n + [...a.home, ...a.away].reduce((k, p) => k + p.g, 0), 0);
+  assert.equal(gol[0].s.reduce((n, row) => n + row[2], 0), total);
+  assert.deepEqual(g('data-matchdetail-juvenil.js', 'MATCH_DETAIL_JUV'), {});
 });

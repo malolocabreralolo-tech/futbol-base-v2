@@ -22,7 +22,8 @@ import { useWorld } from './fixture-site.mjs';
  * Run directly (`node scripts/tests/render-smoke.mjs`) to exercise the real
  * browser harness; in CI it gates. The real data run with Chrome --dump-dom (node:* only); then
  * the D state runs in the browser over the frozen fixtures (fixture-site.mjs, world D: 23/09/2026,
- * data-health with 2026/27 pending) with the page clock fixed by Playwright.
+ * data-health with 2026/27 pending) with the page clock fixed by Playwright; and the screens of
+ * infantil, cadete and juvenil over world M (fixtureWorldM).
  */
 
 const ENTITIES = { '&amp;': '&', '&lt;': '<', '&gt;': '>', '&quot;': '"', '&#39;': "'" };
@@ -169,6 +170,59 @@ async function fixtureStateD(chrome, port) {
   }
 }
 
+// Las pantallas de infantil, cadete y juvenil en el navegador: el mundo M de fixture-site.mjs (14/10/2026, las
+// seis categorías; CADI1, la Interinsular de cadete, con actas y cronología), a 390 px. Cada una se pinta sin
+// errores de JavaScript ni de consola (un 404 de un fichero también lo es: el mundo sirve todo lo que se pide),
+// sin su caja de error y con lo suyo a la vista. Devuelve la lista de fallos ([] si todo está bien).
+const CADI1_J1 = '#/partido?s=2026-2027&g=CADI1&r=Jornada%201&h=Guayarmina&a=Las%20Torres';
+export const WORLD_M_SCREENS = [
+  ['Explorar', '#/explorar', 'explorar', /Infantil[\s\S]*Cadete[\s\S]*Juvenil/],
+  ['Ligas', '#/ligas?c=juvenil', 'ligas', /Juvenil[\s\S]*Segunda/],
+  ['Tabla', '#/tabla?g=CADI1', 'tabla', /Cadete, Interinsular/],
+  ['Jornada', '#/jornada?g=CADI1', 'jornada', /Guayarmina/],
+  ['Equipo', '#/equipo?s=2026-2027&g=CADI1&t=Guayarmina', 'equipo', /Interinsular/],
+  ['Partido', CADI1_J1, 'partido', /Prueba Guayarmina/],
+  ['Goleadores', '#/goleadores?c=cadete', 'goleadores', /Prueba Guayarmina/i],
+  ['Récords', '#/records?c=cadete', 'records', /Cadete/],
+  ['Temporadas', '#/temporadas', 'temporadas', /2026\/27/],
+];
+async function fixtureWorldM(chrome, port) {
+  const { chromium } = createRequire(import.meta.url)('playwright');
+  const browser = await chromium.launch({ executablePath: chrome, headless: true, args: ['--no-sandbox'] });
+  const problems = [];
+  try {
+    for (const [name, hash, screen, shown] of WORLD_M_SCREENS) {
+      const context = await browser.newContext({
+        viewport: { width: 390, height: 844 }, serviceWorkers: 'block', locale: 'es-ES', timezoneId: 'Atlantic/Canary',
+      });
+      try {
+        await useWorld(context, 'M');
+        const page = await context.newPage();
+        const errors = [];
+        page.on('pageerror', (error) => errors.push(`error de JavaScript: ${error.message}`));
+        page.on('console', (msg) => { if (msg.type() === 'error') errors.push(`error de consola: ${msg.text()}`); });
+        page.on('response', (response) => { if (response.status() >= 400) errors.push(`${response.status()} de ${new URL(response.url()).pathname}`); });
+        await page.goto(`http://127.0.0.1:${port}/index.html${hash}`);
+        await page.waitForFunction((s) => document.querySelector('#contenido section[data-screen]')?.getAttribute('data-screen') === s,
+          screen, { timeout: 15000 });
+        // Lo que llega después del pintado (la plantilla, los goles y las alineaciones del partido).
+        await page.waitForFunction(() => !document.querySelector('#contenido [data-slot]'), null, { timeout: 15000 });
+        await page.waitForFunction((source) => new RegExp(source).test(document.querySelector('#contenido').textContent), shown.source,
+          { timeout: 15000 }).catch(() => errors.push(`no se ve ${shown}`));
+        if (await page.locator('#contenido section[data-state="error"], #contenido .error-box').count()) errors.push('caja de error');
+        problems.push(...errors.map((e) => `${name} (${hash}): ${e}`));
+      } catch (error) {
+        problems.push(`${name} (${hash}): ${error.message.split('\n')[0]}`);
+      } finally {
+        await context.close();
+      }
+    }
+  } finally {
+    await browser.close();
+  }
+  return problems;
+}
+
 async function main() {
   const chrome = findChrome();
   if (!chrome) {
@@ -207,7 +261,14 @@ async function main() {
       const problems = await fixtureStateD(chrome, port);
       if (!problems.length) {
         console.log('PASS: estado D con las fixtures y el reloj del 23/09/2026: «Temporada 2026/27», «Así terminó 2025/26», «Verano», la clasificación final, la trayectoria y el calendario, sin la evolución de puntos ni el pronóstico de la clasificación final (ni su bloque ni su cifra)');
-        process.exit(0);
+        const m = await fixtureWorldM(chrome, port);
+        if (!m.length) {
+          console.log(`PASS: mundo M (infantil, cadete y juvenil): ${WORLD_M_SCREENS.map(([name]) => name).join(', ')}, sin errores de JavaScript ni de consola`);
+          process.exit(0);
+        }
+        console.error('FAIL: mundo M (infantil, cadete y juvenil):');
+        for (const f of m) console.error('  - ' + f);
+        process.exit(1);
       }
       console.error('FAIL: estado D con las fixtures:');
       for (const f of problems) console.error('  - ' + f);

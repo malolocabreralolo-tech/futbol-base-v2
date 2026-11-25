@@ -2,7 +2,7 @@
 // acta.css, fuentes y escudos) con los datos de las fixtures congeladas en lugar de los data-*.js
 // vivos y un PORTAL fijo en lugar de src/config.js. Así los smoke y las capturas no cambian cuando
 // el bot publica datos ni al activar 2026/27. El «hoy» se fija con el reloj de Playwright.
-// Lo usan interaction-smoke.mjs, render-smoke.mjs (estado D) y capturas.mjs.
+// Lo usan interaction-smoke.mjs, render-smoke.mjs (estado D y mundo M) y capturas.mjs.
 // Cada mundo solo anuncia en SEASONS las temporadas cuyo archivo sirve, y sirve el que anuncia; y lleva
 // los goleadores congelados, la Copa de Campeones en los mundos del 23/09/2026, las cuatro copas de la
 // Maspalomas y las actas de A1 y FF1.
@@ -142,6 +142,11 @@ export const WORLDS = {
   // 404: alevín, vacío), como B. Para el selector de categoría con seis a 320 px.
   S: { today: '2026-10-14', portalSeason: '2026-2027',
     current: () => nextSeasonRaw({ benjamin: ['A1', 'B2', 'FF15'], prebenjamin: ['PG2', 'PG3'] }), gol: false, mayores: true },
+  // 14/10/2026, 2026/27 con las seis categorías (parte E2): las de L (con alevín) y, de infantil, cadete y juvenil,
+  // cinco grupos con clubes de benjamín, actas en CADI1 (la Interinsular) y goleadores (mayoresWorldFiles); su
+  // entrada de SEASONS lo dice (`lazy`). Para el smoke, la interacción a 320 px y las capturas de E2.
+  M: { today: '2026-10-14', portalSeason: '2026-2027',
+    current: () => nextSeasonRaw({ benjamin: ['A1', 'B2', 'FF15'], prebenjamin: ['PG2', 'PG3'] }), gol: false, alevin: true, mayores: 'M' },
 };
 
 // Infantil, cadete y juvenil del mundo S, con la forma de data-<cat>.js (generate_js.generate_lazy_js): un
@@ -172,6 +177,125 @@ function mayoresFiles(js) {
     return [`data-${cat}.js`, js([[groups, [group]], [`${s}_STATS`, { groups: 1, teams: teams.length }], [`HISTORY_${s}`, { [id]: history }],
       [`GOL_${s}`, gol], [`ESTADOS_${s}`, {}], [`EQUIPOS_${s}`, {}], [`CAMPOS_${s}`, {}]])];
   }));
+}
+
+// Infantil, cadete y juvenil del mundo M, con la forma de data-<cat>.js (generate_js.generate_lazy_js): dos grupos
+// de infantil (Preferente y Primera), dos de cadete (la Interinsular, CADI1, con dos clubes de Lanzarote, y la
+// Insular de Gran Canaria) y uno de juvenil (Segunda), de seis equipos cada uno, con tres jornadas jugadas (26/09,
+// 3 y 10/10) y dos por jugar. Los clubes de Gran Canaria son los de benjamín del mundo (Guayarmina, de A1, juega
+// también la Interinsular; Arucas, la Segunda juvenil: el mismo club, la misma fila, en dos categorías); los de
+// Lanzarote y los jugadores, inventados. CADI1 lleva sus actas (data-lineups-2026-2027-CADI1.js) y su cronología
+// (data-matchdetail-cadete.js), con los goles de cada marcador; sus goleadores salen de las actas.
+const M_GROUPS = [
+  ['infantil', 'INFPG1', 'Preferente GC', 'grancanaria', 'LIGA INFANTIL PREFERENTE DE GRAN CANARIA',
+    ['Unión Viera', 'UD Valleseco', 'San Nicolás', 'Santidad', 'Las Torres', 'Muelle Grande']],
+  ['infantil', 'INF1G1', 'Primera GC', 'grancanaria', 'LIGA PRIMERA INFANTIL DE GRAN CANARIA',
+    ['Siete Palmas', 'Puertos LP', 'Santa Brígida', 'Moya', 'Goleta', 'UD Atalaya']],
+  ['cadete', 'CADI1', 'Interinsular', 'interinsular', 'LIGA CADETE INTERINSULAR',
+    ['Guayarmina', 'Unión Viera', 'CD Prueba Teguise', 'San Nicolás', 'UD Prueba Arrecife', 'Las Torres']],
+  ['cadete', 'CADNG1', 'Insular GC', 'grancanaria', 'LIGA CADETE INSULAR GRAN CANARIA',
+    ['La Garita', 'Ojos de Garza', 'CD Calero', 'Valkyrias Bec.', 'Gran Canaria C', 'Santa Brígida']],
+  ['juvenil', 'JUV2G1', 'Segunda GC', 'grancanaria', 'LIGA SEGUNDA JUVENIL GRAN CANARIA',
+    ['Arucas', 'UD Valleseco', 'Moya', 'Goleta', 'Puertos LP', 'Siete Palmas']],
+];
+const M_CONST = { infantil: ['INFANTIL', 'INF'], cadete: ['CADETE', 'CAD'], juvenil: ['JUVENIL', 'JUV'] };
+const M_DAYS = ['2026-09-26', '2026-10-03', '2026-10-10', '2026-10-17', '2026-10-24'];
+const M_TODAY = '2026-10-14';
+
+// Una liga a una vuelta (método del círculo): una jornada por fila, con sus partidos [local, visitante].
+function roundRobinM(teams) {
+  const rest = teams.slice(1);
+  return Array.from({ length: teams.length - 1 }, (_, r) => {
+    const ring = [teams[0], ...rest.slice(r), ...rest.slice(0, r)];
+    return Array.from({ length: teams.length / 2 }, (_, i) => (r % 2
+      ? [ring[ring.length - 1 - i], ring[i]] : [ring[i], ring[ring.length - 1 - i]]));
+  });
+}
+
+// La clasificación de unas filas de HISTORY: [[pos, equipo, pts, J, G, E, P, GF, GC, DG]].
+function standingsM(teams, rows) {
+  const t = new Map(teams.map((team, order) => [team, { team, order, pts: 0, pj: 0, g: 0, e: 0, p: 0, gf: 0, gc: 0 }]));
+  for (const [, home, away, hs, as] of rows) {
+    if (hs == null || as == null) continue;
+    for (const [team, gf, gc] of [[home, hs, as], [away, as, hs]]) {
+      const r = t.get(team);
+      r.pj += 1; r.gf += gf; r.gc += gc;
+      if (gf > gc) { r.g += 1; r.pts += 3; } else if (gf === gc) { r.e += 1; r.pts += 1; } else r.p += 1;
+    }
+  }
+  return [...t.values()].sort((a, b) => b.pts - a.pts || (b.gf - b.gc) - (a.gf - a.gc) || b.gf - a.gf || a.order - b.order)
+    .map((r, i) => [i + 1, r.team, r.pts, r.pj, r.g, r.e, r.p, r.gf, r.gc, r.gf - r.gc]);
+}
+
+// Los 14 de un equipo en un acta (11 titulares), con nombres inventados: «PRUEBA <EQUIPO>, JUGADOR <dorsal>».
+const squadM = (team) => Array.from({ length: 14 }, (_, k) => ({
+  n: `PRUEBA ${team.toUpperCase().replace(/[^A-ZÁÉÍÓÚÑ ]/g, '').trim()}, JUGADOR ${k + 1}`, dn: k + 1,
+  r: k < 11 ? 'starter' : 'sub', g: 0, y: 0, rd: 0,
+}));
+// «PRUEBA LAS TORRES, JUGADOR 9» → «J. Prueba Las Torres», como abrevia la cronología.
+const shortM = (name) => {
+  const [last, first] = name.split(', ');
+  const title = (s) => s.toLowerCase().replace(/(^|\s)\S/g, (c) => c.toUpperCase());
+  return `${first[0]}. ${title(last)} ${first.split(' ')[1]}`;
+};
+
+function mayoresWorldFiles(js) {
+  const out = {};
+  const lineups = {};
+  const detail = {};
+  for (const [cat, [groupsConst, s]] of Object.entries(M_CONST)) {
+    const groups = [];
+    const history = {};
+    const gol = [];
+    for (const [c, id, phase, island, fullName, teams] of M_GROUPS) {
+      if (c !== cat) continue;
+      const scorers = new Map();          // [nombre, equipo] → [goles, partidos]
+      history[id] = Object.fromEntries(roundRobinM(teams).map((pairs, r) => [`Jornada ${r + 1}`, pairs.map(([home, away], i) => {
+        const played = M_DAYS[r] < M_TODAY;
+        const hs = played ? (r + 2 * i + id.length) % 4 : null;
+        const as = played ? (2 * r + i + 1) % 3 : null;
+        if (played) {
+          // Los goles, de los dorsales 9, 10 y 11 por turno; con actas (CADI1), también su acta y su cronología.
+          const sides = { h: [home, squadM(home), hs], a: [away, squadM(away), as] };
+          const events = [];
+          let h = 0;
+          let a = 0;
+          for (let k = 0; k < hs + as; k++) {
+            const side = (k % 2 === 0 && h < hs) || a >= as ? 'h' : 'a';
+            const [team, squad] = sides[side];
+            const player = squad[8 + (k % 3)];
+            player.g += 1;
+            if (side === 'h') h += 1; else a += 1;
+            events.push([12 + 13 * k, shortM(player.n), `${h}-${a}`, side, 'r']);
+            const key = `${player.n}|${team}`;
+            const sc = scorers.get(key) || [player.n, team, 0, 0];
+            sc[2] += 1;
+            scorers.set(key, sc);
+          }
+          for (const [team, squad] of Object.values(sides)) {
+            for (const p of squad.slice(8, 11)) { const sc = scorers.get(`${p.n}|${team}`); if (sc) sc[3] += 1; }
+          }
+          if (id === 'CADI1') {
+            const key = `${home}|${away}|${hs}-${as}`;
+            lineups[key] = { s: '2026-2027', gr: id, cod: 990000 + 10 * r + i, home: sides.h[1], away: sides.a[1] };
+            detail[key] = { s: '2026-2027', gr: id, g: events };
+          }
+        }
+        return [M_DAYS[r], home, away, hs, as, null, `${String(9 + i).padStart(2, '0')}:00`, `CAMPO DE PRUEBA ${id}`];
+      })]));
+      const last = Object.keys(history[id]).filter((key) => history[id][key].some((m) => m[3] != null)).pop();
+      groups.push({ id, name: 'Grupo 1', fullName: `${fullName} - GRUPO 1`, phase, island, url: null, jornada: last,
+        standings: standingsM(teams, Object.values(history[id]).flat()), matches: [], standingsKind: 'source' });
+      gol.push({ id, g: `${groupsConst} ${phase.toUpperCase()} - GRUPO 1`,
+        s: [...scorers.values()].sort((x, y) => y[2] - x[2] || (x[0] < y[0] ? -1 : 1)) });
+    }
+    const teams = new Set(groups.flatMap((g) => g.standings.map((row) => row[1])));
+    out[`data-${cat}.js`] = js([[groupsConst, groups], [`${s}_STATS`, { groups: groups.length, teams: teams.size }],
+      [`HISTORY_${s}`, history], [`GOL_${s}`, gol], [`ESTADOS_${s}`, {}], [`EQUIPOS_${s}`, {}], [`CAMPOS_${s}`, {}]]);
+    out[`data-matchdetail-${cat}.js`] = js([[`MATCH_DETAIL_${s}`, cat === 'cadete' ? detail : {}]]);
+  }
+  out['data-lineups-2026-2027-CADI1.js'] = js([['LINEUPS_2026_2027_CADI1', lineups]]);
+  return out;
 }
 
 // 2025-26 terminada, con la forma de data-season-<S>.js, para los mundos de 2026/27 (B y X): la fixture
@@ -211,7 +335,7 @@ function files(w) {
     ...archived,
     'data-matchdetail.js': js([['MATCH_DETAIL', fixture('matchdetail')]]),
     // El alevín, perezoso: el de la temporada del portal y el de 2025-26 (contrato común, puntos 4 y 5).
-    ...(w.mayores ? mayoresFiles(js) : {}),
+    ...(w.mayores === 'M' ? mayoresWorldFiles(js) : w.mayores ? mayoresFiles(js) : {}),
     ...(w.alevin ? {
       'data-alevin.js': { type: 'text/javascript', body: dataFile(alevinRaw({ season: w.portalSeason, today: w.today })) },
       'data-season-2025-2026-alevin.js': js([['SEASON_2025_2026_ALEVIN', pastAlevinRaw('2025-2026')]]),
