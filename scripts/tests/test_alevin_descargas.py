@@ -14,6 +14,12 @@ import yaml
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 sys.path.insert(1, str(ROOT))
+
+# Suponen el mundo de antes de los pasos D3-D6 del director (infantil, cadete y juvenil sin activar, el alevín de
+# Lanzarote y Fuerteventura fuera): lo fijan ellas (conftest.categorias_de_antes) para que cada paso solo cambie
+# categorias.py y test_categorias.test_lo_que_se_activa_y_lo_que_se_ve_no_cambia. Las que miran otro mundo lo ponen.
+pytestmark = pytest.mark.usefixtures("categorias_de_antes")
+
 CATALOG = json.loads((ROOT / "scripts" / "tests" / "fixtures" / "fiflp_comps_catalog.json").read_text(encoding="utf-8"))
 ALEVIN_GC_2526 = {"54422881", "54422939", "54422940", "54422941", "54965212", "54976639"}
 # 2026-27 en el congelado (25/11/2026): benjamín y prebenjamín de las tres islas (sin sala) y el alevín de

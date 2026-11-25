@@ -131,7 +131,7 @@ Una pasada a mano (`gh workflow run carril-mayores.yml -R malolocabreralolo-tech
 
 ## Los pasos del director
 
-Ninguno lo da el código: cada uno es una orden o un commit de una línea, con su comprobación en verde antes del siguiente. El ritmo: **entre D3, D4 y D5, al menos un día entero de pasadas en verde del bot y del carril, y la base medida**.
+Ninguno lo da el código: cada uno es una orden o un commit pequeño (en D3-D6, la línea de `scripts/categorias.py` y la misma en su única prueba), con su comprobación en verde antes del siguiente. El ritmo: **entre D3, D4 y D5, al menos un día entero de pasadas en verde del bot y del carril, y la base medida**.
 
 **Antes de cada uno** (D2-D6):
 
@@ -139,7 +139,7 @@ Ninguno lo da el código: cada uno es una orden o un commit de una línea, con s
 gh run list -R malolocabreralolo-tech/futbol-base-v2 --status in_progress && gh run list -R malolocabreralolo-tech/futbol-base-v2 --status queued   # sin update.yml, carril-mayores.yml ni activar.yml (ni historico.yml si el paso le encarga algo)
 git pull
 ls -l futbolbase.db                                                          # por debajo de 70 MB (o la parte D en su fase 3)
-python3 scripts/prueba_mayores.py --categorias <las ya activas y la nueva>    # en verde sobre el main de ese momento (--islas en D6)
+python3 scripts/prueba_mayores.py --categorias <las ya activas y la nueva>    # en verde sobre el main de ese momento (--islas en D6); con el paso escrito, --con-cambios (abajo)
 ```
 
 ### D1: publicar las tareas 1-10
@@ -157,7 +157,11 @@ python3 scripts/prueba_mayores.py --categorias <las ya activas y la nueva>    # 
 
 ### D3: infantil
 
-1. Un commit de una línea en `main` (sin nada en marcha): `ACTIVABLES = ("BENJAMIN", "PREBENJAMIN", "ALEVIN", "INFANTIL")` en `scripts/categorias.py`, con las suites en verde; `git push`.
+1. Un commit de dos líneas en `main` (sin nada en marcha), las dos con la misma tupla:
+   - `scripts/categorias.py`: `ACTIVABLES = ("BENJAMIN", "PREBENJAMIN", "ALEVIN", "INFANTIL")`;
+   - `scripts/tests/test_categorias.py`, en `test_lo_que_se_activa_y_lo_que_se_ve_no_cambia` (la única prueba que comprueba lo que dice hoy `categorias.py`; las demás fijan el mundo que suponen con `conftest.categorias_de_antes` y no se tocan): `assert categorias.ACTIVABLES == ("BENJAMIN", "PREBENJAMIN", "ALEVIN", "INFANTIL")`.
+
+   Antes del commit, con las dos líneas ya cambiadas en el árbol: `python3 -m pytest -q -p no:cacheprovider scripts/tests/ && node --test scripts/tests/test_*.mjs && python3 scripts/prueba_mayores.py --categorias infantil --con-cambios` (la base de después con el paso ya dado); en verde, el commit y `git push`.
 2. Lo que pasa solo: en la primera pasada del bot con sus extras (como mucho un día), `newCompetitions` trae las 5 de infantil de 2026-27; `activar.yml` baja la tanda `22inf` (~14 grupos, ~450 páginas: 3-6 intentos de 20 min alternados con pasadas) y las activa; el carril hace la primera lectura completa de cada grupo (`fiflp_full_pending`).
 3. Comprobación: `activation.activated` de `data-health.json` (el de la pasada de `activar.yml` que los activó) lista los códigos `INF…`, y son los grupos de infantil de la base: `python3 -c "import json, sqlite3; a=sorted(c for x in json.load(open('data-health.json'))['activation']['activated'] for c in x['codes'] if c.startswith('INF')); b=sorted(r[0] for r in sqlite3.connect('futbolbase.db').execute(\"select g.code from groups g join categories c on c.id=g.category_id join seasons s on s.id=g.season_id where s.is_current=1 and c.name='INFANTIL'\")); print(len(a), len(b), a == b)"` da `N N True` (no se compara con `scripts/fiflp_islas_22inf_grupos.json`: el manifiesto descarta los grupos sin calendario ni clasificación); las pasadas del bot siguen en verde y su `run.groups` no cambia; las del carril, en verde y con `carriles.mayores.run.groups` igual a ese número; la web, igual: `grep -lE '"(INF|CAD|JUV)[A-Z0-9]{0,15}[0-9]+"' data-*.js` (códigos de grupo de las mayores entre comillas) no da nada en la pasada siguiente (`'"INF'` a secas sí da: apellidos).
 4. Las actas ya jugadas, con el carril del histórico (sin nada del histórico en marcha): `gh workflow run historico.yml -R malolocabreralolo-tech/futbol-base-v2 --ref main -f accion=encargar -f temporadas=22 -f categorias=infantil -f trabajos=actas`; comprobación: `python3 scripts/historico.py estado` hasta «2026-27 · actas infantil: en la base», y el tamaño de la base tras esa promoción (lo previsto: ~+2-3 MB). Mientras el histórico lee, el carril no se lanza (no arranca con el histórico en marcha): ese día tiene menos pasadas.
@@ -168,8 +172,8 @@ python3 scripts/prueba_mayores.py --categorias <las ya activas y la nueva>    # 
 
 Como D3, cada uno tras al menos un día entero de pasadas en verde del bot y del carril desde el anterior y con la base medida:
 
-- **D4**: `ACTIVABLES = ("BENJAMIN", "PREBENJAMIN", "ALEVIN", "INFANTIL", "CADETE")`; tanda `22cad` (~17 grupos); la «ELIMINATORIA DESEMPATE CADETE INSULAR» no sale en `newCompetitions` (está en `update_fiflp.IGNORED_COMPETITIONS`: sin ella, quedaría en `activation.failed`, `activar.yml` la volvería a intentar cada 24 h y la portada enseñaría siempre el aviso de «competiciones aún no cargadas»); comprobación como en D3 con `startswith('CAD')` y `c.name='CADETE'` (la eliminatoria de desempate no se activa ni está en `activation.activated`) y el mismo `grep -lE` vacío; sus actas, `-f categorias=cadete`; marcha atrás, `--categoria CADETE`.
-- **D5**: `… "CADETE", "JUVENIL")`; tanda `22juv` (~10 grupos); comprobación como en D3 con `startswith('JUV')` y `c.name='JUVENIL'` y el mismo `grep -lE` vacío; sus actas, `-f categorias=juvenil`; marcha atrás, `--categoria JUVENIL`.
+- **D4**: las dos líneas de D3 con `("BENJAMIN", "PREBENJAMIN", "ALEVIN", "INFANTIL", "CADETE")`, y antes del commit lo mismo con `--categorias infantil,cadete --con-cambios`; tanda `22cad` (~17 grupos); la «ELIMINATORIA DESEMPATE CADETE INSULAR» no sale en `newCompetitions` (está en `update_fiflp.IGNORED_COMPETITIONS`: sin ella, quedaría en `activation.failed`, `activar.yml` la volvería a intentar cada 24 h y la portada enseñaría siempre el aviso de «competiciones aún no cargadas»); comprobación como en D3 con `startswith('CAD')` y `c.name='CADETE'` (la eliminatoria de desempate no se activa ni está en `activation.activated`) y el mismo `grep -lE` vacío; sus actas, `-f categorias=cadete`; marcha atrás, `--categoria CADETE`.
+- **D5**: las dos líneas con `("BENJAMIN", "PREBENJAMIN", "ALEVIN", "INFANTIL", "CADETE", "JUVENIL")`, y antes del commit lo mismo con `--categorias infantil,cadete,juvenil --con-cambios`; tanda `22juv` (~10 grupos); comprobación como en D3 con `startswith('JUV')` y `c.name='JUVENIL'` y el mismo `grep -lE` vacío; sus actas, `-f categorias=juvenil`; marcha atrás, `--categoria JUVENIL`.
 
 Las interinsulares (`CADI`, `JUVI`) entran con isla `interinsular` y equipos de las tres islas.
 
@@ -177,8 +181,8 @@ Las interinsulares (`CADI`, `JUVI`) entran con isla `interinsular` y equipos de 
 
 Es el único paso de E1 que se ve en la web: sus grupos entran en «Alevín» (sus fases, «Lanzarote Fase 1» y «Fuerteventura Fase 1», ya las conoce la web) y los lee el bot de siempre (alevín es del carril principal), no el carril. Mejor sin ningún encargo de alevín del histórico a medias: desde este paso, un encargo de alevín incluye también las competiciones de las islas.
 
-1. Antes, `python3 scripts/prueba_mayores.py --islas` en verde.
-2. Un commit: `ALEVIN_ISLAS = True` en `scripts/categorias.py`, con las suites en verde; `git push`.
+1. Un commit de dos líneas: `ALEVIN_ISLAS = True` en `scripts/categorias.py` y, en `test_lo_que_se_activa_y_lo_que_se_ve_no_cambia` (`scripts/tests/test_categorias.py`), `assert categorias.ALEVIN_ISLAS is True`.
+2. Antes del commit, con las dos líneas ya cambiadas en el árbol (así se prueba el commit, no el `main` de antes: sin `--con-cambios`, el árbol temporal de `prueba_mayores.py` tendría `ALEVIN_ISLAS` en `False`): `python3 -m pytest -q -p no:cacheprovider scripts/tests/ && node --test scripts/tests/test_*.mjs && python3 scripts/prueba_mayores.py --islas --con-cambios`; en verde, el commit y `git push`.
 3. Comprobación: `activation.activated` con `ALUL…` y `ALUF…` (tanda `22al`); los leen las pasadas del bot de siempre (su `run.groups` sube en ~4); `data-alevin.js` los trae.
 4. Vuelta atrás: revertir el commit y, con el bot parado como en D3, `python3 scripts/quitar_categoria.py --temporada 2026-2027 --categoria ALEVIN --isla lanzarote --apply` (y `--isla fuerteventura`), las suites, el commit de la base y los dos `enable`.
 

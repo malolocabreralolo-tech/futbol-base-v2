@@ -82,7 +82,7 @@ def _con_alevin(root):
     return root
 
 
-def test_tandas_pendientes(tmp_path, capsys, monkeypatch):
+def test_tandas_pendientes(tmp_path, capsys, monkeypatch, categorias_de_antes):
     root = _con_alevin(T.tree(tmp_path))
     health = {"newCompetitions": [T.new_comp(T.PLZ), T.new_comp(JUV_PG), T.new_comp(INF_PG)],
               "newGroups": [{"competition": T.FF[0], "competitionName": "BENJAMIN PRIMERA FASE GC", "id": "25",
@@ -196,7 +196,7 @@ def test_desempate_falla_sin_convenio(tmp_path, monkeypatch):
     assert T.health(root)["newCompetitions"] == [T.new_comp(DESEMPATE)]
 
 
-def test_nada_se_activa_sin_activables(tmp_path):
+def test_nada_se_activa_sin_activables(tmp_path, categorias_de_antes):
     """Con ACTIVABLES como hoy, una competición de infantil pendiente (en data-health.json a mano, o un grupo nuevo
     que vio el carril de mayores tras volver atrás un paso) no se activa: queda en activation.failed con su motivo
     (y el bot la reintenta una vez al día, sin cambiar nada)."""

@@ -23,6 +23,11 @@ from db import SCHEMA  # noqa: E402
 import source_health  # noqa: E402
 import update_fiflp as U  # noqa: E402
 
+# Suponen el mundo de antes de los pasos D3-D6 del director (infantil, cadete y juvenil sin activar, el alevín de
+# Lanzarote y Fuerteventura fuera): lo fijan ellas (conftest.categorias_de_antes) para que cada paso solo cambie
+# categorias.py y test_categorias.test_lo_que_se_activa_y_lo_que_se_ve_no_cambia. Las que miran otro mundo lo ponen.
+pytestmark = pytest.mark.usefixtures("categorias_de_antes")
+
 TODAY = date(2026, 10, 14)
 CATALOG = json.loads((ROOT / "scripts" / "tests" / "fixtures" / "fiflp_comps_catalog.json").read_text(encoding="utf-8"))["2026-2027"]["all"]
 FIFLP = ("https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22"
