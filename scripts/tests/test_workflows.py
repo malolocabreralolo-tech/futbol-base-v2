@@ -543,7 +543,7 @@ def test_guion_de_diagnostico_con_base_mala(tmp_path):
     git, remote, work, env = _repo(tmp_path / "repo", {"data-x.js": "publicado", "data-health.json": json.dumps(
         {"version": 1, "season": "2026-2027", "runHealth": {"ok": True}, "groups": {}})})
     (work / "scripts").mkdir()
-    for name in ("base_sana.py", "source_health.py", "portal_config.py", "escritura.py"):
+    for name in ("base_sana.py", "source_health.py", "portal_config.py", "escritura.py", "categorias.py"):
         shutil.copy2(ROOT / "scripts" / name, work / "scripts" / name)
     (work / "futbolbase.db").write_bytes(published_db)
     git("add", ".", cwd=work)
@@ -845,7 +845,8 @@ def test_pasada_en_seco_sube_solo_la_pieza_que_cambia(tmp_path):
     git, remote, work, env = _repo(tmp_path / "repo", {"data-x.js": "publicado", "index.html": "i", "sw.js": "s",
                                                        "data-health.json": "{}\n"})
     (work / "scripts").mkdir()
-    for name in ("piezas.py", "base_sana.py", "source_health.py", "portal_config.py", "escritura.py", "db.py"):
+    for name in ("piezas.py", "base_sana.py", "source_health.py", "portal_config.py", "escritura.py", "db.py",
+                 "categorias.py"):
         shutil.copy2(ROOT / "scripts" / name, work / "scripts" / name)
     shutil.copy2(ROOT / ".gitignore", work / ".gitignore")
     tp._base(work / "futbolbase.db")
@@ -1903,7 +1904,7 @@ def _run_launch(tmp_path, report, gh_exit=0):
     _, step = _update_step(LANZAR)
     work = tmp_path / "arbol"
     (work / "scripts").mkdir(parents=True)
-    for name in ("source_health.py", "portal_config.py", "escritura.py"):
+    for name in ("source_health.py", "portal_config.py", "escritura.py", "categorias.py"):
         shutil.copy2(ROOT / "scripts" / name, work / "scripts" / name)
     (work / "data-health.json").write_text(json.dumps(report), encoding="utf-8")
     bin_dir, calls = tmp_path / "bin", tmp_path / "gh-llamadas"

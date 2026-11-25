@@ -608,3 +608,82 @@ def test_with_the_measured_quota_every_group_is_read_within_days(tmp_path, monke
         # Sin publicar data-health.json (commits que fallan), todos los prioritarios tocan en todas y el cupo no da
         # para los siete: los primeros (por nivel y código), en todas.
         assert all(len(mine[c]) == passes for c in ("PG2", "B2", "FF5")), mine
+
+
+# ── La prueba de oro de los carriles (parte E1, tarea 7) ──────────────────────────────────────────────────
+# El orden de las pasadas del bot de siempre, calculado con el código de ANTES de que update_fiflp supiera de
+# carriles y de las categorías mayores (fixtures/plan_principal.json): el carril principal tiene que leer
+# prebenjamín, benjamín y alevín exactamente en el mismo orden, pasada a pasada, aunque la base tenga además los
+# grupos de infantil, cadete y juvenil (que lee su carril). Un martes a las 8:00 UTC (9:00 en Canarias), con
+# cerrados, comprobaciones de varias edades, errores, grupos sin comprobar y dos prioritarios calientes.
+ORO = Path(__file__).parent / "fixtures" / "plan_principal.json"
+ORO_NOW = datetime(2026, 10, 13, 8, 0, tzinfo=timezone.utc)
+ORO_CLOSED = ("FF1", "FF13", "LZ5", "PG4", "AL1", "AL30", "C2")
+# Los grupos de las mayores que se añaden a la base (45, como los previstos): no son del carril principal.
+ORO_MAYORES = ([(f"INFPG{i}", "INFANTIL") for i in range(1, 9)] + [(f"INF1G{i}", "INFANTIL") for i in range(1, 8)]
+               + [(f"CADNG{i}", "CADETE") for i in range(1, 11)] + [(f"CADPG{i}", "CADETE") for i in range(1, 9)]
+               + [(f"JUV2G{i}", "JUVENIL") for i in range(1, 8)] + [(f"JUVPG{i}", "JUVENIL") for i in range(1, 6)])
+
+
+def oro_base(mayores=False):
+    """La base sintética de este módulo (81 grupos, los siete de Las Mesas), con los cerrados de ORO_CLOSED y dos
+    prioritarios calientes (AL3, un partido de ayer sin resultado; PG2, uno con su acta por leer); con `mayores`,
+    también los 45 de ORO_MAYORES (con Las Mesas en dos de ellos, que en el carril principal no cuentan)."""
+    conn = base_db(ORO_CLOSED)
+    ids = dict((code, gid) for gid, code, _ in U.fiflp_groups(conn, 1))
+    team = lambda name: (conn.execute("INSERT OR IGNORE INTO teams(name) VALUES (?)", (name,)),
+                         conn.execute("SELECT id FROM teams WHERE name=?", (name,)).fetchone()[0])[1]
+    for code, hs, acta in (("AL3", None, None), ("PG2", 1, 9001)):
+        conn.execute("""INSERT INTO matches(group_id, jornada, date, time, home_team_id, away_team_id, home_score,
+                        away_score, fiflp_acta) VALUES (?, 'Jornada 3', '2026-10-12', '20:30', ?, ?, ?, ?, ?)""",
+                     (ids[code], team(MINE[code]), team(f"Visitante {code}"), hs, hs, acta))
+    if mayores:
+        cats = {}
+        for n, (code, cat) in enumerate(ORO_MAYORES, 500):
+            if cat not in cats:
+                cats[cat] = conn.execute("INSERT INTO categories(name) VALUES (?)", (cat,)).lastrowid
+            conn.execute("INSERT INTO groups(id, season_id, category_id, code, url) VALUES (?, 1, ?, ?, ?)",
+                         (n, cats[cat], code, url(n)))
+            home = "Las Mesas Hu." if code in ("INFPG2", "CADNG4") else f"Local {code}"
+            conn.execute("""INSERT INTO matches(group_id, jornada, date, home_team_id, away_team_id, home_score,
+                            away_score, fiflp_acta) VALUES (?, 'Jornada 1', '2026-10-12', ?, ?, NULL, NULL, ?)""",
+                         (n, team(home), team(f"Visitante {code}"), n * 100))
+    conn.commit()
+    return conn
+
+
+def oro_checks(conn):
+    """Las comprobaciones publicadas: de 0 a 8 h según el grupo, un error de cada trece y sin comprobar uno de
+    cada diecisiete."""
+    checks = {}
+    for gid, code, u in U.fiflp_groups(conn, 1):
+        if gid % 17 == 0:
+            continue
+        checks[code] = {"url": u, "status": "error" if gid % 13 == 0 else "ok", "message": "",
+                        "checkedAt": (ORO_NOW - timedelta(hours=gid % 9)).isoformat()}
+    return checks
+
+
+def oro_orders(conn, groups, numbers=range(200)):
+    """{número: [códigos]}: el orden de plan_groups en cada pasada, con Las Mesas de prioritario, sin grupo fijado
+    ni variables (la cuota de alevín de por defecto)."""
+    checks = oro_checks(conn)
+    return {str(n): [c for _, c, _ in U.plan_groups(conn, groups, checks, ORO_NOW.date(), n,
+                                                    priority=["Las Mesas Hu."], pinned=set(), env={},
+                                                    now=ORO_NOW).order]
+            for n in numbers}
+
+
+def test_plan_principal_igual_que_antes():
+    """El carril principal, en el mismo orden que antes de los carriles (fixtures/plan_principal.json, calculado
+    con el código anterior): con la base de siempre y con la misma más 45 grupos de las mayores, pero los grupos
+    de su carril (fiflp_groups con CARRILES["principal"]), en las pasadas 0 a 199."""
+    from categorias import CARRILES
+    golden = json.loads(ORO.read_text())
+    assert len(golden) == 200 and all(len(v) > 60 for v in golden.values())
+    plain = oro_base()
+    assert oro_orders(plain, U.fiflp_groups(plain, 1)) == golden
+    both = oro_base(mayores=True)
+    groups = U.fiflp_groups(both, 1, CARRILES["principal"])
+    assert len(groups) == 81 and len(U.fiflp_groups(both, 1)) == 126
+    assert oro_orders(both, groups) == golden
