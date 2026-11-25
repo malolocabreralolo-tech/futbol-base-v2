@@ -405,6 +405,41 @@ def test_quitar_categoria(tmp_path, capsys, nunca, mayores_leidas):
     assert _distinto(activada, intacta) == []
 
 
+def test_quitar_una_mayor_borra_la_huella_del_raw_de_actas_de_su_lote():
+    """Quitada infantil de 2026-27, la huella de scripts/fiflp_actas_2026-2027_infantil_raw.json (el raw del carril
+    del histórico) sale de raw_imports: si se reactiva, import_changed_raws vuelve a importar esas actas. Las demás
+    huellas se quedan (otra temporada, otro lote). El ensayo no toca nada, y el alevín de Lanzarote (--isla) deja
+    la del raw de alevín, que es el lote de todo el alevín, Gran Canaria incluido."""
+    import quitar_categoria as Q
+    from db import SCHEMA
+    from migrate_actas_schema import migrate as migrate_actas
+    conn = sqlite3.connect(":memory:")
+    conn.executescript(SCHEMA)
+    migrate_actas(conn, log=lambda *a, **k: None)
+    conn.executescript("""
+      CREATE TABLE IF NOT EXISTS raw_imports (path TEXT PRIMARY KEY, sha1 TEXT NOT NULL, imported_at TEXT NOT NULL);
+      INSERT INTO seasons(id, name, start_year, end_year, is_current) VALUES (1, '2025-2026', 2025, 2026, 0),
+                                                                            (2, '2026-2027', 2026, 2027, 1);
+      INSERT INTO categories(id, name) VALUES (1, 'BENJAMIN'), (2, 'ALEVIN'), (3, 'INFANTIL');
+      INSERT INTO groups(id, season_id, category_id, code, name, island) VALUES
+        (1, 2, 1, 'FF1', 'Grupo 1', 'grancanaria'), (2, 2, 2, 'AL1', 'Grupo 1', 'grancanaria'),
+        (3, 2, 2, 'ALUL1', 'Grupo 1', 'lanzarote'), (4, 2, 3, 'INFPG1', 'Grupo 1', 'grancanaria');
+    """)
+    huellas = ["fiflp_actas_2026-2027_raw.json", "fiflp_actas_2026-2027_alevin_raw.json",
+               "fiflp_actas_2026-2027_infantil_raw.json", "fiflp_actas_2025-2026_infantil_raw.json",
+               "fiflp_actas_2026-2027_cadete_raw.json", "grupos:2025-2026"]
+    conn.executemany("INSERT INTO raw_imports VALUES (?, 'x', '2026-11-25')", [(h,) for h in huellas])
+    conn.commit()
+    quedan = lambda: sorted(p for (p,) in conn.execute("SELECT path FROM raw_imports"))  # noqa: E731
+    assert Q.quitar(conn, "2026-2027", "INFANTIL")["filas"]["raw_imports"] == 1          # el ensayo la cuenta
+    assert quedan() == sorted(huellas)                                                   # y no toca nada
+    assert Q.quitar(conn, "2026-2027", "INFANTIL", apply=True)["filas"]["raw_imports"] == 1
+    assert quedan() == sorted(h for h in huellas if h != "fiflp_actas_2026-2027_infantil_raw.json")
+    hecho = Q.quitar(conn, "2026-2027", "ALEVIN", "lanzarote", apply=True)
+    assert hecho["grupos"] == ["ALUL1"] and "raw_imports" not in hecho["filas"]
+    assert "fiflp_actas_2026-2027_alevin_raw.json" in quedan()
+
+
 def test_quitar_el_alevin_de_lanzarote(tmp_path, nunca, bases_reales):
     """El paso D6 hacia atrás: --categoria ALEVIN --isla lanzarote quita solo el alevín de Lanzarote (el de Gran
     Canaria se queda) y, tras la pasada siguiente (sus fichas, que sí miraban esos grupos: alevín es de la web), la
