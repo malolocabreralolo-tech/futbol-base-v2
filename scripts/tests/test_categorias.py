@@ -177,8 +177,11 @@ def test_activation_picks_the_upper_case_row_even_after_the_duplicate():
 
 def test_the_bot_runs_the_category_migration_at_start():
     text = (ROOT / "scripts" / "fetch_futbolaspalmas.py").read_text(encoding="utf-8")
+    # La migración va en preparar_base (sacada de main para la prueba del histórico), lo primero tras init_db.
+    preparar = text[text.index("def preparar_base(conn):"):text.index("def solo_historico(")]
     main = text[text.index("def main():"):]
-    assert "migrate_categories" in main and main.index("init_db(conn)") < main.index("migrate_categories")
+    assert "migrate_categories(conn)" in preparar
+    assert main.index("init_db(conn)") < main.index("preparar_base(conn)")
 
 
 @pytest.mark.parametrize("name, expected", [

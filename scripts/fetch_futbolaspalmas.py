@@ -916,9 +916,9 @@ def import_past_seasons(conn, log=print):
             log("  ! ERROR (no para la actualización):\n" + traceback.format_exc())
 
 
-def main():
-    conn = get_connection()
-    init_db(conn)
+def preparar_base(conn):
+    """Lo que hace cada pasada con la base antes de leer nada (main, justo después de init_db). Aparte para que
+    la prueba del histórico (solo_historico) prepare la copia exactamente igual que el bot."""
     # Las categorías con su nombre canónico (sin la 'prebenjamin' duplicada, con ALEVIN).
     from migrate_categories import migrate as migrate_categories
     migrate_categories(conn)
@@ -941,6 +941,56 @@ def main():
         import traceback
         conn.rollback()
         print("  ! ERROR al corregir los nombres de equipo (no para la actualización):\n" + traceback.format_exc())
+
+
+def solo_historico(conn, log=print, generar=None):
+    """Lo que hará el bot con los raws de temporadas pasadas que encuentre en scripts/, sin leer ninguna fuente
+    (ni futbolaspalmas, ni la federación, ni la app; tampoco source_health): la base preparada, import_past_seasons,
+    las fichas y `generar` (por defecto generate_js.main). Es la prueba del histórico sobre una copia
+    (prueba_historico.py importar, que ejecuta --solo-historico en la raíz de la copia).
+
+    import_past_seasons apunta un paso que falla y sigue, para que el bot publique lo demás. Aquí no vale: un raw
+    que rompe su importador saldría con código 0 y se promovería, y la pasada del bot que lo importara ya no
+    publicaría ese paso. Así que se cuentan esos pasos y, si hay alguno, RuntimeError justo después (sin fichas
+    ni data-*.js), con el título de cada paso y el tipo de error, nunca su texto (puede llevar un nombre)."""
+    import migrate_identidad
+    preparar_base(conn)
+    fallos, paso = [], None
+
+    def apunta(linea=""):
+        nonlocal paso
+        texto = str(linea)
+        if texto.startswith("\n"):
+            paso = texto.strip()
+        elif "! ERROR" in texto:
+            ultima = [x for x in texto.strip().splitlines() if x.strip()][-1]
+            fallos.append(f"«{paso}» ({ultima.split(':')[0].strip()})")
+        log(linea)
+    import_past_seasons(conn, log=apunta)
+    if fallos:
+        raise RuntimeError(f"la importación de temporadas pasadas falló en {len(fallos)} "
+                           f"paso{'s' if len(fallos) != 1 else ''}: " + "; ".join(fallos))
+    migrate_identidad.resolver_fichas(conn)
+    if generar is None:
+        from generate_js import main as generar
+    generar()
+
+
+def main():
+    conn = get_connection()
+    init_db(conn)
+    # --solo-historico (la prueba del histórico sobre una copia): solo lo de temporadas pasadas. Sin él, la pasada
+    # de siempre: main nunca ha leído argumentos (cualquier otro se ignora, como hasta ahora), y por eso se mira
+    # solo si está ese, sin argparse.
+    if "--solo-historico" in sys.argv[1:]:
+        try:
+            solo_historico(conn)
+        finally:
+            conn.close()
+        print("\nTerminado (solo el histórico).")
+        return
+    preparar_base(conn)
+    import migrate_identidad
     season_id, season_name = active_season(conn)
     print(f"Temporada verificada: {season_name}")
 

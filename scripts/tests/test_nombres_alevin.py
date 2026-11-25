@@ -525,8 +525,12 @@ def test_the_bot_reads_the_group_again_with_the_good_names_and_no_repeated_match
 
 def test_the_bot_fixes_the_names_before_reading_the_federation():
     text = (ROOT / "scripts" / "fetch_futbolaspalmas.py").read_text(encoding="utf-8")
+    # Las migraciones van en preparar_base (sacada de main para la prueba del histórico), que main llama antes
+    # de leer la federación.
+    preparar = text[text.index("def preparar_base(conn):"):text.index("def solo_historico(")]
     main = text[text.index("def main():"):]
-    assert main.index("migrate_categories(conn)") < main.index("migrate_team_names(conn)") < main.index("update_groups(")
+    assert preparar.index("migrate_categories(conn)") < preparar.index("migrate_team_names(conn)")
+    assert main.index("preparar_base(conn)") < main.index("update_groups(")
 
 
 def test_the_new_filials_have_their_club_shield():
