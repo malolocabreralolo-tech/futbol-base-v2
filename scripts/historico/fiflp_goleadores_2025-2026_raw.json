@@ -68826,7 +68826,8 @@
   "fetched": "2026-11-25",
   "grupo": "54976640",
   "grupo_name": "ÚNICO",
-  "intentos": 2,
+  "intentos": 3,
+  "no_disponible": true,
   "ok": false,
   "scorers": [],
   "standings": []
