@@ -62,6 +62,24 @@ Y la del bot, con el carril encendido: además de lo de arriba, no toca con una 
 cuentan. Con eso, las horas de arranque de las pasadas del bot son las mismas con el carril y sin él
 (test_reloj_pasadas.test_semana_con_carril).
 
+El carril del histórico (due_historico; docs/federacion.md, «El carril del histórico»): historico.yml lo lanza el
+reloj desde el 25/11/2026, siempre (con o sin CARRIL_MAYORES), en un paso aparte y al final (reloj.yml). Su cron
+('47 */3 * * *') GitHub lo perdía como el de update.yml: el 25/11/2026 no llegaron ni el de las 18:47 ni el de las
+21:47 UTC, y el carril se quedó parado hasta que se lanzó a mano. Toca si:
+  - no es una ventana de partidos: el carril no lee en ellas (historico.hasta), y lanzarlo sería una ejecución que no
+    hace nada; sin la base de zonas horarias, nunca (el carril tampoco corre a ciegas);
+  - no hay ninguna ejecución sin acabar del histórico (su grupo, historico-federacion, guarda una sola en espera: una
+    más nueva cancelaría la que espera, la del paso «Siguiente» con la que se encadena), ni del bot, del carril de
+    las mayores o de la activación (`otros`): no arranca con otro leyendo la federación a la vez, ni le quita el
+    hueco a una pasada que está en cola;
+  - la última del histórico (cualquier evento: el reloj, la que el carril lanza tras de sí, una a mano; y cualquier
+    resultado) empezó hace HISTORICO_CADA menos SLACK (2 h 50 min) o más, o no hay ninguna. Tras una ejecución
+    servida el carril se relanza solo (paso «Siguiente»), así que el reloj solo retoma la cadena cuando se para (un
+    runner rechazado, el tope del día, el freno): un intento cada 3 h, ≤ 8 al día, como el cron;
+  - y en este tick el reloj no lanza ni la pasada del bot ni la del carril (reloj.yml: el paso ni corre).
+Las horas de las pasadas del bot y del carril son las mismas con el histórico y sin él
+(test_reloj_pasadas.test_semana_con_historico).
+
 Puro y sin dependencias (solo la biblioteca estándar): el reloj corre con el python3 del sistema, sin pip ni
 el resto del repositorio (checkout disperso de este fichero). Lo prueban test_reloj_pasadas.py y, el
 workflow, test_workflows.py.
@@ -73,6 +91,12 @@ Escribe la decisión en la salida y, si existe $GITHUB_OUTPUT, «due=true» o «
 las de activar.yml o historico.yml (el mismo JSON de gh run list): van juntos. Una entrada que no es la lista de
 ejecuciones (un fallo de gh), en cualquiera de ellos, sale con error y sin escribir nada: el job falla a la
 vista y no lanza nada (tampoco la pasada del bot: no se sabría si el carril está en marcha).
+
+El histórico, otro modo (sin leer la entrada estándar, y sin --carril ni --activar):
+     python3 scripts/reloj_pasadas.py [--now …] --historico historico.json --otros pasadas.json [--otros …]
+--historico, las ejecuciones de historico.yml; cada --otros (uno al menos), las de update.yml, carril-mayores.yml o
+activar.yml. Escribe «Carril del histórico: …» y, en $GITHUB_OUTPUT, solo «due_historico=true» o «…=false»; con
+una lista que no se lee, lo mismo que arriba (error, sin escribir nada: el paso, en rojo, no lanza nada).
 """
 from datetime import datetime, timedelta, timezone
 import json
@@ -98,6 +122,8 @@ CARRIL_CADA = timedelta(hours=4)        # una pasada del carril cada 4 h (menos 
 CARRIL_DESDE = timedelta(minutes=25)    # tras el arranque de una pasada del bot: ya ha acabado (~24 min)…
 CARRIL_HASTA = timedelta(minutes=75)    # …y el carril (~24 min) acaba antes de la siguiente (110-120 min)
 ANTES_DE_VENTANA = timedelta(hours=1)   # ni en una ventana de partidos ni a menos de 1 h de que empiece una
+# El carril del histórico (historico.yml, due_historico: arriba).
+HISTORICO_CADA = timedelta(hours=3)     # un intento cada 3 h (menos SLACK), como su cron de antes
 
 
 def _utc(moment):
@@ -261,28 +287,63 @@ def due_carril(now, principal, carril, activar):
                   f"{_minutes(since)} min y {tail}")
 
 
+def due_historico(now, historico, otros=()):
+    """(¿toca lanzar el carril del histórico?, por qué) a la hora `now` (UTC), con las ejecuciones de historico.yml
+    (`historico`) y las de update.yml, carril-mayores.yml y activar.yml juntas (`otros`), todas de gh run list. Las
+    reglas, arriba (cabecera del módulo)."""
+    # Una tupla (la de por defecto), como lista; cualquier otra cosa, a check_runs tal cual (un {} no es «ninguna»).
+    historico, otros = check_runs(historico), check_runs(list(otros) if isinstance(otros, tuple) else otros)
+    now = _utc(now)
+    if local_time(now) is None:
+        return False, ("no toca: sin la hora de Canarias (no está la base de zonas horarias) no se saben las "
+                       "ventanas, y el carril no corre a ciegas")
+    where = window(now)
+    if where:
+        return False, f"no toca: ventana de partidos ({where}), en la que el carril no lee"
+    for name, runs in (("historico.yml", historico), ("update.yml, carril-mayores.yml o activar.yml", otros)):
+        busy = [r for r in runs if r["status"] != DONE]
+        if busy:
+            r = max(busy, key=run_time)
+            return False, f"no toca: la {r.get('number', '?')} de {name} está {r['status']}"
+    if not historico:
+        return True, "toca: no hay ninguna ejecución de historico.yml"
+    last = max(historico, key=run_time)
+    ago = now - run_time(last)
+    mine = f"la última, la {last.get('number', '?')} ({last.get('event', '?')}, {last.get('conclusion') or '-'})"
+    if ago < HISTORICO_CADA - SLACK:
+        when = f"empezó hace {_minutes(ago)} min" if ago >= timedelta(0) else "empezó después de ahora (¿un reloj atrasado?)"
+        return False, f"no toca: {mine} {when} (toca a partir de los {_minutes(HISTORICO_CADA - SLACK)})"
+    return True, f"toca: {mine} empezó hace {_minutes(ago)} min"
+
+
 USO = ("uso: reloj_pasadas.py [--now FECHA_ISO] [--carril carril.json --activar activar.json "
-       "[--activar historico.json …]] < ejecuciones.json")
+       "[--activar historico.json …]] < ejecuciones.json\n"
+       "     reloj_pasadas.py [--now FECHA_ISO] --historico historico.json --otros pasadas.json [--otros …]")
 
 
 def _args(argv):
-    """{'now': texto o None, 'carril': fichero o None, 'activar': [ficheros]}, o None si no se entiende (sin
-    argparse, que sale con SystemExit: main devuelve 2). --carril y --activar van juntos."""
-    out = {"now": None, "carril": None, "activar": []}
+    """{'now': texto o None, 'carril': fichero o None, 'activar': [ficheros], 'historico': fichero o None, 'otros':
+    [ficheros]}, o None si no se entiende (sin argparse, que sale con SystemExit: main devuelve 2). --carril y
+    --activar van juntos; --historico, con un --otros al menos y sin ninguno de los dos."""
+    out = {"now": None, "carril": None, "activar": [], "historico": None, "otros": []}
     i = 0
     while i < len(argv):
         flag = argv[i]
-        if flag not in ("--now", "--carril", "--activar") or i + 1 >= len(argv):
+        if flag not in ("--now", "--carril", "--activar", "--historico", "--otros") or i + 1 >= len(argv):
             return None
         value = argv[i + 1]
-        if flag == "--activar":
-            out["activar"].append(value)
+        if flag in ("--activar", "--otros"):
+            out[flag[2:]].append(value)
         elif out[flag[2:]] is not None:
             return None
         else:
             out[flag[2:]] = value
         i += 2
     if (out["carril"] is None) != (not out["activar"]):
+        return None
+    if (out["historico"] is None) != (not out["otros"]):
+        return None
+    if out["historico"] is not None and out["carril"] is not None:
         return None
     return out
 
@@ -306,6 +367,8 @@ def main(argv=None, stdin=None, env=None):
     now = datetime.now(timezone.utc)
     if args["now"] is not None:
         now = _utc(datetime.fromisoformat(args["now"].replace("Z", "+00:00")))
+    if args["historico"] is not None:
+        return _main_historico(now, args, env)
     lane = None
     try:
         runs = json.load(stdin or sys.stdin)
@@ -332,6 +395,26 @@ def main(argv=None, stdin=None, env=None):
         with open(out, "a", encoding="utf-8") as f:
             f.write(f"due={'true' if ok else 'false'}\n")
             f.write(f"due_carril={'true' if lane and lane[0] else 'false'}\n")
+    return 0
+
+
+def _main_historico(now, args, env):
+    """El modo del histórico (el paso «¿Toca el histórico?» de reloj.yml): sin la entrada estándar; solo
+    due_historico en $GITHUB_OUTPUT."""
+    try:
+        historico = _read_runs(args["historico"])
+        otros = []
+        for path in args["otros"]:              # update.yml, carril-mayores.yml y activar.yml, juntas
+            otros += check_runs(_read_runs(path))
+        ok, why = due_historico(now, historico, otros)
+    except ValueError as e:                     # json.JSONDecodeError también es un ValueError
+        print(f"reloj_pasadas: no se puede decidir ({e}): no se lanza nada.", file=sys.stderr)
+        return 1
+    print(f"Carril del histórico: {why}.")
+    out = env.get("GITHUB_OUTPUT")
+    if out:
+        with open(out, "a", encoding="utf-8") as f:
+            f.write(f"due_historico={'true' if ok else 'false'}\n")
     return 0
 
 

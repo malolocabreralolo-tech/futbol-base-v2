@@ -19,15 +19,16 @@ name: Histórico de la federación (un solo carril)
 # no sirve acaba en uno o dos minutos y NO se relanza (historico.RELANZAR_SI_RUNNER_RECHAZADO = 0, decisión del
 # dueño pendiente): la retoma el disparo siguiente.
 #
-# El disparo, cada 3 h a y 47: lejos de los ticks del reloj (reloj.yml, a y 7, 22, 37 y 52) y de las horas en
-# punto (GitHub pierde o retrasa más esas). Con la mitad de los runners en AWS, alguno de los ≤ 8 disparos del día
-# cae en Azure, y una sola ejecución en Azure llega al tope; tras una ejecución servida (60 páginas o más) o una
-# prueba, la siguiente se lanza en seguida (paso «Siguiente», sin entradas).
-#
-# Como el reloj, GitHub lo desactiva tras 60 días sin actividad en el repositorio: gh workflow enable historico.yml.
+# El disparo: lo lanza el reloj (reloj.yml, reloj_pasadas.due_historico), un intento cada 3 h desde que empezó la
+# última, fuera de las ventanas y sin nada del histórico, del bot, del carril de las mayores ni de la activación sin
+# acabar. Con la mitad de los runners en AWS, alguno de los ≤ 8 disparos del día cae en Azure, y una sola ejecución
+# en Azure llega al tope; tras una ejecución servida (60 páginas o más) o una prueba, la siguiente se lanza en seguida
+# (paso «Siguiente», sin entradas). Hasta el 25/11/2026 tenía su propio cron ('47 */3 * * *'), y GitHub lo perdía
+# como el de update.yml: ese día no llegaron ni el de las 18:47 ni el de las 21:47 UTC, y el carril se quedó parado
+# hasta que se lanzó a mano. Sin schedule, GitHub ya no lo desactiva por inactividad (el reloj, sí: sin él, tampoco
+# hay histórico). Para pararlo, -f accion=parar o desactivar este workflow (gh workflow disable historico.yml), no el
+# reloj, que pararía también al bot.
 on:
-  schedule:
-    - cron: '47 */3 * * *'
   workflow_dispatch:
     inputs:
       accion:

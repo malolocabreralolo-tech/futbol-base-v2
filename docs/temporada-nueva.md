@@ -13,7 +13,7 @@ FIFLP contesta vacío a las IPs domésticas: el scrape va en GitHub Actions y to
 ```bash
 # 0. El reloj de las pasadas (reloj.yml), activo: GitHub desactiva los workflows con schedule de un repositorio
 #    público tras 60 días sin commits, y en verano el bot casi no hace (docs/federacion.md, «El reloj de las
-#    pasadas»). Si sale «disabled_inactivity», no hay pasadas del bot (ni nada en rojo):
+#    pasadas»). Si sale «disabled_inactivity», no hay pasadas del bot ni del histórico (ni nada en rojo):
 gh workflow list --all -R malolocabreralolo-tech/futbol-base-v2 | grep -i reloj
 gh workflow enable reloj.yml -R malolocabreralolo-tech/futbol-base-v2   # solo si estaba desactivado
 # 1. Catálogo de competiciones de la temporada nueva (CodTemporada = año inicial − 2004)

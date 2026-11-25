@@ -27,16 +27,29 @@ name: Reloj de las pasadas
 # update.yml y el reloj no las cuenta como pasadas del bot (si las contara, cada una retrasaría hasta 2 h la
 # siguiente); con el carril encendido, la del bot solo espera a que acabe uno sin acabar (no haría cola tras él).
 #
+# El carril del histórico (historico.yml; docs/federacion.md, «El carril del histórico») también lo lanza este reloj,
+# desde el 25/11/2026 y siempre (con o sin CARRIL_MAYORES): su cron ('47 */3 * * *') GitHub lo perdía como el de
+# update.yml (ese día no llegaron ni el de las 18:47 ni el de las 21:47 UTC, y el carril se quedó parado hasta que se
+# lanzó a mano). Toca (reloj_pasadas.due_historico) un intento cada 3 h desde que empezó la última del histórico (la
+# lanzara quien la lanzara: el reloj, el propio carril al encadenarse, o a mano), fuera de las ventanas (en ellas no
+# lee), y nunca con una ejecución sin acabar del histórico, de update.yml, carril-mayores.yml o activar.yml; ni en un
+# tick en que se lanza la pasada del bot o la del carril. Va APARTE, en dos pasos al final y con continue-on-error:
+# un fallo suyo (gh, una lista que no se entiende, GitHub que no deja lanzar) queda en el registro del paso y no
+# tumba el reloj, que en rojo cada 15 min se miraría como un fallo del bot, ni le quita una pasada (las del bot y del
+# carril ya se han decidido y lanzado antes). Para parar el histórico: -f accion=parar, o desactivar historico.yml;
+# no el reloj (pararía también al bot).
+#
 # Ligero: checkout disperso de reloj_pasadas.py, el python3 del sistema, sin pip; y los permisos justos para
 # leer y lanzar workflows (actions: write) y leer el repositorio (contents: read). Un fallo de gh o una
-# respuesta que no se entiende: el job falla a la vista y no lanza nada. Sin la base de zonas horarias, un
-# aviso y una pasada cada 2 h (sin ventanas), no un job en rojo.
+# respuesta que no se entiende al decidir la pasada del bot o la del carril: el job falla a la vista y no lanza nada
+# (al decidir la del histórico, solo su paso: arriba). Sin la base de zonas horarias, un aviso y una pasada cada 2 h
+# (sin ventanas), no un job en rojo; ni carril ni histórico (no se sabe dónde caen las ventanas).
 #
 # En un repositorio público GitHub DESACTIVA los workflows con schedule tras 60 días sin actividad (sin
-# commits): este también, y entonces no hay pasadas ni nada en rojo, solo deja de haber ejecuciones. En verano
-# el bot casi no hace commits (del 28/7 al 9/9/2026, 43 días sin ninguno): al empezar la temporada, mirar que
-# esté activo (gh workflow list --all: «disabled_inactivity») y reactivarlo con `gh workflow enable reloj.yml`
-# o desde la pestaña Actions (docs/federacion.md, «El reloj de las pasadas»).
+# commits): este también, y entonces no hay pasadas (ni del carril ni del histórico) ni nada en rojo, solo deja de
+# haber ejecuciones. En verano el bot casi no hace commits (del 28/7 al 9/9/2026, 43 días sin ninguno): al empezar
+# la temporada, mirar que esté activo (gh workflow list --all: «disabled_inactivity») y reactivarlo con
+# `gh workflow enable reloj.yml` o desde la pestaña Actions (docs/federacion.md, «El reloj de las pasadas»).
 on:
   schedule:
     # Cada 15 min, a y 7, 22, 37 y 52: no a en punto ni a y media (GitHub retrasa o pierde más esos).
@@ -128,3 +141,45 @@ jobs:
             fi
           done
           echo "::warning::El carril está lanzado, pero GitHub aún no lo enseña."
+
+      # El carril del histórico (reloj_pasadas.due_historico), solo si en este tick no se lanza ni la pasada del bot
+      # ni la del carril, y con o sin CARRIL_MAYORES. Sus listas, en $RUNNER_TEMP/historico/ (no pisan las del paso
+      # «¿Toca una pasada?»); la del bot es la que dejó ese paso. continue-on-error: un fallo aquí sale en rojo en el
+      # paso, sin due_historico (no se lanza nada), y el job sigue en verde; el tick siguiente lo vuelve a mirar.
+      - name: ¿Toca el histórico?
+        id: historico
+        if: steps.reloj.outputs.due != 'true' && steps.reloj.outputs.due_carril != 'true'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/historico"
+          for wf in historico carril-mayores activar; do
+            gh run list --repo "$GITHUB_REPOSITORY" --workflow "$wf.yml" --limit 20 \
+              --json number,event,status,conclusion,createdAt,startedAt > "$RUNNER_TEMP/historico/$wf.json"
+          done
+          python3 scripts/reloj_pasadas.py --historico "$RUNNER_TEMP/historico/historico.json" \
+            --otros "$RUNNER_TEMP/pasadas.json" --otros "$RUNNER_TEMP/historico/carril-mayores.json" \
+            --otros "$RUNNER_TEMP/historico/activar.json"
+
+      # Sin entradas (accion=seguir: lo pendiente del encargo), sobre main, y como los otros dos: hasta que GitHub lo
+      # enseñe, para que el tick siguiente, en fila tras este, lo vea en cola o en marcha y no lance otro.
+      - name: Lanzar el histórico
+        if: steps.historico.outputs.due_historico == 'true'
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          gh workflow run historico.yml --ref main --repo "$GITHUB_REPOSITORY"
+          for i in $(seq 12); do
+            sleep 5
+            busy=$(gh run list --repo "$GITHUB_REPOSITORY" --workflow historico.yml --limit 5 --json status \
+              --jq '[.[] | select(.status != "completed")] | length' || echo 0)
+            if [ "$busy" != "0" ]; then
+              echo "Histórico lanzado: $busy sin acabar."
+              exit 0
+            fi
+          done
+          echo "::warning::El histórico está lanzado, pero GitHub aún no lo enseña."

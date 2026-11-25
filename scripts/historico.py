@@ -33,8 +33,9 @@ Las reglas del carril, y el porqué de cada número:
     lo que toca después es una prueba (no pide nada a la federación: sin esto, un trabajo que se completa con
     dos páginas —el último grupo que faltaba— esperaba al disparo siguiente para probarse), y
     nunca por caer en un runner que la federación no sirve (RELANZAR_SI_RUNNER_RECHAZADO = 0): relanzar hasta que
-    toque Azure es esquivar un bloqueo, y lo decide el dueño. Lo retoma el disparo programado (cada 3 h: con la
-    mitad de los runners en AWS, alguno de los ≤ 8 disparos del día cae en Azure, y uno solo llega al tope);
+    toque Azure es esquivar un bloqueo, y lo decide el dueño. Lo retoma el disparo siguiente del reloj (reloj.yml,
+    cada 3 h: con la mitad de los runners en AWS, alguno de los ≤ 8 disparos del día cae en Azure, y uno solo llega al
+    tope);
   - LA CUARENTENA Y LA PRUEBA: lo bajado va a scripts/historico/ (cuarentena.py), que el bot no mira. Un trabajo
     completo se prueba sobre una copia (prueba_historico.py: importar sin red, la base sana y todas las suites),
     una temporada cada vez y con MARGEN_PRUEBA (60 min) antes de la ventana siguiente (la importación del bot en
@@ -645,7 +646,7 @@ def relanzar(resumen, despues, estado):
     tras una prueba (resumen None), sí; tras un runner rechazado, solo si las ejecuciones rechazadas seguidas al
     final de estado["ejecuciones"] (esta incluida) son como mucho RELANZAR_SI_RUNNER_RECHAZADO (con 0, nunca); tras
     otra descarga, si la federación sirvió RELANZAR_MIN páginas o si lo que toca es una prueba (la prueba no pide
-    nada a la federación: da igual lo poco que se haya leído). Si no, lo retoma el disparo programado."""
+    nada a la federación: da igual lo poco que se haya leído). Si no, lo retoma el disparo siguiente del reloj."""
     if despues.get("accion") == "nada":
         return False
     if resumen is None:

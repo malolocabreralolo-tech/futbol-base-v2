@@ -378,29 +378,38 @@ def test_carril_no_comparte_numero_ni_reloj():
 
 
 DURA = timedelta(minutes=24)
+# El histórico en el peor caso para el bot y el carril: cada ejecución cae en un runner que la federación no sirve
+# (AWS), acaba en un minuto y no se relanza; así el reloj lo intenta en cada hueco (cada 3 h).
+DURA_HISTORICO = timedelta(minutes=1)
+DURACION = {"bot": DURA, "carril": DURA, "historico": DURA_HISTORICO}
 
 
-def _semana(con_carril):
+def _semana(con_carril, con_historico=False):
     """La semana del lunes 30/11 al domingo 6/12/2026 con el reloj: un tick a las :07, :22, :37 y :52 de cada hora,
     que lanza una pasada del bot si toca (due) y, si no, una del carril si toca (due_carril); cada una dura 24 min.
-    Sin activar.yml ni histórico. Devuelve [(«bot»|«carril», inicio)]."""
+    Con con_historico, en los ticks en que no lanza ninguna de las dos (los pasos de reloj.yml), una del histórico si
+    toca (due_historico), que dura DURA_HISTORICO; la lista del histórico va además, como en reloj.yml, con las de la
+    activación para el carril (sin histórico, vacía). Sin activar.yml. Devuelve [(«bot»|«carril»|«historico»,
+    inicio)]."""
     bot = [(utc("2026-11-29T23:07"), "bot")]                # la última del domingo 29, en su ventana
     hechas = list(bot)
     tick = utc("2026-11-30T00:07")
     end = utc("2026-12-07T00:00")
 
     def lista(kind, now):
-        return [run(at, status="completed" if at + DURA <= now else "in_progress", number=i)
+        return [run(at, status="completed" if at + DURACION[k] <= now else "in_progress", number=i)
                 for i, (at, k) in enumerate(hechas) if k == kind][-20:]
 
     while tick < end:
         for minute in (7, 22, 37, 52):
             now = tick.replace(minute=minute)
-            principal, carril = lista("bot", now), lista("carril", now)
+            principal, carril, historico = lista("bot", now), lista("carril", now), lista("historico", now)
             if R.due(now, principal, carril if con_carril else ()):
                 hechas.append((now, "bot"))
-            elif con_carril and R.due_carril(now, principal, carril, [])[0]:
+            elif con_carril and R.due_carril(now, principal, carril, historico)[0]:
                 hechas.append((now, "carril"))
+            elif con_historico and R.due_historico(now, historico, principal + carril)[0]:
+                hechas.append((now, "historico"))
         tick += timedelta(hours=1)
     return [(k, at) for at, k in hechas[1:]]
 
@@ -482,3 +491,171 @@ def test_the_command_line_with_the_lane_fails_without_writing_anything(tmp_path,
     for args in (["--carril", good], ["--activar", good], ["--carril"], ["--carril", good, "--activar"]):
         assert R.main(args, io.StringIO(pasadas), {"GITHUB_OUTPUT": str(out)}) == 2, args
     assert not out.exists()
+
+
+# ── El carril del histórico (historico.yml) ───────────────────────────────────
+#
+# Desde el 25/11/2026 lo lanza el reloj (su cron, '47 */3 * * *', GitHub lo perdía: ese día no llegaron ni el de
+# las 18:47 ni el de las 21:47 UTC): un intento cada 3 h, fuera de las ventanas de partidos (en ellas el carril no
+# lee: historico.hasta) y nunca con una ejecución sin acabar del histórico, del bot, del carril de las mayores o de
+# la activación. Diciembre de 2026: Canarias en UTC+0.
+
+def test_due_historico():
+    tue = utc("2026-12-01T10:00")                           # martes, 10:00
+    ok, why = R.due_historico(tue, [])
+    assert ok and why.startswith("toca") and "ninguna" in why, why
+    assert R.HISTORICO_CADA == timedelta(hours=3)
+    # La última, de cualquier evento (el reloj, el propio carril al relanzarse, a mano) y acabe como acabe.
+    ok, why = R.due_historico(tue, [run(tue - 160 * M, number=41)])
+    assert not ok and "la 41" in why, why
+    assert R.due_historico(tue, [run(tue - 170 * M, number=41)])[0]                  # 3 h menos la holgura
+    assert R.due_historico(tue, [run(tue - 210 * M, event="schedule", conclusion="cancelled")])[0]
+    assert not R.due_historico(tue, [run(tue - 300 * M), run(tue - 20 * M, conclusion="failure")])[0]
+    # Un relanzamiento cuenta desde que se relanzó (run_time); una creada en el futuro, no toca.
+    assert not R.due_historico(tue, [run(tue - 300 * M, started=tue - 60 * M)])[0]
+    assert not R.due_historico(tue, [run(tue + 5 * M)])[0]
+    # Nada sin acabar: ni del histórico (aunque sea de hace horas) ni del bot, el carril o la activación.
+    for status in ("queued", "in_progress", "waiting", "pending"):
+        ok, why = R.due_historico(tue, [run(tue - 300 * M, status=status, number=42)])
+        assert not ok and status in why and "la 42" in why, why
+        ok, why = R.due_historico(tue, [run(tue - 300 * M)], [run(tue - 400 * M), run(tue - 5 * M, status=status)])
+        assert not ok and status in why, why
+    # Las acabadas de los otros no cuentan (ni su hora): solo la última del histórico.
+    assert R.due_historico(tue, [run(tue - 200 * M)], [run(tue - 1 * M, conclusion="failure")])[0]
+    # Las ventanas: el sábado a las 12:00, no; justo antes de la del viernes, sí (el carril mira su plazo).
+    for moment in ("2026-12-05T12:00", "2026-12-04T18:00", "2026-12-06T23:59"):
+        ok, why = R.due_historico(utc(moment), [])
+        assert not ok and "ventana" in why, (moment, why)
+    for moment in ("2026-12-04T17:59", "2026-12-05T09:59", "2026-12-07T00:00"):
+        assert R.due_historico(utc(moment), [])[0], moment
+
+
+def test_due_historico_sin_zona_horaria_nunca(monkeypatch):
+    """Sin la base de zonas horarias no se sabe dónde caen las ventanas: el carril tampoco corre a ciegas
+    (historico.hasta), así que no se lanza."""
+    def missing(key):
+        raise zoneinfo.ZoneInfoNotFoundError(f"No time zone found with key {key}")
+    monkeypatch.setattr(R, "ZoneInfo", missing)
+    ok, why = R.due_historico(utc("2026-12-01T10:00"), [])
+    assert not ok and "zonas horarias" in why, why
+
+
+def test_due_historico_valida_sus_listas():
+    tue = utc("2026-12-01T10:00")
+    for bad in ({}, None, "x", [1], [{"status": "completed"}], [{"status": "completed", "createdAt": "ayer"}]):
+        with pytest.raises(ValueError):
+            R.due_historico(tue, bad)
+        with pytest.raises(ValueError):
+            R.due_historico(tue, [], bad)
+
+
+def _solapes(hechas):
+    """Las parejas de ejecuciones que corren a la vez ((tipo, inicio), con DURACION)."""
+    hechas = sorted(hechas, key=lambda x: x[1])
+    malas, fin, antes = [], None, None
+    for kind, at in hechas:
+        if fin is not None and at < fin:
+            malas.append((antes, (kind, at)))
+        if fin is None or at + DURACION[kind] > fin:
+            fin, antes = at + DURACION[kind], (kind, at)
+    return malas
+
+
+def test_semana_con_historico():
+    """Con el carril de las mayores encendido y el histórico rechazado cada vez (acaba en 1 min: el reloj lo intenta
+    en cada hueco), las pasadas del bot y las del carril arrancan a la misma hora que sin histórico; nunca corren dos
+    a la vez; y el histórico se lanza como mucho 8 veces al día (cada 3 h), nunca en una ventana, y de lunes a
+    jueves, al menos 6."""
+    sin, con = _semana(True), _semana(True, con_historico=True)
+    assert [x for x in con if x[0] != "historico"] == sin, "el bot y el carril, a su hora de siempre"
+    assert not _solapes(con), _solapes(con)
+    historico = [at for k, at in con if k == "historico"]
+    por_dia = {}
+    for at in historico:
+        por_dia[at.date()] = por_dia.get(at.date(), 0) + 1
+        assert R.window(at) is None, at
+    assert all(b - a >= R.HISTORICO_CADA - R.SLACK for a, b in zip(historico, historico[1:]))
+    dias = [utc("2026-11-30T00:00").date() + timedelta(days=d) for d in range(7)]
+    assert max(por_dia.values()) <= 8, por_dia
+    assert min(por_dia.get(d, 0) for d in dias[:4]) >= 6, por_dia                     # de lunes a jueves
+    assert all(por_dia.get(d, 0) >= 1 for d in dias), por_dia
+
+
+# ── La línea de órdenes del histórico (el paso «¿Toca el histórico?» de reloj.yml) ──
+
+class _SinEntrada(io.StringIO):
+    """Una entrada estándar que no se puede leer: el modo del histórico no la lee."""
+    def read(self, *args):
+        raise AssertionError("el modo del histórico no lee la entrada estándar")
+
+    readline = read
+
+
+def _historico_args(tmp_path, historico, pasadas, carril=(), activar=()):
+    return ["--now", "2026-12-01T10:00:00Z", "--historico", _json(tmp_path / "historico.json", historico),
+            "--otros", _json(tmp_path / "pasadas.json", pasadas), "--otros", _json(tmp_path / "carril.json", list(carril)),
+            "--otros", _json(tmp_path / "activar.json", list(activar))]
+
+
+def test_the_command_line_for_the_historico(tmp_path, capsys):
+    """--historico con las ejecuciones de historico.yml y un --otros por cada lista de las demás (update.yml, la que
+    dejó el paso «¿Toca una pasada?», carril-mayores.yml y activar.yml): escribe due_historico, y solo eso, sin leer
+    la entrada estándar."""
+    out = tmp_path / "salida"
+    tue = utc("2026-12-01T10:00")
+    args = _historico_args(tmp_path, [run(tue - 200 * M, number=31)], bot_a_las(tue, 30))
+    assert R.main(args, _SinEntrada(), {"GITHUB_OUTPUT": str(out)}) == 0
+    assert out.read_text() == "due_historico=true\n"
+    printed = capsys.readouterr().out.splitlines()
+    assert printed == [printed[0]] and printed[0].startswith("Carril del histórico: toca") \
+        and printed[0].endswith("."), printed
+    # Con cualquiera de las otras sin acabar, no.
+    for i, otras in enumerate(({"pasadas": [run(tue - 5 * M, status="in_progress")]},
+                               {"carril": [run(tue - 5 * M, status="queued")]},
+                               {"activar": [run(tue - 5 * M, status="in_progress")]})):
+        out.unlink()
+        args = _historico_args(tmp_path, [run(tue - 200 * M)], otras.get("pasadas", bot_a_las(tue, 30)),
+                               otras.get("carril", ()), otras.get("activar", ()))
+        assert R.main(args, _SinEntrada(), {"GITHUB_OUTPUT": str(out)}) == 0, i
+        assert out.read_text() == "due_historico=false\n", i
+        assert capsys.readouterr().out.startswith("Carril del histórico: no toca"), i
+    # Sin $GITHUB_OUTPUT, solo lo dice.
+    assert R.main(args, _SinEntrada(), {}) == 0
+
+
+def test_the_command_line_for_the_historico_fails_without_writing_anything(tmp_path, capsys):
+    """Un fichero que no se lee (un fallo de gh) en --historico o en cualquier --otros: 1, sin escribir nada (no se
+    lanza) y con el motivo a la vista. Mezclado con --carril o --activar, o con --otros sin --historico (o al revés),
+    el uso (2)."""
+    out = tmp_path / "salida"
+    good = _json(tmp_path / "bien.json", [])
+    bad = tmp_path / "mal.json"
+    bad.write_text("no es json", encoding="utf-8")
+    dict_ = _json(tmp_path / "dict.json", {"message": "Bad credentials"})
+    missing = str(tmp_path / "no-esta.json")
+    for args in (["--historico", str(bad), "--otros", good], ["--historico", good, "--otros", str(bad)],
+                 ["--historico", good, "--otros", good, "--otros", dict_], ["--historico", missing, "--otros", good],
+                 ["--historico", good, "--otros", good, "--otros", missing]):
+        assert R.main(["--now", "2026-12-01T10:00:00Z", *args], _SinEntrada(), {"GITHUB_OUTPUT": str(out)}) == 1, args
+    assert not out.exists()
+    assert "no se lanza nada" in capsys.readouterr().err
+    for args in (["--historico", good, "--otros", good, "--carril", good, "--activar", good],
+                 ["--historico", good, "--otros", good, "--activar", good],
+                 ["--carril", good, "--activar", good, "--otros", good],
+                 ["--historico", good], ["--otros", good], ["--historico", good, "--historico", good, "--otros", good],
+                 ["--historico"], ["--historico", good, "--otros"]):
+        assert R.main(args, _SinEntrada(), {"GITHUB_OUTPUT": str(out)}) == 2, args
+    assert not out.exists()
+
+
+def test_the_historico_mode_runs_alone_with_the_system_python(tmp_path):
+    """Como el modo de siempre: el guion solo (checkout disperso), en modo aislado, sin nada en la entrada."""
+    alone = tmp_path / "reloj_pasadas.py"
+    shutil.copy(Path(R.__file__), alone)
+    out = tmp_path / "salida"
+    historico = _json(tmp_path / "historico.json", [run(utc("2026-12-01T09:00"), status="in_progress")])
+    done = subprocess.run([sys.executable, "-I", str(alone), "--historico", historico, "--otros", historico],
+                          stdin=subprocess.DEVNULL, text=True, capture_output=True, cwd=tmp_path,
+                          env={"GITHUB_OUTPUT": str(out)}, timeout=60)
+    assert done.returncode == 0, done.stderr
+    assert done.stdout.startswith("Carril del histórico: no toca") and out.read_text() == "due_historico=false\n"
