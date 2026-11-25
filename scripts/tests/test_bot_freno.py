@@ -234,6 +234,7 @@ def test_the_1103_brake_passes_after_the_brake_wait_and_the_pass_goes_on(bot, ca
     data, web, F, log = bot(capsys, serve=SERVED_1103, lasts=4 * 60)
     assert calendars(web) == ORDER
     assert [u for _, u in web.starts].count(url(ID["AL4"]) + "&CodJornada=4") == 2     # vacía y, a los 4 min, servida
+    assert [u for _, u in web.starts].count(url(ID["AL4"]) + "&CodJornada=3") == 2     # y la otra, vacía también
     groups = data["groups"]
     for code in ALL:
         assert groups[code]["status"] == "ok" and groups[code]["checkedAt"] > report()["groups"][code]["checkedAt"], code
@@ -243,7 +244,7 @@ def test_the_1103_brake_passes_after_the_brake_wait_and_the_pass_goes_on(bot, ca
     assert run["unserved"] == [] and run["deferred"] == [] and run["extrasDeferred"] == []
     assert "se reintenta en 60 s" not in log
     assert (f"      la federación frena tras {SERVED_1103} páginas: espera de 4 min y después la misma página cada "
-            "60 s, hasta las 03:49 UTC como mucho\n") in log
+            "60 s, hasta las 03:50 UTC como mucho\n") in log
     assert "      la federación vuelve a servir a los 240 s: se sigue\n" in log
     assert "error" not in log and "sin federación" not in log
     # Al mismo ritmo el resto de la pasada: 7 s entre el inicio de dos peticiones.
@@ -255,12 +256,13 @@ def test_the_1103_brake_passes_after_the_brake_wait_and_the_pass_goes_on(bot, ca
     assert "de ellos en pausa por el freno" in log
 
 
-@pytest.mark.parametrize("cap, probes", [(None, 9), ("5", 2)])
+@pytest.mark.parametrize("cap, probes", [(None, 8), ("5", 2)])
 def test_the_1103_brake_that_does_not_pass_keeps_the_last_checks_and_stops_the_pass(bot, capsys, monkeypatch, cap,
                                                                                         probes):
     """Si el freno no se pasa: la espera, los sondeos de la misma página cada minuto desde los 4 min mientras
-    quepan en el plazo con 2 min de margen (con los 16 min de plazo, 9: el tope de 20 min por freno,
-    FIFLP_BRAKE_MAX_MIN, ya no llega; con un tope de 5, 2), y después nada más en esta pasada.
+    quepan en el plazo con 2 min de margen (con los 16 min de plazo, 8: el tope de 20 min por freno,
+    FIFLP_BRAKE_MAX_MIN, ya no llega; con un tope de 5, 2), y después nada más en esta pasada. Tras la
+    vacía y tras cada sondeo vacío, la otra página (la última que cargó), vacía también: es el freno.
     AL4, que la federación no sirvió, conserva su comprobación anterior (no «error»: la web no pone
     «Revisión pendiente.» en sus equipos), sin escribir nada de las jornadas 2 y 3 que ya había leído y sin
     mover su hora; AL9 y los demás, a otra pasada como siempre. PG2 y FF5, completos: sus goleadores, justo
@@ -272,7 +274,7 @@ def test_the_1103_brake_that_does_not_pass_keeps_the_last_checks_and_stops_the_p
     previous = report()
     data, web, F, log = bot(capsys, conn=conn, previous=previous, serve=SERVED_1103)
     assert calendars(web) == ["PG2", "FF5", "AL4"]
-    assert len(web.starts) == SERVED_1103 + 1 + probes                    # la vacía y cada sondeo
+    assert len(web.starts) == SERVED_1103 + 2 * (1 + probes)              # la vacía y cada sondeo, con la otra
     groups = data["groups"]
     assert [groups[c]["status"] for c in ("PG2", "FF5")] == ["ok", "ok"]
     for code in ("AL4", "AL9", "AL18", "AL20", "AL1", "PG1", "FF1", "FF2"):
@@ -412,12 +414,13 @@ def test_the_brake_wait_is_not_taken_if_it_does_not_fit_before_the_deadline(bot,
     assert data["groups"]["AL4"] == previous["groups"]["AL4"] and data["summary"]["error"] == 0
     assert ("      la federación frena y no queda plazo para esperarla (4 min y 2 de margen): nada más en esta "
             "pasada\n") in log
-    assert F.paused == 0 and len(web.starts) == SERVED_1103 + 1
+    assert F.paused == 0 and len(web.starts) == SERVED_1103 + 2           # la vacía y la otra
 
 
 def test_after_a_late_resume_no_page_starts_past_the_deadline(bot, capsys):
-    """Con 600 s de plazo y un bloqueo de ~6 min (el más largo medido, 364 s), la espera cabe justo: tres
-    sondeos (a los 240, 300 y 360 s) y la pasada sigue; lo que sigue se corta en el plazo. Cada grupo se lee
+    """Con 610 s de plazo y un bloqueo de ~6 min (el más largo medido, 364 s), la espera cabe justo: tres
+    sondeos (a los 240, 300 y 360 s) y la pasada sigue (hasta noviembre de 2026, con 600 s: la espera
+    empieza ahora tras pedir la otra página, ~7 s después de la vacía); lo que sigue se corta en el plazo. Cada grupo se lee
     completo, así que el freno cae en las 20 actas de PG2, justo tras su calendario y sus goleadores: tras
     la espera, sus actas hasta el plazo, y los calendarios de los demás, a otra pasada (en los últimos 2
     min no empieza ninguno). Ninguna página empieza después del plazo (lo comprueba bot: Federacion ni las
@@ -428,7 +431,7 @@ def test_after_a_late_resume_no_page_starts_past_the_deadline(bot, capsys):
                         away_score, fiflp_acta) SELECT group_id, ?, '2026-10-10', away_team_id, home_team_id, 2, 2, ?
                         FROM matches WHERE group_id=? AND jornada='Jornada 1'""", (f"Jornada {20 + k}", 9000 + k, ID["PG2"]))
     conn.commit()
-    data, web, F, log = bot(capsys, conn=conn, budget=600, serve=SERVED_1103, lasts=358)
+    data, web, F, log = bot(capsys, conn=conn, budget=610, serve=SERVED_1103, lasts=358)
     assert data["run"]["pauses"] == 1 and data["run"]["resumed"] == 1 and data["groups"]["PG2"]["status"] == "ok"
     assert F.probes == 3 and "      la federación vuelve a servir a los 360 s: se sigue\n" in log
     assert "CodActa=" in web.starts[SERVED_1103][1]                     # el freno, en las actas de PG2
@@ -476,7 +479,7 @@ def test_a_long_brake_in_a_priority_group_is_waited_and_each_group_is_read_compl
     data, web, F, log = bot(capsys, conn=conn, serve=SERVED_1103, lasts=9 * 60)
     run = data["run"]
     assert run["pauses"] == 1 and run["resumed"] == 1 and F.probes == 6 and data["summary"]["error"] == 0
-    read = calendars(web)
+    read = list(dict.fromkeys(calendars(web)))             # la otra página del freno puede ser un calendario
     assert read == ORDER[:len(read)] and {"PG2", "FF5"} <= set(read)
     assert all(data["groups"][c]["status"] == "ok" for c in read)
     # Las actas de cada uno, entre su calendario y el del siguiente.
@@ -620,18 +623,20 @@ def test_an_acta_the_deadline_does_not_let_start_is_not_counted_as_read(monkeypa
 
 
 class Patchy(Federation):
-    """La jornada 2 de AL4, vacía dos veces (el freno, que la pausa larga arregla); su jornada 4, un 503 en
-    sus tres intentos."""
+    """La federación frena (vacías todas sus páginas) desde la jornada 2 de AL4 durante `lasts` s (el freno,
+    que la pausa larga arregla); su jornada 4, un 503 en sus tres intentos. (Hasta noviembre de 2026 solo la
+    jornada 2 salía vacía, dos veces; hoy, con la federación sirviendo otra página, eso es una página
+    muerta y no el freno: test_dead_actas_do_not_stop_the_pass_and_go_to_the_run.)"""
 
     def page(self):
         web, page = self, Page(self)
         plain = page.goto
 
         def goto(u, wait_until=None, timeout=None):
+            if u == url(ID["AL4"]) + "&CodJornada=2" and web.brake_from is None:
+                web.brake_from = web.clock.t
             response = plain(u, wait_until, timeout)
             asked = sum(x == u for _, x in web.starts)
-            if u == url(ID["AL4"]) + "&CodJornada=2" and asked <= 2:
-                page.empty = True
             if u == url(ID["AL4"]) + "&CodJornada=4" and asked <= 3:
                 return Response(503)
             return response
@@ -643,8 +648,8 @@ def test_a_group_with_an_empty_page_in_its_read_is_braked_even_if_another_page_f
     """Una página vacía en la lectura de un grupo es el freno aunque la que acaba fallando sea otra (aquí, un
     503 en la jornada 4 de AL4, tras la pausa que arregló la 2): AL4 conserva su comprobación."""
     previous = report()
-    data, web, F, log = bot(capsys, previous=previous, web=Patchy)
-    assert data["run"]["pauses"] == 1 and data["run"]["resumed"] == 1
+    data, web, F, log = bot(capsys, previous=previous, web=Patchy, lasts=280)      # servida en el 2.º sondeo
+    assert data["run"]["pauses"] == 1 and data["run"]["resumed"] == 1 and F.probes == 2 and F.dead == 0
     assert data["groups"]["AL4"] == previous["groups"]["AL4"] and data["run"]["unserved"] == ["AL4"]
     assert data["summary"]["error"] == 0
     assert "    sin federación: a otra pasada (no carga la jornada 4)\n" in log
@@ -665,6 +670,69 @@ def test_a_braked_pass_does_not_rewrite_the_report(bot, capsys):
     previous = report(at=NOW - timedelta(hours=1))
     data, web, F, log = bot(capsys, previous=previous, serve=0)
     assert data == previous and F.pauses == 1 and F.probes == 10 and F.halted
+
+
+# ── Noviembre de 2026: páginas muertas y runners a los que no sirve (docs/freno-2026-11.md) ──
+
+class DeadActas(Federation):
+    """La federación que sirve todo salvo las actas de `dead_actas`, vacías siempre (las de alevín del 21/11)."""
+
+    def __init__(self, clock, dead_actas=(), **kw):
+        super().__init__(clock, **kw)
+        self.dead_actas = {f"CodActa={code}" for code in dead_actas}
+
+    def page(self):
+        web, page = self, Page(self)
+        plain = page.goto
+
+        def goto(u, wait_until=None, timeout=None):
+            response = plain(u, wait_until, timeout)
+            if any(u.endswith(code) for code in web.dead_actas):
+                page.empty = True
+            return response
+        page.goto = goto
+        return page
+
+
+def test_dead_actas_do_not_stop_the_pass_and_go_to_the_run(bot, capsys):
+    """Dos actas de PG2 cuya página sale vacía siempre mientras la federación sirve las demás: no es el freno
+    (ni espera ni sondeos), cada una gasta su intento y la pasada sigue entera, sin error. En `run`, las
+    páginas muertas (`deadPages`) y la nube del runner (`cloud`)."""
+    from functools import partial
+    conn = with_actas(season(), {"PG2": 2})
+    dead = [9000 + 100 * ID["PG2"] + k for k in range(2)]
+    data, web, F, log = bot(capsys, conn=conn, web=DeadActas, dead_actas=dead,
+                            fed=partial(C.Federacion, cloud="azure"))
+    run = data["run"]
+    assert run["deadPages"] == 2 and run["cloud"] == "azure" and "refusedRunner" not in run
+    assert "pauses" not in run and "blocked" not in run and F.probes == 0 and F.brakes == 0
+    assert run["unserved"] == [] and run["deferred"] == [] and run["extrasDeferred"] == []
+    assert data["summary"] == {"ok": len(ALL), "rejected": 0, "error": 0} and calendars(web) == ORDER
+    assert conn.execute(f"SELECT fiflp_acta, acta_tries FROM matches WHERE fiflp_acta IN ({dead[0]}, {dead[1]}) "
+                        "ORDER BY fiflp_acta").fetchall() == [(dead[0], 1), (dead[1], 1)]
+    for code in dead:
+        assert f"    ! acta {code}: su página no carga (la federación sirve otras): intento gastado\n" in log
+    assert log.count("      página vacía, pero la federación sirve otra: no es el freno, es esta página\n") == 2
+    assert "la federación no sirve actas" not in log and "frena" not in log
+
+
+def test_a_runner_the_federation_does_not_serve_ends_at_once_and_says_so_in_the_run(bot, capsys):
+    """Un runner de AWS: la federación le sirve vacío desde la primera página. Nada que esperar: la vacía, la
+    otra página (la de competiciones) y nada más, sin la espera de 4 min ni los sondeos; todo conserva su
+    comprobación y `run` lo dice (`refusedRunner`, `cloud`). (El informe anterior, de hace más de 24 h: si
+    no, sin cambios, no se reescribiría y no se vería `run`.)"""
+    from functools import partial
+    previous = report(at=NOW - timedelta(hours=30))
+    data, web, F, log = bot(capsys, previous=previous, serve=0, fed=partial(C.Federacion, cloud="aws"))
+    run = data["run"]
+    assert run["refusedRunner"] is True and run["cloud"] == "aws" and run["blocked"] and "deadPages" not in run
+    assert "pauses" not in run and F.paused == 0 and F.probes == 0 and len(web.starts) == 2
+    assert run["unserved"] == ["PG2"] and run["deferred"] == ORDER[1:] and data["summary"]["error"] == 0
+    assert ("      la federación no sirve a este runner desde la primera página (nube: aws): nada en esta "
+            "pasada\n") in log
+    # Con una federación sin nube (las de prueba de antes, o una máquina que no se sabe): sin `cloud`.
+    data, web, F, log = bot(capsys, previous=previous, fed=partial(C.Federacion, cloud="otra"))
+    assert "cloud" not in data["run"] and "refusedRunner" not in data["run"]
 
 
 # ── El cupo medido: ~15 páginas por IP y ~5 min de bloqueo ──────
@@ -717,7 +785,8 @@ def test_with_the_measured_quota_the_pass_waits_the_first_brake_and_ends_at_the_
     assert data["summary"] == {"ok": len(ALL), "rejected": 0, "error": 0} and "! error" not in log
     read = list(dict.fromkeys(calendars(web)))
     assert read == ORDER[:len(read)] and len(read) >= 2
-    assert len(web.starts) == 30 + 2 + F.probes - 1        # las 30, las dos vacías y los sondeos vacíos
+    # Las 30, las dos vacías y los sondeos vacíos, y tras cada uno de ellos la otra página (vacía también).
+    assert len(web.starts) == 30 + 2 * (2 + F.probes - 1)
     assert max(t for t, _ in web.starts) - 1000 < 10 * 60                    # ~9 min: 15, la espera y 15
     assert F.interval == 7.0 and "se reintenta en 60 s" not in log
 

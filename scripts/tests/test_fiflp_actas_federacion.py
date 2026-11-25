@@ -376,6 +376,66 @@ def test_actas_stop_when_the_federation_does_not_serve_them(monkeypatch):
     assert conn.execute("SELECT max(acta_tries) FROM matches").fetchone()[0] == 0   # la red no gasta intentos
 
 
+class _Counted(_F):
+    """Como _F, con lo que cuenta fiflp_carga.Federacion: `pages`, las peticiones, y `dead`, las páginas que
+    no cargan aunque la federación sirve otras (las URLs de `dead_urls`). Las de `braked`, el freno: no
+    cargan y `dead` no sube."""
+    def __init__(self, page, dead_urls=(), braked=()):
+        super().__init__(page)
+        self.pages = self.dead = 0
+        self.dead_urls, self.braked = dead_urls, braked
+
+    def goto(self, page, url):
+        page.urls.append(url)
+        self.pages += 1
+        if any(url.endswith(f"CodActa={c}") for c in self.dead_urls):
+            self.dead += 1
+            return False
+        return not any(url.endswith(f"CodActa={c}") for c in self.braked)
+
+
+def _three_actas(monkeypatch):
+    """La base con tres actas pendientes (280303, la más reciente, la primera), que se importan si cargan."""
+    monkeypatch.setattr(U, "flatten", lambda page, selector=None: 0)
+    monkeypatch.setattr(U, "apply_acta", lambda conn, mid, code, acta, log=print: bool(
+        conn.execute("UPDATE matches SET cod_acta=? WHERE id=?", (code, mid))))
+    conn = base()
+    conn.execute("DELETE FROM matches")
+    for i, day in ((3, "2026-11-22"), (2, "2026-11-21"), (1, "2026-11-14")):
+        conn.execute(f"""INSERT INTO matches(id, group_id, jornada, date, home_team_id, away_team_id, home_score, away_score, fiflp_acta)
+                         VALUES ({i}, 1, 'Jornada {i}', '{day}', 2, 1, 1, 0, {280300 + i})""")
+    conn.commit()
+
+    class Page(_Page):
+        def content(self):
+            return "<html><body>acta</body></html>"
+    return conn, Page([])
+
+
+def test_acta_muerta_gasta_intento_y_no_para_las_demas(monkeypatch):
+    """Un acta cuya página no carga aunque la federación sirve otras (F.dead sube en su petición: las actas de
+    alevín vacías siempre desde el 21/11) no es el freno: gasta su intento (con sus 4, en pasadas distintas,
+    deja de pedirse), no cuenta como «la federación no sirve actas» y se sigue con la siguiente. Antes no
+    gastaba intento, iba la primera en cada pasada y la paraba entera."""
+    conn, page = _three_actas(monkeypatch)
+    lines, tried, unloaded = [], set(), set()
+    F = _Counted(page, dead_urls={280303})
+    done, read = U.import_actas(page, F, conn, 1, 60, log=lines.append, tried=tried, unloaded=unloaded)
+    assert [u.rsplit("=", 1)[1] for u in page.urls] == ["280303", "280302", "280301"]
+    assert (done, read) == (2, 3) and tried == {1, 2, 3} and unloaded == set()
+    tries = dict(conn.execute("SELECT id, acta_tries FROM matches"))
+    assert tries == {3: 1, 2: 0, 1: 0}
+    assert conn.execute("SELECT id FROM matches WHERE cod_acta IS NOT NULL ORDER BY id").fetchall() == [(1,), (2,)]
+    assert lines == ["    ! acta 280303: su página no carga (la federación sirve otras): intento gastado"]
+    # La de siempre: tres que no cargan por el freno (dead no sube), como hoy: sin gastar intentos, y cortan.
+    conn, page = _three_actas(monkeypatch)
+    lines, unloaded = [], set()
+    F = _Counted(page, braked={280303, 280302, 280301})
+    assert U.import_actas(page, F, conn, 1, 60, log=lines.append, unloaded=unloaded) == (0, 3)
+    assert conn.execute("SELECT max(acta_tries) FROM matches").fetchone()[0] == 0 and unloaded == {1, 2, 3}
+    assert lines == ["    ! la federación no sirve actas: se deja para la próxima pasada"]
+
+
 # ── Pruebas reforzadas tras la lente de pruebas (mutaciones que sobrevivían) ──
 
 def _table(conn, sbd, pdc):
