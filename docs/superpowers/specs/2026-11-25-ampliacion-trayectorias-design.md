@@ -78,7 +78,7 @@ Hoy la web solo tiene prebenjamín y benjamín (con alineaciones desde 2019-20) 
   21/11). Ninguna tanda trata aún ni lo uno ni lo otro: [docs/freno-2026-11.md](../../freno-2026-11.md).
 - **El Archivo de Internet** no tiene las páginas de la federación (ni las de MyGol).
 - **MyGol** (`https://tusligascanarias.mygol.es/api`): la liga de escuelas está de 2022-23 a hoy, unos
-  5.400 partidos; cada partido trae los niños de los dos equipos (identificador estable, nombre, apellidos)
+  5.400 partidos; cada partido trae los niños de los dos equipos (identificador propio de cada temporada, nombre, apellidos)
   y si jugaron esa jornada. No hay marcadores ni goles, y la fecha de nacimiento viene en blanco. Los
   torneos de temporadas pasadas están ocultos pero la API los sigue sirviendo. El Archivo de Internet no
   guardó nada útil de esa web.

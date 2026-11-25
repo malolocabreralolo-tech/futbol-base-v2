@@ -1,0 +1,316 @@
+{
+ "id": 14750,
+ "idTournament": 96,
+ "idHomeTeam": 1371,
+ "idVisitorTeam": 1364,
+ "idDay": 2632,
+ "startTime": "2026-10-24T09:00:00",
+ "status": 5,
+ "homeScore": 0,
+ "visitorScore": 0,
+ "homeTeam": {
+  "id": 1371,
+  "name": "C.F.UNIÓN VIERA B"
+ },
+ "visitorTeam": {
+  "id": 1364,
+  "name": "UD LAS PALMAS A"
+ },
+ "field": {
+  "id": 12,
+  "name": "BARRIO ATL."
+ },
+ "day": {
+  "id": 2632,
+  "name": "Jornada 1"
+ },
+ "homePlayers": [
+  {
+   "id": 10284,
+   "name": "Nombre1",
+   "surname": "Apellido1 Apellido2",
+   "dayResultSummary": {
+    "idPlayer": 10284,
+    "gamesPlayed": 1
+   }
+  },
+  {
+   "id": 10285,
+   "name": "Nombre2",
+   "surname": "Apellido2 Apellido3",
+   "dayResultSummary": {
+    "idPlayer": 10285,
+    "gamesPlayed": 1
+   }
+  },
+  {
+   "id": 10286,
+   "name": "Nombre3",
+   "surname": "Apellido3 Apellido4",
+   "dayResultSummary": {
+    "idPlayer": 10286,
+    "gamesPlayed": 1
+   }
+  },
+  {
+   "id": 10287,
+   "name": "Nombre4",
+   "surname": "Apellido4 Apellido5",
+   "dayResultSummary": {
+    "idPlayer": 10287,
+    "gamesPlayed": 1
+   }
+  },
+  {
+   "id": 10288,
+   "name": "Nombre5",
+   "surname": "Apellido5 Apellido6",
+   "dayResultSummary": {
+    "idPlayer": 10288,
+    "gamesPlayed": 1
+   }
+  },
+  {
+   "id": 10289,
+   "name": "Nombre6",
+   "surname": "Apellido6 Apellido7",
+   "dayResultSummary": {
+    "idPlayer": 10289,
+    "gamesPlayed": 1
+   }
+  },
+  {
+   "id": 10290,
+   "name": "Nombre7",
+   "surname": "Apellido7 Apellido8",
+   "dayResultSummary": {
+    "idPlayer": 10290,
+    "gamesPlayed": 1
+   }
+  },
+  {
+   "id": 10291,
+   "name": "Nombre8",
+   "surname": "Apellido8 Apellido9"
+  },
+  {
+   "id": 10292,
+   "name": "Nombre9",
+   "surname": "Apellido9 Apellido10",
+   "dayResultSummary": {
+    "idPlayer": 10292,
+    "gamesPlayed": 1
+   }
+  },
+  {
+   "id": 10293,
+   "name": "Nombre10",
+   "surname": "Apellido10 Apellido11",
+   "dayResultSummary": {
+    "idPlayer": 10293,
+    "gamesPlayed": 1
+   }
+  },
+  {
+   "id": 10294,
+   "name": "Nombre11",
+   "surname": "Apellido11 Apellido12",
+   "dayResultSummary": {
+    "idPlayer": 10294,
+    "gamesPlayed": 1
+   }
+  },
+  {
+   "id": 10295,
+   "name": "Nombre12",
+   "surname": "Apellido12 Apellido13",
+   "dayResultSummary": {
+    "idPlayer": 10295,
+    "gamesPlayed": 1
+   }
+  },
+  {
+   "id": 10296,
+   "name": "Nombre13",
+   "surname": "Apellido13 Apellido14",
+   "dayResultSummary": {
+    "idPlayer": 10296,
+    "gamesPlayed": 1
+   }
+  },
+  {
+   "id": 10297,
+   "name": "Nombre14",
+   "surname": "Apellido14 Apellido15",
+   "dayResultSummary": {
+    "idPlayer": 10297,
+    "gamesPlayed": 1
+   }
+  },
+  {
+   "id": 10298,
+   "name": "Nombre15",
+   "surname": "Apellido15 Apellido16",
+   "dayResultSummary": {
+    "idPlayer": 10298,
+    "gamesPlayed": 1
+   }
+  },
+  {
+   "id": 11252,
+   "name": "Nombre16",
+   "surname": "Apellido16 Apellido17"
+  },
+  {
+   "id": 11165,
+   "name": "Nombre17",
+   "surname": "Apellido17 Apellido18",
+   "dayResultSummary": {
+    "idPlayer": 11165,
+    "gamesPlayed": 1
+   }
+  },
+  {
+   "id": 11166,
+   "name": "Nombre18",
+   "surname": "Apellido18 Apellido19",
+   "dayResultSummary": {
+    "idPlayer": 11166,
+    "gamesPlayed": 1
+   }
+  }
+ ],
+ "visitorPlayers": [
+  {
+   "id": 10191,
+   "name": "Nombre19",
+   "surname": "Apellido19 Apellido20",
+   "dayResultSummary": {
+    "idPlayer": 10191,
+    "gamesPlayed": 1
+   }
+  },
+  {
+   "id": 10192,
+   "name": "Nombre20",
+   "surname": "Apellido20 Apellido21",
+   "dayResultSummary": {
+    "idPlayer": 10192,
+    "gamesPlayed": 1
+   }
+  },
+  {
+   "id": 10193,
+   "name": "Nombre21",
+   "surname": "Apellido21 Apellido22"
+  },
+  {
+   "id": 10194,
+   "name": "Nombre22",
+   "surname": "Apellido22 Apellido23",
+   "dayResultSummary": {
+    "idPlayer": 10194,
+    "gamesPlayed": 1
+   }
+  },
+  {
+   "id": 10195,
+   "name": "Nombre23",
+   "surname": "Apellido23 Apellido24",
+   "dayResultSummary": {
+    "idPlayer": 10195,
+    "gamesPlayed": 1
+   }
+  },
+  {
+   "id": 10196,
+   "name": "Nombre24",
+   "surname": "Apellido24 Apellido25",
+   "dayResultSummary": {
+    "idPlayer": 10196,
+    "gamesPlayed": 1
+   }
+  },
+  {
+   "id": 10197,
+   "name": "Nombre25",
+   "surname": "Apellido25 Apellido26",
+   "dayResultSummary": {
+    "idPlayer": 10197,
+    "gamesPlayed": 1
+   }
+  },
+  {
+   "id": 10198,
+   "name": "Nombre26",
+   "surname": "Apellido26 Apellido27",
+   "dayResultSummary": {
+    "idPlayer": 10198,
+    "gamesPlayed": 1
+   }
+  },
+  {
+   "id": 10199,
+   "name": "Nombre27",
+   "surname": "Apellido27 Apellido28",
+   "dayResultSummary": {
+    "idPlayer": 10199,
+    "gamesPlayed": 1
+   }
+  },
+  {
+   "id": 10200,
+   "name": "Nombre28",
+   "surname": "Apellido28 Apellido29",
+   "dayResultSummary": {
+    "idPlayer": 10200,
+    "gamesPlayed": 1
+   }
+  },
+  {
+   "id": 10201,
+   "name": "Nombre29",
+   "surname": "Apellido29 Apellido30",
+   "dayResultSummary": {
+    "idPlayer": 10201,
+    "gamesPlayed": 1
+   }
+  },
+  {
+   "id": 10202,
+   "name": "Nombre30",
+   "surname": "Apellido30 Apellido31",
+   "dayResultSummary": {
+    "idPlayer": 10202,
+    "gamesPlayed": 1
+   }
+  },
+  {
+   "id": 10203,
+   "name": "Nombre31",
+   "surname": "Apellido31 Apellido32",
+   "dayResultSummary": {
+    "idPlayer": 10203,
+    "gamesPlayed": 1
+   }
+  },
+  {
+   "id": 10204,
+   "name": "Nombre32",
+   "surname": "Apellido32 Apellido33",
+   "dayResultSummary": {
+    "idPlayer": 10204,
+    "gamesPlayed": 1
+   }
+  },
+  {
+   "id": 10205,
+   "name": "Nombre33",
+   "surname": "Apellido33 Apellido34",
+   "dayResultSummary": {
+    "idPlayer": 10205,
+    "gamesPlayed": 1
+   }
+  }
+ ]
+}

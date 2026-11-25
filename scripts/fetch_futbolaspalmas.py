@@ -916,6 +916,19 @@ def import_past_seasons(conn, log=print):
             log("  ! ERROR (no para la actualización):\n" + traceback.format_exc())
 
 
+def importar_mygol(conn, registro=print):
+    """La liga de escuelas de MyGol (import_mygol, docs/mygol.md): sus tablas mygol_*, desde sus originales, si
+    alguno ha cambiado. Un fallo de MyGol nunca para la pasada: se deshace lo que dejara a medias, se apunta y
+    se sigue."""
+    registro("\nLiga de escuelas de MyGol (originales nuevos o cambiados)")
+    try:
+        import import_mygol
+        import_mygol.importar_si_cambia(conn, registro=registro)
+    except Exception as e:
+        conn.rollback()
+        registro(f"  ! MyGol: {type(e).__name__}: {e}")
+
+
 def preparar_base(conn):
     """Lo que hace cada pasada con la base antes de leer nada (main, justo después de init_db). Aparte para que
     la prueba del histórico (solo_historico) prepare la copia exactamente igual que el bot."""
@@ -1009,6 +1022,7 @@ def main():
             update_groups(conn, season_id)
         update_fp_app(conn, season_name)
         import_past_seasons(conn)
+        importar_mygol(conn)
         # Las fichas, una vez, con todas las actas importadas y los jugadores sin uso ya podados (el último
         # paso de import_past_seasons). Un fallo para la pasada: no se publican fichas a medias.
         migrate_identidad.resolver_fichas(conn)

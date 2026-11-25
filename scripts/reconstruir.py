@@ -47,7 +47,7 @@ class Consulta:
 
 @dataclass(frozen=True)
 class Dominio:
-    nombre: str            # 'app', 'torneos', 'actas_bot', 'actas', 'goleadores', 'detalle', 'portal'
+    nombre: str            # 'app', 'torneos', 'actas_bot', 'actas', 'goleadores', 'detalle', 'portal', 'mygol'
     tablas: tuple          # las que rehace
     originales: tuple      # globs relativos a la raíz
     rehacible: bool        # lo declarado: lo que la prueba exige
@@ -712,6 +712,42 @@ _CONSULTAS_PORTAL = (
 )
 
 
+# ----------------------------------------------------------------------------------------- mygol
+
+_TABLAS_MYGOL = ("mygol_participaciones", "mygol_partidos", "mygol_jugadores", "mygol_equipos", "mygol_torneos")
+
+
+def _ambito_mygol(conn, carpeta):
+    """Una base de antes de la primera pasada con import_mygol no tiene sus tablas: se le hace lo que hará esa
+    pasada (crearlas e importar los originales), y lo que se comprueba es que rehacerlas sale igual."""
+    import import_mygol
+    if not conn.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'mygol_partidos'").fetchone():
+        import_mygol.importar_si_cambia(conn, raiz=carpeta, registro=_callar)
+
+
+def _borrar_mygol(conn):
+    for tabla in _TABLAS_MYGOL:
+        conn.execute(f"DELETE FROM {tabla}")
+    _sin_marca(conn, "mygol")
+
+
+def _rehacer_mygol(conn, carpeta):
+    import import_mygol
+    import_mygol.importar_si_cambia(conn, raiz=carpeta, registro=_callar)
+
+
+# Los ids son los de MyGol: claves naturales, no cambian al reinsertar.
+_CONSULTAS_MYGOL = (
+    Consulta("mygol_torneos", "SELECT id, temporada, categoria, nombre FROM mygol_torneos", ("id",)),
+    Consulta("mygol_equipos", "SELECT id, nombre FROM mygol_equipos", ("id",)),
+    Consulta("mygol_jugadores", "SELECT id, nombre, apellidos, norm FROM mygol_jugadores", ("id",)),
+    Consulta("mygol_partidos", """SELECT id, torneo_id, jornada, fecha, estado, local_id, visitante_id, campo
+                                  FROM mygol_partidos""", ("id",)),
+    Consulta("mygol_participaciones", """SELECT partido_id, jugador_id, equipo_id, jugo
+                                         FROM mygol_participaciones""", ("partido_id", "jugador_id")),
+)
+
+
 # ------------------------------------------------------------------------------------------ dominios
 
 DOMINIOS: tuple = (
@@ -750,6 +786,9 @@ DOMINIOS: tuple = (
                    "portal: 309 marcadores de 2016-19 distintos; en 2020-21 sus partidos van con otra jornada "
                    "('1' frente a 'Jornada 1') y salen duplicados; equipos renombrados en 2013-16; 2 grupos de "
                    "2016-17 y 2018-19 que ya no casan con su grupo de la base"),
+    Dominio("mygol", ("mygol_torneos", "mygol_equipos", "mygol_jugadores", "mygol_partidos",
+                      "mygol_participaciones"), ("scripts/mygol_*_raw.json",), True,
+            ambito=_ambito_mygol, borrar=_borrar_mygol, rehacer=_rehacer_mygol, consultas=_CONSULTAS_MYGOL),
 )
 
 

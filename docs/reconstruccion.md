@@ -18,6 +18,7 @@ día (`tests.yml`, paso «Reconstrucción desde los originales»).
 | `torneos` | La Maspalomas Cup | `maspalomas_cup_2026_raw.json` | Sí, comprobado |
 | `actas_bot` | Alineaciones, sucesos y cuerpo técnico de las actas de 2026-27 que el bot ya guarda (402 de 1.096) | `actas_bot_2026-2027_*.jsonl` | Sí, comprobado |
 | `goleadores` | Los goleadores de temporadas pasadas que vienen de la federación | `fiflp_goleadores_*_raw.json` | Sí, comprobado |
+| `mygol` | La liga de escuelas de MyGol (2022-23 a hoy): torneos, equipos, partidos y qué niños jugaron | `mygol_*_raw.json` (y la tabla de torneos, `mygol_torneos.json`) | Sí, comprobado |
 | `actas` | Alineaciones, sucesos y cuerpo técnico de 2016-17 a 2025-26 | `fiflp_actas_*_raw.json` | No |
 | `detalle` | Casa/fuera, fichas de equipo y de campo de temporadas pasadas | `fiflp_detalle_*_raw.json`, `fiflp_campos_raw.json` | No |
 | `portal` | Las temporadas antiguas de futbolaspalmas (2012-13 a 2020-21) | `wayback_portal_*_raw.json` | No |
@@ -26,6 +27,11 @@ En las actas de 2026-27 hay un detalle que no cambia nada de lo que se ve salvo 
 jugadores, 6 saldrían con el nombre escrito de otra forma (una tilde o una mayúscula en 5, una corrección de
 la federación en 1). La base guarda el nombre tal como venía la primera vez que se leyó un acta suya, y el
 original guarda la última lectura.
+
+`mygol` es entero de sus originales: el importador vacía sus cinco tablas y las vuelve a llenar en cada
+importación. En una base de antes de la primera pasada que lo importa, la comprobación le hace primero lo que
+hará esa pasada (crear las tablas e importar) y después comprueba que rehacerlas sale igual. Mientras se
+está bajando una temporada, sus originales cambian: lo que se compara es lo importado con lo que hay ese día.
 
 Si la comprobación diaria sale en rojo en una de las partes que se rehacen, la base tiene algo que sus
 originales no explican, y la salida dice qué. Por ejemplo, el 17/11/2026 un partido de 2026-27 estaba dos
@@ -72,6 +78,7 @@ día está en [pc/copia/README.md](../pc/copia/README.md).
 | `appearances`, `match_events`, `match_staff_all` | de 2026-27, `actas_bot_*.jsonl`; de antes, `fiflp_actas_*_raw.json` | 2026-27, las 402 con original: sí (`actas_bot`); las demás de 2026-27, no (sin original); las de antes, no (`actas`) |
 | `players` | las mismas actas | Los de las 402 actas de 2026-27: sí, salvo 6 grafías; los demás, no |
 | `scorers`, `fiflp_scorer_groups` | de temporadas pasadas, `fiflp_goleadores_*_raw.json` | Los de la federación: sí (`goleadores`); los de 2026-27 (en vivo) y los de futbolaspalmas, no |
+| `mygol_torneos`, `mygol_equipos`, `mygol_jugadores`, `mygol_partidos`, `mygol_participaciones` | `mygol_*_raw.json` y `mygol_torneos.json` | Sí (`mygol`) |
 | `standings_detail`, `team_seasons`, `venue_details`, `detalle_groups` | `fiflp_detalle_*_raw.json`, `fiflp_campos_raw.json` | No (`detalle`: 7 fichas de equipo); los de 2026-27, en vivo |
 | `matches`, `standings`, `groups`, `portal_groups` | portal, actas, grupos y detalle; 2019-26, cargas a mano; 2026-27, en vivo | No |
 | `goals` | — (2025-26, en vivo) | No |

@@ -1,0 +1,283 @@
+[
+ {
+  "id": 2632,
+  "name": "Jornada 1",
+  "idTournament": 96,
+  "idGroup": 431,
+  "sequenceOrder": 1,
+  "matches": [
+   {
+    "id": 14750,
+    "idTournament": 96,
+    "idHomeTeam": 1371,
+    "idVisitorTeam": 1364,
+    "idDay": 2632,
+    "startTime": "2026-10-24T09:00:00",
+    "status": 5,
+    "homeScore": 0,
+    "visitorScore": 0,
+    "field": {
+     "name": "BARRIO ATL.",
+     "isAvailable": false,
+     "id": 12
+    }
+   },
+   {
+    "id": 14748,
+    "idTournament": 96,
+    "idHomeTeam": 1367,
+    "idVisitorTeam": 1372,
+    "idDay": 2632,
+    "startTime": "2026-10-25T09:00:00",
+    "status": 5,
+    "homeScore": 0,
+    "visitorScore": 0,
+    "field": {
+     "name": "LAS TORRES 1",
+     "isAvailable": false,
+     "id": 43
+    }
+   },
+   {
+    "id": 14749,
+    "idTournament": 96,
+    "idHomeTeam": 1377,
+    "idVisitorTeam": 1379,
+    "idDay": 2632,
+    "startTime": "2026-10-25T09:00:00",
+    "status": 5,
+    "homeScore": 0,
+    "visitorScore": 0,
+    "field": {
+     "name": "EL PILAR 1",
+     "isAvailable": false,
+     "id": 11
+    }
+   },
+   {
+    "id": 14754,
+    "idTournament": 96,
+    "idHomeTeam": 1363,
+    "idVisitorTeam": 1366,
+    "idDay": 2632,
+    "startTime": "2026-10-25T09:00:00",
+    "status": 5,
+    "homeScore": 0,
+    "visitorScore": 0,
+    "field": {
+     "name": "LAS TORRES 2",
+     "isAvailable": false,
+     "id": 44
+    }
+   },
+   {
+    "id": 14752,
+    "idTournament": 96,
+    "idHomeTeam": 1370,
+    "idVisitorTeam": 1368,
+    "idDay": 2632,
+    "startTime": "2026-10-25T10:00:00",
+    "status": 5,
+    "homeScore": 0,
+    "visitorScore": 0,
+    "field": {
+     "name": "LOMO APOLINARIO",
+     "isAvailable": false,
+     "id": 89
+    }
+   },
+   {
+    "id": 14753,
+    "idTournament": 96,
+    "idHomeTeam": 1365,
+    "idVisitorTeam": 1373,
+    "idDay": 2632,
+    "startTime": "2026-10-25T10:00:00",
+    "status": 5,
+    "homeScore": 0,
+    "visitorScore": 0,
+    "field": {
+     "name": "LAS TORRES 1",
+     "isAvailable": false,
+     "id": 43
+    }
+   },
+   {
+    "id": 14747,
+    "idTournament": 96,
+    "idHomeTeam": 1384,
+    "idVisitorTeam": 1376,
+    "idDay": 2632,
+    "startTime": "2026-10-25T12:00:00",
+    "status": 5,
+    "homeScore": 0,
+    "visitorScore": 0,
+    "field": {
+     "name": "EL BATAN 2",
+     "isAvailable": false,
+     "id": 59
+    }
+   },
+   {
+    "id": 14751,
+    "idTournament": 96,
+    "idHomeTeam": 1378,
+    "idVisitorTeam": 1375,
+    "idDay": 2632,
+    "startTime": "2026-10-25T12:00:00",
+    "status": 5,
+    "homeScore": 0,
+    "visitorScore": 0,
+    "field": {
+     "name": "EL BATAN 1 ",
+     "isAvailable": false,
+     "id": 58
+    }
+   }
+  ]
+ },
+ {
+  "id": 2633,
+  "name": "Jornada 2",
+  "idTournament": 96,
+  "idGroup": 431,
+  "sequenceOrder": 2,
+  "matches": [
+   {
+    "id": 14755,
+    "idTournament": 96,
+    "idHomeTeam": 1376,
+    "idVisitorTeam": 1363,
+    "idDay": 2633,
+    "startTime": "2026-11-07T12:00:00",
+    "status": 1,
+    "homeScore": 0,
+    "visitorScore": 0,
+    "field": {
+     "name": "BARRIO ATL.",
+     "isAvailable": false,
+     "id": 12
+    }
+   },
+   {
+    "id": 14757,
+    "idTournament": 96,
+    "idHomeTeam": 1379,
+    "idVisitorTeam": 1367,
+    "idDay": 2633,
+    "startTime": "2026-11-08T09:00:00",
+    "status": 1,
+    "homeScore": 0,
+    "visitorScore": 0,
+    "field": {
+     "name": "LAS TORRES 2",
+     "isAvailable": false,
+     "id": 44
+    }
+   },
+   {
+    "id": 14758,
+    "idTournament": 96,
+    "idHomeTeam": 1364,
+    "idVisitorTeam": 1377,
+    "idDay": 2633,
+    "startTime": "2026-11-08T10:00:00",
+    "status": 1,
+    "homeScore": 0,
+    "visitorScore": 0,
+    "field": {
+     "name": "LAS TORRES 1",
+     "isAvailable": false,
+     "id": 43
+    }
+   },
+   {
+    "id": 14759,
+    "idTournament": 96,
+    "idHomeTeam": 1375,
+    "idVisitorTeam": 1371,
+    "idDay": 2633,
+    "startTime": "2026-11-08T10:00:00",
+    "status": 1,
+    "homeScore": 0,
+    "visitorScore": 0,
+    "field": {
+     "name": "ALFONSO SILVA 1",
+     "isAvailable": false,
+     "id": 71
+    }
+   },
+   {
+    "id": 14760,
+    "idTournament": 96,
+    "idHomeTeam": 1368,
+    "idVisitorTeam": 1378,
+    "idDay": 2633,
+    "startTime": "2026-11-08T10:00:00",
+    "status": 1,
+    "homeScore": 0,
+    "visitorScore": 0,
+    "field": {
+     "name": "LOMO APOLINARIO",
+     "isAvailable": false,
+     "id": 89
+    }
+   },
+   {
+    "id": 14761,
+    "idTournament": 96,
+    "idHomeTeam": 1373,
+    "idVisitorTeam": 1370,
+    "idDay": 2633,
+    "startTime": "2026-11-08T10:00:00",
+    "status": 1,
+    "homeScore": 0,
+    "visitorScore": 0,
+    "field": {
+     "name": "ALFONSO SILVA 2",
+     "isAvailable": false,
+     "id": 72
+    }
+   },
+   {
+    "id": 14762,
+    "idTournament": 96,
+    "idHomeTeam": 1366,
+    "idVisitorTeam": 1365,
+    "idDay": 2633,
+    "startTime": "2026-11-08T10:00:00",
+    "status": 1,
+    "homeScore": 0,
+    "visitorScore": 0,
+    "field": {
+     "name": "LAS TORRES 2",
+     "isAvailable": false,
+     "id": 44
+    }
+   },
+   {
+    "id": 14756,
+    "idTournament": 96,
+    "idHomeTeam": 1372,
+    "idVisitorTeam": 1384,
+    "idDay": 2633,
+    "startTime": "2026-11-08T11:00:00",
+    "status": 1,
+    "homeScore": 0,
+    "visitorScore": 0,
+    "field": {
+     "name": "EL BATAN 2",
+     "isAvailable": false,
+     "id": 59
+    }
+   }
+  ]
+ },
+ {
+  "id": 2661,
+  "name": "Jornada 30",
+  "idTournament": 96,
+  "idGroup": 431,
+  "sequenceOrder": 30
+ }
+]

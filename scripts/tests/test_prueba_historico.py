@@ -88,6 +88,7 @@ def test_main_prepara_la_base_igual(FP, monkeypatch):
     monkeypatch.setattr(FP, "FILES", [])
     monkeypatch.setattr(FP, "update_fp_app", lambda *a, **k: orden.append("update_fp_app"))
     monkeypatch.setattr(FP, "import_past_seasons", lambda conn, log=print: orden.append("import_past_seasons"))
+    monkeypatch.setattr(FP, "importar_mygol", lambda conn, *a, **k: orden.append("importar_mygol"))
     monkeypatch.setattr(source_health, "begin", lambda *a, **k: orden.append("source_health.begin"))
     monkeypatch.setattr(source_health, "finish", lambda *a, **k: orden.append("source_health.finish"))
     monkeypatch.setattr(migrate_identidad, "resolver_fichas", lambda conn, *a, **k: orden.append("resolver_fichas"))
@@ -298,6 +299,8 @@ def test_una_pasada_normal_hace_lo_mismo_que_antes(FP, monkeypatch, argv):
     monkeypatch.setattr(update_fiflp, "update_groups", lambda conn, sid: pasos.append(f"update_groups {sid}"))
     monkeypatch.setattr(FP, "update_fp_app", lambda conn, name: pasos.append(f"update_fp_app {name}"))
     monkeypatch.setattr(FP, "import_past_seasons", lambda conn: pasos.append("import_past_seasons"))
+    # La liga de escuelas (MyGol), que entró en main el mismo día: va tras las temporadas pasadas.
+    monkeypatch.setattr(FP, "importar_mygol", apunta("importar_mygol"))
     monkeypatch.setattr(migrate_identidad, "resolver_fichas", apunta("resolver_fichas"))
     monkeypatch.setattr(generate_js, "main", apunta("generate_js.main"))
     monkeypatch.setattr(sys, "argv", ["fetch_futbolaspalmas.py", *argv])
@@ -305,7 +308,8 @@ def test_una_pasada_normal_hace_lo_mismo_que_antes(FP, monkeypatch, argv):
     assert pasos == ["init_db", "migrate_categories", "migrate_compactar", "asegurar_esquema", "migrate_team_names",
                      "active_season", "source_health.begin", "categoria BENJAMIN", "process_file BENJAMIN",
                      "categoria PREBENJAMIN", "process_file PREBENJAMIN", "commit", "update_groups 7",
-                     "update_fp_app 2026-2027", "import_past_seasons", "resolver_fichas", "generate_js.main", "close",
+                     "update_fp_app 2026-2027", "import_past_seasons", "importar_mygol", "resolver_fichas",
+                     "generate_js.main", "close",
                      "finish(False)"]
     # Un fallo al corregir los nombres de equipo se apunta y no para la pasada (su `try`, tal cual).
     pasos.clear()

@@ -1,0 +1,87 @@
+{
+ "32": {
+  "temporada": "2022-2023",
+  "categoria": null,
+  "nombre": "Liga de escuelas 2022/2023, torneo 32 (categoría sin decidir)"
+ },
+ "33": {
+  "temporada": "2022-2023",
+  "categoria": null,
+  "nombre": "Liga de escuelas 2022/2023, torneo 33 (categoría sin decidir)"
+ },
+ "34": {
+  "temporada": "2022-2023",
+  "categoria": null,
+  "nombre": "Liga de escuelas 2022/2023, torneo 34 (categoría sin decidir)"
+ },
+ "51": {
+  "temporada": "2023-2024",
+  "categoria": null,
+  "nombre": "Liga de escuelas 2023/2024, torneo 51 (categoría sin decidir)"
+ },
+ "52": {
+  "temporada": "2023-2024",
+  "categoria": null,
+  "nombre": "Liga de escuelas 2023/2024, torneo 52 (categoría sin decidir)"
+ },
+ "53": {
+  "temporada": "2023-2024",
+  "categoria": null,
+  "nombre": "Liga de escuelas 2023/2024, torneo 53 (categoría sin decidir)"
+ },
+ "66": {
+  "temporada": "2024-2025",
+  "categoria": "miniprebenjamin",
+  "nombre": "Miniprebenjamín Escuela 2024/2025"
+ },
+ "67": {
+  "temporada": "2024-2025",
+  "categoria": "prebenjamin",
+  "nombre": "Prebenjamín Escuela 2024/2025"
+ },
+ "68": {
+  "temporada": "2024-2025",
+  "categoria": "benjamin",
+  "nombre": "Benjamín Escuela 2024/2025"
+ },
+ "85": {
+  "temporada": "2025-2026",
+  "categoria": "miniprebenjamin",
+  "nombre": "Miniprebenjamín Escuela 2025/2026"
+ },
+ "86": {
+  "temporada": "2025-2026",
+  "categoria": "benjamin",
+  "nombre": "Benjamín Escuela 2025/2026"
+ },
+ "87": {
+  "temporada": "2025-2026",
+  "categoria": "prebenjamin",
+  "nombre": "Prebenjamín Escuela 2025/2026"
+ },
+ "88": {
+  "temporada": "2025-2026",
+  "categoria": "alevin",
+  "nombre": "Alevín Escuela 2025/2026"
+ },
+ "95": {
+  "temporada": "2026-2027",
+  "categoria": "prebenjamin",
+  "nombre": "PREBENJAMIN ESCUELA 2026/2027"
+ },
+ "96": {
+  "temporada": "2026-2027",
+  "categoria": "benjamin",
+  "nombre": "BENJAMIN ESCUELA 2026/2027"
+ },
+ "97": {
+  "temporada": "2026-2027",
+  "categoria": "miniprebenjamin",
+  "nombre": "MINIPREBENJAMIN ESCUELA 2026/2027"
+ },
+ "101": {
+  "temporada": "2026-2027",
+  "categoria": "alevin",
+  "nombre": "ALEVIN ESCUELAS 26/27"
+ }
+}
