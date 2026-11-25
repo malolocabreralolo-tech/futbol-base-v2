@@ -28,18 +28,23 @@ categoría. Lo dice una tabla revisada a mano, `scripts/mygol_torneos.json`
 
 | Temporada | Torneos (equipos) | Categoría |
 |---|---|---|
-| 2022-23 | 32 (19), 33 (33), 34 (14) | **sin decidir** (`null`) |
-| 2023-24 | 51 (13), 52 (28), 53 (20) | **sin decidir** (`null`) |
+| 2022-23 | 32 (19), 33 (33), 34 (14) | miniprebenjamín, prebenjamín, benjamín |
+| 2023-24 | 51 (13), 52 (28), 53 (20) | benjamín, prebenjamín, miniprebenjamín |
 | 2024-25 | 66 (16), 67 (34), 68 (12) | miniprebenjamín, prebenjamín, benjamín |
 | 2025-26 | 85 (18), 86 (17), 87 (33), 88 (9) | miniprebenjamín, benjamín, prebenjamín, alevín |
 | 2026-27 | 95 (26), 96 (16), 97 (20), 101 (10) | prebenjamín, benjamín, miniprebenjamín, alevín |
 
 Cómo se decidieron (el 25/11/2026, con unas 20 peticiones a la API): 2025-26 y 2026-27, por el nombre que tenían cuando eran visibles; 2024-25, por niños que aparecen al año
 siguiente en un torneo de categoría conocida (11 del mismo club en el prebenjamín de 2025-26) y por el
-tamaño (el prebenjamín es siempre el mayor). En 2022-23 y 2023-24 las muestras (un partido por torneo) no
-bastaron: se bajan igual, con la categoría a `null`, y se decidirán cruzando sus plantillas enteras con las
-de las temporadas siguientes. Para fijarla basta con cambiar la tabla: la categoría de la tabla manda sobre
-la que copió el original al bajarlo, y la pasada siguiente del bot la importa (la tabla entra en la huella).
+tamaño (el prebenjamín es siempre el mayor). Las de 2022-23 y 2023-24, también el 25/11/2026, con las
+plantillas enteras: cada niño cruzado por nombre y dos apellidos con los de las otras temporadas de MyGol
+y con las fichas de la federación, y para cada torneo, la categoría cuya ventana de edad encaja con casi
+todos (152 de 158, 74 de 76, 178 de 181, 278 de 282 pares). El 34 apenas tiene pares: es benjamín porque
+sus niños se comportan en la federación como benjamines de segundo año la temporada siguiente.
+
+La categoría de la tabla manda sobre la que copió el original al bajarlo, y la pasada siguiente del bot
+la importa (la tabla entra en la huella): para corregir una basta con cambiar la tabla. La columna admite
+`null` (sin decidir), y entonces esas temporadas no cuentan para el año de nacimiento.
 
 ### Una temporada nueva
 
@@ -93,7 +98,7 @@ nunca para la pasada: se apunta (`! MyGol: …`) y sigue. `scripts/reconstruir.p
 
 | Tabla | Qué es |
 |---|---|
-| `mygol_torneos(id, temporada, categoria, nombre)` | `categoria` NULL = sin decidir |
+| `mygol_torneos(id, temporada, categoria, nombre)` | `categoria` NULL = sin decidir (hoy, ninguno) |
 | `mygol_equipos(id, nombre)` | el nombre de la temporada más reciente, si cambia |
 | `mygol_jugadores(id, nombre, apellidos, norm)` | una fila por niño **y temporada**; `norm` = «APELLIDOS, NOMBRE» sin tildes, en mayúsculas |
 | `mygol_partidos(id, torneo_id, jornada, fecha, estado, local_id, visitante_id, campo)` | `estado` 5 = jugado, 1 = sin jugar |

@@ -225,3 +225,17 @@ def test_sin_originales(tmp_path, conn):
     I.importar_si_cambia(conn, raiz=tmp_path, registro=lambda *a: None)
     assert all(filas(conn, t) == [] for t in TABLAS)
     assert I.importar(conn, []) == {t: 0 for t in TABLAS}
+
+
+def test_la_tabla_de_torneos_del_repositorio():
+    """La tabla revisada a mano (scripts/mygol_torneos.json): todos los torneos con su categoría decidida, y
+    todas las categorías con su ventana de nacimiento (nacimiento.VENTANA), que es lo que cuenta para el año."""
+    from nacimiento import VENTANA
+    tabla = json.loads((ROOT / "scripts" / "mygol_torneos.json").read_text(encoding="utf-8"))
+    assert [t for t, fila in tabla.items() if fila.get("categoria") is None] == []
+    assert {fila["categoria"] for fila in tabla.values()} <= set(VENTANA)
+    decididos = {"32": "miniprebenjamin", "33": "prebenjamin", "34": "benjamin",
+                 "51": "benjamin", "52": "prebenjamin", "53": "miniprebenjamin"}
+    assert {t: tabla[t]["categoria"] for t in decididos} == decididos
+    assert tabla["32"]["nombre"] == "Miniprebenjamín Escuela 2022/2023"
+    assert tabla["51"]["nombre"] == "Benjamín Escuela 2023/2024"
