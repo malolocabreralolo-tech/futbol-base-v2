@@ -1,0 +1,1 @@
+const BUSCAR_HR = [["211872","DONCHEV HRISTOV, DENIS","Las Palmas","2019-2020",[2010,2011]]];

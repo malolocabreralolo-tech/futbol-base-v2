@@ -1,4 +1,4 @@
-const CACHE_NAME = 'futbolbase2-v20261125b';
+const CACHE_NAME = 'futbolbase2-v20261125d';
 const CRESTS_CACHE = 'futbolbase2-escudos-21f9b5f8';
 
 // El service worker de Fútbol Base v2. La línea 1 la sube el bot con cada versión de datos
@@ -15,9 +15,9 @@ const PRECACHE_CACHE = 'futbolbase2-precache';
 
 // >>> precache: lo escribe scripts/precache.py
 const PRECACHE = {
-  "index.html": "4fcc4986",
-  "dist/acta-fc0638d7.css": "fc0638d7",
-  "dist/app-64f418c9.js": "64f418c9",
+  "index.html": "ca762ab1",
+  "dist/acta-924d6e1a.css": "924d6e1a",
+  "dist/app-7bf101c9.js": "7bf101c9",
   "src/config.js": "34193a4f",
   "manifest.json": "823d3903",
   "fonts/PublicSans-latin.woff2": "fd76a14f",

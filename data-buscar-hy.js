@@ -1,0 +1,1 @@
+const BUSCAR_HY = [["54826810","HYDE PEREZ, LUCAS","Haría CF","2026-2027",[2017]]];

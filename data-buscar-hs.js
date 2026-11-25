@@ -1,0 +1,1 @@
+const BUSCAR_HS = [["232834","HSAINA ZOUYGHY, ADAM","Lomo B","2025-2026",[2016]]];
