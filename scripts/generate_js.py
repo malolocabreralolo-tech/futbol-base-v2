@@ -1041,40 +1041,49 @@ def anios_confirmados(path=None):
 
 
 def _rival_y_puesto(conn):
-    """Lo que el ranking necesita de las tablas de cada grupo (ranking.peso_rival, ranking.nivel_equipo),
-    sacado de los partidos con marcador (uno fuera de [0, MAX_SANE_SCORE] es un dato roto: no cuenta):
-    ([(partido, equipo, peso de un gol de ese equipo en ese partido), ...], {(grupo, equipo): percentil}).
+    """Lo que el ranking necesita de las temporadas y de las tablas de los grupos, sacado de los partidos
+    (para lo que encaja cada equipo y su puesto, solo los que tienen marcador; uno fuera de
+    [0, MAX_SANE_SCORE] es un dato roto y no cuenta). Devuelve
+    ([(partido, equipo, peso de un gol de ese equipo en ese partido), ...], {(grupo, equipo): percentil},
+     {(temporada, categoría, equipo): su mejor letra de Segunda Fase}), con las ids de las tablas.
 
-    El peso es el de su rival: lo que encaja por partido en el grupo (None con menos de MIN_PARTIDOS_EQUIPO
-    partidos) frente a la media del grupo (sus goles entre dos veces sus partidos: lo que encaja un equipo
-    por partido de media); redondeado a 4 cifras y solo si no es 1. El percentil: entre los equipos del
-    grupo con MIN_PARTIDOS_EQUIPO partidos o más, por puntos por partido (a igualdad, diferencia de goles
-    por partido y el id del equipo, para que sea determinista), 1 el primero y 0 el último, lineal por
-    puesto; sin percentil los de menos partidos y los de un grupo con menos de dos equipos que cuenten."""
+    El peso (ranking.peso_rival) es el de su rival, con lo que el rival encaja en TODA su temporada de esa
+    categoría (primera fase, eliminatorias, segunda fase y copas juntas) y con prudencia
+    (ranking.encajados_prudente), frente a la media de la temporada y la categoría (sus goles entre dos veces
+    sus partidos); redondeado a 4 cifras y solo si no es 1. El percentil es del grupo: entre los equipos con
+    MIN_PARTIDOS_EQUIPO partidos o más en él, por puntos por partido (a igualdad, diferencia de goles por
+    partido y el id del equipo, para que sea determinista), 1 el primero y 0 el último, lineal por puesto;
+    sin percentil los de menos partidos y los de un grupo con menos de dos equipos que cuenten. La mejor
+    letra: la más alta (A antes que B) de los grupos «Segunda Fase X» de esa temporada y categoría en los que
+    está el equipo, por su clasificación o por sus partidos, jugados o no (ranking.fase_que_cuenta)."""
     import ranking as R
     tabla = {}                       # (grupo, equipo) → [partidos, a favor, en contra, puntos]
-    goles, jugados = {}, {}          # grupo → goles y partidos con marcador
-    partidos = conn.execute("SELECT id, group_id, home_team_id, away_team_id, home_score, away_score "
-                            "FROM matches ORDER BY id").fetchall()
-    for _mid, gid, local, visitante, gl, gv in partidos:
+    temporada = {}                   # (temporada, categoría, equipo) → [partidos, en contra]
+    goles, jugados = {}, {}          # (temporada, categoría) → goles y partidos con marcador
+    partidos = conn.execute("""SELECT m.id, m.group_id, g.season_id, g.category_id, m.home_team_id,
+                                      m.away_team_id, m.home_score, m.away_score
+                                 FROM matches m JOIN groups g ON g.id = m.group_id ORDER BY m.id""").fetchall()
+    for _mid, gid, sid, cid, local, visitante, gl, gv in partidos:
         if local == visitante or gl is None or gv is None:
             continue
         if not (0 <= gl <= MAX_SANE_SCORE and 0 <= gv <= MAX_SANE_SCORE):
             continue
-        goles[gid] = goles.get(gid, 0) + gl + gv
-        jugados[gid] = jugados.get(gid, 0) + 1
+        goles[(sid, cid)] = goles.get((sid, cid), 0) + gl + gv
+        jugados[(sid, cid)] = jugados.get((sid, cid), 0) + 1
         for equipo, a_favor, en_contra in ((local, gl, gv), (visitante, gv, gl)):
             fila = tabla.setdefault((gid, equipo), [0, 0, 0, 0])
             fila[0] += 1
             fila[1] += a_favor
             fila[2] += en_contra
             fila[3] += 3 if a_favor > en_contra else 1 if a_favor == en_contra else 0
-    media = {gid: goles[gid] / (2 * n) for gid, n in jugados.items()}
-    cuentan = {k: v for k, v in tabla.items() if v[0] >= R.MIN_PARTIDOS_EQUIPO}
-    encajados = {k: v[2] / v[0] for k, v in cuentan.items()}
+            suya = temporada.setdefault((sid, cid, equipo), [0, 0])
+            suya[0] += 1
+            suya[1] += en_contra
+    media = {k: goles[k] / (2 * n) for k, n in jugados.items()}
     por_grupo = {}
-    for (gid, equipo), (pj, gf, gc, pts) in cuentan.items():
-        por_grupo.setdefault(gid, []).append((-pts / pj, -(gf - gc) / pj, equipo))
+    for (gid, equipo), (pj, gf, gc, pts) in tabla.items():
+        if pj >= R.MIN_PARTIDOS_EQUIPO:
+            por_grupo.setdefault(gid, []).append((-pts / pj, -(gf - gc) / pj, equipo))
     percentil = {}
     for gid, equipos in por_grupo.items():
         if len(equipos) < 2:
@@ -1083,14 +1092,34 @@ def _rival_y_puesto(conn):
         for puesto, (_, _, equipo) in enumerate(equipos, 1):
             percentil[(gid, equipo)] = 1 - (puesto - 1) / (len(equipos) - 1)
     pesos = []
-    for mid, gid, local, visitante, _, _ in partidos:
+    for mid, _gid, sid, cid, local, visitante, _, _ in partidos:
         if local == visitante:
             continue
+        m = media.get((sid, cid))
         for equipo, rival in ((local, visitante), (visitante, local)):
-            peso = round(R.peso_rival(encajados.get((gid, rival)), media.get(gid)), 4)
+            pj, en_contra = temporada.get((sid, cid, rival), (0, 0))
+            peso = round(R.peso_rival(R.encajados_prudente(en_contra, pj, m), m), 4)
             if peso != 1.0:
                 pesos.append((mid, equipo, peso))
-    return pesos, percentil
+    # La mejor letra de Segunda Fase de cada equipo: esta temporada los grupos de la Segunda Fase ya tienen
+    # equipos y calendario aunque casi no se haya jugado, así que valen la clasificación y los partidos.
+    letra = {gid: (sid, cid, R.letra_segunda_fase(fase))
+             for gid, sid, cid, fase in conn.execute("SELECT id, season_id, category_id, phase FROM groups")}
+    letra = {gid: v for gid, v in letra.items() if v[2]}
+    en_grupo = set()
+    for _mid, gid, _sid, _cid, local, visitante, _, _ in partidos:
+        if gid in letra:
+            en_grupo |= {(gid, local), (gid, visitante)}
+    if _has_table(conn, "standings"):
+        en_grupo |= {(gid, t) for gid, t in conn.execute("SELECT group_id, team_id FROM standings")
+                     if gid in letra}
+    mejor = {}
+    for gid, equipo in en_grupo:
+        sid, cid, x = letra[gid]
+        k = (sid, cid, equipo)
+        if k not in mejor or x < mejor[k]:
+            mejor[k] = x
+    return pesos, percentil, mejor
 
 
 def _datos_fichas(conn, confirmados=None):
@@ -1101,13 +1130,15 @@ def _datos_fichas(conn, confirmados=None):
     "filas": {principal: [(clave de orden, fila publicada, grupo, fila del ranking), ...]} en orden de
     temporada y de primer día del grupo (a igualdad, la de la principal antes); la fila del ranking es
     (año de inicio, categoría en minúsculas, fase, partidos, titular, goles, goles por rival, isla,
-    percentil, temporada, equipo): las nueve primeras, una ranking.Fila. Los goles por rival, la suma
-    aparición a aparición de sus goles por el peso de su rival en ese partido (_rival_y_puesto), con 4
-    cifras.
+    percentil, temporada, equipo): las nueve primeras, una ranking.Fila. La fase es la que cuenta para el
+    nivel (ranking.fase_que_cuenta, con la mejor letra de Segunda Fase de su equipo); la de la ficha ("g")
+    sigue siendo la del grupo. Los goles por rival, la suma aparición a aparición de sus goles por el peso
+    de su rival en ese partido (_rival_y_puesto), con 4 cifras.
     "anios": {principal: (años, confirmado)}, los de nacimiento.estimar con todas sus filas o el
     confirmado (anios_confirmados, o `confirmados` si se pasa) de su clave o de uno de sus alias."""
     if not any(r[1] == "fiflp_id" for r in conn.execute("PRAGMA table_info(players)")):
         return None
+    import ranking as R
     from nacimiento import estimar
     f = _fichas(conn)
     clave, ficha, publicadas = f["clave"], f["ficha"], f["publicadas"]
@@ -1120,7 +1151,7 @@ def _datos_fichas(conn, confirmados=None):
             first_day[gid] = iso
     # El peso de cada gol por su rival va en una tabla temporal, para sumarlo en la misma consulta grande
     # (aparición a aparición en Python serían 400.000 vueltas). Sin fila, el gol vale 1.
-    pesos, percentil = _rival_y_puesto(conn)
+    pesos, percentil, mejor = _rival_y_puesto(conn)
     abierta = conn.in_transaction            # lo que el que llama tuviera a medias no se confirma aquí
     conn.execute("DROP TABLE IF EXISTS temp._peso_rival")
     conn.execute("CREATE TEMP TABLE _peso_rival (match_id INTEGER, team_id INTEGER, peso REAL, "
@@ -1129,7 +1160,8 @@ def _datos_fichas(conn, confirmados=None):
     rows = conn.execute("""
         SELECT p.id, s.name, s.start_year, g.id, g.code, t.name, COUNT(*),
                SUM(a.role='starter'), SUM(a.goals), SUM(a.yellow), SUM(a.red),
-               LOWER(c.name), g.name, g.phase, g.island, a.team_id, SUM(a.goals * COALESCE(w.peso, 1.0))
+               LOWER(c.name), g.name, g.phase, g.island, a.team_id, SUM(a.goals * COALESCE(w.peso, 1.0)),
+               g.season_id, g.category_id
           FROM appearances a JOIN players p ON p.id=a.player_id
           JOIN matches m ON m.id=a.match_id JOIN groups g ON g.id=m.group_id
           JOIN seasons s ON s.id=g.season_id JOIN teams t ON t.id=a.team_id
@@ -1142,7 +1174,7 @@ def _datos_fichas(conn, confirmados=None):
     # Por ficha: sus filas en orden de temporada y primer día del grupo; a igualdad, la de la principal antes.
     por_ficha = {}
     for (pid, season, year, gid, code, team, pj, tit, goals, yellow, red, cat, gname, phase, island,
-         team_id, por_rival) in rows:
+         team_id, por_rival, sid, cid) in rows:
         principal = ficha.get(pid)
         if principal not in publicadas:
             continue
@@ -1150,8 +1182,8 @@ def _datos_fichas(conn, confirmados=None):
         por_ficha.setdefault(principal, []).append(
             ((year, first_day.get(gid, "9999"), code, team, len(motivo), motivo),
              [season, code, team, pj, tit, goals, yellow, red, *motivo], (season, code, cat, gname, phase, island),
-             (year, cat, phase, pj, tit, goals, round(por_rival or 0.0, 4), island,
-              percentil.get((gid, team_id)), season, team)))
+             (year, cat, R.fase_que_cuenta(phase, mejor.get((sid, cid, team_id))), pj, tit, goals,
+              round(por_rival or 0.0, 4), island, percentil.get((gid, team_id)), season, team)))
     for filas in por_ficha.values():
         filas.sort(key=lambda x: x[0])
     miembros = {}

@@ -224,15 +224,21 @@ def test_ranking_orden_y_tope(monkeypatch):
 #   M1 Atletico Uno 4-0 Deportivo Dos     M4 Deportivo Dos 0-2 Club Tres
 #   M2 Atletico Uno 2-1 Club Tres         M5 Deportivo Dos 1-1 Union Cuatro
 #   M3 Atletico Uno 3-1 Union Cuatro      M6 Club Tres 0-0 Union Cuatro
-# La tabla que resulta:
-#   equipo          PJ  GF  GC  Pts  Pts/PJ  encaja/PJ  peso de un gol contra él  percentil
-#   Atletico Uno     3   9   2   9   3,00    0,6667     1,25/0,6667 = 1,875 → 1,5    1
-#   Club Tres        3   3   2   4   1,33    0,6667     1,5                          0,6667
-#   Union Cuatro     3   2   4   2   0,67    1,3333     1,25/1,3333 = 0,9375         0,3333
-#   Deportivo Dos    3   1   7   1   0,33    2,3333     1,25/2,3333 = 0,5357         0
-# Media del grupo: 15 goles en 6 partidos, 15 / (2 × 6) = 1,25 encajados por equipo y partido.
-# Y una copa (grupo 5) de dos partidos: Atletico Uno 5-0 Deportivo Dos y Deportivo Dos 0-3 Atletico Uno.
-# Nadie llega a 3 partidos: peso 1 y sin percentil.
+# Y una copa (grupo 5) de dos partidos: M7 Atletico Uno 5-0 Deportivo Dos y M8 Deportivo Dos 0-3 Atletico Uno.
+# La tabla de la liga (el percentil es del grupo: solo la liga, todos con 3 partidos):
+#   equipo          PJ  GF  GC  Pts  Pts/PJ  percentil
+#   Atletico Uno     3   9   2   9   3,00    1
+#   Club Tres        3   3   2   4   1,33    0,6667
+#   Union Cuatro     3   2   4   2   0,67    0,3333
+#   Deportivo Dos    3   1   7   1   0,33    0
+# El rival se mide con toda su temporada de benjamín (liga y copa), con PRUDENCIA_RIVAL = 4 partidos a la
+# media: 23 goles en 8 partidos, 23 / (2 × 8) = 1,4375 encajados por equipo y partido.
+#   equipo          PJ  GC  encajados prudentes            peso de un gol contra él
+#   Atletico Uno     5   2  (2 + 4 × 1,4375) / 9 = 0,8611   1,4375 / 0,8611 = 1,669 → 1,5
+#   Club Tres        3   2  (2 + 5,75) / 7 = 1,1071         1,2984
+#   Union Cuatro     3   4  (4 + 5,75) / 7 = 1,3929         1,0321
+#   Deportivo Dos    5  15  (15 + 5,75) / 9 = 2,3056        0,6235
+# En la copa nadie llega a 3 partidos: sin percentil (pero el rival pesa, con su temporada).
 LIGA = [(1, 1, 2, 4, 0), (2, 1, 3, 2, 1), (3, 1, 4, 3, 1), (4, 2, 3, 0, 2), (5, 2, 4, 1, 1), (6, 3, 4, 0, 0)]
 COPA = [(7, 1, 2, 5, 0), (8, 2, 1, 0, 3)]
 # (player_id, nombre, fiflp_id, equipo, {partido: goles}): juega todos los partidos de su equipo.
@@ -244,13 +250,20 @@ EN_LA_LIGA = [
 ]
 
 
-def base_liga():
+def base_liga(segunda_a=False):
+    """La liga y la copa de arriba. Con `segunda_a`, además un grupo «Segunda Fase A» de esa temporada en
+    cuya clasificación está Atletico Uno (sin ningún partido jugado)."""
     conn = base()
     conn.executescript("""
       INSERT INTO teams(id, name) VALUES (4, 'Union Cuatro');
       INSERT INTO groups(id, season_id, category_id, code, name, phase, island) VALUES
         (4, 2, 2, 'BG4', 'Grupo 4', 'Primera Fase GC', 'grancanaria'),
         (5, 2, 2, 'CP1', 'Copa', 'Copa Gran Canaria', 'grancanaria');""")
+    if segunda_a:
+        conn.executescript("""
+          INSERT INTO groups(id, season_id, category_id, code, name, phase, island) VALUES
+            (6, 2, 2, 'A1', 'Grupo 1', 'Segunda Fase A', 'grancanaria');
+          INSERT INTO standings(group_id, team_id, position, points, played) VALUES (6, 1, 1, 0, 0);""")
     for grupo, partidos in ((4, LIGA), (5, COPA)):
         for n, local, visitante, gl, gv in partidos:
             conn.execute("INSERT INTO matches(id, group_id, jornada, date, home_team_id, away_team_id, home_score, "
@@ -278,16 +291,42 @@ def _fila_ranking(datos, pid, code):
 def test_goles_por_rival_y_percentil():
     datos = G._datos_fichas(base_liga())
     raul = _fila_ranking(datos, 1, "BG4")
-    # 2 goles a Deportivo Dos (0,5357) y 1 a Club Tres (1,5).
-    assert raul[5] == 3 and raul[6] == pytest.approx(2 * 0.5357 + 1.5) and raul[7] == "grancanaria"
-    assert raul[8] == 1.0
+    # 2 goles a Deportivo Dos (0,6235) y 1 a Club Tres (1,2984).
+    assert raul[5] == 3 and raul[6] == pytest.approx(2 * 0.6235 + 1.2984) and raul[7] == "grancanaria"
+    assert raul[8] == 1.0 and raul[2] == "Primera Fase GC"
     ivan = _fila_ranking(datos, 2, "BG4")
-    assert ivan[5] == 1 and ivan[6] == pytest.approx(0.9375) and ivan[8] == 0.0
+    assert ivan[5] == 1 and ivan[6] == pytest.approx(1.0321) and ivan[8] == 0.0
     assert _fila_ranking(datos, 3, "BG4")[8] == pytest.approx(2 / 3)
     assert _fila_ranking(datos, 4, "BG4")[8] == pytest.approx(1 / 3)
-    # La copa de dos partidos: peso 1 y sin percentil.
+    # La copa de dos partidos: sin percentil; sus 2 goles, a Deportivo Dos, pesan por su temporada entera.
     copa = _fila_ranking(datos, 1, "CP1")
-    assert copa[3] == 2 and copa[5] == 2 and copa[6] == 2.0 and copa[8] is None
+    assert copa[3] == 2 and copa[5] == 2 and copa[6] == pytest.approx(2 * 0.6235) and copa[8] is None
+
+
+def test_un_rival_sin_partidos_con_marcador_pesa_1():
+    # La base de siempre no tiene marcadores: sin media de la temporada, todos los goles valen 1.
+    datos = G._datos_fichas(base(RAUL, HUGO))
+    assert all(r[6] == r[5] for fs in datos["filas"].values() for *_, r in fs)
+
+
+def test_la_fase_buena_de_su_equipo():
+    # Atletico Uno está en la Segunda Fase A (solo en su clasificación): los goles de Raul en la Primera Fase
+    # cuentan como de la A (1,30). Los de Ivan, de Deportivo Dos, que no está en ninguna, como de la suya.
+    import ranking as R
+    conn = base_liga(segunda_a=True)
+    datos = G._datos_fichas(conn)
+    raul = _fila_ranking(datos, 1, "BG4")
+    assert raul[2] == "Segunda Fase A" and R.nivel_fase(raul[2]) == 1.30
+    assert _fila_ranking(datos, 1, "CP1")[2] == "Segunda Fase A"        # la copa, sin nivel propio, también
+    assert _fila_ranking(datos, 2, "BG4")[2] == "Primera Fase GC"
+    # Lo publicado de la ficha sigue con la fase de verdad del grupo.
+    p = fichas(G.jugadores_files(conn, datos=datos))
+    shard = _const(G.jugadores_files(conn)[f"data-jugadores-{trozo('1001', 64)}.js"], f"JUGADORES_{trozo('1001', 64)}")
+    assert shard["g"]["2026-2027/BG4"][2] == "Primera Fase GC" and "1001" in p
+    # Y el índice de Raul sube respecto a la base sin la Segunda Fase.
+    antes = {e[0]: e[7] for e in ranking(G.ranking_files(base_liga()), 2017)["t"]}
+    despues = {e[0]: e[7] for e in ranking(G.ranking_files(conn), 2017)["t"]}
+    assert despues["1001"] > antes["1001"] and despues["1002"] == antes["1002"]
 
 
 def test_el_rival_cambia_el_orden():

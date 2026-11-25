@@ -5,8 +5,12 @@ ranking de lo medible: favorece a quien marca (defensas y porteros casi no se pu
 las actas). Es más difícil destacar en un equipo bueno y en una liga buena que en un equipo malo y en una
 liga mala, así que un gol no vale lo mismo en todas partes. Cuatro factores, cada uno en una frase:
 
-1. El rival (por partido): un gol vale más cuanto menos encaja el rival en ese grupo (peso_rival).
+1. El rival (por partido): un gol vale más cuanto menos encaja el rival, medido con toda su temporada en
+   la categoría y con prudencia (encajados_prudente, peso_rival).
 2. La liga (por grupo): la letra de la Segunda Fase y «Preferente» (nivel_fase), y la isla (nivel_isla).
+   Un grupo sin nivel propio (la Primera Fase, las eliminatorias, una copa) cuenta como la Segunda Fase en
+   la que la federación puso a su equipo esa temporada (fase_que_cuenta): el equipo bueno es el que acabó
+   en la A.
 3. El equipo (por grupo): un poco más si su equipo es de los de arriba de la tabla (nivel_equipo).
 4. La edad: más si es de los pequeños de la categoría o juega en la de arriba (factor_edad).
 
@@ -40,7 +44,10 @@ TOPE = 100
 # al rival que lo encaja todo, la mitad; al que no encaja nada, una vez y media.
 RIVAL_MIN = 0.5
 RIVAL_MAX = 1.5
-# Con menos partidos, un equipo no tiene aún cifras que digan nada: ni su rival pesa ni su puesto cuenta.
+# Lo que encaja el rival se mide con toda su temporada en la categoría, con estos partidos de más a la
+# media (encajados_prudente): con uno, el rival queda casi en la media; con veinte, pesa lo que ha hecho.
+PRUDENCIA_RIVAL = 4
+# Con menos partidos en el grupo, el puesto de un equipo aún no dice nada (nivel_equipo).
 MIN_PARTIDOS_EQUIPO = 3
 # El del último de su grupo y el del primero; entre ellos, en línea recta por el puesto.
 EQUIPO_MIN = 0.90
@@ -101,6 +108,41 @@ def factor_edad(anio: int, temporada: int, categoria: str) -> float:
     if e <= 0:
         return 1.0
     return _PREMIO_EDAD.get(e, _PREMIO_EDAD_LEJOS)
+
+
+def tiene_nivel(fase: str | None) -> bool:
+    """¿Tiene la fase un nivel propio en nivel_fase: una Segunda Fase con letra (aunque valga 1, como la D),
+    «Preferente …» o la Copa de Campeones? La Primera Fase, las eliminatorias, las copas y las ligas de isla,
+    no."""
+    if not fase:
+        return False
+    f = _normalizar(fase)
+    return f.startswith("preferente") or bool(_CAMPEONES.match(f)) or bool(_SEGUNDA_FASE.match(f))
+
+
+def letra_segunda_fase(fase: str | None) -> str | None:
+    """La letra («A», «B»…) de una fase «Segunda Fase X» (o «… X GC»); None si no lo es."""
+    m = _SEGUNDA_FASE.match(_normalizar(fase)) if fase else None
+    return m.group(1).upper() if m else None
+
+
+def fase_que_cuenta(fase: str | None, mejor: str | None) -> str | None:
+    """La fase con la que se mide el nivel de una fila: la suya si tiene nivel propio (tiene_nivel); si no,
+    «Segunda Fase <mejor>», la mejor letra de Segunda Fase de su equipo esa temporada (la que le puso la
+    federación), si la tiene; y si tampoco, la suya. Los goles de la Primera Fase o de las eliminatorias de
+    un equipo que acabó en la A valen como de la A."""
+    if tiene_nivel(fase) or not mejor:
+        return fase
+    return f"Segunda Fase {mejor}"
+
+
+def encajados_prudente(en_contra: int, partidos: int, media: float | None) -> float | None:
+    """Lo que encaja un equipo por partido en su temporada, con PRUDENCIA_RIVAL partidos de más a la `media`
+    (lo que encaja un equipo por partido de media en esa temporada y categoría): (en contra + PRUDENCIA_RIVAL
+    × media) / (partidos + PRUDENCIA_RIVAL). Sin partidos, la media; sin media (None o no positiva), None."""
+    if media is None or media <= 0:
+        return None
+    return (en_contra + PRUDENCIA_RIVAL * media) / (partidos + PRUDENCIA_RIVAL)
 
 
 def peso_rival(encajados: float | None, media: float | None) -> float:

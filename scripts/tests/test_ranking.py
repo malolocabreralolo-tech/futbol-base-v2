@@ -7,8 +7,8 @@ cuentan, con casos inventados.
 """
 import pytest
 
-from ranking import (PRUDENCIA, factor_edad, indice, medias_de, nivel_equipo, nivel_fase, nivel_isla,
-                     peso_rival)
+from ranking import (PRUDENCIA, encajados_prudente, factor_edad, fase_que_cuenta, indice, letra_segunda_fase,
+                     medias_de, nivel_equipo, nivel_fase, nivel_isla, peso_rival, tiene_nivel)
 
 
 def fila(t, c, fase, pj, tit, g, gr=None, isla=None, pct=None):
@@ -107,3 +107,29 @@ def test_medias_de_con_los_goles_sin_ponderar():
     # La media es de goles de verdad: los goles por rival (7.º campo) no la mueven.
     filas = [fila(2026, "benjamin", None, 10, 10, 5, gr=50.0), fila(2026, "benjamin", None, 10, 0, 5, gr=0.0)]
     assert medias_de(filas) == {(2026, "benjamin"): 0.5}
+
+
+def test_encajados_prudente():
+    # Lo que encaja un equipo en toda su temporada, con PRUDENCIA_RIVAL partidos de más a la media.
+    assert encajados_prudente(0, 0, 2.0) == 2.0
+    assert encajados_prudente(20, 1, 2.0) == pytest.approx(28 / 5)
+    assert encajados_prudente(10, 20, 2.0) == pytest.approx(18 / 24)
+    assert encajados_prudente(5, 3, None) is None and encajados_prudente(5, 3, 0) is None
+    # Una goleada en un solo partido ya no hunde el peso al mínimo… salvo que sea de 20.
+    assert peso_rival(encajados_prudente(20, 1, 2.0), 2.0) == 0.5
+    assert peso_rival(encajados_prudente(3, 1, 2.0), 2.0) == pytest.approx(2.0 / (11 / 5))
+
+
+def test_tiene_nivel_y_fase_que_cuenta():
+    assert tiene_nivel("Segunda Fase D")                   # aunque valga 1,00
+    assert tiene_nivel("Preferente GC") and tiene_nivel("Copa de Campeones")
+    assert not tiene_nivel("Primera Fase GC") and not tiene_nivel("Eliminatorias")
+    assert not tiene_nivel("Segunda Fase GC") and not tiene_nivel(None)
+    assert fase_que_cuenta("Primera Fase GC", "A") == "Segunda Fase A"
+    assert fase_que_cuenta("Eliminatorias", "F") == "Segunda Fase F"
+    assert fase_que_cuenta("Segunda Fase C", "A") == "Segunda Fase C"
+    assert fase_que_cuenta("Primera Fase GC", None) == "Primera Fase GC"
+    assert fase_que_cuenta(None, "B") == "Segunda Fase B"
+    assert letra_segunda_fase("Segunda Fase A GC") == "A" and letra_segunda_fase("segunda fase f") == "F"
+    assert letra_segunda_fase("Segunda Fase GC") is None and letra_segunda_fase("Copa Campeones Benjamin B") is None
+    assert letra_segunda_fase(None) is None

@@ -19,10 +19,11 @@ Es más difícil destacar en un equipo bueno y en una liga buena que en un equip
 Por eso **un gol no vale lo mismo en todas partes**. Hay cinco cosas que suben el índice:
 
 1. **Marcar mucho por partido.**
-2. **Marcar a rivales que encajan poco.** Un gol al equipo que menos encaja de su grupo vale más que uno
-   al que lo encaja todo.
+2. **Marcar a rivales que encajan poco.** Un gol a un equipo que casi no encaja en toda su temporada vale
+   más que uno al que lo encaja todo.
 3. **Marcar en una liga de más nivel.** Marcar en la Segunda Fase A vale más que en la E, y en Gran Canaria
-   más que en Lanzarote o Fuerteventura.
+   más que en Lanzarote o Fuerteventura. Y los goles de la primera fase de un equipo que la federación puso
+   después en la A valen como de la A.
 4. **Marcar en un equipo de los de arriba.** Su equipo es de los primeros de su grupo.
 5. **Marcar siendo pequeño.** Vale más si el niño es de los pequeños de su categoría, o si juega con los
    mayores.
@@ -71,21 +72,26 @@ Marca muchísimo por partido, pero ha jugado tan poco que la corrección lo fren
 
 ## El peso del rival
 
-Se mira **cuántos goles encaja el rival por partido en ese grupo**, frente a lo que se encaja de media en el
-grupo (todos los goles del grupo entre dos veces sus partidos). Un gol vale lo que se encaja de media
-dividido entre lo que encaja el rival, con un mínimo de 0,5 y un máximo de 1,5. Por ejemplo, en un grupo donde se encajan 2 goles por
-partido de media:
+Se mira **cuántos goles encaja el rival por partido en toda su temporada** de esa categoría: todos sus
+partidos con marcador, sean de la primera fase, de las eliminatorias, de la segunda fase o de una copa. Y se
+mira **con prudencia**: a lo que ha encajado se le suman 4 partidos encajando justo la media. Así, un rival
+que solo ha jugado un partido se queda casi en la media (una goleada suelta no dice mucho) y uno que lleva
+veinte pesa por lo que ha hecho.
 
-| El rival encaja por partido | Un gol vale |
-|---|---|
-| Ninguno, o 1,3 o menos | × 1,50 |
-| 1,6 | × 1,25 |
-| 2,0 (la media) | × 1,00 |
-| 2,5 | × 0,80 |
-| 4,0 o más | × 0,50 |
+> lo que encaja el rival = (goles en contra + 4 × media) ÷ (partidos + 4)
 
-Un rival con **menos de 3 partidos** con marcador en el grupo todavía no dice nada: el gol vale × 1,00. Pasa
-en las copas cortas y al principio de cada temporada.
+La **media** es lo que encaja un equipo por partido en esa temporada y categoría (todos los goles entre dos
+veces todos los partidos). Un gol vale la media dividida entre lo que encaja el rival, con un mínimo de 0,5 y
+un máximo de 1,5. Por ejemplo, con una media de 2 goles por partido:
+
+| El rival… | Encaja (con prudencia) | Un gol vale |
+|---|---|---|
+| no ha jugado ningún partido | 2,0 | × 1,00 |
+| ha jugado 1 y encajó 3 | (3 + 8) ÷ 5 = 2,2 | × 0,91 |
+| ha jugado 1 y encajó 20 | (20 + 8) ÷ 5 = 5,6 | × 0,50 |
+| ha jugado 20 y encajó 20 | (20 + 8) ÷ 24 = 1,17 | × 1,50 |
+| ha jugado 20 y encajó 40 | (40 + 8) ÷ 24 = 2,0 | × 1,00 |
+| ha jugado 20 y encajó 60 | (60 + 8) ÷ 24 = 2,83 | × 0,71 |
 
 ## El nivel de la liga
 
@@ -107,6 +113,14 @@ Si la Copa de Campeones lleva letra (A a E), vale lo mismo que esa letra en la S
 
 Una copa que lleva «Preferente» en medio del nombre (por ejemplo, «Copa Cabildo Preferente Lanzarote») no
 cuenta como Preferente: vale 1,00, porque en una copa se mezclan equipos de varios niveles.
+
+**Los grupos sin nivel propio** (la Primera Fase, las eliminatorias, una copa o una liga de isla) cuentan
+como **la Segunda Fase en la que la federación puso a su equipo** esa temporada: el equipo bueno es el que
+acabó en la A. Los goles de la primera fase y de las eliminatorias de un equipo que está en la Segunda Fase A
+valen como de la A (1,30), y los de uno que está en la F, como de la F (0,90). Basta con que el equipo esté en
+ese grupo (en su clasificación o en su calendario), aunque aún no haya jugado. Un equipo que no está en
+ninguna Segunda Fase con letra se queda con el nivel de su grupo (1,00). Los grupos con nivel propio
+(Segunda Fase con letra, Preferente, Copa de Campeones) valen lo suyo.
 
 Y se multiplica por **el nivel de la isla** del grupo:
 
@@ -239,7 +253,8 @@ más. Por eso:
 - **El nivel de las islas es una apreciación fija**, no una medida. Lanzarote y Fuerteventura valen 0,85
   porque sus ligas tienen menos equipos y menos nivel, pero los equipos de islas distintas casi nunca juegan
   entre sí, así que las actas no dejan medirlo.
-- **El rival se mide dentro de su grupo.** Un rival que encaja poco en una liga floja pesa como uno que
-  encaja poco en una fuerte; la diferencia entre ligas la pone el nivel de la liga.
+- **El rival se mide con su temporada en la categoría, no con el nivel de su liga.** Un rival que encaja
+  poco en una liga floja pesa como uno que encaja poco en una fuerte; la diferencia entre ligas la pone el
+  nivel de la liga.
 - **El año es una estimación.** Un niño mal estimado sale en un año que no es el suyo. Por eso existe la
   marca de año dudoso, y la forma de confirmarlo de arriba.
