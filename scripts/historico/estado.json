@@ -91,6 +91,29 @@
     "21"
    ],
    "trabajo": "goleadores"
+  },
+  {
+   "accion": "descargar",
+   "esperas": 0,
+   "fin": "2026-11-25T19:26:22+00:00",
+   "frenos": 1,
+   "frenos_tras": [
+    0
+   ],
+   "inicio": "2026-11-25T19:26:12+00:00",
+   "lote": "alevin",
+   "muertas": 0,
+   "nube": "aws",
+   "paginas": 1881,
+   "parada": "runner",
+   "pedidas": 2,
+   "relanzada": false,
+   "runner_rechazado": true,
+   "servidas": 0,
+   "temporadas": [
+    "21"
+   ],
+   "trabajo": "actas"
   }
  ],
  "formato": 1,
