@@ -18,6 +18,8 @@ Todo va en `~/backups/futbol-base/`, una carpeta que solo puede abrir tu usuario
 - `estado.json`: cómo fue la última pasada (es lo que lee `estado`).
 - `registro.log`: una línea por cada pasada, con lo que pasó.
 
+La base de `v2` va a dejar de estar en git tal cual: el repositorio la guarda partida en piezas (la carpeta `base/`, ver `docs/almacenamiento.md`). Desde el día en que el commit ya no lleve `futbolbase.db`, la copia la monta de las piezas de ese commit y la guarda igual que hoy, en `actual/v2/futbolbase.db`; las versiones, los volcados y la cuarentena no cambian. Mientras el commit siga llevando `futbolbase.db`, se usa esa, byte a byte. Unas piezas que no se pueden montar son un fallo de la fuente, como un repositorio que no responde: la base buena que ya había no se toca.
+
 Las otras carpetas que hay ahí (`correcciones-2026-09-09`, `mejoras-completas-2026-09-09`, `notas-viejas-2026-10-14`, `rediseno-2026-09-23`, `revision-2026-09-09` y `local-v1/`, con todas las ramas locales de la web actual a 13/11/2026) son de antes: esta herramienta no las toca.
 
 ## Cada cuánto y qué se conserva
@@ -84,6 +86,8 @@ Cada pasada deja marcado cómo estaba el repositorio ese día (fecha en UTC). Pa
     git --git-dir ~/backups/futbol-base/repos/v1.git show refs/copia/main/20261113:scripts/fiflp_2425_raw.json > ~/fiflp_2425_raw.json
 
 Los días que hay: `git --git-dir ~/backups/futbol-base/repos/v1.git for-each-ref refs/copia`.
+
+La base de `v2`, desde que no está en git tal cual, no se saca con `extraer` (en el repositorio solo están sus piezas): se saca con `restaurar`, que da la de ese día ya montada y comprobada.
 
 Solo la rama `main` tiene esa marca de cada día. Las otras ramas también se copian, y lo que se reescriba en ellas no se pierde (el espejo no borra nada), pero sus estados anteriores solo se encuentran buscándolos con `git --git-dir ~/backups/futbol-base/repos/v1.git fsck --unreachable`.
 

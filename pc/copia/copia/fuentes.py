@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import BinaryIO
 
+from . import piezas
 from .rutas import raiz
 
 # El nombre acaba siendo una carpeta: sin barras, puntos ni comodines no se sale de repos/ ni se confunde con otro.
@@ -42,12 +43,15 @@ class Origen:
     repo: str
     rama: str
     base: str
+    # La carpeta de las piezas de la base en el repositorio (v2: base/, scripts/piezas.py). Sin ella, la base solo
+    # se saca tal cual del commit.
+    piezas: str | None = None
 
 
 def cargar_origenes(ruta: Path) -> list[Origen]:
     try:
         datos = json.loads(Path(ruta).read_text(encoding="utf-8"))
-        origenes = [Origen(nombre, d["repo"], d["rama"], d["base"]) for nombre, d in datos.items()]
+        origenes = [Origen(nombre, d["repo"], d["rama"], d["base"], d.get("piezas")) for nombre, d in datos.items()]
     except (OSError, ValueError, AttributeError, KeyError, TypeError) as e:
         raise FuenteError(f"{ruta}: no se pueden leer los orígenes ({type(e).__name__}: {e})") from e
     if not origenes:
@@ -56,7 +60,16 @@ def cargar_origenes(ruta: Path) -> list[Origen]:
     for o in origenes:
         if not _NOMBRE.fullmatch(o.nombre) or not all(isinstance(v, str) and v for v in (o.repo, o.rama, o.base)):
             raise FuenteError(f"{ruta}: el origen {o.nombre!r} no es válido")
+        if o.piezas is not None and not _carpeta_dentro(o.piezas):
+            raise FuenteError(f"{ruta}: la carpeta de las piezas de {o.nombre!r} no es una ruta del repositorio")
     return origenes
+
+
+def _carpeta_dentro(ruta) -> bool:
+    """Una ruta relativa de dentro del repositorio: sin barra inicial, sin «..» ni «.», sin barras invertidas."""
+    if not isinstance(ruta, str) or not ruta or ruta.startswith("/") or "\\" in ruta:
+        return False
+    return all(parte not in ("", ".", "..") for parte in ruta.split("/"))
 
 
 def actualizar_espejo(origen: Origen, ahora: datetime) -> str:
@@ -78,7 +91,43 @@ def avisos_del_espejo(origen: Origen) -> list[str]:
 
 
 def extraer_base(origen: Origen, commit: str, destino: Path) -> Path:
+    """La base del commit, en `destino`. Si el commit la tiene (v1; v2 mientras siga en git), tal cual, byte a
+    byte. Si no, y el origen tiene piezas y el commit su manifiesto, se monta de ellas (scripts/piezas.py): un
+    PiezasError es un fallo de la fuente, y en `destino` no queda nada."""
+    if origen.piezas is None:
+        return extraer_fichero(origen, origen.base, destino, commit)
+    espejo = _espejo(origen)
+    if espejo.is_dir() and not _hay(espejo, commit, origen.base) \
+            and _hay(espejo, commit, f"{origen.piezas}/{piezas.MANIFIESTO}"):
+        return _montar_piezas(origen, espejo, commit, Path(destino))
     return extraer_fichero(origen, origen.base, destino, commit)
+
+
+def _hay(espejo: Path, commit: str, ruta: str) -> bool:
+    return _ejecutar(espejo, "cat-file", "-e", f"{commit}:{ruta}").returncode == 0
+
+
+def _montar_piezas(origen: Origen, espejo: Path, commit: str, destino: Path) -> Path:
+    """Saca las piezas del commit a una carpeta temporal junto a `destino` y monta allí la base."""
+    destino.parent.mkdir(parents=True, exist_ok=True)
+    carpeta = Path(tempfile.mkdtemp(prefix=f".{destino.name}.piezas.", suffix=".tmp", dir=destino.parent))
+    try:
+        prefijo = f"{origen.piezas}/"
+        nombres = _git(espejo, "ls-tree", "-r", "-z", "--name-only", commit, "--", prefijo).split("\0")
+        for nombre in nombres:
+            resto = nombre[len(prefijo):] if nombre.startswith(prefijo) else ""
+            # Solo los ficheros de la carpeta misma: las piezas y el manifiesto (montar mira que estén todas).
+            if resto and "/" not in resto:
+                extraer_fichero(origen, nombre, carpeta / resto, commit)
+        try:
+            piezas.montar(carpeta, destino)
+        except piezas.PiezasError as e:
+            raise FuenteError(f"no se puede montar la base de {prefijo} de {commit}: {e}") from e
+        # La marca de qué piezas dieron la base es para un árbol de trabajo del repositorio: aquí, fuera.
+        Path(f"{destino}.piezas").unlink(missing_ok=True)
+    finally:
+        shutil.rmtree(carpeta, ignore_errors=True)
+    return destino
 
 
 def extraer_fichero(origen: Origen, ruta: str, destino: Path, commit: str | None = None) -> Path:

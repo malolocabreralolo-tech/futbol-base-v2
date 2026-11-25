@@ -218,7 +218,7 @@ lo que hace cada uno en cada fase. Desde la fase 3 la base no está en git: quie
 | `scripts/reconstruir.py` (`--db`, por defecto la de la raíz) | Lee la de la raíz y trabaja en copias | Con la de git | Montar antes |
 | `scripts/prueba_mayores.py`, `scripts/prueba_historico.py` | Copian la de la raíz (o la de su copia) y trabajan allí | Con la de git | Montar antes; `prueba_historico.py` mide la pieza mayor y no la base entera |
 | Órdenes a mano que la abren: `activate_season.py`, `quitar_categoria.py`, `fiflp_manifest.py`, `medir_identidad.py`, `migrate_*.py`, `synth_copa_campeones.py`, `discover_temporada.py`, `escudos_federacion.py`, `import_*.py` | La leen o la escriben en la raíz | La de git (el bot parte y sube) | Montar antes; `partir`, `verificar` y `git add -A base/` después; sin montar, `db.get_connection` para con «monta la base» |
-| `pc/copia/` (la copia del PC: `copia/fuentes.py`, `extraer_base`) | Saca `futbolbase.db` del commit del día | La de git | Si el commit no la trae, la monta de su `base/` (tarea 4) |
+| `pc/copia/` (la copia del PC: `copia/fuentes.py`, `extraer_base`) | Saca `futbolbase.db` del commit del día | La de git (desde la tarea 4, si un commit no la trae, la monta de su `base/`) | La monta de la `base/` del commit (tarea 4, instalada en el PC antes de la 7) |
 | «Datos y fuentes» (`src/screen-fuentes.js`) y `generate_js.py` (`COBERTURA.mb`) | El enlace de descarga y su tamaño | `./futbolbase.db` | El ZIP del día de la release `base-completa` (tarea 5, antes de la 7) |
 
 ## Fases
@@ -389,3 +389,30 @@ rechazado»).
    la serie en `main`: con la descarga o la rama `web` ya encima, chocan `update.yml` y las huellas de
    `test_workflows.py`; entonces se revierten antes los de encima, del último al primero (o se resuelve el choque y
    se recalculan las huellas, como dice su comentario).
+
+## La copia del PC
+
+La copia de seguridad del PC (`pc/copia/`) guarda cada día la base de v2 sacándola del commit del día
+(`copia/fuentes.py`, `extraer_base`). Mientras el commit traiga `futbolbase.db` (fases 1 y 2), la saca tal cual,
+byte a byte, como siempre. Si no la trae y trae `base/piezas.json` (desde la fase 3), saca las piezas a una carpeta
+temporal y la **monta** (`copia/piezas.py` es un enlace a `scripts/piezas.py`; `instalar.sh` copia el fichero). Unas
+piezas que no montan son un fallo de la fuente, como una base rota: la buena anterior se queda. Lo que se guarda
+(`actual/v2/futbolbase.db`, las versiones, los volcados y la cuarentena) no cambia. La entrada `v2` de
+`pc/copia/origenes.json` lleva `"piezas": "base"`; la de `v1`, igual que antes, byte a byte.
+
+### Instalarla en el PC (PASO DEL DIRECTOR, antes de la fase 3)
+
+1. Con este commit en `main` y traído al árbol del PC (`git -C ~/claude/futbol-base-v2 pull --ff-only`, con el árbol
+   limpio): `cd ~/claude/futbol-base-v2/pc/copia && python3 -m pytest tests -q -W error && bash instalar.sh`.
+2. Comprobación: `futbol-base-copia ejecutar` y `futbol-base-copia estado`: la línea de `v2` dice `(aceptada)` o
+   `(sin cambios)`, la de `v1` sigue como estaba y no sale `AVISO`; `instalado: commit <el de este cambio>`. El día
+   siguiente a la fase 3, otra vez `estado`: `v2 … (aceptada)`, con la base montada.
+3. Este commit trae el primer enlace simbólico del repositorio (`pc/copia/copia/piezas.py`, que apunta a
+   `scripts/piezas.py`) y Pages, hasta la rama `web`, publica `main` entero. Con `.nojekyll` no debería afectarle,
+   pero tras el push se mira que su despliegue sale bien:
+   `gh api repos/malolocabreralolo-tech/futbol-base-v2/pages/builds/latest --jq '{status, commit, error}'` con
+   `status` `built`, `commit` el de `main` y sin `error`. Si saliera `errored`, se revierte este commit y se
+   instala desde un árbol con el fichero copiado (sin el enlace).
+4. Vuelta atrás: en un árbol aparte con el commit anterior
+   (`git -C ~/claude/futbol-base-v2 worktree add <carpeta temporal> <commit anterior>`), `cd <carpeta
+   temporal>/pc/copia && bash instalar.sh`.

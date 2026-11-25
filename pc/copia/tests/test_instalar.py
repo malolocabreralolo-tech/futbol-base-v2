@@ -230,3 +230,14 @@ def test_systemd_solo_con_el_home_de_verdad(tmp_path):
     r = _instalar({**env, "FBC_HOME": str(tmp_path / "otro")})
     assert r.returncode != 0 and "FBC_SIN_SYSTEMD=1" in r.stderr
     assert not (tmp_path / "otro").exists() and not llamadas.exists()
+
+
+def test_instala_piezas_como_fichero(tmp_path):
+    """copia/piezas.py es, en el repositorio, un enlace a scripts/piezas.py (un solo código para el bot y el PC);
+    instalado es un fichero normal con su contenido: la copia instalada no depende del repositorio."""
+    assert (PC_COPIA / "copia" / "piezas.py").is_symlink()
+    env = {**_sin_fbc(), "FBC_HOME": str(tmp_path), "FBC_SIN_SYSTEMD": "1"}
+    assert _instalar(env).returncode == 0
+    instalado = tmp_path / INSTALADA / "copia" / "piezas.py"
+    assert instalado.is_file() and not instalado.is_symlink()
+    assert instalado.read_bytes() == (PC_COPIA.parent.parent / "scripts" / "piezas.py").read_bytes()

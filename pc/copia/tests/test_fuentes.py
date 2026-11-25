@@ -45,7 +45,7 @@ def test_cargar_origenes(tmp_path):
     # El que se instala junto al paquete.
     assert cargar_origenes(ORIGENES) == [
         Origen("v1", "https://github.com/malolocabreralolo-tech/futbol-base.git", "main", "futbolbase.db"),
-        Origen("v2", "https://github.com/malolocabreralolo-tech/futbol-base-v2.git", "main", "futbolbase.db"),
+        Origen("v2", "https://github.com/malolocabreralolo-tech/futbol-base-v2.git", "main", "futbolbase.db", "base"),
     ]
     # Un fichero que falta o está mal escrito, o un nombre que no sirve de carpeta, se dicen con FuenteError.
     with pytest.raises(FuenteError): cargar_origenes(tmp_path / "no-hay.json")
@@ -322,3 +322,150 @@ def test_sin_base_en_el_commit(raiz, remoto, tmp_path):
     (tmp_path / "x.db").write_bytes(b"anterior")
     with pytest.raises(FuenteError): extraer_base(o, sha, tmp_path / "x.db")
     assert (tmp_path / "x.db").read_bytes() == b"anterior"
+
+
+# ---------------------------------------------------------------- v2: la base en piezas (base/)
+
+# Una base pequeña con lo que necesitan las piezas: las tres tablas pesadas, cada partido con su grupo y su
+# temporada, y una tabla con AUTOINCREMENT. Nombres inventados.
+_ESQUEMA_V2 = """
+CREATE TABLE seasons (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL UNIQUE);
+CREATE TABLE groups (id INTEGER PRIMARY KEY, season_id INTEGER NOT NULL, code TEXT NOT NULL);
+CREATE TABLE matches (id INTEGER PRIMARY KEY, group_id INTEGER NOT NULL, jornada TEXT);
+CREATE TABLE players (id INTEGER PRIMARY KEY, full_name TEXT NOT NULL);
+CREATE TABLE appearances (match_id INTEGER NOT NULL, team_id INTEGER NOT NULL, player_id INTEGER NOT NULL,
+    ord INTEGER NOT NULL, PRIMARY KEY (match_id, team_id, player_id)) WITHOUT ROWID;
+CREATE TABLE match_events (id INTEGER PRIMARY KEY, match_id INTEGER NOT NULL, kind TEXT NOT NULL);
+CREATE TABLE match_staff_all (match_id INTEGER NOT NULL, team_id INTEGER, role TEXT NOT NULL, name TEXT NOT NULL,
+    ord INTEGER NOT NULL);
+CREATE INDEX idx_staff_match ON match_staff_all(match_id);
+INSERT INTO seasons (name) VALUES ('2024-2025'), ('2025-2026');
+INSERT INTO groups VALUES (1, 1, 'G1'), (2, 2, 'G1');
+INSERT INTO players VALUES (1, 'Jugador Uno'), (2, 'Jugador Dos');
+CREATE TABLE teams (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL UNIQUE);
+CREATE TABLE goals (id INTEGER PRIMARY KEY, match_id INTEGER NOT NULL, minute INTEGER, player_name TEXT);
+CREATE TABLE standings (id INTEGER PRIMARY KEY, group_id INTEGER NOT NULL, team_id INTEGER NOT NULL, points INTEGER);
+CREATE TABLE scorers (id INTEGER PRIMARY KEY, group_id INTEGER NOT NULL, player_name TEXT NOT NULL, goals INTEGER);
+INSERT INTO teams (name) VALUES ('Equipo A');
+INSERT INTO goals VALUES (1, 1, 12, 'Jugador Uno');
+INSERT INTO standings VALUES (1, 1, 1, 3);
+INSERT INTO scorers VALUES (1, 1, 'Jugador Uno', 1);
+"""
+
+
+def _base_v2(ruta: Path) -> Path:
+    import sqlite3
+    con = sqlite3.connect(ruta)
+    try:
+        con.executescript(_ESQUEMA_V2)
+        for mid in range(1, 9):
+            con.execute("INSERT INTO matches VALUES (?, ?, ?)", (mid, 1 + mid % 2, str(mid)))
+            con.executemany("INSERT INTO appearances VALUES (?, ?, ?, ?)", [(mid, 1, 1, 0), (mid, 1, 2, 1)])
+            con.execute("INSERT INTO match_events (match_id, kind) VALUES (?, 'goal')", (mid,))
+            con.execute("INSERT INTO match_staff_all VALUES (?, NULL, 'Árbitro', 'Árbitro Inventado', 0)", (mid,))
+        con.commit()
+    finally:
+        con.close()
+    return ruta
+
+
+def _remoto_v2(tmp_path: Path, con_base: bool, falta: str | None = None) -> tuple[Path, Path]:
+    """Un remoto como el de v2: base/ partida con piezas.partir (y futbolbase.db, si `con_base`). Devuelve
+    (remoto, la base original)."""
+    from copia import piezas
+    original = _base_v2(tmp_path / "original.db")
+    repo = tmp_path / "remoto"
+    repo.mkdir()
+    git(repo, "init", "--quiet", "--initial-branch=main")
+    piezas.partir(original, repo / "base")
+    if falta:
+        (repo / "base" / falta).unlink()
+    if con_base:
+        (repo / "futbolbase.db").write_bytes(original.read_bytes())
+    git(repo, "add", ".")
+    git(repo, "commit", "--quiet", "-m", "base en piezas")
+    return repo, original
+
+
+def _origen_v2(remoto: Path) -> Origen:
+    return Origen("v2", str(remoto), "main", "futbolbase.db", "base")
+
+
+def test_v2_sin_la_base_monta_las_piezas(raiz, tmp_path):
+    from copia import piezas
+    remoto, original = _remoto_v2(tmp_path, con_base=False)
+    o = _origen_v2(remoto)
+    sha = actualizar_espejo(o, AHORA)
+    salida = tmp_path / "salida"
+    db = extraer_base(o, sha, salida / "futbolbase.db")
+    assert db == salida / "futbolbase.db"
+    # Ni la carpeta de las piezas ni la marca de montar quedan al lado: solo la base.
+    assert _nombres(salida) == ["futbolbase.db"]
+    assert piezas.comparar(original, db) == []
+
+
+def test_con_la_base_en_el_commit_usa_la_base(raiz, tmp_path):
+    remoto, original = _remoto_v2(tmp_path, con_base=True)
+    o = _origen_v2(remoto)
+    sha = actualizar_espejo(o, AHORA)
+    assert extraer_base(o, sha, tmp_path / "x.db").read_bytes() == original.read_bytes()
+
+
+def test_piezas_rotas_es_un_fallo_de_la_fuente(raiz, tmp_path):
+    remoto, _ = _remoto_v2(tmp_path, con_base=False, falta="actas-2024-2025.db")
+    o = _origen_v2(remoto)
+    sha = actualizar_espejo(o, AHORA)
+    salida = tmp_path / "salida"
+    salida.mkdir()
+    with pytest.raises(FuenteError, match="actas-2024-2025.db"):
+        extraer_base(o, sha, salida / "futbolbase.db")
+    assert _nombres(salida) == []
+    # Un commit sin la base ni las piezas, como hoy.
+    git(remoto, "rm", "-r", "--quiet", "base")
+    git(remoto, "commit", "--quiet", "-m", "sin nada")
+    sha = actualizar_espejo(o, AHORA + timedelta(days=1))
+    with pytest.raises(FuenteError):
+        extraer_base(o, sha, salida / "futbolbase.db")
+    assert _nombres(salida) == []
+
+
+def test_v1_no_cambia(raiz, remoto, tmp_path):
+    v1 = next(o for o in cargar_origenes(ORIGENES) if o.nombre == "v1")
+    assert v1.piezas is None
+    assert json.loads(ORIGENES.read_text(encoding="utf-8"))["v1"] == {
+        "repo": "https://github.com/malolocabreralolo-tech/futbol-base.git", "rama": "main", "base": "futbolbase.db"}
+    # Un origen sin piezas, aunque el commit tenga base/ y no la base: lo de hoy, un FuenteError.
+    from copia import piezas
+    piezas.partir(_base_v2(tmp_path / "w.db"), remoto / "base")
+    git(remoto, "rm", "--quiet", "futbolbase.db")
+    git(remoto, "add", "base")
+    git(remoto, "commit", "--quiet", "-m", "solo piezas")
+    o = _origen(remoto)
+    sha = actualizar_espejo(o, AHORA)
+    with pytest.raises(FuenteError, match="futbolbase.db"):
+        extraer_base(o, sha, tmp_path / "x.db")
+
+
+def test_origen_con_piezas_que_se_salen(tmp_path):
+    f = tmp_path / "origenes.json"
+    for piezas in ("../x", "/x", "base/../x", "", ".", 3, "base\\x"):
+        f.write_text(json.dumps({"v2": {"repo": "https://x/y.git", "rama": "main", "base": "futbolbase.db",
+                                         "piezas": piezas}}))
+        with pytest.raises(FuenteError):
+            cargar_origenes(f)
+    f.write_text(json.dumps({"v2": {"repo": "https://x/y.git", "rama": "main", "base": "futbolbase.db",
+                                     "piezas": "base"}}))
+    assert cargar_origenes(f) == [Origen("v2", "https://x/y.git", "main", "futbolbase.db", "base")]
+
+
+def test_una_pasada_de_v2_con_piezas_guarda_la_base_montada(raiz, tmp_path):
+    """La pasada de la copia (ejecutar) con un commit de v2 que ya no lleva futbolbase.db: monta la base de
+    base/, la comprueba como cualquier otra y la guarda en actual/v2/futbolbase.db."""
+    from copia import piezas
+    from copia.ejecutar import ejecutar
+    remoto, original = _remoto_v2(tmp_path, con_base=False)
+    assert ejecutar([_origen_v2(remoto)], AHORA) == 0
+    estado = json.loads((raiz / "estado.json").read_text())["v2"]
+    assert estado["ultima_comprobacion"]["resultado"] == "aceptada", estado
+    assert estado["ultima_buena"]["recuentos"]["appearances"] == 16
+    assert piezas.comparar(original, raiz / "actual/v2/futbolbase.db") == []
