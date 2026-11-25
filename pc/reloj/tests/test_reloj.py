@@ -63,7 +63,8 @@ def opcion(nombre):
 if args[:2] == ["workflow", "run"]:
     nombre = "lanzar"
 elif args[:2] == ["run", "list"]:
-    nombre = {{"update.yml": "pasadas", "reloj.yml": "relojes"}}.get(opcion("--workflow"))
+    nombre = {{"update.yml": "pasadas", "reloj.yml": "relojes", "carril-mayores.yml": "carril", "activar.yml": "activar",
+              "historico.yml": "historico"}}.get(opcion("--workflow"))
 elif args[:1] == ["api"] and len(args) > 1 and args[1].split("?")[0].endswith("/contents/scripts/reloj_pasadas.py"):
     nombre = "contenido"
 elif args[:1] == ["api"] and len(args) > 1 and args[1].endswith("/actions/workflows/reloj.yml"):
@@ -144,11 +145,15 @@ class Entorno:
             "FBR2_TOKEN_FILE": str(self.token),
         }
         # Por defecto: reloj_pasadas.py igual que en main, reloj.yml activo y sin ejecuciones, la última pasada de
-        # hace 10 min (no toca).
+        # hace 10 min (no toca; tampoco el carril, que entra a los 25), sin carril ni activación y la última del
+        # histórico de hace 10 min (no toca).
         self.responder("contenido", {"sha": self.sha})
         self.responder("workflow", {"state": "active"})
         self.responder("relojes", [])
         self.responder("pasadas", _pasada(timedelta(minutes=10)))
+        self.responder("carril", [])
+        self.responder("activar", [])
+        self.responder("historico", _pasada(timedelta(minutes=10)))
 
     def responder(self, nombre: str, contenido) -> None:
         (self.respuestas / f"{nombre}.json").write_text(json.dumps(contenido), encoding="utf-8")
@@ -169,6 +174,16 @@ class Entorno:
 
     def lanzamientos(self) -> list[list[str]]:
         return [c["args"] for c in self.llamadas() if c["args"][:2] == ["workflow", "run"]]
+
+    def a_las(self, momento: datetime) -> None:
+        """La copia instalada decide como si fuera `momento` (la de verdad usa la hora del PC: el carril y el histórico
+        no tocan en las ventanas de partidos, y las pruebas no pueden depender del día en que se pasan). El sha
+        instalado sigue siendo el de main: sin AVISO."""
+        texto = LOGICA.read_text(encoding="utf-8")
+        assert texto.count("datetime.now(timezone.utc)") == 1
+        fija = f"datetime({momento.year}, {momento.month}, {momento.day}, {momento.hour}, {momento.minute}, tzinfo=timezone.utc)"
+        (self.home / DATOS / "reloj_pasadas.py").write_text(texto.replace("datetime.now(timezone.utc)", fija),
+                                                             encoding="utf-8")
 
 
 @pytest.fixture
@@ -537,3 +552,199 @@ def test_systemd_solo_con_el_home_de_verdad(tmp_path):
     r = _instalar({**env, "FBR2_HOME": str(tmp_path / "otro")})
     assert r.returncode != 0 and "FBR2_SIN_SYSTEMD=1" in r.stderr
     assert not (tmp_path / "otro").exists() and not llamadas.exists()
+
+
+# ── El carril de las mayores y el histórico ───────────────────────────────────
+#
+# Los ticks del cron de reloj.yml casi no llegan: si este reloj solo lanzara reloj.yml cuando toca una pasada del bot,
+# el carril de las mayores (que entra entre los 25 y los 75 min de una) y el histórico (cada 3 h) casi nunca tendrían
+# un tick en el que decidirse. Con due=false mira también due_carril y due_historico con la misma copia instalada; si
+# toca uno, lanza reloj.yml como siempre. Un fallo de esa parte no es un fallo del reloj: se apunta y sale con 0.
+
+MARTES = datetime(2026, 12, 1, 10, 40, tzinfo=timezone.utc)      # martes, 10:40 en Canarias (UTC+0): sin ventanas
+SABADO = datetime(2026, 12, 5, 12, 0, tzinfo=timezone.utc)       # sábado, 12:00: ventana de partidos
+LISTAS = ["carril-mayores.yml", "activar.yml", "historico.yml"]
+
+
+def _ejecucion(momento: datetime, numero: int = 1, status: str = "completed") -> dict:
+    texto = momento.strftime("%Y-%m-%dT%H:%M:%SZ")
+    return {"number": numero, "event": "workflow_dispatch", "status": status,
+            "conclusion": "success" if status == "completed" else "", "createdAt": texto, "startedAt": texto}
+
+
+def _preparar(entorno: Entorno, ahora: datetime = MARTES, bot: int = 10, historico: int | None = 60) -> None:
+    """A la hora `ahora`: la última pasada del bot, de hace `bot` min; la del histórico, de hace `historico` min (None:
+    ninguna); sin carril ni activación."""
+    entorno.a_las(ahora)
+    entorno.responder("pasadas", [_ejecucion(ahora - timedelta(minutes=bot), 1200)])
+    entorno.responder("historico", [] if historico is None else [_ejecucion(ahora - timedelta(minutes=historico), 40)])
+
+
+def _otro(entorno: Entorno, nombre: str) -> Entorno:
+    """Otro entorno, en su carpeta, para un segundo caso en la misma prueba."""
+    (entorno.raiz / nombre).mkdir()
+    return Entorno(entorno.raiz / nombre)
+
+
+def _listados(entorno: Entorno) -> list[str]:
+    return [c["args"][c["args"].index("--workflow") + 1] for c in entorno.llamadas() if c["args"][:2] == ["run", "list"]]
+
+
+def test_con_due_true_las_mismas_llamadas_que_siempre(entorno):
+    """Si toca la pasada del bot, nada de lo nuevo: ni una lista de más, y la misma línea de siempre."""
+    _preparar(entorno, bot=180)
+    r = entorno.ejecutar()
+    assert r.returncode == 0, r.stderr
+    llamadas = [c["args"] for c in entorno.llamadas()]
+    assert llamadas == [
+        ["api", f"repos/{V2}/contents/scripts/reloj_pasadas.py?ref=main", "--jq", ".sha"],
+        ["run", "list", "-R", V2, "--workflow", "update.yml", "--limit", "20",
+         "--json", "number,event,status,conclusion,createdAt,startedAt"],
+        ["api", f"repos/{V2}/actions/workflows/reloj.yml"],
+        ["run", "list", "-R", V2, "--workflow", "reloj.yml", "--limit", "10", "--json", "status,conclusion,createdAt"],
+        LANZAR_V2,
+    ], llamadas
+    lineas = r.stdout.splitlines()
+    assert len(lineas) == 1 and lineas[0].startswith("01/12/2026 10:40 en Canarias") \
+        and lineas[0].endswith(". Lanzado reloj.yml.") and "Carril" not in r.stdout, r.stdout
+
+
+def test_toca_el_carril_y_lanza(entorno):
+    _preparar(entorno, bot=30)
+    r = entorno.ejecutar()
+    assert r.returncode == 0, r.stderr
+    assert entorno.lanzamientos() == [LANZAR_V2]
+    assert _listados(entorno) == ["update.yml", *LISTAS, "reloj.yml"]
+    assert "No toca:" in r.stdout and "Carril de las categorías mayores: toca:" in r.stdout, r.stdout
+    assert r.stdout.rstrip().endswith("Lanzado reloj.yml.") and len(r.stdout.splitlines()) == 1, r.stdout
+
+
+def test_toca_el_historico_y_lanza(entorno):
+    _preparar(entorno, bot=10, historico=None)
+    r = entorno.ejecutar()
+    assert r.returncode == 0, r.stderr
+    assert entorno.lanzamientos() == [LANZAR_V2]
+    assert "Carril del histórico: toca: no hay ninguna ejecución de historico.yml." in r.stdout, r.stdout
+    assert "Carril de las categorías mayores" not in r.stdout and r.stdout.rstrip().endswith("Lanzado reloj.yml.")
+
+
+def test_no_toca_ninguno_la_linea_de_siempre(entorno):
+    """Ni la pasada, ni el carril, ni el histórico: no lanza, y la línea es la de siempre (solo la decisión del bot)."""
+    _preparar(entorno, bot=10, historico=60)
+    r = entorno.ejecutar()
+    assert r.returncode == 0, r.stderr
+    assert entorno.lanzamientos() == []
+    lineas = r.stdout.splitlines()
+    assert len(lineas) == 1 and lineas[0].startswith("01/12/2026 10:40 en Canarias") and "No toca:" in lineas[0]
+    assert "Carril" not in r.stdout and "No se pudo" not in r.stdout and lineas[0].endswith("(toca a partir de los 110)."), r.stdout
+    # En una ventana de partidos, tampoco (ni el carril ni el histórico corren en ellas).
+    entorno2 = _otro(entorno, "sabado")
+    _preparar(entorno2, ahora=SABADO, bot=30, historico=None)
+    r = entorno2.ejecutar()
+    assert r.returncode == 0 and entorno2.lanzamientos() == [] and "Carril" not in r.stdout, r.stdout
+
+
+def test_un_fallo_de_la_parte_nueva_no_es_un_fallo_del_reloj(entorno):
+    """carril-mayores.yml aún no está en main (404): no se mira el carril (y se dice), sale con 0, y el histórico se
+    decide igual con lo que hay."""
+    _preparar(entorno, bot=30, historico=None)
+    entorno.fallar("carril", "HTTP 404: Not Found\n")
+    r = entorno.ejecutar()
+    assert r.returncode == 0 and r.stderr == "", r.stderr
+    assert "No se pudo mirar el carril: gh run list de carril-mayores.yml: HTTP 404: Not Found." in r.stdout, r.stdout
+    assert "Carril del histórico: toca" in r.stdout and entorno.lanzamientos() == [LANZAR_V2]
+    # Sin histórico que lanzar: no lanza nada, lo dice y sale con 0.
+    entorno2 = _otro(entorno, "dos")
+    _preparar(entorno2, bot=30, historico=60)
+    entorno2.fallar("carril", "HTTP 404: Not Found\n")
+    r = entorno2.ejecutar()
+    assert r.returncode == 0 and entorno2.lanzamientos() == [], r.stderr
+    assert "No toca:" in r.stdout and "No se pudo mirar el carril: gh run list de carril-mayores.yml" in r.stdout
+    # La lista del histórico la que falla: el carril se decide igual (y lanza); el histórico, no.
+    entorno3 = _otro(entorno, "tres")
+    _preparar(entorno3, bot=30, historico=None)
+    entorno3.fallar("historico", "HTTP 502: Bad Gateway\n")
+    r = entorno3.ejecutar()
+    assert r.returncode == 0, r.stderr
+    assert "No se pudo mirar el carril: gh run list de historico.yml: HTTP 502: Bad Gateway." in r.stdout, r.stdout
+    assert "No se pudo mirar el histórico: gh run list de historico.yml: HTTP 502: Bad Gateway." in r.stdout
+    assert entorno3.lanzamientos() == []
+
+
+_COPIA_SIN_CARRIL = """import os, sys
+# Una copia de antes del carril: solo el modo de siempre.
+if sys.argv[1:]:
+    print("uso: reloj_pasadas.py [--now FECHA_ISO] < ejecuciones.json", file=sys.stderr)
+    sys.exit(2)
+sys.stdin.read()
+print("No toca: la copia vieja.")
+open(os.environ["GITHUB_OUTPUT"], "a").write("due=false\\n")
+"""
+_COPIA_SIN_HISTORICO = """import runpy, sys
+# Una copia con el carril y sin el modo del histórico.
+if "--historico" in sys.argv:
+    print("uso: reloj_pasadas.py [--now FECHA_ISO] [--carril …] < ejecuciones.json", file=sys.stderr)
+    sys.exit(2)
+sys.argv[0] = {real!r}
+runpy.run_path({real!r}, run_name="__main__")
+"""
+
+
+@pytest.mark.parametrize("copia", ["sin carril", "sin histórico"])
+def test_una_copia_instalada_antigua_no_es_un_fallo(entorno, copia):
+    _preparar(entorno, bot=30, historico=None)
+    datos = entorno.home / DATOS
+    if copia == "sin carril":
+        (datos / "reloj_pasadas.py").write_text(_COPIA_SIN_CARRIL, encoding="utf-8")
+    else:
+        (datos / "real.py").write_bytes((datos / "reloj_pasadas.py").read_bytes())
+        (datos / "reloj_pasadas.py").write_text(_COPIA_SIN_HISTORICO.format(real=str(datos / "real.py")), encoding="utf-8")
+    r = entorno.ejecutar()
+    assert r.returncode == 0 and r.stderr == "", r.stderr
+    vieja = "la copia instalada de reloj_pasadas.py no conoce {}: revísala y vuelve a ejecutar pc/reloj/instalar.sh"
+    assert vieja.format("--historico") in r.stdout, r.stdout
+    if copia == "sin carril":
+        assert vieja.format("--carril") in r.stdout and entorno.lanzamientos() == []
+    else:
+        assert "Carril de las categorías mayores: toca" in r.stdout and entorno.lanzamientos() == [LANZAR_V2]
+
+
+def test_dry_run_dice_que_habria_lanzado_por_el_carril(entorno):
+    _preparar(entorno, bot=30)
+    r = entorno.ejecutar(DRY_RUN="1")
+    assert r.returncode == 0, r.stderr
+    assert "Carril de las categorías mayores: toca:" in r.stdout and "DRY_RUN: no se lanza reloj.yml." in r.stdout
+    assert entorno.lanzamientos() == []
+
+
+def test_carril_e_historico_respetan_el_bloqueo_de_reloj_yml(entorno):
+    """Lo mismo que con la pasada: con un reloj.yml en marcha de hace menos de 30 min, no lanza otro."""
+    _preparar(entorno, bot=30)
+    entorno.responder("relojes", [{"status": "in_progress", "conclusion": "", "createdAt": _hace(timedelta(minutes=2))}])
+    r = entorno.ejecutar()
+    assert r.returncode == 0, r.stderr
+    assert "Carril de las categorías mayores: toca" in r.stdout and "No se lanza: ya hay un reloj.yml in_progress" in r.stdout
+    assert entorno.lanzamientos() == []
+
+
+@pytest.mark.parametrize("escenario", ["carril", "histórico", "falla carril-mayores", "copia sin histórico", "dry run"])
+def test_la_parte_nueva_no_muestra_el_token(entorno, escenario):
+    _preparar(entorno, bot=30 if escenario != "histórico" else 10, historico=None)
+    extra = {}
+    if escenario == "falla carril-mayores":
+        entorno.fallar("carril", "HTTP 404: Not Found\n")
+    elif escenario == "copia sin histórico":
+        datos = entorno.home / DATOS
+        (datos / "real.py").write_bytes((datos / "reloj_pasadas.py").read_bytes())
+        (datos / "reloj_pasadas.py").write_text(_COPIA_SIN_HISTORICO.format(real=str(datos / "real.py")), encoding="utf-8")
+    elif escenario == "dry run":
+        extra["DRY_RUN"] = "1"
+    r = entorno.ejecutar(**extra)
+    assert r.returncode == 0, r.stderr
+    assert TOKEN not in r.stdout and TOKEN not in r.stderr
+    llamadas = entorno.llamadas()
+    assert len(_listados(entorno)) >= 4 and all(TOKEN not in " ".join(c["args"]) for c in llamadas)
+    assert {c["token"] for c in llamadas} == {_huella(TOKEN)}
+    con_token = [p for p in entorno.raiz.rglob("*") if p.is_file() and TOKEN.encode() in p.read_bytes()]
+    assert con_token == [entorno.token]
+    assert list(entorno.tmpdir.iterdir()) == []

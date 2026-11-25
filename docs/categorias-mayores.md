@@ -147,6 +147,14 @@ python3 scripts/prueba_mayores.py --categorias <las ya activas y la nueva>    # 
 2. Comprobación: la pasada siguiente del bot (`gh run list -R malolocabreralolo-tech/futbol-base-v2 --workflow update.yml --limit 1`) en verde, con los pasos de siempre (`gh run view <id> -R malolocabreralolo-tech/futbol-base-v2` : «Lanzar la activación si hay algo nuevo» corre, no sale como saltado); en su `data-health.json`, `run.groups` el de la de antes (107 el 25/11) y ninguna clave `carriles`; su commit (`git show --stat origin/main`) no cambia más `data-*.js` que una pasada normal; `gh variable list -R malolocabreralolo-tech/futbol-base-v2` sin `CARRIL_MAYORES`; `gh workflow list -R malolocabreralolo-tech/futbol-base-v2` con «Pasadas de infantil, cadete y juvenil» activo y sin ninguna ejecución; los ticks del reloj en verde (`gh run list -R malolocabreralolo-tech/futbol-base-v2 --workflow reloj.yml --limit 3`).
 3. Vuelta atrás: `git revert` de los commits de la rama, con nada en marcha.
 
+### Tras D1 y antes de D2: el reloj del PC
+
+Los ticks del cron de `reloj.yml` casi no llegan y el que lanza `reloj.yml` a su hora es el reloj del PC ([pc/reloj/README.md](../pc/reloj/README.md)); el carril y el histórico solo se deciden en un `reloj.yml` en el que no toca la pasada del bot, así que el PC tiene que mirarlos también. Lo hace con su copia revisada de `scripts/reloj_pasadas.py`, no con la de `main`: **sin reinstalarla, ni el carril ni el histórico tienen quien los lance a su hora** (la copia de antes no conoce `--historico` y lo dice en su línea).
+
+1. Revisar el `scripts/reloj_pasadas.py` de `main` (`git pull && git log -p -3 -- scripts/reloj_pasadas.py pc/reloj/`) y, desde la carpeta del repositorio, `python3 -m pytest pc/reloj/tests -q` y `bash pc/reloj/instalar.sh`.
+2. Comprobación: `journalctl --user -u futbol-base-v2-reloj -n 5` sin `AVISO: reloj_pasadas.py ha cambiado en main` ni `no conoce`; y `DRY_RUN=1 ~/.local/bin/futbol-base-v2-reloj`, que decide sin lanzar: fuera de una ventana y entre 25 y 75 min después de una pasada del bot, con «Carril de las categorías mayores: toca: …» (aún con el carril apagado: el PC no ve la variable) y, si hace 3 h o más de la última del histórico, «Carril del histórico: toca: …».
+3. Vuelta atrás: volver a instalar la copia de antes (`git checkout <commit-de-antes> -- scripts/reloj_pasadas.py pc/reloj/ && bash pc/reloj/instalar.sh && git checkout HEAD -- scripts/reloj_pasadas.py pc/reloj/`).
+
 ### D2: encender el carril
 
 0. Antes, desde el PC: `gh run list -R malolocabreralolo-tech/futbol-base-v2 --workflow carril-mayores.yml --limit 20 --json number,event,status,conclusion,createdAt,startedAt` tiene que dar `[]` (y no un error): es lo que leerá el reloj en cada tick, y un error lo dejaría en rojo sin lanzar tampoco la pasada del bot.

@@ -3,8 +3,9 @@
 # (futbol-base-reloj), que no se toca: este solo mira y lanza en el repositorio de v2.
 #
 # El cron de reloj.yml casi no llega (en un día GitHub entregó 10 de los ~112 ticks que tocaban). Este decide igual
-# que reloj.yml, con scripts/reloj_pasadas.py, y si toca lanza reloj.yml, que vuelve a decidir en GitHub y lanza
-# update.yml. Lanzar reloj.yml y no update.yml deja que desactivar reloj.yml en Actions siga parando todo.
+# que reloj.yml, con scripts/reloj_pasadas.py, y si toca una pasada del bot, el carril de las mayores o el histórico
+# (los tres que lanza reloj.yml: paso 2b) lanza reloj.yml, que vuelve a decidir en GitHub y lanza lo que toque.
+# Lanzar reloj.yml y no update.yml deja que desactivar reloj.yml en Actions siga parando todo.
 #
 # reloj_pasadas.py es la copia REVISADA que dejó instalar.sh, nunca la de main tal cual (lo que se suba a main no se
 # ejecuta en el PC sin mirarlo): si la de main cambia, lo avisa en el registro y sigue con la instalada.
@@ -14,7 +15,8 @@
 #
 # Solo habla con la API de GitHub. Una línea de registro por ejecución (journalctl --user -u futbol-base-v2-reloj).
 # Un fallo (gh, red, una respuesta que no se entiende, reloj.yml desactivado por inactividad): sale con error,
-# visible en systemctl --user --failed, y no lanza nada. DRY_RUN=1: decide y no lanza.
+# visible en systemctl --user --failed, y no lanza nada; salvo al mirar el carril o el histórico (paso 2b), que solo se
+# apunta en la línea. DRY_RUN=1: decide y no lanza (y dice qué habría lanzado y por qué).
 #
 #   FBR2_REPO         el repositorio (por defecto malolocabreralolo-tech/futbol-base-v2)
 #   FBR2_TOKEN_FILE   el fichero del token (por defecto $HOME/.config/futbol-base-reloj/token, el del reloj de v1)
@@ -64,11 +66,74 @@ gh run list -R "$R" --workflow update.yml --limit 20 \
 GITHUB_OUTPUT="$TMP/out" python3 -I "$KEEP" < "$TMP/pasadas.json" > "$TMP/decision" 2>&1 \
   || fail "reloj_pasadas: $(first "$TMP/decision" 300)"
 why=$(grep -v '^::' "$TMP/decision" | head -c 400 | tr '\n' ' ' | sed 's/ *$//' || true)
-case $(grep -xE 'due=(true|false)' "$TMP/out" 2> /dev/null | tail -n 1 || true) in
-  due=true) ;;
-  due=false) echo "$why$note"; exit 0 ;;
+decision=$(grep -xE 'due=(true|false)' "$TMP/out" 2> /dev/null | tail -n 1 || true)
+case $decision in
+  due=true|due=false) ;;
   *) fail "reloj_pasadas no dio su decisión (due=): $why" ;;
 esac
+
+# 2b. Sin pasada del bot: ¿toca el carril de las mayores (carril-mayores.yml) o el carril del histórico (historico.yml)?
+# Los lanza reloj.yml, y los ticks de su cron casi no llegan: si este reloj solo lo lanzara cuando toca una pasada, el
+# carril (entra entre los 25 y los 75 min de una pasada del bot) y el histórico (cada 3 h) casi nunca tendrían un tick
+# en el que decidirse. Mismas listas y misma copia instalada que reloj.yml: due_carril (con --carril y los dos
+# --activar) y due_historico (con --historico y los --otros). El PC no ve la variable CARRIL_MAYORES: mira el carril
+# siempre y, si está apagado, el reloj.yml que lance no hará nada. Con due=true no se mira nada de esto (ni una llamada
+# más). Un fallo aquí (una lista que GitHub no da, como carril-mayores.yml antes de estar en main; una copia instalada
+# que no conoce el modo; una salida que no se entiende) no es un fallo del reloj: se apunta en la línea y sigue con lo
+# que haya (sale con 0, como sin nada que lanzar).
+if [ "$decision" = due=false ]; then
+  toca=""
+  aviso=""
+  declare -A err=()
+  for wf in carril-mayores activar historico; do
+    gh run list -R "$R" --workflow "$wf.yml" --limit 20 \
+      --json number,event,status,conclusion,createdAt,startedAt > "$TMP/$wf.json" 2> "$TMP/gh.err" \
+      || err[$wf]="gh run list de $wf.yml: $(first "$TMP/gh.err")"
+  done
+  # mirar QUÉ MODO FICHERO CLAVE PREFIJO ARGUMENTOS…: la copia instalada con esos argumentos (MODO, la opción que una
+  # copia antigua no conoce: sale con 2, el uso); la línea de su decisión (la que empieza por PREFIJO) va a $toca si
+  # CLAVE=true, y un fallo, a $aviso.
+  mirar() {
+    local que=$1 modo=$2 salida=$3 clave=$4 prefijo=$5 code=0 linea valor
+    shift 5
+    GITHUB_OUTPUT="$TMP/$salida.out" python3 -I "$KEEP" "$@" > "$TMP/$salida" 2>&1 || code=$?
+    if [ "$code" = 2 ]; then
+      aviso+=" No se pudo mirar $que: la copia instalada de reloj_pasadas.py no conoce $modo: revísala y vuelve a ejecutar pc/reloj/instalar.sh."
+      return 0
+    elif [ "$code" != 0 ]; then
+      aviso+=" No se pudo mirar $que: $(first "$TMP/$salida" 300)."
+      return 0
+    fi
+    valor=$(grep -xE "$clave=(true|false)" "$TMP/$salida.out" 2> /dev/null | tail -n 1 || true)
+    linea=$(grep -m1 "^$prefijo" "$TMP/$salida" | head -c 400 || true)
+    case $valor in
+      "$clave=true") toca+=" $linea" ;;
+      "$clave=false") ;;
+      *) aviso+=" No se pudo mirar $que: reloj_pasadas no dio $clave." ;;
+    esac
+  }
+  if [ -n "${err[carril-mayores]:-}${err[activar]:-}${err[historico]:-}" ]; then
+    aviso+=" No se pudo mirar el carril: ${err[carril-mayores]:-${err[activar]:-${err[historico]:-}}}."
+  else
+    mirar "el carril" --carril carril due_carril "Carril de las categorías mayores: " \
+      --carril "$TMP/carril-mayores.json" --activar "$TMP/activar.json" --activar "$TMP/historico.json" < "$TMP/pasadas.json"
+  fi
+  if [ -n "${err[historico]:-}" ]; then
+    aviso+=" No se pudo mirar el histórico: ${err[historico]}."
+  else
+    # Con las listas que haya: reloj.yml vuelve a mirarlo con todas antes de lanzar nada.
+    otros=(--otros "$TMP/pasadas.json")
+    [ -z "${err[carril-mayores]:-}" ] && otros+=(--otros "$TMP/carril-mayores.json")
+    [ -z "${err[activar]:-}" ] && otros+=(--otros "$TMP/activar.json")
+    mirar "el histórico" --historico historico due_historico "Carril del histórico: " \
+      --historico "$TMP/historico.json" "${otros[@]}" < /dev/null
+  fi
+  if [ -z "$toca" ]; then
+    echo "$why$aviso$note"
+    exit 0
+  fi
+  why="$why$toca$aviso"
+fi
 
 # 3. Toca. No si reloj.yml está desactivado; ni si hay uno en cola o en marcha de hace menos de 30 min (lo lanzó
 # el cron de GitHub, o este hace un tick y aún no ha creado la pasada); ni si el último acabó mal hace menos de

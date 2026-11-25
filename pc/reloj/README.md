@@ -1,13 +1,19 @@
 # El reloj de v2 en el PC
 
-Cada 5 minutos este PC mira si toca que el bot de la web v2 haga una pasada (buscar resultados nuevos).
-Si toca, se lo pide a GitHub: lanza `reloj.yml` en el repositorio `malolocabreralolo-tech/futbol-base-v2`.
+Cada 5 minutos este PC mira si toca que el bot de la web v2 haga una pasada (buscar resultados nuevos), o si toca
+el carril de infantil, cadete y juvenil (`carril-mayores.yml`) o el del histórico (`historico.yml`).
+Si toca alguno, se lo pide a GitHub: lanza `reloj.yml` en el repositorio `malolocabreralolo-tech/futbol-base-v2`,
+que vuelve a mirarlo y lanza lo que toque.
 
 ## Por qué existe
 
 GitHub debería hacerlo solo, con su propio reloj, pero casi nunca llega: un día avisó 10 veces de las 112 que tocaban.
 Con este reloj, las pasadas salen a su hora mientras el PC esté encendido y con internet.
 Si el PC está apagado, el reloj de GitHub sigue ahí de reserva.
+
+El carril y el histórico también los lanza `reloj.yml`, pero solo en un aviso en el que no toca la pasada: por eso
+este reloj mira también si toca alguno de los dos. No sabe si el carril está encendido (la variable `CARRIL_MAYORES`
+de GitHub): con el carril apagado, lanza `reloj.yml` unas cuantas veces tras cada pasada y GitHub no hace nada.
 
 ## Es aparte del de v1
 
@@ -31,7 +37,10 @@ Dice cuándo miró por última vez y cuándo toca la próxima.
 Enseña una línea por cada vez que miró:
 
 - `No toca`: aún no es la hora; no hace nada.
-- `Lanzado reloj.yml`: ha pedido la pasada.
+- `Lanzado reloj.yml`: ha pedido la pasada (o, si la línea dice `Carril de las categorías mayores: toca` o
+  `Carril del histórico: toca`, ese carril).
+- `No se pudo mirar el carril` o `No se pudo mirar el histórico`: GitHub no dio una de sus listas, o la copia
+  instalada es antigua (entonces dice que hay que reinstalar). No es un error: la pasada del bot sigue igual.
 - `No se lanza: reloj.yml está «disabled_manually»`: alguien lo apagó en GitHub (pestaña Actions). Espera sin dar error.
 - `AVISO: reloj_pasadas.py ha cambiado en main`: en GitHub cambió la regla de cuándo toca. Sigue con la suya, la revisada. Revisa el cambio y reinstala (abajo).
 - `error: GitHub desactivó reloj.yml por inactividad`: pasa tras 60 días sin cambios. El mensaje dice la orden que lo reactiva.
