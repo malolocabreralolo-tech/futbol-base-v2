@@ -1014,8 +1014,8 @@ ANIOS_CONFIRMADOS = os.path.join(os.path.dirname(os.path.abspath(__file__)), "an
 
 def anios_confirmados(path=None):
     """{clave: año} de scripts/anios_confirmados.json (o de `path`). Un fichero que falta o vacío es {}. Uno
-    con algo que no sea {clave: {"anio": entero, ...}} es un ValueError: mejor que la pasada falle a que
-    publique un año mal escrito como confirmado."""
+    con algo que no sea {clave: {"anio": entero, ...}} es un ValueError con lo que falla: nunca se publica un
+    año mal escrito como confirmado. _datos_fichas lo recoge, avisa y sigue sin ninguno (el bot no se para)."""
     path = path or ANIOS_CONFIRMADOS
     try:
         with open(path, encoding="utf-8") as fh:
@@ -1192,7 +1192,14 @@ def _datos_fichas(conn, confirmados=None):
     # El año de nacimiento. Una observación por temporada y categoría (las de todas sus identidades juntas,
     # como las ve la ficha); el confirmado manda: el de la clave de la ficha y, si no, el del primero de sus
     # alias que lo tenga.
-    confirmados = anios_confirmados() if confirmados is None else confirmados
+    if confirmados is None:
+        # Un fichero mal escrito no para al bot (la web dejaría de actualizarse): se avisa y se publica sin
+        # ningún año confirmado (todo o nada: con una entrada mala no se fía de las demás).
+        try:
+            confirmados = anios_confirmados()
+        except (ValueError, OSError) as e:
+            print(f"  ! anios_confirmados.json no se entiende ({e}): se publica sin años confirmados")
+            confirmados = {}
     anios = {}
     for principal, filas in por_ficha.items():
         k = clave[principal]

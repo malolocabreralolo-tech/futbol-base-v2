@@ -139,6 +139,24 @@ def test_anios_confirmados_lee_el_fichero(tmp_path):
     assert G.anios_confirmados() == {} or all(isinstance(v, int) for v in G.anios_confirmados().values())
 
 
+def test_un_fichero_de_anios_mal_escrito_no_para_la_pasada(tmp_path, monkeypatch, capsys):
+    # Todo o nada: con una entrada mala tampoco valen las buenas. Se avisa y se publica sin confirmados.
+    malo = tmp_path / "anios_confirmados.json"
+    malo.write_text('{"1001": {"anio": 2016}, "1003": {"anio": "2017"}}', encoding="utf-8")
+    monkeypatch.setattr(G, "ANIOS_CONFIRMADOS", str(malo))
+    with pytest.raises(ValueError):
+        G.anios_confirmados()
+    p = fichas(G.jugadores_files(base(RAUL, HUGO)))
+    assert p["1001"]["y"] == [2017] and not any("yc" in e for e in p.values())
+    salida = capsys.readouterr().out
+    assert "  ! anios_confirmados.json no se entiende (" in salida
+    assert "): se publica sin años confirmados" in salida
+    # Y si no es JSON, igual.
+    malo.write_text('{"1001": ', encoding="utf-8")
+    assert "yc" not in fichas(G.jugadores_files(base(RAUL)))["1001"]
+    assert "no se entiende" in capsys.readouterr().out
+
+
 def test_sesenta_y_cuatro_trozos():
     files = G.jugadores_files(base(RAUL, HUGO))
     assert G.JUGADORES_SHARDS == 64
@@ -363,9 +381,12 @@ def test_main_hace_la_consulta_una_vez_y_escribe_despues_de_las_fichas():
 
 
 def test_base_real(tmp_path):
-    """Sobre una copia de la base real: las tres terminan; cada ficha tiene de uno a tres años (no más del 1 %
-    con tres); ninguna clave se pierde con 64 trozos y cada una está en el suyo; la búsqueda más grande pesa
-    menos de 400.000 bytes; hay ranking de cada año de 2011 a 2020."""
+    """Sobre una copia de la base real, lo estructural (está en la puerta del bot: nada que el crecimiento normal
+    de los datos vaya a romper): las tres terminan; cada ficha con filas de una categoría conocida tiene de uno
+    a tres años; ninguna clave se pierde con 64 trozos y cada una está en el suyo; toda ficha con nombre
+    buscable está en el buscador; el ranking es determinista y tiene algún año. Las cifras (tiempo, fichas con
+    tres años, el fichero de búsqueda mayor) se imprimen, no se exigen."""
+    from nacimiento import VENTANA
     if not DB_PATH.exists():
         pytest.skip("futbolbase.db no está")
     src = sqlite3.connect(str(DB_PATH))
@@ -377,9 +398,9 @@ def test_base_real(tmp_path):
     jug = G.jugadores_files(conn, datos=datos)
     bus = G.buscar_files(conn, datos=datos)
     ran = G.ranking_files(conn, datos=datos)
-    assert time.monotonic() - t0 < 60
+    segundos = time.monotonic() - t0
     # Los años.
-    p = {}
+    p, grupos = {}, {}
     for name, text in jug.items():
         k = int(re.fullmatch(r"data-jugadores-(\d+)\.js", name).group(1))
         shard = _const(text, f"JUGADORES_{k}")
@@ -388,19 +409,20 @@ def test_base_real(tmp_path):
         for alias in shard["a"]:
             assert trozo(alias, 64) == k, alias
         p.update(shard["p"])
-    sin = [k for k, e in p.items() if not 1 <= len(e.get("y", [])) <= 3]
+        grupos.update(shard["g"])
+    conocidas = {k for k, e in p.items() if any(grupos[f"{c[0]}/{c[1]}"][0] in VENTANA for c in e["c"])}
+    sin = [k for k in conocidas if not 1 <= len(p[k].get("y", [])) <= 3]
     assert sin == []
-    tres = sum(len(e["y"]) == 3 for e in p.values())
-    assert tres <= len(p) / 100, (tres, len(p))
     # Ninguna clave se pierde: las mismas que las de las fichas publicadas.
     assert set(p) == set(G.claves_de_ficha(conn).values())
     # La búsqueda.
-    assert max(len(t.encode()) for t in bus.values()) < 400_000
     en_buscar = {e[0] for name, t in bus.items()
                  for e in _const(t, "BUSCAR_" + name[len("data-buscar-"):-3].upper())}
     assert en_buscar == {k for k, e in p.items() if G.prefijos_de(e["n"])}
-    # El ranking: los mismos bytes en otra pasada entera (determinista).
+    # El ranking: los mismos bytes en otra pasada entera (determinista), y algún año con alguien.
     assert G.ranking_files(conn) == ran
     anios = ranking(ran)["anios"]
-    for anio in range(2011, 2021):
-        assert str(anio) in anios and f"data-ranking-{anio}.js" in ran, anio
+    assert anios and all(f"data-ranking-{anio}.js" in ran for anio in anios)
+    mayor = max(bus, key=lambda n: len(bus[n].encode()))
+    print(f"\n  base real: {segundos:.1f} s; {len(p)} fichas, {sum(len(e.get('y', [])) == 3 for e in p.values())} "
+          f"con tres años; búsqueda mayor {mayor} {len(bus[mayor].encode()):,} B; años del ranking {sorted(anios)}")

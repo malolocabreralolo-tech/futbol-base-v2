@@ -231,8 +231,10 @@ confirmar.
    - la ficha dirá «Nacido en 2016», sin «(estimado)»;
    - el niño saldrá solo en el ranking de ese año, sin la marca de año dudoso.
 
-**Cuidado: el año va sin comillas**, y el fichero tiene que ser JSON bien escrito. Si hay un error, la
-pasada del bot se para. Así nunca se publica como confirmado un año mal escrito.
+**Cuidado: el año va sin comillas**, y el fichero tiene que ser JSON bien escrito. Si hay un error, aunque
+sea en una sola entrada, el bot no se para: avisa en su salida («anios_confirmados.json no se entiende») y
+publica sin **ningún** año confirmado hasta que se corrija. Así nunca se publica como confirmado un año mal
+escrito.
 
 La clave de un alias (una ficha antigua que se unió a otra) también vale: confirma el año de la ficha a la
 que lleva.
