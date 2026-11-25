@@ -604,23 +604,43 @@ def _iso(fecha, anio):
     return None
 
 
-def _vistas(conn) -> dict:
+def categorias_de_las_fichas(categorias=None) -> tuple:
+    """Las categorías que miran las fichas: `categorias` o, sin ellas, categorias.EN_WEB leído al llamar (no
+    al importar: las pruebas lo parchean). Infantil, cadete y juvenil (parte E) entran en la base antes de que
+    la web los enseñe; hasta entonces (E2) no pueden cambiar ninguna ficha publicada: ni unir a un niño de
+    benjamín con otro de cadete del mismo nombre y club, ni mover el intervalo de edad, la clave o el año de
+    nacimiento de uno de benjamín al que la federación le da el mismo id en cadete."""
+    if categorias is not None:
+        return tuple(categorias)
+    import categorias as C
+    return tuple(C.EN_WEB)
+
+
+def _filtro_categorias(categorias):
+    """(«upper(c.name) IN (?, …)», parámetros) de las categorías de las fichas."""
+    cats = tuple(c.upper() for c in categorias_de_las_fichas(categorias))
+    return f"upper(c.name) IN ({','.join('?' * len(cats))})", cats
+
+
+def _vistas(conn, categorias=None) -> dict:
     """{player_id: [vista]} con vista = (anio, nivel, equipo, primera, última, apariciones), una por
-    temporada, categoría y equipo; de las apariciones y, para quien solo sale en los sucesos, de ellos."""
+    temporada, categoría y equipo; de las apariciones y, para quien solo sale en los sucesos, de ellos. Solo
+    las de los grupos de las categorías de las fichas (categorias_de_las_fichas: las de la web)."""
+    filtro, cats = _filtro_categorias(categorias)
     fechas = defaultdict(list)
     for pid, anio, cat, equipo, fecha in conn.execute(
-            """SELECT a.player_id, s.start_year, c.name, t.name, m.date FROM appearances a
+            f"""SELECT a.player_id, s.start_year, c.name, t.name, m.date FROM appearances a
                  JOIN matches m ON m.id = a.match_id JOIN groups g ON g.id = m.group_id
                  JOIN seasons s ON s.id = g.season_id JOIN categories c ON c.id = g.category_id
-                 JOIN teams t ON t.id = a.team_id"""):
+                 JOIN teams t ON t.id = a.team_id WHERE {filtro}""", cats):
         fechas[(pid, anio, NIVEL.get(cat), equipo)].append(_iso(fecha, anio))
     con_apariciones = {k[0] for k in fechas}
     solo_sucesos = defaultdict(set)
     for pid, mid, anio, cat, equipo, fecha in conn.execute(
-            """SELECT e.player_id, e.match_id, s.start_year, c.name, t.name, m.date FROM match_events e
+            f"""SELECT e.player_id, e.match_id, s.start_year, c.name, t.name, m.date FROM match_events e
                  JOIN matches m ON m.id = e.match_id JOIN groups g ON g.id = m.group_id
                  JOIN seasons s ON s.id = g.season_id JOIN categories c ON c.id = g.category_id
-                 JOIN teams t ON t.id = e.team_id"""):
+                 JOIN teams t ON t.id = e.team_id WHERE {filtro}""", cats):
         if pid not in con_apariciones:
             solo_sucesos[(pid, anio, NIVEL.get(cat), equipo)].add((mid, _iso(fecha, anio)))
     vistas = defaultdict(list)
@@ -636,10 +656,11 @@ def _vistas(conn) -> dict:
             for pid, v in vistas.items()}
 
 
-def identidades(conn) -> list[Identidad]:
-    """Las identidades con alguna aparición o suceso, como las quiere identidad.resolver: norm con '#id' en
-    las que tienen id (el norm_name), y el nombre con su ordinal ('X#2') en las sin id."""
-    vistas = _vistas(conn)
+def identidades(conn, categorias=None) -> list[Identidad]:
+    """Las identidades con alguna aparición o suceso en las categorías de las fichas (las de la web), como
+    las quiere identidad.resolver: norm con '#id' en las que tienen id (el norm_name), y el nombre con su
+    ordinal ('X#2') en las sin id. Con id, sus vistas son solo las de esas categorías."""
+    vistas = _vistas(conn, categorias)
     out = []
     for pid, norm_name, fid, team_id, ordinal in conn.execute(
             "SELECT id, norm_name, fiflp_id, team_id, ordinal FROM players"):
@@ -653,13 +674,19 @@ def identidades(conn) -> list[Identidad]:
     return out
 
 
-def pares_juntas(conn) -> list[tuple[int, int]]:
+def pares_juntas(conn, categorias=None) -> list[tuple[int, int]]:
     """[(id, id)] de las identidades del mismo nombre (nombre_base) que salen en un mismo partido con el
     mismo equipo: dos niños (identidad.resolver no las une). Solo las del mismo nombre: las demás no las
-    une ninguna regla. Una pasada por appearances en el orden de su clave primaria."""
+    une ninguna regla. Solo los partidos de las categorías de las fichas (las de la web). Una pasada por
+    appearances en el orden de su clave primaria."""
+    filtro, cats = _filtro_categorias(categorias)
     base = {pid: nombre_base(n) for pid, n in conn.execute("SELECT id, norm_name FROM players")}
     pares, grupo, vistos = set(), None, {}
-    for mid, tid, pid in conn.execute("SELECT match_id, team_id, player_id FROM appearances ORDER BY match_id, team_id"):
+    for mid, tid, pid in conn.execute(
+            f"""SELECT match_id, team_id, player_id FROM appearances WHERE match_id IN (
+                  SELECT m.id FROM matches m JOIN groups g ON g.id = m.group_id
+                    JOIN categories c ON c.id = g.category_id WHERE {filtro})
+                ORDER BY match_id, team_id""", cats):
         if (mid, tid) != grupo:
             grupo, vistos = (mid, tid), {}
         b = base.get(pid)
@@ -700,8 +727,10 @@ def leer_separadas(conn, ruta=SEPARADAS, log=print) -> set[int]:
 
 def resolver_fichas(conn, log=print, separadas=SEPARADAS) -> dict:
     """Recalcula ficha_id y union_por de todas las filas (una transacción; solo escribe lo que cambia). Las
-    filas sin aparición ni suceso quedan sueltas (ficha_id y union_por a NULL). Las identidades de las
-    claves de `separadas` (scripts/identidad_separadas.json) no se unen a nadie."""
+    filas sin aparición ni suceso en las categorías de la web (categorias.EN_WEB, leído al llamar) quedan
+    sueltas (ficha_id y union_por a NULL): hasta que la web enseñe infantil, cadete y juvenil (parte E2), lo
+    suyo no une ni separa a nadie. Las identidades de las claves de `separadas`
+    (scripts/identidad_separadas.json) no se unen a nadie."""
     t0 = time.monotonic()
     asegurar_esquema(conn)
     # Antes que nada, cada identidad sin id con sus apariciones: los movimientos de equipo de la pasada

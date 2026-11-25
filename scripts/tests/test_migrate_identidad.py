@@ -683,3 +683,58 @@ def test_el_fichero_de_separadas_del_repositorio_es_una_lista_de_claves():
     assert isinstance(claves, list)
     assert all(isinstance(c, str) and re.fullmatch(r"\d+|n[0-9a-z]{9}", c) for c in claves)
     assert len(claves) == len(set(claves))
+
+
+# ── Las fichas solo miran las categorías de la web (categorias.EN_WEB) ──────────────────────────
+
+def _con_infantil(a_en_prebenjamin=False):
+    """A (sin id, «GOMEZ PEREZ, RAUL», Atletico Uno) en benjamín de 2025-26 (o en prebenjamín); B (el mismo
+    nombre y club, sin id) en infantil de 2026-27; y C (id 9001) en benjamín de 2019-20 y en infantil de
+    2026-27, en la misma fila (la federación le da el mismo id: el mismo niño, más mayor). Con el importador
+    de verdad, como lo dejaría el bot."""
+    conn = base()
+    conn.executescript("""
+      INSERT INTO seasons(id, name, start_year, end_year) VALUES (4, '2019-2020', 2019, 2020);
+      INSERT INTO categories(id, name) VALUES (3, 'ALEVIN'), (4, 'INFANTIL');
+      INSERT INTO groups(id, season_id, category_id, code, name, island) VALUES
+        (20, 2, 1, 'BGC2', 'Grupo 2', 'grancanaria'), (21, 2, 2, 'PLZ1', 'Grupo 1', 'lanzarote'),
+        (22, 3, 4, 'INF1G1', 'Grupo 1', 'grancanaria'), (23, 4, 1, 'BGC9', 'Grupo 9', 'grancanaria');
+    """)
+    nuevo(conn, 71, 21 if a_en_prebenjamin else 20, 1, 2, "2025-10-04", acta([(4, "GOMEZ PEREZ, RAUL", None)]))
+    nuevo(conn, 72, 22, 1, 2, "2026-10-03", acta([(4, "GOMEZ PEREZ, RAUL", None), (7, "PRUEBA LEON, IKER", 9001)]))
+    nuevo(conn, 73, 23, 1, 2, "2019-10-05", acta([(7, "PRUEBA LEON, IKER", 9001)]))
+    a = conn.execute("SELECT player_id FROM appearances WHERE match_id=71").fetchone()[0]
+    b = conn.execute("SELECT a.player_id FROM appearances a JOIN players p ON p.id=a.player_id "
+                     "WHERE a.match_id=72 AND p.fiflp_id IS NULL").fetchone()[0]
+    c = conn.execute("SELECT id FROM players WHERE fiflp_id=9001").fetchone()[0]
+    assert len({a, b, c}) == 3
+    return conn, a, b, c
+
+
+def test_resolver_no_mira_categorias_fuera_de_la_web(monkeypatch):
+    """Hasta que la web enseñe infantil (parte E2), lo de infantil está en la base pero no mueve ninguna
+    ficha: B queda suelto, A no se une a nadie y la ficha de C es la de sus vistas de benjamín (su intervalo
+    de edad, el de benjamín). Con las seis categorías en la web, las edades siguen separando lo imposible
+    y C sigue siendo una sola ficha."""
+    import categorias
+    conn, a, b, c = _con_infantil()
+    M.resolver_fichas(conn, log=quiet)
+    assert fila(conn, b)[6:] == (None, None)
+    assert fila(conn, a)[6:] == (None, None)
+    assert conn.execute("SELECT count(*) FROM players WHERE ficha_id IN (?, ?)", (a, b)).fetchone() == (0,)
+    ids = {i.id: i for i in M.identidades(conn)}
+    assert b not in ids                                   # sin nada en las categorías de la web
+    assert [v[:3] for v in ids[c].vistas] == [(2019, 2, "Atletico Uno")]
+    assert [v[:2] for v in ids[a].vistas] == [(2025, 2)]
+    assert M.pares_juntas(conn) == []                     # el acta de infantil tampoco cuenta para «juntas»
+    assert M.resolver_fichas(conn, log=quiet)["cambiadas"] == 0
+    # Con las seis en la web (lo que hará E2), A en prebenjamín de 2025-26: no caben con B (2018-2020 frente
+    # a 2013-2016), y C (2010-2013 en benjamín, 2013-2016 en infantil) es una ficha.
+    monkeypatch.setattr(categorias, "EN_WEB", tuple(categorias.DB_NAME.values()))
+    conn, a, b, c = _con_infantil(a_en_prebenjamin=True)
+    M.resolver_fichas(conn, log=quiet)
+    ids = {i.id: i for i in M.identidades(conn)}
+    assert sorted(v[:2] for v in ids[c].vistas) == [(2019, 2), (2026, 4)]
+    assert fila(conn, a)[6:] == (None, None) and fila(conn, b)[6:] == (None, None)
+    assert conn.execute("SELECT count(*) FROM players WHERE fiflp_id=9001").fetchone() == (1,)
+    assert fila(conn, c)[6:] == (None, None)

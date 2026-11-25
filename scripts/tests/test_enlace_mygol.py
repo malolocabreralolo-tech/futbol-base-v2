@@ -310,6 +310,40 @@ def test_sin_tablas_de_mygol(tmp_path):
     assert E.fichas_de(vieja) == [] and E.guardar_enlaces(vieja, registro=quiet) == 0
 
 
+def test_lo_de_fuera_de_la_web_no_mueve_los_enlaces(tmp_path, monkeypatch):
+    """Hasta que la web enseñe infantil (parte E2), sus actas están en la base pero no mueven ningún enlace:
+    Raul (1001) juega además en infantil de 2026-27 (su año, con eso, sería otro y su escuela no cuadraría) y
+    un niño nuevo de infantil (2003) se llama como Hugo (sería una segunda ficha de su nombre)."""
+    import categorias
+    conn = base_con_escuela(tmp_path)
+    E.guardar_enlaces(conn, registro=quiet)
+    antes = enlaces(conn)
+    assert antes == [(100, 1), (200, 1), (300, 3)]
+    anios = {f.id: f.anios for f in E.fichas_de(conn)}
+    conn.executescript("""
+      INSERT INTO categories(id, name) VALUES (5, 'INFANTIL');
+      INSERT INTO groups(id, season_id, category_id, code, name, phase, island) VALUES
+        (3, 2, 5, 'INF1G1', 'Grupo 1', 'Primera GC', 'grancanaria');
+      INSERT INTO players(id, full_name, norm_name, fiflp_id) VALUES (6, 'MORALES RUIZ, HUGO', 'MORALES RUIZ, HUGO#2003', 2003);
+    """)
+    for j in range(1, 11):
+        conn.execute("INSERT INTO matches(id, group_id, jornada, date, home_team_id, away_team_id) "
+                     "VALUES (?, 3, ?, ?, 1, 2)", (3000 + j, f"Jornada {j}", f"{j:02d}-11-2026"))
+        conn.execute("INSERT INTO appearances(match_id, team_id, player_id, dorsal, role, goals, ord) "
+                     "VALUES (?, 1, 1, 7, 'starter', 0, 0)", (3000 + j,))
+        conn.execute("INSERT INTO appearances(match_id, team_id, player_id, dorsal, role, goals, ord) "
+                     "VALUES (?, 1, 6, 9, 'starter', 0, 1)", (3000 + j,))
+    conn.commit()
+    asegurar_esquema(conn)
+    assert {f.id: f.anios for f in E.fichas_de(conn)} == anios
+    E.guardar_enlaces(conn, registro=quiet)
+    assert enlaces(conn) == antes
+    # Con infantil en la web, sí: el año de Raul y la segunda ficha de Hugo cuentan.
+    monkeypatch.setattr(categorias, "EN_WEB", categorias.EN_WEB + ("INFANTIL",))
+    assert {f.id: f.anios for f in E.fichas_de(conn)}[1] != anios[1]
+    E.guardar_enlaces(conn, registro=quiet)
+    assert (300, 3) not in enlaces(conn)
+
 def test_tablas_de_mygol_desaparecidas(tmp_path):
     """Si las tablas mygol_* ya no están (una base que vuelve atrás), los enlaces viejos no se quedan."""
     conn = base_con_escuela(tmp_path)

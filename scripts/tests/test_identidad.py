@@ -99,6 +99,22 @@ def test_intervalo_de_edad():
     assert intervalo(2024, ALE) == (2013, 2016)
 
 
+def test_intervalo_de_edad_de_las_categorias_nuevas():
+    """Infantil, cadete y juvenil (parte E): la ventana natural de nacimiento.VENTANA y dos años más por
+    abajo, como benjamín y alevín."""
+    assert NIVEL["INFANTIL"] == 4 and NIVEL["CADETE"] == 5 and NIVEL["JUVENIL"] == 6
+    assert intervalo(2026, 4) == (2013, 2016)
+    assert intervalo(2026, 5) == (2011, 2014)
+    assert intervalo(2026, 6) == (2008, 2012)
+
+
+def test_edades_nuevas_separan():
+    """Un juvenil de 2026 pudo ser el benjamín de 2019 (nacido en 2010); un cadete de 2026 no pudo ser
+    prebenjamín en 2025."""
+    assert compatibles([v(2026, NIVEL["JUVENIL"], "Arucas")], [v(2019, BEN, "Arucas")])
+    assert not compatibles([v(2026, NIVEL["CADETE"], "Arucas")], [v(2025, PRE, "Arucas")])
+
+
 def test_compatibles_por_edad_y_solape():
     # Prebenjamín tres años seguidos cabe (nació en Y-5); cuatro, no.
     assert compatibles([v(2022, PRE, "X")], [v(2023, PRE, "X")], [v(2024, PRE, "X")])

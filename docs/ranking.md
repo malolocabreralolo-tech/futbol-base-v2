@@ -107,7 +107,20 @@ Sale del nombre de la fase del grupo.
 | Segunda Fase con otra letra (F, G…) | 0,90 |
 | Preferente | 1,25 |
 | Copa de Campeones (sin letra) | 1,25 |
-| Todo lo demás (Primera Fase, ligas de isla, copas…) | 1,00 |
+| División de Honor (infantil, cadete y juvenil) | 1,50 |
+| Autonómica | 1,45 |
+| Interinsular | 1,35 |
+| Preferente Fase Oro | 1,30 |
+| Preferente Fase Plata | 1,15 |
+| Segunda (de juvenil: «Segunda GC»; no la Segunda Fase) | 0,95 |
+| Insular | 0,90 |
+| Insular B | 0,85 |
+| Todo lo demás (Primera Fase, «Primera GC», ligas de isla, copas, fases de ascenso…) | 1,00 |
+
+Los niveles de las categorías nuevas van por cómo **empieza** la fase (la «Fase de Ascenso a División de
+Honor» no es la División de Honor: vale 1,00). Infantil, cadete y juvenil entran en el ranking cuando la web
+los enseña (parte E2); hasta entonces sus actas están en la base, pero el generador no las ve
+(`scripts/vista_web.py`).
 
 Si la Copa de Campeones lleva letra (A a E), vale lo mismo que esa letra en la Segunda Fase.
 
@@ -120,7 +133,10 @@ acabó en la A. Los goles de la primera fase y de las eliminatorias de un equipo
 valen como de la A (1,30), y los de uno que está en la F, como de la F (0,90). Basta con que el equipo esté en
 ese grupo (en su clasificación o en su calendario), aunque aún no haya jugado. Un equipo que no está en
 ninguna Segunda Fase con letra se queda con el nivel de su grupo (1,00). Los grupos con nivel propio
-(Segunda Fase con letra, Preferente, Copa de Campeones) valen lo suyo.
+(Segunda Fase con letra, Preferente, Copa de Campeones y los niveles de infantil, cadete y juvenil de la
+tabla) valen lo suyo. En las categorías nuevas, un grupo sin nivel propio (una copa) cuenta como la liga de
+su equipo esa temporada (`ranking.fase_que_cuenta` con la fase entera: la «Copa Insular Lanzarote» de un
+equipo de la Insular vale como la «Insular Lanzarote»; lo calcula E2).
 
 Y se multiplica por **el nivel de la isla** del grupo:
 
@@ -129,6 +145,7 @@ Y se multiplica por **el nivel de la isla** del grupo:
 | Gran Canaria | 1,00 |
 | Lanzarote | 0,85 |
 | Fuerteventura | 0,85 |
+| Interinsular (ligas de varias islas) | 1,00 |
 
 Así, la Preferente de Lanzarote vale 1,25 × 0,85 = 1,06.
 

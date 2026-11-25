@@ -133,3 +133,37 @@ def test_tiene_nivel_y_fase_que_cuenta():
     assert letra_segunda_fase("Segunda Fase A GC") == "A" and letra_segunda_fase("segunda fase f") == "F"
     assert letra_segunda_fase("Segunda Fase GC") is None and letra_segunda_fase("Copa Campeones Benjamin B") is None
     assert letra_segunda_fase(None) is None
+
+
+def test_nivel_fase_de_las_categorias_nuevas():
+    """Los niveles de infantil, cadete y juvenil (parte E; entran en el ranking cuando la web los enseña)."""
+    assert nivel_fase("División de Honor") == 1.50
+    assert nivel_fase("Autonómica") == 1.45
+    assert nivel_fase("Interinsular") == 1.35
+    assert nivel_fase("Preferente GC Fase Oro") == 1.30
+    assert nivel_fase("Preferente GC Fase Plata") == 1.15
+    assert nivel_fase("Preferente GC") == 1.25
+    assert nivel_fase("Primera GC") == 1.0
+    assert nivel_fase("Segunda GC") == 0.95
+    assert nivel_fase("Segunda Fase B") == 1.15              # sin cambio
+    assert nivel_fase("Insular GC Fase 1") == 0.90
+    assert nivel_fase("Insular B Lanzarote") == 0.85
+    assert nivel_fase("Copa Insular Lanzarote") == 1.0        # una copa mezcla niveles
+    # Lo que no empieza por el nivel no lo tiene: la fase de ascenso no es la liga a la que asciende.
+    assert nivel_fase("Fase de Ascenso a División de Honor") == 1.0
+
+
+def test_tiene_nivel_y_fase_que_cuenta_de_las_categorias_nuevas():
+    assert tiene_nivel("Interinsular") and tiene_nivel("Insular GC")
+    assert tiene_nivel("División de Honor") and tiene_nivel("Autonómica") and tiene_nivel("Segunda GC")
+    assert tiene_nivel("Insular B Lanzarote") and tiene_nivel("Preferente GC Fase Oro")
+    assert not tiene_nivel("Primera GC") and not tiene_nivel("Copa Insular Lanzarote")
+    # Con la fase entera de la liga de su equipo esa temporada (la calcula E2), esa.
+    assert fase_que_cuenta("Copa Insular Lanzarote", "Insular Lanzarote") == "Insular Lanzarote"
+    assert fase_que_cuenta("Insular GC Fase 1", "Preferente GC") == "Insular GC Fase 1"   # tiene la suya
+    assert fase_que_cuenta("Primera Fase GC", "A") == "Segunda Fase A"                   # hoy
+
+
+def test_nivel_isla_interinsular():
+    """Las ligas de varias islas no se rebajan."""
+    assert nivel_isla("interinsular") == 1.0

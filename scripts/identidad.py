@@ -28,9 +28,12 @@ from dataclasses import dataclass
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from generate_js import normalize_for_teams_mapping  # noqa: E402  (la clave de club C1, gemela de la web)
 
-NIVEL = {"PREBENJAMIN": 1, "BENJAMIN": 2, "ALEVIN": 3}
-# Años de nacimiento posibles de quien juega la temporada que empieza el año Y: [Y - a, Y - b].
-_EDAD = {1: (7, 5), 2: (9, 6), 3: (11, 8)}
+NIVEL = {"PREBENJAMIN": 1, "BENJAMIN": 2, "ALEVIN": 3, "INFANTIL": 4, "CADETE": 5, "JUVENIL": 6}
+# Años de nacimiento posibles de quien juega la temporada que empieza el año Y: [Y - a, Y - b]. Desde
+# benjamín, la ventana natural de la categoría (nacimiento.VENTANA) y dos años más por abajo: quien juega con
+# los mayores. Infantil, cadete y juvenil (parte E) solo cuentan cuando la web los enseña: el resolvedor lee
+# las apariciones de categorias.EN_WEB (migrate_identidad._vistas).
+_EDAD = {1: (7, 5), 2: (9, 6), 3: (11, 8), 4: (13, 10), 5: (15, 12), 6: (18, 14)}
 UNIONES = ("equipo", "club", "nombre")
 # Lo que dio la medida de los nombres sin coma (scripts/medir_identidad.py, docs/identidad.md): pares de
 # uno a uno, 100 % ≥ 95 %. Los de coma (completos o de un apellido) se unen en el club siempre.
@@ -87,7 +90,9 @@ def club(nombre_equipo: str) -> str:
 
 def intervalo(anio: int, nivel: int) -> tuple[int, int]:
     """Años de nacimiento posibles en la temporada que empieza `anio` (1 prebenjamín, 2 benjamín,
-    3 alevín). Medido sobre los 15.266 jugadores con id de los originales: ninguno se sale."""
+    3 alevín, 4 infantil, 5 cadete, 6 juvenil). Medido sobre los 15.266 jugadores con id de los originales
+    (prebenjamín, benjamín y alevín): ninguno se sale. Los de infantil, cadete y juvenil siguen la misma regla
+    que benjamín y alevín (la ventana natural y dos años más por abajo), sin medir todavía: no hay actas."""
     a, b = _EDAD[nivel]
     return anio - a, anio - b
 

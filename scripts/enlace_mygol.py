@@ -164,14 +164,34 @@ def fichas_de(conn) -> list[Ficha]:
     """Las fichas de la federación (generate_js._fichas): todas, publicadas o no (una más con el mismo nombre
     es una duda más), con los nombres de todas sus identidades y el año de nacimiento estimado SOLO con sus
     apariciones federadas: el que publicaría el generador sin la escuela (sin los años confirmados a mano). Si
-    contara la escuela, el enlace dependería de sí mismo. Sin players.fiflp_id (una base sin migrar), []."""
+    contara la escuela, el enlace dependería de sí mismo. Sin players.fiflp_id (una base sin migrar), [].
+
+    Solo con lo que ve la web (categorias.EN_WEB, leído al llamar), como el generador (que trabaja sobre
+    vista_web.copia_web): hasta que la web enseñe infantil, cadete y juvenil (parte E2), una identidad que
+    solo sale en ellas no es una ficha más con su nombre, y sus partidos no cuentan para el año. Si no, un
+    niño de cadete con el nombre de uno de benjamín le quitaría su enlace, y uno de benjamín al que la
+    federación da el mismo id en cadete cambiaría de año y perdería el suyo."""
     import generate_js as G
+    from migrate_identidad import _filtro_categorias
     from nacimiento import estimar
     if not any(r[1] == "fiflp_id" for r in conn.execute("PRAGMA table_info(players)")):
         return []
+    filtro, cats = _filtro_categorias(None)
+    # Las identidades con algo (una aparición o un suceso) solo fuera de la web: para la web no existen. Sin
+    # ningún grupo fuera de la web (hasta el primer paso del director), ninguna: ni se busca.
+    hay_fuera = conn.execute(f"SELECT 1 FROM groups g JOIN categories c ON c.id = g.category_id "
+                             f"WHERE NOT {filtro} LIMIT 1", cats).fetchone()
+    fuera = set() if not hay_fuera else {pid for (pid,) in conn.execute(f"""
+            SELECT x.player_id FROM (SELECT player_id, match_id FROM appearances
+                                     UNION ALL SELECT player_id, match_id FROM match_events) x
+              JOIN matches m ON m.id = x.match_id JOIN groups g ON g.id = m.group_id
+              JOIN categories c ON c.id = g.category_id
+             GROUP BY x.player_id HAVING max({filtro}) = 0""", cats)}
     f = G._fichas(conn)
     nombres: dict[int, set[str]] = {}
     for pid, principal in f["ficha"].items():
+        if pid in fuera:
+            continue
         nombre = f["nombre"].get(pid) or ""
         suyos = nombres.setdefault(principal, set())
         if nombre and not nombre.startswith("#"):
@@ -179,13 +199,14 @@ def fichas_de(conn) -> list[Ficha]:
     # Una observación por temporada y categoría con los partidos de todas sus identidades: la misma cuenta que
     # hace generate_js._datos_fichas (con los mismos JOIN), sin la consulta grande.
     partidos: dict[int, dict[tuple[int, str], int]] = {}
-    for pid, anio, categoria, pj in conn.execute("""
+    for pid, anio, categoria, pj in conn.execute(f"""
             SELECT a.player_id, s.start_year, LOWER(c.name), COUNT(*)
               FROM appearances a JOIN players p ON p.id = a.player_id
               JOIN matches m ON m.id = a.match_id JOIN groups g ON g.id = m.group_id
               JOIN seasons s ON s.id = g.season_id JOIN teams t ON t.id = a.team_id
               JOIN categories c ON c.id = g.category_id
-             GROUP BY a.player_id, s.start_year, LOWER(c.name)"""):
+             WHERE {filtro}
+             GROUP BY a.player_id, s.start_year, LOWER(c.name)""", cats):
         principal = f["ficha"].get(pid)
         if principal not in f["publicadas"]:
             continue

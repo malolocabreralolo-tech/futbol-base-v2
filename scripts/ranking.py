@@ -8,9 +8,11 @@ liga mala, así que un gol no vale lo mismo en todas partes. Cuatro factores, ca
 1. El rival (por partido): un gol vale más cuanto menos encaja el rival, medido con toda su temporada en
    la categoría y con prudencia (encajados_prudente, peso_rival).
 2. La liga (por grupo): la letra de la Segunda Fase y «Preferente» (nivel_fase), y la isla (nivel_isla).
-   Un grupo sin nivel propio (la Primera Fase, las eliminatorias, una copa) cuenta como la Segunda Fase en
-   la que la federación puso a su equipo esa temporada (fase_que_cuenta): el equipo bueno es el que acabó
-   en la A.
+   En infantil, cadete y juvenil (que entran en el ranking cuando la web los enseña, parte E2), también la
+   División de Honor, la Autonómica, la Interinsular, la Fase Oro y la Fase Plata de Preferente, la Segunda
+   y la Insular (y su B). Un grupo sin nivel propio (la Primera Fase, las eliminatorias, una copa) cuenta
+   como la Segunda Fase en la que la federación puso a su equipo esa temporada (fase_que_cuenta): el equipo
+   bueno es el que acabó en la A; en las categorías nuevas, como la liga de su equipo esa temporada.
 3. El equipo (por grupo): un poco más si su equipo es de los de arriba de la tabla (nivel_equipo).
 4. La edad: más si es de los pequeños de la categoría o juega en la de arriba (factor_edad).
 
@@ -54,7 +56,9 @@ EQUIPO_MIN = 0.90
 EQUIPO_MAX = 1.15
 # Las ligas de Lanzarote y Fuerteventura tienen menos equipos y menos nivel que las de Gran Canaria. Es una
 # apreciación fija, no una medida: los equipos de islas distintas no se cruzan en las actas.
-NIVEL_ISLA = {"grancanaria": 1.0, "lanzarote": 0.85, "fuerteventura": 0.85}
+# Las de varias islas (interinsular: la División de Honor, la Autonómica, la Interinsular de infantil, cadete y
+# juvenil), explícitas: no se rebajan.
+NIVEL_ISLA = {"grancanaria": 1.0, "lanzarote": 0.85, "fuerteventura": 0.85, "interinsular": 1.0}
 
 # (temporada, categoría, fase, partidos, titular, goles, goles por rival, isla, percentil)
 Fila = tuple[int, str, str | None, int, int, int, float, str | None, float | None]
@@ -66,6 +70,21 @@ _NIVEL_OTRA_LETRA = 0.90
 _NIVEL_PREFERENTE = 1.25
 _NIVEL_CAMPEONES = 1.25
 _NIVEL_NORMAL = 1.0
+# Infantil, cadete y juvenil (fútbol 11, parte E): los niveles por encima de las ligas de isla (División de
+# Honor, Autonómica e Interinsular, que juntan a los mejores de varias islas), la Fase Oro y la Fase Plata de
+# Preferente, y por debajo de Primera, la Segunda y la Insular (y la Insular B, el escalón de debajo). Es una
+# apreciación fija, como la de las islas: los grupos de niveles distintos no se cruzan.
+_NIVEL_DIVISION_HONOR = 1.50
+_NIVEL_AUTONOMICA = 1.45
+_NIVEL_INTERINSULAR = 1.35
+_NIVEL_ORO = 1.30
+_NIVEL_PLATA = 1.15
+_NIVEL_SEGUNDA = 0.95
+_NIVEL_INSULAR = 0.90
+_NIVEL_INSULAR_B = 0.85
+# Por dónde empieza la fase (groups.phase, normalizada) y su nivel, por este orden.
+_NIVEL_POR_PRINCIPIO = (("division de honor", _NIVEL_DIVISION_HONOR), ("autonomica", _NIVEL_AUTONOMICA),
+                        ("interinsular", _NIVEL_INTERINSULAR))
 _SEGUNDA_FASE = re.compile(r"^segunda fase ([a-z])\b")
 _CAMPEONES = re.compile(r"^copa (de )?campeones\b")
 _LETRA_FINAL = re.compile(r" ([a-e])$")
@@ -83,13 +102,23 @@ def _normalizar(texto: str) -> str:
 
 
 def nivel_fase(fase: str | None) -> float:
-    """El nivel de la liga por la fase del grupo, tal como está en groups.phase: «Segunda Fase A» (o
-    «… A GC») 1,30, B 1,15, C 1,05, D 1,00, E 0,95 y otra letra 0,90; «Preferente …» y la Copa de
-    Campeones sin letra 1,25 (con letra A-E, la de esa letra); lo demás, y sin fase, 1."""
+    """El nivel de la liga por la fase del grupo, tal como está en groups.phase, por este orden: empieza
+    por «División de Honor» 1,50, «Autonómica» 1,45, «Interinsular» 1,35; «Preferente …» 1,25 (con «Fase
+    Oro» 1,30 y con «Fase Plata» 1,15); la Copa de Campeones sin letra 1,25 (con letra A-E, la de esa
+    letra); «Segunda Fase A» (o «… A GC») 1,30, B 1,15, C 1,05, D 1,00, E 0,95 y otra letra 0,90; empieza
+    por «Segunda» sin ser la Segunda Fase («Segunda GC», de juvenil) 0,95; «Insular B …» 0,85; «Insular …»
+    0,90; lo demás («Primera GC», una copa, una fase de ascenso), y sin fase, 1."""
     if not fase:
         return _NIVEL_NORMAL
     f = _normalizar(fase)
+    for principio, nivel in _NIVEL_POR_PRINCIPIO:
+        if f.startswith(principio):
+            return nivel
     if f.startswith("preferente"):
+        if " fase oro" in f:
+            return _NIVEL_ORO
+        if " fase plata" in f:
+            return _NIVEL_PLATA
         return _NIVEL_PREFERENTE
     if _CAMPEONES.match(f):
         letra = _LETRA_FINAL.search(f)
@@ -97,6 +126,12 @@ def nivel_fase(fase: str | None) -> float:
     segunda = _SEGUNDA_FASE.match(f)
     if segunda:
         return _NIVEL_LETRA.get(segunda.group(1), _NIVEL_OTRA_LETRA)
+    if f.startswith("segunda") and not f.startswith("segunda fase"):
+        return _NIVEL_SEGUNDA
+    if f.startswith("insular b"):
+        return _NIVEL_INSULAR_B
+    if f.startswith("insular"):
+        return _NIVEL_INSULAR
     return _NIVEL_NORMAL
 
 
@@ -112,12 +147,15 @@ def factor_edad(anio: int, temporada: int, categoria: str) -> float:
 
 def tiene_nivel(fase: str | None) -> bool:
     """¿Tiene la fase un nivel propio en nivel_fase: una Segunda Fase con letra (aunque valga 1, como la D),
-    «Preferente …» o la Copa de Campeones? La Primera Fase, las eliminatorias, las copas y las ligas de isla,
-    no."""
+    «Preferente …», la Copa de Campeones o uno de los niveles de infantil, cadete y juvenil (División de
+    Honor, Autonómica, Interinsular, Segunda, Insular)? La Primera Fase («Primera GC» también: vale 1), las
+    eliminatorias, las copas y las ligas de isla, no."""
     if not fase:
         return False
     f = _normalizar(fase)
-    return f.startswith("preferente") or bool(_CAMPEONES.match(f)) or bool(_SEGUNDA_FASE.match(f))
+    return (f.startswith(("preferente", "insular") + tuple(p for p, _ in _NIVEL_POR_PRINCIPIO))
+            or (f.startswith("segunda") and not f.startswith("segunda fase"))
+            or bool(_CAMPEONES.match(f)) or bool(_SEGUNDA_FASE.match(f)))
 
 
 def letra_segunda_fase(fase: str | None) -> str | None:
@@ -130,9 +168,13 @@ def fase_que_cuenta(fase: str | None, mejor: str | None) -> str | None:
     """La fase con la que se mide el nivel de una fila: la suya si tiene nivel propio (tiene_nivel); si no,
     «Segunda Fase <mejor>», la mejor letra de Segunda Fase de su equipo esa temporada (la que le puso la
     federación), si la tiene; y si tampoco, la suya. Los goles de la Primera Fase o de las eliminatorias de
-    un equipo que acabó en la A valen como de la A."""
+    un equipo que acabó en la A valen como de la A. En infantil, cadete y juvenil `mejor` es una fase entera
+    (más de un carácter: la de la liga de su equipo esa temporada, que calcula E2), y se usa tal cual: la
+    «Copa Insular Lanzarote» de un equipo de la Insular cuenta como «Insular Lanzarote»."""
     if tiene_nivel(fase) or not mejor:
         return fase
+    if len(mejor) > 1:
+        return mejor
     return f"Segunda Fase {mejor}"
 
 
