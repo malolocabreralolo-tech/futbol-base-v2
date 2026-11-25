@@ -42,8 +42,8 @@ const MESAS_AL1 = { name: 'Las Mesas Hu.', season: PORTAL_SEASON, cat: 'alevin',
 
 // ── model.js ─────────────────────────────────────────────────────────────
 
-test('CATEGORIES y sus nombres: alevín al final, sin cambiar el orden ni los nombres de las otras dos', () => {
-  assert.deepEqual(CATEGORIES, ['benjamin', 'prebenjamin', 'alevin']);
+test('CATEGORIES y sus nombres: alevín detrás de las dos de siempre (y las de la parte E detrás), sin cambiar el orden ni los nombres de las otras dos', () => {
+  assert.deepEqual(CATEGORIES, ['benjamin', 'prebenjamin', 'alevin', 'infantil', 'cadete', 'juvenil']);
   assert.equal(CAT_NAMES.alevin, 'Alevín');
   assert.equal(CAT_WORDS.alevin, 'alevín');
   assert.equal(CAT_SHORT.alevin, 'alev.');
@@ -56,7 +56,7 @@ test('la categoría de un grupo sin `cat` sale de su fullName, también alevín 
   assert.equal(competitionKey(raw, '2026-2027').cat, 'alevin');
   assert.equal(groupLabel({ ...raw, fullName: 'PREBENJAMIN PRIMERA FASE GC - GRUPO 3', phase: 'Gran Canaria' }), 'Prebenjamín, Grupo 3 de Gran Canaria');
   assert.equal(groupLabel({ ...raw, fullName: 'BENJAMIN PRIMERA FASE GC - GRUPO 3' }), 'Benjamín, Primera Fase, Grupo 3');
-  assert.equal(groupLabel({ ...raw, fullName: '', cat: 'cadete' }), 'Primera Fase, Grupo 3', 'una categoría que no es de la app');
+  assert.equal(groupLabel({ ...raw, fullName: '', cat: 'senior' }), 'Primera Fase, Grupo 3', 'una categoría que no es de la app');
 });
 
 test('la Copa de Campeones alevín es la Copa de Campeones (con la letra de su fase, como la de benjamín de 2024-25)', () => {
@@ -230,7 +230,7 @@ const target = (res) => (res.redirect ? [routeHref(res.redirect.screen, res.redi
 test('`c=alevin` vale en Ligas, Goleadores y Récords; otra categoría se quita', () => {
   for (const screen of ['ligas', 'goleadores', 'records']) {
     assert.deepEqual(resolve(`#/${screen}?c=alevin`, { datasets: withAlevin() }), { params: { c: 'alevin', s: PORTAL_SEASON } }, screen);
-    assert.deepEqual(target(resolve(`#/${screen}?c=cadete`, { datasets: withAlevin() })), [`#/${screen}`, null], screen);
+    assert.deepEqual(target(resolve(`#/${screen}?c=senior`, { datasets: withAlevin() })), [`#/${screen}`, null], screen);
   }
 });
 
@@ -382,15 +382,15 @@ test('Ligas de alevín de una temporada pasada: la Segunda Fase A antes que la F
 test('store.js: mi equipo alevín se guarda en la v2; la v1 (la app anterior) sigue con dos categorías', () => {
   const storage = memoryStorage(new Map([[STORE_KEY, JSON.stringify({ myTeam: MESAS_AL1, recent: [] })]]));
   assert.deepEqual(loadStore(storage, { defaultTeam: DEFAULT_TEAM, portalSeason: PORTAL_SEASON }).myTeam, MESAS_AL1);
-  const cadete = memoryStorage(new Map([[STORE_KEY, JSON.stringify({ myTeam: { ...MESAS_AL1, cat: 'cadete' }, recent: [] })]]));
-  assert.equal(loadStore(cadete, { defaultTeam: DEFAULT_TEAM, portalSeason: PORTAL_SEASON }).myTeam.cat, 'prebenjamin');
+  const senior = memoryStorage(new Map([[STORE_KEY, JSON.stringify({ myTeam: { ...MESAS_AL1, cat: 'senior' }, recent: [] })]]));
+  assert.equal(loadStore(senior, { defaultTeam: DEFAULT_TEAM, portalSeason: PORTAL_SEASON }).myTeam.cat, 'prebenjamin');
   assert.equal(migrateV1({ teams: [{ name: 'X', cat: 'alevin', groupId: 'AL1' }], selected: 'alevin|AL1|x' }), null);
 });
 
 test('myteam.js: la categoría por defecto, el cambio de temporada a alevín y la trayectoria con alevín', () => {
   assert.equal(defaultCategory({ status: 'ok', cat: 'alevin' }, DEFAULT_TEAM), 'alevin');
   assert.equal(defaultCategory({ status: 'absent' }, { cat: 'alevin' }), 'alevin');
-  assert.equal(defaultCategory({ status: 'ok', cat: 'cadete' }, { cat: 'cadete' }), 'benjamin', 'el respaldo sigue siendo benjamín');
+  assert.equal(defaultCategory({ status: 'ok', cat: 'senior' }, { cat: 'senior' }), 'benjamin', 'el respaldo sigue siendo benjamín');
   // Cambio de temporada (paso 1): Guayarmina, de benjamín el año anterior, juega en benjamín (A1) y en
   // alevín (AL1). Sin alevín, A1 en silencio; con él, la pregunta, con el paso natural a alevín: por eso
   // el router espera al alevín en un cambio de temporada (opción (a) de critic.md).

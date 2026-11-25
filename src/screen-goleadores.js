@@ -22,6 +22,11 @@ export const PAGE_ROWS = 200;
 export const SEARCH_FIRST = 30;
 export const SEARCH_ROWS = 100;
 const CATS = CATEGORIES.map((value) => ({ value, label: CAT_NAMES[value] }));
+// Infantil, cadete y juvenil (parte E), en el selector solo si la temporada tiene grupos suyos (o si es la
+// elegida): mientras la web no los enseñe, el selector es el de las tres de siempre.
+const SINCE_E = ['infantil', 'cadete', 'juvenil'];
+const catsOf = (season, chosen) => CATS.filter(({ value }) => !SINCE_E.includes(value) || value === chosen
+  || ((season && season.groups) || []).some((g) => g.cat === value));
 const BODY_ID = 'goleadores-filas';
 
 // Las palabras de una búsqueda, con la normalización del buscador de Explorar (searchKey de model.js:
@@ -127,7 +132,7 @@ function render(ctx) {
   // Una temporada pasada sin goleadores archivados (las archivadas los traen desde 2019/20; la
   // federación no publicó los de 2017/18 ni 2018/19): sin ninguna categoría, el aviso de la temporada; si
   // solo le falta la elegida (alevín, que no estaba en la web), el selector sigue para volver a las otras.
-  const cats = group ? '' : html`<nav class="gol-cats" aria-label="Categoría">${segmented(CATS, cat, (value) => routeHref('goleadores', { s, c: value }), { idPrefix: 'categoria' })}</nav>`;
+  const cats = group ? '' : html`<nav class="gol-cats" aria-label="Categoría">${segmented(catsOf(ctx.model.season(s), cat), cat, (value) => routeHref('goleadores', { s, c: value }), { idPrefix: 'categoria' })}</nav>`;
   if (past && !ctx.model.scorers(s, cat).length) {
     if (!CATEGORIES.some((c) => ctx.model.scorers(s, c).length)) return screenHtml(empty(`No hay goleadores de la temporada ${seasonLabel(s)} en esta web.`));
     return screenHtml(html`${cats}${empty(`No hay goleadores de ${CAT_WORDS[cat]} de la temporada ${seasonLabel(s)} en esta web.`)}`);

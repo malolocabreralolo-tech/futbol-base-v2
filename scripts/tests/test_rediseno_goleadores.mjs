@@ -69,7 +69,7 @@ test('defaultCategory (myteam.js): la de mi equipo resuelto; sin él (E o X), la
   assert.equal(defaultCategory(ok('benjamin'), { cat: 'prebenjamin' }), 'benjamin');
   assert.equal(defaultCategory({ status: 'absent' }, { cat: 'prebenjamin' }), 'prebenjamin');
   assert.equal(defaultCategory({ status: 'ask', candidates: [] }, null), 'benjamin');
-  assert.equal(defaultCategory(ok('cadete'), { cat: 'cadete' }), 'benjamin', 'una categoría que no existe no vale');
+  assert.equal(defaultCategory(ok('senior'), { cat: 'senior' }), 'benjamin', 'una categoría que no existe no vale');
 });
 
 test('la global de mi categoría (prebenjamín): cabecera, categoría, buscador y la primera página, las 200 primeras de 299', () => {

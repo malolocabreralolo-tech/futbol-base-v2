@@ -14,6 +14,11 @@ import { categoryScorers, rankScorers } from './state.js';
 import { defaultCategory } from './myteam.js';
 
 const CATS = CATEGORIES.map((value) => ({ value, label: CAT_NAMES[value] }));
+// Infantil, cadete y juvenil (parte E), en el selector solo si la temporada tiene grupos suyos (o si es la
+// elegida): mientras la web no los enseñe, el selector es el de las tres de siempre.
+const SINCE_E = ['infantil', 'cadete', 'juvenil'];
+const catsOf = (season, chosen) => CATS.filter(({ value }) => !SINCE_E.includes(value) || value === chosen
+  || ((season && season.groups) || []).some((g) => g.cat === value));
 export const TOP_SCORERS = 30;
 const TOP_RANK = 3;
 
@@ -88,7 +93,7 @@ function render(ctx) {
   const season = model.season(s);
   // Sin la temporada (el router la carga antes de pintar): la caja de error, nunca otra temporada.
   if (!season) return html`<section data-screen="records">${head}${errorBox(`la temporada ${seasonLabel(s)}`)}</section>`;
-  const picker = html`<nav class="rc-cats" aria-label="Categoría">${segmented(CATS, c, (value) => routeHref('records', { s, c: value }), { idPrefix: 'categoria' })}</nav>`;
+  const picker = html`<nav class="rc-cats" aria-label="Categoría">${segmented(catsOf(season, c), c, (value) => routeHref('records', { s, c: value }), { idPrefix: 'categoria' })}</nav>`;
   const records = seasonRecords(season, c);
   const group = (id) => season.groups.find((g) => g.id === id) || null;
   const env = {

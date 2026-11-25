@@ -922,12 +922,12 @@ test('esa temporada la carga el router y la ruta se pinta, o se redirige ya carg
 });
 
 test('un `c` que no es una categoría de la app (benjamín, prebenjamín o alevín) se quita, sin aviso; en Ligas, también una isla o un `to` que no existen (decisión 3 de B3)', async () => {
-  assert.deepEqual(target(resolve('#/records?c=cadete')), ['#/records', null]);
+  assert.deepEqual(target(resolve('#/records?c=senior')), ['#/records', null]);
   assert.deepEqual(target(resolve('#/goleadores?c=Benjamin&g=PG2&q=ana')), ['#/goleadores?g=PG2&q=ana', null]);
   // Todos a la vez, antes de cargar la temporada (no la necesitan).
-  assert.deepEqual(target(resolve('#/ligas?s=2024-2025&c=cadete&i=tenerife&to=partido')), ['#/ligas?s=2024-2025', null]);
+  assert.deepEqual(target(resolve('#/ligas?s=2024-2025&c=senior&i=tenerife&to=partido')), ['#/ligas?s=2024-2025', null]);
   assert.deepEqual(resolve('#/ligas?c=prebenjamin&i=lanzarote&to=jornada'), { params: { c: 'prebenjamin', i: 'lanzarote', to: 'jornada', s: PORTAL } });
-  const b = fakeBrowser('#/records?c=cadete');
+  const b = fakeBrowser('#/records?c=senior');
   const router = startRouter({ screens: allScreens(), root: b.root, getContext: context(), window: b.win });
   await router.idle();
   assert.deepEqual(b.entries(), ['#/records']);

@@ -96,8 +96,11 @@ export function isCupGroup(g) {
   if (id.startsWith('PCC') || id.startsWith('BC')) return true;
   if (id.startsWith('MCP') || id.startsWith('MCB')) return true;
   const phase = ((g && g.phase) || '').toLowerCase();
+  // Y las fases de ascenso de infantil, cadete y juvenil («Fase de Ascenso a Interinsular»; las
+  // «Eliminatorias de Ascenso a …» ya empiezan por «eliminatorias»): copas, como _is_league_group de
+  // scripts/generate_js.py (decisión 3 de la parte E).
   return phase.includes('copa') || phase.includes('campeon') || phase.includes('maspalomas')
-    || /^(?:semi)?final\b|^torneo\b|^clausura\b|^eliminatorias\b/.test(phase);
+    || /^(?:semi)?final\b|^torneo\b|^clausura\b|^eliminatorias\b|^fase de ascenso\b/.test(phase);
 }
 
 /* Friendly label for a knockout round. Prefers the explicit round name in the

@@ -163,7 +163,7 @@ test('test_importar_ignora_lo_corrupto', () => {
 test('un equipo de v1 de una categoría que v2 no tiene acaba en el equipo por defecto', () => {
   // Un equipo de una categoría que v2 no tiene y un seguido mal formado: se copian tal cual, y la
   // validación fina la hacen loadStore y loadFollowed.
-  const viejo = { name: 'CD Viejo', season: '2025-2026', cat: 'infantil', groupId: 'I1' };
+  const viejo = { name: 'CD Viejo', season: '2025-2026', cat: 'senior', groupId: 'I1' };
   const s = almacenDePrueba({
     'futbol-base:v2': JSON.stringify({ myTeam: viejo, recent: [] }),
     'futbol-base:jugadores': JSON.stringify([{ id: 'x' }, { id: '7', n: 'Luis' }]),

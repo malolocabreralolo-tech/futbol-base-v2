@@ -5,7 +5,7 @@
 // al importarse.
 import { html } from './html.js';
 import { tabbar, notice, screenHead, listEs } from './ui.js';
-import { CATEGORIES, CAT_WORDS } from './model.js';
+import { CATEGORIES, CAT_WORDS, LAZY_CATS } from './model.js';
 
 const TAB_HREFS = { miequipo: '#/', jornada: '#/jornada', tabla: '#/tabla', explorar: '#/explorar' };
 
@@ -153,7 +153,8 @@ export async function retryBlock(section, id, button, load, paint) {
 // alerta de la caja de error, que es para lo que no se puede pintar. «Reintentar» lo atiende el router
 // (data-action="retry") y vuelve a pedirlo.
 export function alevinFailedBox() {
-  const others = listEs(CATEGORIES.filter((cat) => cat !== 'alevin').map((cat) => CAT_WORDS[cat]));
+  // Las que se ven seguro: las de la carga inicial (las otras perezosas pueden no haber llegado tampoco).
+  const others = listEs(CATEGORIES.filter((cat) => !LAZY_CATS.includes(cat)).map((cat) => CAT_WORDS[cat]));
   return html`<div class="block"><div class="box partial-box" role="status"><p class="partial-text">No se pudieron cargar los datos de alevín: se ven ${others}.</p><div class="buttons"><button class="button" type="button" data-action="retry">Reintentar</button></div></div></div>`;
 }
 
