@@ -50,7 +50,7 @@ gh workflow enable activar.yml -R malolocabreralolo-tech/futbol-base-v2
 
 ### Activación automática (`scripts/activar_auto.py`)
 
-Lo de arriba lo hace solo `activar_auto.py` a partir de un raw **ya descargado** (la descarga y el lanzamiento van en `activar.yml`: [federacion.md](federacion.md)). Lee de `data-health.json` lo que el bot apuntó como nuevo: las competiciones de `newCompetitions` (enteras) y los grupos de `newGroups` (solo esos, de una competición que ya se sigue). Cada competición busca su raw por tanda: `scripts/fiflp_islas_22_raw.json` (benjamín y prebenjamín) o `scripts/fiflp_islas_22al_raw.json` (alevín); la que no está en ninguno, en el de su categoría.
+Lo de arriba lo hace solo `activar_auto.py` a partir de un raw **ya descargado** (la descarga y el lanzamiento van en `activar.yml`: [federacion.md](federacion.md)). Lee de `data-health.json` lo que el bot apuntó como nuevo: las competiciones de `newCompetitions` (enteras) y los grupos de `newGroups` (solo esos, de una competición que ya se sigue). Cada competición busca su raw por tanda (`categorias.TANDAS`): `scripts/fiflp_islas_22_raw.json` (benjamín y prebenjamín), `scripts/fiflp_islas_22al_raw.json` (alevín) o `scripts/fiflp_islas_22inf_raw.json`, `_22cad_` y `_22juv_` (infantil, cadete y juvenil); la que no está en ninguno, en el de su categoría. `activar_auto.py --tandas` dice las tandas con algo pendiente, y lo de una categoría que no está en `categorias.ACTIVABLES` no se descarga ni se activa: va a `activation.failed` («categoría que el bot aún no activa»).
 
 ```bash
 python3 scripts/activar_auto.py --pendientes    # los ids pendientes, separados por comas (para SCRAPE_IDS)
@@ -78,6 +78,27 @@ En GitHub lo hace `activar.yml`, que lanza el bot al acabar cada pasada mientras
 **Si falla, a mano:** el camino manual de arriba sigue valiendo tal cual. Con el bot y la activación automática parados como se explica arriba, `python3 scripts/activar_auto.py --dry-run` dice qué falla y por qué; arreglado el motivo, `python3 scripts/activar_auto.py` en local (con el raw al día tras `git pull`), las suites y la sonda, y el commit de la base, `data-*.js`, `index.html`, `sw.js`, `docs/temporadas/*-auto-*.json` y `data-health.json`. O el camino manual de arriba con `--comps`.
 
 `--comps` no es opcional al añadir una fase: `fiflp_manifest.py` pasa `comp_meta` a **todas** las competiciones del raw para ordenarlas, y el raw de la tanda trae también las que ya están activadas y las que aún no tienen convenio de código (un torneo, una copa nueva…). Una sola sin convenio aborta el manifiesto entero («competición sin convenio de código: …»); con `--comps <ids>` solo cuentan las pedidas.
+
+### Infantil, cadete y juvenil (y el alevín de Lanzarote y Fuerteventura) al abrir una temporada
+
+Lo de la parte E1 ([categorias-mayores.md](categorias-mayores.md)) no se reescribe cada temporada: `categorias.ACTIVABLES`, `ALEVIN_ISLAS` y la variable `CARRIL_MAYORES` se quedan como el director los dejó. Al abrir la temporada nueva:
+
+- **Cada categoría, su tanda**: `-f temporada=<CodTemporada>inf`, `…cad` y `…juv` en `fetch-fiflp-islas.yml` (`scripts/fiflp_islas_<CodTemporada>inf_raw.json`…), y el manifiesto y `activate_season` con ese raw, como en los pasos 2-4 de arriba; o, si ya están en `ACTIVABLES`, solas: la primera pasada del bot con sus extras las apunta en `newCompetitions` y `activar.yml` baja las tandas con algo pendiente (`activar_auto.py --tandas`). El alevín de las islas va en la tanda de alevín (`<CodTemporada>al`).
+- **Los códigos, del convenio** (`scripts/convenio.py`): antes de activar, los nombres nuevos del catálogo, con su prefijo o su motivo (cambiando `2026-2027` por la temporada):
+
+  ```bash
+  python3 -c "
+  import json, sys; sys.path.insert(0, 'scripts'); import convenio
+  for c in json.load(open('scripts/fiflp_comps_catalog.json'))['2026-2027']['all']:
+      if convenio.aplica(c['name']):
+          try: print(convenio.convenio(c['name']).prefijo, c['name'])
+          except convenio.SinConvenio as e: print('SIN CONVENIO', c['name'], '-', e)
+  "
+  ```
+
+  Una sin convenio se queda en `activation.failed` sin romper las demás; si se quiere, se le añade la regla en `convenio.py` y su fila en `scripts/tests/fixtures/convenio_mayores.json` (con `test_el_catalogo_entero_sin_choques` en verde: ningún prefijo repetido en la temporada).
+- **El carril** sigue solo: `source_health.begin` deja fuera `carriles` al cambiar de temporada (como `runHealth`), y el carril lee los grupos de las mayores de la temporada nueva en cuanto estén activados. Con más de 60 grupos entre las categorías activas, `reloj_pasadas.CARRIL_CADA` a 2 h.
+- **La base**: antes de activar las mayores de la temporada nueva, su tamaño (`ls -l futbolbase.db`): cada temporada de fútbol 11 son ~20 MB más al acabarla.
 
 ## Descubrir y comprobar candidatos
 

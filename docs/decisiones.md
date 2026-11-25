@@ -65,6 +65,9 @@ al que afecta. Solo lo que sigue siendo verdad: la historia de cómo se llegó a
 - **Lo bajado del histórico pasa por la cuarentena** (`scripts/historico/`, que el bot no mira) y por una prueba sobre una copia (importar sin red, la base sana y las dos suites) antes de que el bot lo importe: una temporada que rompe algo no deja al bot sin publicar. `scripts/cuarentena.py`, `scripts/prueba_historico.py`.
 - **`historico.yml` sustituye a las tandas de goleadores y de detalle**; `actas-federacion.yml` queda solo para `reindex` y `refrescar`, que el carril no hace, hasta que el dueño decida. `.github/workflows/historico.yml`.
 - **Del directorio de equipos no se lee el contacto de los clubes**: son datos personales y la base va a un repositorio público. `scripts/fiflp_detalle.py`, `docs/federacion.md`.
+- **Conocer una categoría no es activarla**: qué categoría es (`category_of`), si el bot la activa sola (`ACTIVABLES`), qué carril la lee (`CARRILES`) y si la ve la web (`EN_WEB`) son preguntas aparte; si reconocer infantil bastara, se activarían de golpe sus competiciones, el bot las leería sin sitio y la web las enseñaría a medio cargar. Cada paso lo da el director cambiando su tupla. `scripts/categorias.py`, `docs/categorias-mayores.md`.
+- **Infantil, cadete y juvenil van en un carril aparte, con su número de pasada**: `carril-mayores.yml` llama a `update.yml` (`workflow_call`), así que su `GITHUB_RUN_NUMBER` es el suyo y no gasta números del bot (su rotación sale de ellos), y el reloj no cuenta sus ejecuciones como pasadas del bot. Lo lanza el reloj solo con `CARRIL_MAYORES` a 1, entre dos pasadas del bot, cada 4 h, nunca con nada en marcha; la concurrencia, en el job (en el workflow, llamante y llamado se bloquearían). Solo el carril principal lanza la activación. `.github/workflows/carril-mayores.yml`, `.github/workflows/update.yml`, `scripts/reloj_pasadas.py` (`due_carril`).
+- **El código de grupo de las categorías nuevas sale de un algoritmo sobre el nombre**, no de una tabla a mano: el catálogo tiene 139 nombres de 2019-20 a 2026-27 que cambian de forma de un año a otro; el algoritmo se comprueba contra el catálogo entero (ningún prefijo repetido en una temporada) y una competición que no encaja se queda sin cargar, con su motivo. `scripts/convenio.py`, `scripts/tests/test_convenio.py`.
 
 ## La base y los originales
 
@@ -78,6 +81,8 @@ al que afecta. Solo lo que sigue siendo verdad: la historia de cómo se llegó a
 - **`futbolbase.db` va en git en su esquema compacto**: GitHub no admite ficheros de 100 MB. Desde 80 MB la web lo dice; desde 95, no se sube. `scripts/migrate_compactar.py`, `scripts/base_sana.py`.
 - **Una base que no pasa la comprobación no se sube**, ni los datos de esa pasada: sin ella no hay pruebas ni commit. `scripts/base_sana.py`, `.github/workflows/update.yml`.
 - **Los ficheros se escriben enteros o no se escriben**: un corte a mitad deja el anterior. `scripts/escritura.py`.
+- **El generador trabaja sobre una copia con solo lo de la web** (`EN_WEB`): lo que el bot ya lee y aún no se enseña puede estar en la base sin cambiar un byte de los `data-*.js`, y las fichas no lo miran. `scripts/vista_web.py` (`copia_web`), `scripts/generate_js.py`, `scripts/migrate_identidad.py`.
+- **Las actas del histórico van en un lote por categoría** (`fiflp_actas_<S>_<categoría>_raw.json`; benjamín y prebenjamín, en el de siempre): un raw por temporada con todo pasaría del aviso de GitHub de 50 MB por fichero, y cada lote se prueba y se promueve sin tocar los otros. `scripts/actas_lotes.py`.
 
 ## Publicar
 

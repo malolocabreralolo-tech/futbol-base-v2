@@ -5,7 +5,7 @@ El canal federación → base → JS está preparado para alevín de Gran Canari
 ## Alcance
 
 - Solo **Gran Canaria**, fútbol 7/8. Nunca fútbol sala (tampoco la liga «LPFS»).
-- Alevín de **Lanzarote y Fuerteventura queda fuera**, a propósito: `categorias.category_of` devuelve `None` para sus competiciones («LIGA ALEVIN LANZAROTE FASE 1», «LIGA ALEVIN FUERTEVENTURA F7 1ª FASE»…), y ningún importador ni descargador las toma.
+- Alevín de **Lanzarote y Fuerteventura queda fuera** hasta el paso D6 de la parte E1 ([categorias-mayores.md](categorias-mayores.md)): mientras `categorias.ALEVIN_ISLAS` sea `False`, `categorias.category_of` devuelve `None` para sus competiciones («LIGA ALEVIN LANZAROTE FASE 1», «LIGA ALEVIN FUERTEVENTURA F7 1ª FASE»…), y ningún importador ni descargador las toma. Desde D6 (`ALEVIN_ISLAS = True`) son alevín: entran solas por la activación (tanda `22al`), con los códigos del convenio de las categorías nuevas (`convenio.py`: `ALUL1`… «Lanzarote Fase 1», `ALUF1`… «Fuerteventura Fase 1»; nunca chocan con los de Gran Canaria de abajo), las lee el bot de siempre (alevín es de su carril) y salen en «Alevín» de la web. Un encargo de alevín del histórico incluye desde entonces también las de las islas. La marcha atrás: `python3 scripts/quitar_categoria.py --temporada 2026-2027 --categoria ALEVIN --isla lanzarote --apply` (y `fuerteventura`), con el bot parado.
 - Las Mesas Huracán tiene cuatro equipos alevín (A, B, C y D) en la Fase Previa de 2026-27.
 
 ## Contrato común (datos ↔ web)
