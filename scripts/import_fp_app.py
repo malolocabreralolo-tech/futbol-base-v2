@@ -18,8 +18,8 @@ finalizado que la base aún no tiene (la federación lo publica días después) 
 hora de los que no la tienen. Nunca cambia un marcador que ya está.
 
 Cada liga se casa con un grupo de la temporada en curso de la misma categoría
-(categorias.category_of de su nombre) por sus equipos (group_overlap, al menos
-0,6 y sin empate); los equipos, con canonical_names contra los del grupo.
+(categorias.category_of de su nombre) por sus equipos (al menos 0,6 de la plantilla
+más grande y sin empate); los equipos, con canonical_names contra los del grupo.
 """
 import hashlib
 import json
@@ -32,7 +32,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
 RAW_FILE = re.compile(r"^fp_app_(\d{4}-\d{4})_raw\.json$")
-FP_VERSION = "2"   # sube cuando cambia lo que se escribe: el bot vuelve a importar el original
+FP_VERSION = "3"   # sube cuando cambia lo que se escribe: el bot vuelve a importar el original
 MIN_OVERLAP = 0.6
 
 SCHEMA = (
@@ -112,16 +112,23 @@ def _season_groups(conn, season_id, category):
 
 def match_liga(conn, season_id, liga):
     """El grupo de la base de una liga de la app: el de su categoría que más equipos comparte
-    (al menos MIN_OVERLAP de la más pequeña), sin empate. Solo de su categoría: una liga alevín
-    tiene los clubes de un grupo de benjamín (10 de las 32 de 2026-27 casaban con un FF) y le
-    escribiría estados, horas y goles. Una liga de una categoría que no se publica, con ninguno."""
-    from fiflp_names import group_overlap
+    (al menos MIN_OVERLAP de la plantilla más grande de las dos), sin empate. Solo de su categoría:
+    una liga alevín tiene los clubes de un grupo de benjamín (10 de las 32 de 2026-27 casaban con un
+    FF) y le escribiría estados, horas y goles. Una liga de una categoría que no se publica, con ninguno.
+
+    Sobre la más grande, no sobre la más pequeña (group_overlap): una eliminatoria de la primera fase
+    tiene todos los clubes que luego se reparten en los grupos de la segunda, y cada grupo de la
+    segunda (12 equipos) cabe entero en ella (48). Sobre la más pequeña, la liga de un grupo de la
+    segunda casaba con la eliminatoria antes de que la base tuviera su grupo y, después, empataba con
+    él y se quedaba sin grupo; y la eliminatoria casaba con un grupo de la segunda (la C-D, con el C2)
+    o, si empataba con dos, con ninguno (la A-B), y su grupo de verdad perdía lo de la app (24/11/2026)."""
+    from fiflp_names import match_teams
     teams = [t.get("nombre") for t in liga.get("tabla") or [] if t.get("nombre")]
     category = _category(liga.get("name"))
     if len(teams) < 3 or not category:
         return None
-    scored = sorted(((group_overlap(teams, names), gid)
-                     for gid, names in _season_groups(conn, season_id, category).items()),
+    scored = sorted(((len(match_teams(teams, names)) / max(len(teams), len(names)), gid)
+                     for gid, names in _season_groups(conn, season_id, category).items() if names),
                     reverse=True)
     if not scored or scored[0][0] < MIN_OVERLAP or (len(scored) > 1 and scored[1][0] == scored[0][0]):
         return None

@@ -416,6 +416,20 @@ def liga_app(name, names, first_id):
                        "banderas": "b.png", "sanciones": 0} for i, n in enumerate(names)]}
 
 
+def test_cada_liga_de_la_app_casa_con_el_grupo_de_su_tamano():
+    conn = base_fases()
+    assert A.match_liga(conn, 1, liga_app("Benjamín Gran Canaria Fase-A Grupo 1", ELIM[:4], 1)) == 2
+    assert A.match_liga(conn, 1, liga_app("Benjamín Gran Canaria Fase-A Grupo 2", ELIM[4:], 1)) == 3
+    # La eliminatoria entera, con la eliminatoria: no con un grupo de la segunda que cabe en ella.
+    assert A.match_liga(conn, 1, liga_app("Benjamín Eliminatoria A-B", ELIM, 1)) == 1
+
+
+def test_una_liga_de_la_segunda_fase_no_casa_con_la_eliminatoria_antes_de_que_la_base_tenga_su_grupo():
+    conn = base_fases(segunda=False)
+    assert A.match_liga(conn, 1, liga_app("Benjamín Gran Canaria Fase-A Grupo 1", ELIM[:4], 1)) is None
+    assert A.match_liga(conn, 1, liga_app("Benjamín Eliminatoria A-B", ELIM, 1)) == 1
+
+
 def fp_equipos(conn):
     return conn.execute("SELECT fp_team_id, liga_id, team_id, name, equipacion FROM fp_teams ORDER BY fp_team_id"
                         ).fetchall()
