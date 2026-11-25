@@ -987,6 +987,7 @@ def _tanda(page, F, season, lote, categories, comps_arg, args, over, resumen):
         comps = discover_comps(page, season, categories, names, F)
         if not comps:
             print(f"  sin competiciones de la temporada {season} (parada: {parada_de(F)}): nada que escribir")
+            guardar_resumen(resumen, F, {})   # las páginas y la parada, para el carril (el día, el freno)
             return
     comps = [str(c) for c in comps]
 

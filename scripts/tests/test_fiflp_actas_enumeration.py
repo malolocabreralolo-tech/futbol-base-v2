@@ -330,8 +330,11 @@ def test_las_competiciones_de_la_web_sin_parada_y_con_ella(tanda, monkeypatch):
     (un runner rechazado), no se escribe nada: ni índice, ni raw, ni estado."""
     monkeypatch.setattr(A, "_catalog_entry", lambda season, catalog=None: {})
     aws = FederacionFalsa(sitio_actas(), Reloj(), nube="aws", rechaza=True)
-    tanda.run(aws, "--temporada", "12")
+    resumen = tanda.dir / "resumen.json"
+    tanda.run(aws, "--temporada", "12", "--resumen", str(resumen))
     assert not list(tanda.dir.glob("fiflp_actas_*")) and len(aws.pedidas) <= 2
+    # Pero sí el resumen: el carril apunta las páginas y la parada (M7 de la revisión final).
+    assert json.loads(resumen.read_text())["parada"] == "runner"
     f = FederacionFalsa(sitio_actas(), Reloj())
     tanda.run(f, "--temporada", "12")
     assert f.pedidas[0] == f"{BASE}/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=12"
