@@ -929,6 +929,19 @@ def importar_mygol(conn, registro=print):
         registro(f"  ! MyGol: {type(e).__name__}: {e}")
 
 
+def enlazar_mygol(conn, registro=print):
+    """Qué niño de la liga de escuelas es qué ficha (enlace_mygol, docs/mygol.md): rehace mygol_enlaces con las
+    fichas recién resueltas. Como importar_mygol, un fallo nunca para la pasada: se deshace lo que dejara a
+    medias, se apunta y se sigue (la web sale sin las escuelas que cambiaran, nunca sin publicar)."""
+    registro("\nLiga de escuelas de MyGol: los niños enlazados con su ficha")
+    try:
+        import enlace_mygol
+        enlace_mygol.guardar_enlaces(conn, registro=registro)
+    except Exception as e:
+        conn.rollback()
+        registro(f"  ! MyGol (enlaces): {type(e).__name__}: {e}")
+
+
 def preparar_base(conn):
     """Lo que hace cada pasada con la base antes de leer nada (main, justo después de init_db). Aparte para que
     la prueba del histórico (solo_historico) prepare la copia exactamente igual que el bot."""
@@ -983,7 +996,11 @@ def solo_historico(conn, log=print, generar=None):
     if fallos:
         raise RuntimeError(f"la importación de temporadas pasadas falló en {len(fallos)} "
                            f"paso{'s' if len(fallos) != 1 else ''}: " + "; ".join(fallos))
+    # Como la pasada: la liga de escuelas (protegida: nunca falla) antes y después de resolver las fichas, para
+    # que lo que se genera y se prueba en la copia sea lo que publicará el bot.
+    importar_mygol(conn, registro=log)
     migrate_identidad.resolver_fichas(conn)
+    enlazar_mygol(conn, registro=log)
     if generar is None:
         from generate_js import main as generar
     generar()
@@ -1026,6 +1043,8 @@ def main():
         # Las fichas, una vez, con todas las actas importadas y los jugadores sin uso ya podados (el último
         # paso de import_past_seasons). Un fallo para la pasada: no se publican fichas a medias.
         migrate_identidad.resolver_fichas(conn)
+        # Con las fichas ya resueltas: cada enlace va a la principal de su ficha de esta pasada.
+        enlazar_mygol(conn)
         from generate_js import main as generate_main
         generate_main()
         failed = False

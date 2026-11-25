@@ -426,3 +426,191 @@ def test_base_real(tmp_path):
     mayor = max(bus, key=lambda n: len(bus[n].encode()))
     print(f"\n  base real: {segundos:.1f} s; {len(p)} fichas, {sum(len(e.get('y', [])) == 3 for e in p.values())} "
           f"con tres años; búsqueda mayor {mayor} {len(bus[mayor].encode()):,} B; años del ranking {sorted(anios)}")
+
+
+# ------------------------------------------------------------------ la liga de escuelas (MyGol) en la ficha
+
+def escuela(conn, torneos, enlaces):
+    """Las tablas de MyGol a mano. `torneos`: {torneo: (temporada, categoría, {equipo: (nombre, {jugador:
+    [jugó en cada partido, ...]})})}; `enlaces`: {jugador de MyGol: player_id}. Cada equipo juega sus
+    partidos contra uno ficticio (el 999)."""
+    import enlace_mygol
+    import import_mygol
+    import_mygol.crear_tablas(conn)
+    partido = 1
+    for tid, (temporada, categoria, equipos) in torneos.items():
+        conn.execute("INSERT INTO mygol_torneos VALUES (?, ?, ?, ?)", (tid, temporada, categoria, f"T{tid}"))
+        for eid, (nombre, jugadores) in equipos.items():
+            conn.execute("INSERT INTO mygol_equipos VALUES (?, ?)", (eid, nombre))
+            for j in range(max(len(v) for v in jugadores.values())):
+                conn.execute("INSERT INTO mygol_partidos VALUES (?, ?, ?, ?, 5, ?, 999, 'CAMPO')",
+                             (partido, tid, f"Jornada {j + 1}", f"{temporada[:4]}-10-{j + 1:02d}", eid))
+                for jid, jugo in jugadores.items():
+                    if j < len(jugo):
+                        conn.execute("INSERT OR IGNORE INTO mygol_jugadores VALUES (?, 'Nombre', 'Apellido Otro', "
+                                     "'APELLIDO OTRO, NOMBRE')", (jid,))
+                        conn.execute("INSERT INTO mygol_participaciones VALUES (?, ?, ?, ?)",
+                                     (partido, jid, eid, jugo[j]))
+                partido += 1
+    conn.execute(enlace_mygol.ESQUEMA)
+    conn.executemany("INSERT INTO mygol_enlaces VALUES (?, ?)", sorted(enlaces.items()))
+    conn.commit()
+    return conn
+
+
+# Hugo (benjamín 2026-27: 2017 o 2018): el miniprebenjamín de 2022-23 con un equipo, y en 2024-25 en dos
+# equipos del prebenjamín (el «A» y el «E» de su club) y en uno sin ninguna jornada jugada apuntada.
+TORNEOS_HUGO = {
+    32: ("2022-2023", "miniprebenjamin", {1: ("CD UNO  A ", {50: [1, 1, 0, 1]})}),
+    67: ("2024-2025", "prebenjamin", {2: ("CD UNO E", {51: [1, 0]}), 3: ("CD UNO A", {51: [1, 1, 1]}),
+                                      4: ("ESCUELA TRES", {52: [0, 0]})}),
+}
+
+
+def test_la_escuela_en_la_ficha():
+    conn = escuela(base(RAUL, HUGO), TORNEOS_HUGO, {50: 3, 51: 3, 52: 3})
+    p = fichas(G.jugadores_files(conn))
+    # Una fila por temporada y equipo (los espacios de más, fuera), en orden de temporada y de equipo; las
+    # jornadas, las que jugó (0: estaba en la plantilla y no consta ninguna jugada).
+    assert p["1003"]["e"] == [["2022-2023", "CD UNO A", "miniprebenjamin", 3],
+                              ["2024-2025", "CD UNO A", "prebenjamin", 3],
+                              ["2024-2025", "CD UNO E", "prebenjamin", 1],
+                              ["2024-2025", "ESCUELA TRES", "prebenjamin", 0]]
+    assert "e" not in p["1001"]
+    # Sin categoría (un torneo sin decidir), null.
+    conn = escuela(base(HUGO), {32: ("2022-2023", None, {1: ("CD UNO A", {50: [1]})})}, {50: 3})
+    assert fichas(G.jugadores_files(conn))["1003"]["e"] == [["2022-2023", "CD UNO A", None, 1]]
+
+
+def test_la_escuela_afina_el_anio():
+    # Hugo, solo con la federación: una temporada de benjamín (2026-27, 12 partidos) → 2017 o 2018.
+    assert fichas(G.jugadores_files(base(HUGO)))["1003"]["y"] == [2017, 2018]
+    # Con el prebenjamín de escuela de 2023-24 (ventana 2016-2017), 5 jornadas: las dos observaciones pesan 1
+    # (12 y 5 partidos, PARTIDOS_PLENOS = 5). 2017 cabe en las dos: log 1 + log 1 = 0. 2018 es un año joven
+    # para el prebenjamín de 2023: log 1 + log 0,25 = -1,386, por debajo del corte (-log 3 = -1,099). → 2017.
+    t = {52: ("2023-2024", "prebenjamin", {1: ("CD UNO A", {50: [1] * 5})})}
+    assert fichas(G.jugadores_files(escuela(base(HUGO), t, {50: 3})))["1003"]["y"] == [2017]
+    # El miniprebenjamín de 2022-23 (2017-2018) no dice nada nuevo: sigue con los dos.
+    t = {32: ("2022-2023", "miniprebenjamin", {1: ("CD UNO A", {50: [1] * 5})})}
+    assert fichas(G.jugadores_files(escuela(base(HUGO), t, {50: 3})))["1003"]["y"] == [2017, 2018]
+    # El miniprebenjamín de 2023-24 (2018-2019): 2017 es un año viejo, log 0,01 = -4,6 → 2018.
+    t = {53: ("2023-2024", "miniprebenjamin", {1: ("CD UNO A", {50: [1] * 5})})}
+    assert fichas(G.jugadores_files(escuela(base(HUGO), t, {50: 3})))["1003"]["y"] == [2018]
+    # Una temporada «en la plantilla» (0 jornadas) cuenta como una jornada: peso 0,2 frente al 1 de la
+    # federación, 2018 se queda en 0,2 × log 0,25 = -0,277, por encima del corte → los dos.
+    t = {52: ("2023-2024", "prebenjamin", {1: ("CD UNO A", {50: [0, 0]})})}
+    conn = escuela(base(HUGO), t, {50: 3})
+    assert fichas(G.jugadores_files(conn))["1003"]["y"] == [2017, 2018]
+    # Y sin categoría no cuenta.
+    t = {52: ("2023-2024", None, {1: ("CD UNO A", {50: [1] * 5})})}
+    assert fichas(G.jugadores_files(escuela(base(HUGO), t, {50: 3})))["1003"]["y"] == [2017, 2018]
+    # El buscador y el ranking, con el mismo año.
+    t = {52: ("2023-2024", "prebenjamin", {1: ("CD UNO A", {50: [1] * 5})})}
+    conn = escuela(base(HUGO), t, {50: 3})
+    assert _const(G.buscar_files(conn)["data-buscar-mo.js"], "BUSCAR_MO")[0][4] == [2017]
+    assert ranking(G.ranking_files(conn))["anios"] == {"2017": [1, 1]}
+
+
+def test_el_anio_confirmado_manda_sobre_la_escuela(monkeypatch):
+    monkeypatch.setattr(G, "anios_confirmados", lambda path=None: {"1003": 2018})
+    t = {52: ("2023-2024", "prebenjamin", {1: ("CD UNO A", {50: [1] * 5})})}
+    p = fichas(G.jugadores_files(escuela(base(HUGO), t, {50: 3})))["1003"]
+    assert p["y"] == [2018] and p["yc"] == 1 and p["e"] == [["2023-2024", "CD UNO A", "prebenjamin", 5]]
+
+
+def _tres(conn):
+    return G.jugadores_files(conn), G.buscar_files(conn), G.ranking_files(conn)
+
+
+def test_sin_enlaces_sale_igual():
+    import import_mygol
+    antes = _tres(base(RAUL, HUGO))
+    # La tabla de enlaces vacía (y las de MyGol llenas): lo mismo, byte a byte.
+    assert _tres(escuela(base(RAUL, HUGO), TORNEOS_HUGO, {})) == antes
+    # Las de MyGol sin la de enlaces: igual.
+    conn = base(RAUL, HUGO)
+    import_mygol.crear_tablas(conn)
+    assert _tres(conn) == antes
+    # Con enlaces a otra ficha (Hugo), la de Raul sale igual.
+    con = _tres(escuela(base(RAUL, HUGO), TORNEOS_HUGO, {50: 3}))
+    assert fichas(con[0])["1001"] == fichas(antes[0])["1001"]
+    assert [e for e in _const(con[1]["data-buscar-go.js"], "BUSCAR_GO")] == \
+        _const(antes[1]["data-buscar-go.js"], "BUSCAR_GO")
+
+
+def test_las_tablas_de_mygol_a_medias_no_paran_el_generador(capsys):
+    """Un enlace a una identidad que ya no existe o que ya no es la principal de su ficha, y tablas de MyGol
+    que faltan: la ficha sale sin escuela, nunca un error."""
+    import import_mygol
+    antes = _tres(base(RAUL, HUGO))
+    conn = escuela(base(RAUL, HUGO), TORNEOS_HUGO, {50: 777, 51: 777})
+    assert _tres(conn) == antes
+    # Una identidad unida a la ficha de Raul (no es su principal).
+    conn = escuela(base(RAUL, HUGO), TORNEOS_HUGO, {50: 9})
+    conn.execute("INSERT INTO players(id, full_name, norm_name, ficha_id, union_por, team_id, season_id) "
+                 "VALUES (9, 'GOMEZ PEREZ, RAUL', 'GOMEZ PEREZ, RAUL@1.1', 1, 'nombre', 1, 1)")
+    conn.commit()
+    assert "e" not in fichas(G.jugadores_files(conn))["1001"]
+    # La de enlaces sin las demás.
+    conn = escuela(base(RAUL, HUGO), TORNEOS_HUGO, {50: 3})
+    for t in import_mygol.TABLAS:
+        conn.execute(f"DROP TABLE {t}")
+    conn.commit()
+    assert _tres(conn) == antes
+    # Una tabla con otras columnas (de otra versión): se avisa y se publica sin escuelas.
+    conn = escuela(base(RAUL, HUGO), TORNEOS_HUGO, {50: 3})
+    conn.execute("DROP TABLE mygol_partidos")
+    conn.execute("CREATE TABLE mygol_partidos (otra INTEGER)")
+    conn.commit()
+    assert _tres(conn) == antes
+    assert "  ! MyGol: la liga de escuelas no se lee (" in capsys.readouterr().out
+
+
+def test_determinista_con_escuela():
+    a = _tres(escuela(base(RAUL, HUGO), TORNEOS_HUGO, {50: 3, 51: 3, 52: 3}))
+    b = _tres(escuela(base(RAUL, HUGO), TORNEOS_HUGO, {52: 3, 51: 3, 50: 3}))
+    assert a == b
+
+
+def test_base_real_con_escuela(tmp_path):
+    """Sobre una copia de la base real con los originales de MyGol importados en la copia y los enlaces
+    guardados: sin enlaces, los tres *_files salen con los mismos bytes que sin las tablas de MyGol; con
+    ellos, ninguna ficha pasa de un año a tres. Las cifras (fichas que pasan de dos años a uno, fichas con
+    escuela, cuántas la tienen antes de su primera temporada federada, segundos y bytes de más) se imprimen."""
+    import enlace_mygol
+    import import_mygol
+    if not DB_PATH.exists():
+        pytest.skip("futbolbase.db no está")
+    src = sqlite3.connect(f"file:{DB_PATH}?mode=ro", uri=True)
+    conn = sqlite3.connect(str(tmp_path / "fb.db"))
+    src.backup(conn)
+    src.close()
+    t0 = time.monotonic()
+    datos = G._datos_fichas(conn)
+    t_antes = time.monotonic() - t0
+    antes = (G.jugadores_files(conn, datos), G.buscar_files(conn, datos), G.ranking_files(conn, datos))
+    import_mygol.importar(conn)
+    conn.execute(enlace_mygol.ESQUEMA)
+    conn.commit()
+    assert _tres(conn) == antes                     # las tablas de MyGol llenas, sin enlaces: igual
+    enlace_mygol.guardar_enlaces(conn, registro=quiet)
+    t0 = time.monotonic()
+    datos_e = G._datos_fichas(conn)
+    t_despues = time.monotonic() - t0
+    jug = G.jugadores_files(conn, datos_e)
+    p0, p1 = fichas(antes[0]), fichas(jug)
+    con_e = {k for k, e in p1.items() if "e" in e}
+    assert con_e and set(p0) == set(p1)
+    # Las fichas sin escuela, idénticas.
+    assert all(p0[k] == p1[k] for k in p1 if k not in con_e)
+    de_dos_a_uno = sum(1 for k in con_e if len(p0[k].get("y", [])) == 2 and len(p1[k].get("y", [])) == 1)
+    de_uno_a_tres = [k for k in con_e if len(p0[k].get("y", [])) == 1 and len(p1[k].get("y", [])) == 3]
+    assert de_uno_a_tres == []
+    otros = sum(1 for k in con_e if p0[k].get("y") != p1[k].get("y") and not (
+        len(p0[k].get("y", [])) == 2 and len(p1[k].get("y", [])) == 1 and set(p1[k]["y"]) <= set(p0[k]["y"])))
+    # Antes de su primera temporada federada: alguna temporada de escuela anterior a la primera de "c".
+    antes_fed = sum(1 for k in con_e if min(int(e[0][:4]) for e in p1[k]["e"]) < min(int(c[0][:4]) for c in p1[k]["c"]))
+    bytes_mas = sum(len(t.encode()) for t in jug.values()) - sum(len(t.encode()) for t in antes[0].values())
+    print(f"\n  base real con escuela: {len(con_e)} fichas con «e»; {antes_fed} con escuela antes de su primera "
+          f"temporada federada; {de_dos_a_uno} pasan de dos años a uno; {otros} cambian de otra forma; "
+          f"_datos_fichas {t_antes:.2f} s → {t_despues:.2f} s; data-jugadores {bytes_mas:+,} B")

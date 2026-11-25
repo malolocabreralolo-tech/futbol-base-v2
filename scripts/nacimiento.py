@@ -17,8 +17,10 @@ import math
 from typing import Iterable
 
 # Por categoría (en minúsculas): quien juega la temporada que empieza el año Y en ella nació entre
-# Y - mayor e Y - menor (los dos incluidos).
+# Y - mayor e Y - menor (los dos incluidos). El miniprebenjamín no lo juega la federación: es de la liga de
+# escuelas (MyGol, docs/mygol.md), cuyas temporadas también cuentan para el año de una ficha enlazada.
 VENTANA: dict[str, tuple[int, int]] = {
+    "miniprebenjamin": (5, 4),
     "prebenjamin": (7, 6),
     "benjamin": (9, 8),
     "alevin": (11, 10),

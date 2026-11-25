@@ -85,4 +85,5 @@ día está en [pc/copia/README.md](../pc/copia/README.md).
 | `teams`, `seasons`, `categories` | de todos los importadores | No por separado (las usan todas las partes) |
 | `venues` | — (en vivo) | No |
 | `fiflp_groups` | `fiflp_actas_*` y `fiflp_goleadores_*` | No por separado (va con `actas`) |
+| `mygol_enlaces` | derivada: la rehace cada pasada con las fichas y las tablas `mygol_*` (`enlace_mygol.py`) | — (no guarda nada propio) |
 | `raw_imports`, `fiflp_full_pending`, `sqlite_sequence` | estado del bot, no datos | — |

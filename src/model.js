@@ -865,9 +865,15 @@ export function bornText(years, confirmed = false) {
 
 /* El nombre de una categoría para la pantalla: el de CAT_NAMES y, si la app no la tiene (las fichas y el
  * ranking ya traen infantil, cadete o juvenil), la palabra con la inicial en mayúscula. */
+// Las categorías que solo juega la liga de escuelas (MyGol): salen en la ficha de un niño enlazado, nunca
+// entre las de la federación (CATEGORIES, CAT_NAMES).
+const SCHOOL_CAT_NAMES = { miniprebenjamin: 'Miniprebenjamín' };
+
 export function categoryName(cat) {
   const word = String(cat ?? '');
-  return Object.hasOwn(CAT_NAMES, word) ? CAT_NAMES[word] : word.charAt(0).toUpperCase() + word.slice(1);
+  if (Object.hasOwn(CAT_NAMES, word)) return CAT_NAMES[word];
+  if (Object.hasOwn(SCHOOL_CAT_NAMES, word)) return SCHOOL_CAT_NAMES[word];
+  return word.charAt(0).toUpperCase() + word.slice(1);
 }
 
 const CLUB_ACRONYM = String.raw`(?:U\.?D\.?|C\.?D\.?A?|A\.?D\.?|R\.?C\.?|C\.?F\.?|S\.?D\.?|F\.?C\.?|Real Club|REAL CLUB)`;

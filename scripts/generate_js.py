@@ -28,6 +28,7 @@ import hashlib
 import json
 import os
 import re
+import sqlite3
 import sys
 import unicodedata
 from datetime import date, datetime, timedelta
@@ -1122,6 +1123,48 @@ def _rival_y_puesto(conn):
     return pesos, percentil, mejor
 
 
+# La liga de escuelas (MyGol, docs/mygol.md) en las fichas: lo que se lee de las tablas mygol_* para cada ficha
+# enlazada (mygol_enlaces, que rehace enlace_mygol en cada pasada).
+_TABLAS_ESCUELA = ("mygol_enlaces", "mygol_participaciones", "mygol_partidos", "mygol_torneos", "mygol_equipos")
+
+
+def _escuela(conn, publicadas):
+    """{principal: [[temporada, equipo, categoría, jornadas], ...]} de las fichas publicadas con algún niño de
+    MyGol enlazado: una fila por temporada y equipo (y categoría, por si un nombre de equipo se repite en dos
+    torneos), en ese orden. El equipo, con los espacios de más quitados; la temporada, «2024-2025»; la
+    categoría en minúsculas o None; las jornadas, los partidos en los que consta que jugó (0: estaba en la
+    plantilla y no consta ninguno).
+
+    Nunca para al generador: sin las tablas, con un enlace a una identidad que ya no es la principal de una
+    ficha publicada (la ficha sale sin él) o con unas tablas que no se entienden (se avisa y no sale ninguna
+    escuela), las fichas salen como sin la liga de escuelas."""
+    if not all(_has_table(conn, t) for t in _TABLAS_ESCUELA):
+        return {}
+    try:
+        filas = conn.execute("""
+            SELECT l.player_id, t.temporada, e.nombre, t.categoria,
+                   COUNT(DISTINCT CASE WHEN p.jugo = 1 THEN p.partido_id END)
+              FROM mygol_enlaces l JOIN mygol_participaciones p ON p.jugador_id = l.jugador_id
+              JOIN mygol_partidos m ON m.id = p.partido_id JOIN mygol_torneos t ON t.id = m.torneo_id
+              LEFT JOIN mygol_equipos e ON e.id = p.equipo_id
+             GROUP BY l.player_id, t.temporada, p.equipo_id""").fetchall()
+    except sqlite3.Error as e:
+        print(f"  ! MyGol: la liga de escuelas no se lee ({type(e).__name__}: {e}): las fichas salen sin ella")
+        return {}
+    juntas = {}
+    for principal, temporada, equipo, categoria, jornadas in filas:
+        if principal not in publicadas or not re.fullmatch(r"\d{4}-\d{4}", str(temporada or "")):
+            continue
+        clave = (temporada, " ".join(str(equipo or "").split()), categoria.lower() if categoria else None)
+        # El mismo niño apuntado dos veces en un equipo (dos ids de MyGol): las jornadas de los dos, sumadas.
+        juntas[(principal, clave)] = juntas.get((principal, clave), 0) + jornadas
+    out = {}
+    for (principal, (temporada, equipo, categoria)), jornadas in sorted(
+            juntas.items(), key=lambda kv: (kv[0][0], kv[0][1][0], kv[0][1][1], kv[0][1][2] or "")):
+        out.setdefault(principal, []).append([temporada, equipo, categoria, jornadas])
+    return out
+
+
 def _datos_fichas(conn, confirmados=None):
     """Lo que comparten jugadores_files, buscar_files y ranking_files, sacado de una sola pasada por las
     apariciones (la consulta grande): main() lo calcula una vez y se lo pasa a las tres; cada una, llamada
@@ -1134,8 +1177,11 @@ def _datos_fichas(conn, confirmados=None):
     nivel (ranking.fase_que_cuenta, con la mejor letra de Segunda Fase de su equipo); la de la ficha ("g")
     sigue siendo la del grupo. Los goles por rival, la suma aparición a aparición de sus goles por el peso
     de su rival en ese partido (_rival_y_puesto), con 4 cifras.
-    "anios": {principal: (años, confirmado)}, los de nacimiento.estimar con todas sus filas o el
-    confirmado (anios_confirmados, o `confirmados` si se pasa) de su clave o de uno de sus alias."""
+    "anios": {principal: (años, confirmado)}, los de nacimiento.estimar con todas sus filas (y sus
+    temporadas de escuela) o el confirmado (anios_confirmados, o `confirmados` si se pasa) de su clave o de uno
+    de sus alias.
+    "escuela": {principal: [[temporada, equipo, categoría, jornadas], ...]}, la liga de escuelas de las fichas
+    enlazadas con MyGol (_escuela)."""
     if not any(r[1] == "fiflp_id" for r in conn.execute("PRAGMA table_info(players)")):
         return None
     import ranking as R
@@ -1200,6 +1246,7 @@ def _datos_fichas(conn, confirmados=None):
         except (ValueError, OSError) as e:
             print(f"  ! anios_confirmados.json no se entiende ({e}): se publica sin años confirmados")
             confirmados = {}
+    escuela = _escuela(conn, publicadas)
     anios = {}
     for principal, filas in por_ficha.items():
         k = clave[principal]
@@ -1211,8 +1258,18 @@ def _datos_fichas(conn, confirmados=None):
         partidos = {}
         for year, cat, _phase, pj, *_ in (r for *_, r in filas):
             partidos[(year, cat)] = partidos.get((year, cat), 0) + pj
-        anios[principal] = (estimar((y, c, p) for (y, c), p in partidos.items()), False)
-    return {"fichas": f, "filas": por_ficha, "miembros": miembros, "anios": anios,
+        obs = [(y, c, p) for (y, c), p in partidos.items()]
+        # La escuela, una observación aparte por temporada y categoría conocida (sus equipos juntos), con sus
+        # jornadas; una temporada en la plantilla sin ninguna jugada apuntada cuenta con el peso mínimo. Las
+        # federadas no cambian: con dos años solo en la federación, la escuela suele decidir el bueno.
+        de_escuela = {}
+        for temporada, _equipo, categoria, jornadas in escuela.get(principal, []):
+            if categoria:
+                k = (int(temporada[:4]), categoria)
+                de_escuela[k] = de_escuela.get(k, 0) + jornadas
+        obs += [(y, c, max(1, j)) for (y, c), j in de_escuela.items()]
+        anios[principal] = (estimar(obs), False)
+    return {"fichas": f, "filas": por_ficha, "miembros": miembros, "anios": anios, "escuela": escuela,
             "nombres": dict(conn.execute("SELECT id, full_name FROM players")),
             # El último equipo y la temporada de cada ficha (lo que dicen "h" y el buscador).
             "ultimo": {p: (filas[-1][1][2], filas[-1][1][0]) for p, filas in por_ficha.items()}}
@@ -1220,7 +1277,8 @@ def _datos_fichas(conn, confirmados=None):
 
 def jugadores_files(conn, datos=None):
     """{fichero: contenido} de los data-jugadores-<k>.js: const JUGADORES_<k> =
-       {"p": {"<clave>": {"n": nombre, "c": [fila, ...], "y"?: [año, ...], "yc"?: 1, "s"?: 1,
+       {"p": {"<clave>": {"n": nombre, "c": [fila, ...], "y"?: [año, ...], "yc"?: 1,
+                          "e"?: [[temporada, equipo, categoría, jornadas], ...], "s"?: 1,
                           "h"?: [[clave, equipo, temporada], ...], "al"?: [alias, ...]}},
         "a": {"<alias>": "<clave>"},
         "g": {"<temporada>/<grupo>": [categoría, nombre, fase, isla]}}.
@@ -1229,7 +1287,9 @@ def jugadores_files(conn, datos=None):
        amarillas, rojas] por identidad, grupo y equipo, en orden de temporada y de primer partido del grupo;
        la de una identidad unida lleva además 1 y el motivo ("e" equipo, "c" club, "n" nombre) y no se suma
        a la de la principal. "y": los años de nacimiento posibles, de uno a tres y en orden (sin la clave si
-       no se puede estimar); "yc": 1, el año es confirmado (anios_confirmados). "s": 1, ninguna identidad
+       no se puede estimar; con la escuela, si la tiene); "yc": 1, el año es confirmado (anios_confirmados).
+       "e": la liga de escuelas (MyGol) de una ficha enlazada por el nombre (_escuela), una fila por temporada
+       y equipo; sin enlace, la ficha no la lleva. "s": 1, ninguna identidad
        con id; "h", las otras fichas con el mismo nombre normalizado (su último equipo y temporada); "al",
        sus alias. Cada alias (la clave de una identidad no principal con aparición o suceso) va en "a" del
        trozo DEL ALIAS, para abrirlo sin saber la clave.
@@ -1259,6 +1319,8 @@ def jugadores_files(conn, datos=None):
             entry["y"] = list(anios)
             if confirmado:
                 entry["yc"] = 1
+        if principal in datos.get("escuela", {}):
+            entry["e"] = datos["escuela"][principal]
         for season, code, cat, gname, phase, island in (g for _, _, g, _ in por_ficha[principal]):
             shard["g"].setdefault(f"{season}/{code}", [cat, gname, phase, island])
         if not any(m in fids for m in miembros[principal]):

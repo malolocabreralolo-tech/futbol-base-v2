@@ -58,7 +58,7 @@
       }
     },
     "actas-2026-2027.db": {
-      "bytes": 1724416,
+      "bytes": 1732608,
       "filas": {
         "appearances": 28711,
         "match_events": 13417,
@@ -66,11 +66,11 @@
       }
     },
     "comun.db": {
-      "bytes": 11235328,
+      "bytes": 15405056,
       "filas": {
         "categories": 3,
         "detalle_groups": 7,
-        "fiflp_full_pending": 9,
+        "fiflp_full_pending": 0,
         "fiflp_groups": 137,
         "fiflp_scorer_groups": 216,
         "fp_goals": 248,
@@ -80,13 +80,19 @@
         "goals": 10961,
         "groups": 495,
         "matches": 41234,
+        "mygol_enlaces": 1521,
+        "mygol_equipos": 329,
+        "mygol_jugadores": 5191,
+        "mygol_participaciones": 136862,
+        "mygol_partidos": 4296,
+        "mygol_torneos": 17,
         "players": 19960,
         "portal_groups": 102,
-        "raw_imports": 52,
+        "raw_imports": 53,
         "scorers": 26436,
         "seasons": 15,
         "standings": 4745,
-        "standings_detail": 3584,
+        "standings_detail": 3602,
         "team_seasons": 2235,
         "teams": 470,
         "tournament_matches": 464,
