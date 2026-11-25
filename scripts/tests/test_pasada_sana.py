@@ -229,7 +229,8 @@ def health(monkeypatch):
     monkeypatch.setattr(U.source_health, "record", lambda *a, **k: None)
     monkeypatch.setattr(U.source_health, "carry", lambda *a, **k: None)
     monkeypatch.setattr(U.source_health, "set_run_health",
-                        lambda reasons, now=None, dry=False: seen.append((reasons, dry)))
+                        lambda reasons, now=None, dry=False, carril="principal": seen.append((reasons, dry))
+                        if carril == "principal" else seen.append((carril, reasons, dry)))
     return seen
 
 

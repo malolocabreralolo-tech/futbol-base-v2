@@ -294,7 +294,7 @@ def test_un_acta_releida_que_ya_no_casa_gasta_un_intento_y_no_se_guarda(sin_apla
 
 def test_la_pasada_relee_al_final_y_su_veredicto_no_cambia(sin_aplanar, monkeypatch, capsys):
     notes, recorded = [], []
-    monkeypatch.setattr(U.source_health, "note_run", notes.append)
+    monkeypatch.setattr(U.source_health, "note_run", lambda info, carril="principal": notes.append(info))
     monkeypatch.setattr(U.source_health, "record", lambda *a, **k: recorded.append(a[:3]))
     monkeypatch.setattr(U.source_health, "carry", lambda *a, **k: None)
     conn = base()
@@ -343,7 +343,7 @@ def test_la_pasada_relee_al_final_y_su_veredicto_no_cambia(sin_aplanar, monkeypa
 
 def test_la_pasada_sin_nada_que_releer_no_lo_apunta(sin_aplanar, monkeypatch):
     notes = []
-    monkeypatch.setattr(U.source_health, "note_run", notes.append)
+    monkeypatch.setattr(U.source_health, "note_run", lambda info, carril="principal": notes.append(info))
     monkeypatch.setattr(U.source_health, "carry", lambda *a, **k: None)
     conn = base()
     page = Page()

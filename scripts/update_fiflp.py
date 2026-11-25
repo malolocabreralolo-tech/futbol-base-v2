@@ -233,8 +233,17 @@ def is_priority(name, keys):
     return any(re.search(r"(?:^|\s)" + re.escape(k), folded) for k in keys)
 
 
-# Niveles: prebenjamín, benjamín (y lo que no sea alevín) y alevín (categoría ALEVIN, códigos AL…).
-LEVELS = {"PREBENJAMIN": 1, "ALEVIN": 3}
+# Niveles: prebenjamín, benjamín (y lo que no sea de otro nivel), alevín (categoría ALEVIN, códigos AL…) e
+# infantil, cadete y juvenil (parte E1: las lee su carril, carril-mayores.yml).
+LEVELS = {"PREBENJAMIN": 1, "ALEVIN": 3, "INFANTIL": 4, "CADETE": 5, "JUVENIL": 6}
+# El orden de los tramos de plan_groups: el puesto k de un nivel en esta tupla es su lista k de interleave, y
+# con él su fase (pass_phase(número, k)). Los tres primeros son los de siempre, en su orden (alevín,
+# prebenjamín, benjamín): así las fases de cada nivel de hoy no cambian y el bot de siempre lee en el mismo
+# orden que antes de que hubiera más niveles (test_bot_rotacion.test_plan_principal_igual_que_antes); los
+# nuevos van detrás. Cada carril tiene sus niveles (el principal, los 1-3; el de mayores, los 4-6: update_groups
+# le pasa solo los grupos de sus categorías), así que en una pasada los del otro carril son listas vacías, que
+# interleave no cuenta: ni se intercalan con los de hoy ni les quitan sitio.
+LEVEL_ORDER = (3, 1, 2, 4, 5, 6)
 Plan = namedtuple("Plan", "order resting priority number fresh hot timed")
 
 
@@ -468,7 +477,8 @@ def plan_groups(conn, groups, checks, today, number, priority=None, pinned=None,
         2. los cerrados a los que les toca (closed_turn: una vez al día), los que fallaron y los nunca
            comprobados (checks);
         3. el turno de cada nivel (rotate, turn_blocks): la cuota de alevín (alevin_quota, ≥ su
-           turno), el de prebenjamín y el de benjamín, intercalados (interleave: si el plazo o el cupo de la
+           turno), el de prebenjamín y el de benjamín (en el carril de mayores, el de infantil, el de cadete y
+           el de juvenil: LEVEL_ORDER), intercalados (interleave: si el plazo o el cupo de la
            federación lo cortan, cortan a todos los niveles por igual), y dentro de cada turno, primero los
            que fallaron o no se han comprobado nunca (los «error» que dejó un freno: se limpian al
            releerlos). Con el cupo (~3 grupos por pasada además de los prioritarios que tocan) cada nivel
@@ -506,7 +516,7 @@ def plan_groups(conn, groups, checks, today, number, priority=None, pinned=None,
                 WHERE m.group_id IN ({marks})""", ids + ids):
         teams.setdefault(gid, []).append(name)
     level = lambda g: _level(categories.get(g[0]), g[1])
-    mine, due, resting, fresh, levels, hot, timed = [], [], [], [], {1: [], 2: [], 3: []}, {}, set()
+    mine, due, resting, fresh, levels, hot, timed = [], [], [], [], {n: [] for n in LEVEL_ORDER}, {}, set()
     opened = 0                          # el puesto de cada prioritario abierto (priority_slot)
     for group in sorted(groups, key=lambda g: (level(g), _natural(g[1]))):
         gid, code, _ = group
@@ -535,12 +545,13 @@ def plan_groups(conn, groups, checks, today, number, priority=None, pinned=None,
     oldest = datetime.min.replace(tzinfo=timezone.utc)
     mine.sort(key=lambda g: (g[1] not in hot, (checked_at(checks.get(g[1])) if checked_ok(checks.get(g[1]))
                                                else None) or oldest))
-    # Alevín, prebenjamín y benjamín: todo el nivel desde su turno (rotate), cuántos van en el 3 (su
-    # turno; de alevín, su cuota) y hasta dónde llega el 4 (el turno siguiente). Los tres tramos,
-    # intercalados: con la cuota de alevín delante, el cupo de la federación no pasaba de ella. En el
-    # turno, los que fallaron o no se han comprobado nunca, delante.
+    # Alevín, prebenjamín y benjamín (y, en el carril de mayores, infantil, cadete y juvenil): todo el nivel
+    # desde su turno (rotate), cuántos van en el 3 (su turno; de alevín, su cuota) y hasta dónde llega el 4
+    # (el turno siguiente). Los tramos, intercalados (en el orden de LEVEL_ORDER): con la cuota de alevín
+    # delante, el cupo de la federación no pasaba de ella. En el turno, los que fallaron o no se han
+    # comprobado nunca, delante.
     lots = []
-    for n in (3, 1, 2):
+    for n in LEVEL_ORDER:
         sizes = [len(b) for b in turn_blocks(levels[n], ROTATION_PASSES)]
         own = sizes[number % ROTATION_PASSES]
         head = alevin_quota(levels[n], env, own) if n == 3 else own
@@ -1664,14 +1675,16 @@ def _read_actas(page, F, conn, rows, season, deadline=None, log=print, tried=Non
     return done, read
 
 
-# El orden de la relectura de los originales: el de los niveles de la web.
-BACKFILL_ORDER = ("PREBENJAMIN", "BENJAMIN", "ALEVIN")
+# El orden de la relectura de los originales: el de los niveles de la web, y detrás los de las mayores (cada
+# carril relee solo los de sus grupos: el orden entre los de un carril y los del otro no se usa nunca).
+BACKFILL_ORDER = ("PREBENJAMIN", "BENJAMIN", "ALEVIN", "INFANTIL", "CADETE", "JUVENIL")
 
 
 def sin_original(conn, season_id, group_ids):
     """[(partido, CodActa, categoría)] de las actas ya importadas de los grupos `group_ids` (de la
     temporada `season_id`) cuyo original no está guardado (actas_bot.guardadas), en el orden de la
-    relectura: prebenjamín, benjamín y alevín y, dentro, la fecha más reciente primero. Sin las que
+    relectura (BACKFILL_ORDER: prebenjamín, benjamín y alevín, o infantil, cadete y juvenil) y, dentro, la
+    fecha más reciente primero. Sin las que
     relee el camino normal (pending_actas: marcadas para releer o con otro código) ni las que fallaron
     MAX_ACTA_TRIES veces."""
     import actas_bot
@@ -1839,6 +1852,13 @@ def update_campos(page, F, conn, deadline=None):
     return len(rows)
 
 
+# Lo de una vez al día que hace cada carril (run_passes, extras_turn). Las competiciones nuevas y el directorio
+# de campos son de la temporada entera, no de unos grupos: los mira el bot de siempre (una página y unas pocas al
+# día), y si los mirara también el de mayores serían el doble de páginas por lo mismo. Las fichas de los equipos
+# (update_directorio) son de los grupos de cada pasada: cada carril, las de los suyos.
+EXTRAS = {"principal": ("competiciones", "campos", "directorio"), "mayores": ("directorio",)}
+
+
 def dry_hours(since, now):
     """Las horas desde `since` (el drySince de source_health, ISO) hasta `now`; 0 sin él o si no se entiende."""
     try:
@@ -1856,18 +1876,22 @@ def update_groups(conn, season_id, today=None, now=None):
     tuviera otras), nunca los de las mayores, que lee su carril (carril-mayores.yml). Los de las demás
     categorías conservan su entrada de data-health.json (cada pasada lo reescribe entero). Al acabar, el
     veredicto de la pasada (pasada_sana) en data-health.json, con la racha de pasadas secas contada hasta
-    `now` (UTC; por defecto, la hora de ahora)."""
+    `now` (UTC; por defecto, la hora de ahora): el de su carril y su racha, en su parte del informe
+    (source_health, `carril`), sin tocar la del otro."""
     from categorias import parse_categories, carril_de, categorias_del_carril
     text = os.environ.get("FIFLP_CATS", "").strip()
     cats = parse_categories(text) if text else categorias_del_carril("principal")
-    carril_de(cats)               # un solo carril por pasada: ValueError antes de abrir el navegador
+    # Un solo carril por pasada (ValueError antes de abrir el navegador). Su veredicto y sus notas van a su parte
+    # de data-health.json (source_health: el principal, runHealth y run, como siempre; los demás, en
+    # carriles.<carril>), y sus extras de una vez al día son los suyos (EXTRAS).
+    carril = carril_de(cats)
     every = fiflp_groups(conn, season_id)
     groups = fiflp_groups(conn, season_id, categories=cats)
     for group in every:
         if group not in groups:
             source_health.carry(group[1], group[2])
     if not groups:
-        source_health.set_run_health([])       # nada que leer: sana
+        source_health.set_run_health([], carril=carril)       # nada que leer: sana
         return
     deadline = clock() + budget_seconds()
     from migrate_actas_schema import migrate
@@ -1884,7 +1908,8 @@ def update_groups(conn, season_id, today=None, now=None):
     pending = {code: url for _, code, url in groups}
     try:
         run = _with_browser(lambda page, F: run_passes(page, F, conn, season_id, groups, today, pending,
-                                                       deadline=deadline), deadline=deadline)
+                                                       deadline=deadline, extras=EXTRAS[carril], carril=carril),
+                            deadline=deadline)
     except Exception as e:      # sin navegador o FIFLP caída: se informa, no se tumba el run
         print(f"  ! la federación no se pudo consultar: {e}")
         for code, url in pending.items():
@@ -1896,14 +1921,14 @@ def update_groups(conn, season_id, today=None, now=None):
         # Una pasada seca (ningún grupo leído) es una IP frenada desde la primera página: en rojo solo si
         # la racha dura más de pasada_sana.LIMITE_SECA_HORAS.
         dry = seca(run["estados"], run["previstos"])
-        since = source_health.dry_since() if dry else None
+        since = source_health.dry_since(carril) if dry else None
         hours = dry_hours(since, _aware(now or datetime.now(timezone.utc))) if since else 0
         reasons = veredicto(run["estados"], run["previstos"], run["vacias"], horas_seca=hours)
         if dry and not reasons:
             print(f"  Pasada seca: ningún grupo leído (racha de {hours:.1f} h)", flush=True)
     if reasons:
         print("  ! pasada en rojo: " + "; ".join(reasons), flush=True)
-    source_health.set_run_health(reasons, now=now, dry=dry)
+    source_health.set_run_health(reasons, now=now, dry=dry, carril=carril)
 
 
 def _with_browser(work, deadline=None):
@@ -1987,7 +2012,7 @@ def scorers_due(conn, group_id, check, today, now, changed=False):
 
 
 def run_passes(page, F, conn, season_id, groups, today, pending, deadline_seconds=None, deadline=None,
-               checks=None, number=None, now=None):
+               checks=None, number=None, now=None, extras=EXTRAS["principal"], carril="principal"):
     """La pasada del bot sobre una página ya abierta (inyectable en las pruebas), en el orden de
     plan_groups (el de la pasada `number`, por defecto run_number(), a la hora `now`) y con un plazo GLOBAL
     (`deadline`, en clock(); o `deadline_seconds` desde ahora; por defecto, budget_seconds(): 16 min).
@@ -2010,9 +2035,10 @@ def run_passes(page, F, conn, season_id, groups, today, pending, deadline_second
          no dejan acabar, a otra pasada
          (run.extrasDeferred).
     El orden, el de plan_groups: los prioritarios a los que les toca (calientes primero), los cerrados que
-    tocan y el turno de cada nivel. Tras los prioritarios: una vez al día (extras_turn), las competiciones
-    nuevas (check_competitions), el directorio de campos si falta alguno (update_campos) y las fichas de
-    los equipos que no la tienen (update_directorio, como mucho EXTRAS_PAGES páginas); y en cada pasada,
+    tocan y el turno de cada nivel. Tras los prioritarios: una vez al día (extras_turn), los extras del carril
+    (`extras`, de EXTRAS: los demás ni se piden ni cuentan como pendientes): las competiciones nuevas
+    (check_competitions), el directorio de campos si falta alguno (update_campos) y las fichas de los equipos
+    que no la tienen (update_directorio, como mucho EXTRAS_PAGES páginas); y en cada pasada,
     las actas nuevas que el final de otra dejó a medias (catch_up: como mucho CATCHUP_ACTAS páginas, con
     los goleadores del grupo). Al final de cualquier pasada que acabe sin frenar ni llegar al plazo, lo que
     no se hizo de lo de una vez al día; y lo último, los originales de las
@@ -2030,7 +2056,8 @@ def run_passes(page, F, conn, season_id, groups, today, pending, deadline_second
     freno. Sin señal de freno (una URL muerta mientras el resto carga, o varias seguidas: la federación
     sirve otra página), sigue siendo un error; también si se cerró el navegador (F.closed: no es la
     federación); un fallo de los datos (lectura, update_group), como siempre. La hora de los prioritarios
-    leídos se publica siempre (plan.timed, source_health.record): de ella sale cuándo les vuelve a tocar."""
+    leídos se publica siempre (plan.timed, source_health.record): de ella sale cuándo les vuelve a tocar. Las
+    notas de la pasada, a la parte de `carril` de data-health.json (source_health.note_run)."""
     start = clock()
     if deadline is None:
         deadline = start + (budget_seconds() if deadline_seconds is None else deadline_seconds)
@@ -2041,6 +2068,9 @@ def run_passes(page, F, conn, season_id, groups, today, pending, deadline_second
     now = _aware(now or datetime.now(timezone.utc))
     plan = plan_groups(conn, groups, checks, today, number, now=now)
     extras_due = extras_turn(number)
+    wanted = tuple(extras)
+    # Lo que dice el registro de los extras: el de siempre en el carril principal.
+    extras_label = "competiciones y directorio" if "competiciones" in wanted else "directorio"
     mine = [c for _, c, _ in plan.order if c in plan.priority]
     hot = ", ".join(f"{c} ({why})" for c, why in plan.hot.items())
     fresh = [c for _, c, _ in plan.fresh]
@@ -2050,7 +2080,7 @@ def run_passes(page, F, conn, season_id, groups, today, pending, deadline_second
           + (f"; calientes: {hot}" if hot else "") + ")"
           + (f", {len(fresh)} al día descansa{'n' if len(fresh) > 1 else ''} ({', '.join(fresh)})" if fresh else "")
           + f"; {len(plan.order)} por refrescar, {len(closed_resting)} cerrados descansan"
-          + ("; hoy, competiciones y directorio" if extras_due else ""), flush=True)
+          + (f"; hoy, {extras_label}" if extras_due and wanted else ""), flush=True)
     stamp = lambda: now + timedelta(seconds=clock() - start)     # la hora de cada comprobación
     # La federación no sirve páginas (su segundo freno, fiflp_carga.BRAKE_PAUSES; o BLOCKED_AFTER seguidas
     # sin cargar, tras sus reintentos): bloquea o se ha caído. No se le pide nada más en esta pasada; lo que
@@ -2167,14 +2197,14 @@ def run_passes(page, F, conn, season_id, groups, today, pending, deadline_second
         if status == "ok":
             complete(group, results_digest(conn, group_id) != before)
 
-    def extras(rows, label):
-        """Las competiciones nuevas (una página), el directorio de campos si falta alguno de la temporada y
-        las fichas de los equipos de `rows` que no la tienen (como mucho EXTRAS_PAGES páginas), lo que no se
-        haya hecho ya en esta pasada."""
-        if clock() > deadline or blocked() or {"competiciones", "campos", "directorio"} <= extras_done:
+    def daily(rows, label):
+        """Los extras del carril (`wanted`): las competiciones nuevas (una página), el directorio de campos si
+        falta alguno de la temporada y las fichas de los equipos de `rows` que no la tienen (como mucho
+        EXTRAS_PAGES páginas), lo que no se haya hecho ya en esta pasada."""
+        if clock() > deadline or blocked() or set(wanted) <= extras_done:
             return
         print(f"\n  {label}", flush=True)
-        if "competiciones" not in extras_done:
+        if "competiciones" in wanted and "competiciones" not in extras_done:
             extras_done.add("competiciones")
             try:
                 check_competitions(page, F, conn, season_id, today)
@@ -2183,7 +2213,7 @@ def run_passes(page, F, conn, season_id, groups, today, pending, deadline_second
         # Hecho solo si se leyó: en la pasada de los extras (antes del turno) aún no están los campos de los
         # calendarios que se leen después, y al final de la pasada se mira otra vez (si no, el directorio
         # esperaría al día siguiente).
-        if "campos" not in extras_done and clock() <= deadline and not blocked():
+        if "campos" in wanted and "campos" not in extras_done and clock() <= deadline and not blocked():
             try:
                 if missing_venues(conn, season_id):
                     extras_done.add("campos")
@@ -2192,7 +2222,7 @@ def run_passes(page, F, conn, season_id, groups, today, pending, deadline_second
                 extras_done.add("campos")
                 conn.rollback()
                 print(f"  ! campos: {e}")
-        if "directorio" not in extras_done and clock() <= deadline and not blocked():
+        if "directorio" in wanted and "directorio" not in extras_done and clock() <= deadline and not blocked():
             extras_done.add("directorio")
             try:
                 cards, fields = update_directorio(page, F, conn, season_id, rows, deadline, pages=EXTRAS_PAGES)
@@ -2243,16 +2273,16 @@ def run_passes(page, F, conn, season_id, groups, today, pending, deadline_second
         if after_priority and group[1] not in plan.priority:
             after_priority = False
             if extras_due:
-                extras(plan.order, "Competiciones y directorio (una vez al día)")
+                daily(plan.order, f"{extras_label.capitalize()} (una vez al día)")
             catch_up()
         read(group)
     if after_priority:
         if extras_due:
-            extras(plan.order, "Competiciones y directorio (una vez al día)")
+            daily(plan.order, f"{extras_label.capitalize()} (una vez al día)")
         catch_up()
     # Si sobra pasada (ni el segundo freno ni el plazo), lo que no se hizo de eso.
     refreshed = [g for g in plan.order if g[1] in results]
-    extras(refreshed, "Competiciones y directorio")
+    daily(refreshed, extras_label.capitalize())
     # Lo último, con lo que sobre de plazo y de cupo de actas: los originales de las ya importadas
     # (releer_originales; sin plazo o con la federación bloqueada no pide nada, pero dice cuántas quedan).
     # No es un grupo: ni cuenta en results ni en el veredicto de la pasada.
@@ -2339,7 +2369,7 @@ def run_passes(page, F, conn, season_id, groups, today, pending, deadline_second
         **({"pauses": pauses, "resumed": getattr(F, "resumed", 0),
             "brakeAfter": list(getattr(F, "brake_after", []))} if pauses else {}),
         **({"cloud": cloud} if cloud else {}), **({"deadPages": dead} if dead else {}),
-        **({"refusedRunner": True} if getattr(F, "refused_runner", False) else {})})
+        **({"refusedRunner": True} if getattr(F, "refused_runner", False) else {})}, carril=carril)
     print(f"  Federación: {round((clock() - start) / 60, 1)} min de {round((deadline - start) / 60, 1)}", flush=True)
     # Para el veredicto (pasada_sana), tras pasar los sospechosos a unserved: previstos, los que la pasada
     # intentó (leídos, sin servir por el freno y aplazados por plazo; los que descansan, no).

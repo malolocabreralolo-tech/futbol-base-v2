@@ -2,7 +2,7 @@
  "dia": {
   "fecha": "2026-11-25",
   "freno": null,
-  "paginas": 116
+  "paginas": 119
  },
  "dias_frenados": [],
  "ejecuciones": [
@@ -70,16 +70,40 @@
     "21"
    ],
    "trabajo": "goleadores"
+  },
+  {
+   "accion": "descargar",
+   "esperas": 0,
+   "fin": "2026-11-25T19:17:22+00:00",
+   "frenos": 0,
+   "frenos_tras": [],
+   "inicio": "2026-11-25T19:17:05+00:00",
+   "lote": null,
+   "muertas": 1,
+   "nube": "azure",
+   "paginas": 1884,
+   "parada": null,
+   "pedidas": 3,
+   "relanzada": false,
+   "runner_rechazado": false,
+   "servidas": 2,
+   "temporadas": [
+    "21"
+   ],
+   "trabajo": "goleadores"
   }
  ],
  "formato": 1,
  "pruebas": [],
  "trabajos": {
   "goleadores:2025-2026": {
-   "actualizado": "2026-11-25T15:56:41+00:00",
-   "estado": "pendiente",
-   "no_disponible": 0,
-   "pendientes": 1
+   "actualizado": "2026-11-25T19:17:22+00:00",
+   "categorias": [
+    "alevin"
+   ],
+   "estado": "completo",
+   "no_disponible": 1,
+   "pendientes": 0
   }
  }
 }

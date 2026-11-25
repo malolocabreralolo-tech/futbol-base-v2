@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import re
 import sys
+from categorias import carril_actual
 from escritura import escribir_atomico
 from portal_config import load_config
 
@@ -14,8 +15,17 @@ REPORT_PATH = ROOT / "data-health.json"
 # de Pages solo para mover la hora de comprobación.
 HEARTBEAT = timedelta(hours=24)
 # Lo que cambia en cada pasada sin que un visitante vea nada distinto: la hora de la comprobación y
-# las notas de la pasada del bot de la federación (rotación, grupos que descansan, tiempos).
+# las notas de la pasada del bot de la federación (rotación, grupos que descansan, tiempos). Las notas de los
+# otros carriles (carriles.<carril>.run), también: CARRIL_VOLATILE.
 VOLATILE = ("checkedAt", "run")
+CARRIL_VOLATILE = ("run",)
+# Los carriles del bot (categorias.CARRILES, parte E1). El principal, el de siempre, guarda su veredicto y sus
+# notas donde siempre (runHealth y run: la web, el histórico y las alarmas los leen ahí); los demás, cada uno en
+# carriles.<carril> = {"runHealth": …, "run": …}, con la misma forma. Así una pasada del carril de mayores seca,
+# cortada o en un runner que la federación no sirve (AWS) no pone drySince ni un rojo en lo del bot de siempre,
+# ni al revés; y mientras un carril no ha corrido nunca, su clave no existe (el informe del bot de siempre tiene
+# la forma de antes).
+PRINCIPAL = "principal"
 # Y en cada grupo: la hora de su comprobación.
 GROUP_VOLATILE = ("checkedAt",)
 # El motivo de runHealth de una ejecución que falla tras la pasada (finish(failed=True)).
@@ -46,8 +56,32 @@ def begin(season):
                "nextSeason": _previous.get("nextSeason", {"name": load_config()["nextSeason"], "status": "pending"})}
     _carry_new()
     _carry_run_health()
+    _carry_carriles(_carril())
     _carry_activation()
     _carry_base()
+
+
+def _carril():
+    """El carril de esta ejecución (categorias.carril_actual, por FIFLP_CATS). Unas categorías que mezclan
+    carriles son del principal aquí, como antes de los carriles: update_fiflp.update_groups para con
+    ValueError, y la ejecución fallida se marca donde siempre."""
+    try:
+        return carril_actual()
+    except ValueError:
+        return PRINCIPAL
+
+
+def _lane(report, carril, create=True):
+    """La parte de `report` de un carril: el informe mismo para el principal (runHealth y run) o
+    report["carriles"][carril] (creada con `create`; sin ella, {} si no la hay)."""
+    if carril == PRINCIPAL:
+        return report
+    if not create:
+        lanes = report.get("carriles") if isinstance(report, dict) else None
+        lane = lanes.get(carril) if isinstance(lanes, dict) else None
+        return lane if isinstance(lane, dict) else {}
+    lanes = report.setdefault("carriles", {})
+    return lanes.setdefault(carril, {})
 
 
 def _same_season():
@@ -74,6 +108,26 @@ def _carry_run_health():
     health = _previous.get("runHealth") if _same_season() else None
     if isinstance(health, dict):
         _report["runHealth"] = dict(health)
+
+
+def _carry_carriles(current):
+    """Lo de los otros carriles sigue tal cual: su veredicto y sus notas (carriles.<carril>, y el `run` del
+    principal en una pasada de otro carril), que solo los cambia una pasada de ese carril. El `run` del carril de
+    esta pasada no se arrastra, como el del principal hasta ahora: lo pone su note_run. Con otra temporada,
+    fuera, como runHealth."""
+    if not _same_season():
+        return
+    lanes = _previous.get("carriles")
+    out = {}
+    for name, entry in (lanes.items() if isinstance(lanes, dict) else ()):
+        if isinstance(entry, dict):
+            keep = {k: v for k, v in entry.items() if not (name == current and k == "run")}
+            if keep:
+                out[name] = keep
+    if out:
+        _report["carriles"] = out
+    if current != PRINCIPAL and isinstance(_previous.get("run"), dict):
+        _report["run"] = _previous["run"]
 
 
 def _carry_activation():
@@ -123,26 +177,33 @@ def _red(previous, reasons, now=None):
     return {"ok": False, "reasons": list(reasons), "since": since or _stamp(now)}
 
 
-def dry_since():
-    """Desde cuándo dura la racha de pasadas secas (pasada_sana.seca), según el informe anterior de la misma
-    temporada: su runHealth.drySince, o None."""
-    health = (_previous or {}).get("runHealth") if _same_season() else None
+def _previous_health(carril=PRINCIPAL):
+    """El runHealth de `carril` en el informe anterior de la misma temporada, o None."""
+    health = _lane(_previous or {}, carril, create=False).get("runHealth") if _same_season() else None
+    return health if isinstance(health, dict) else None
+
+
+def dry_since(carril=PRINCIPAL):
+    """Desde cuándo dura la racha de pasadas secas (pasada_sana.seca) de `carril`, según el informe anterior de
+    la misma temporada: su runHealth.drySince, o None."""
+    health = _previous_health(carril)
     since = health.get("drySince") if isinstance(health, dict) else None
     return since if isinstance(since, str) and since else None
 
 
-def set_run_health(reasons, now=None, dry=False):
-    """El veredicto de la pasada del bot de la federación (pasada_sana.veredicto: sin motivos, sana). Sana,
-    sin hora: una pasada sana tras otra sana no reescribe el informe (runHealth no es VOLATILE). Con `dry`
-    (una pasada seca), drySince: el de la racha en curso o, en la primera, ahora; la primera seca reescribe
-    el informe, las siguientes de la racha no, y la primera que lee algo lo quita."""
+def set_run_health(reasons, now=None, dry=False, carril=PRINCIPAL):
+    """El veredicto de la pasada del bot de la federación (pasada_sana.veredicto: sin motivos, sana), en la parte
+    de `carril` (runHealth el principal; carriles.<carril>.runHealth los demás). Sana, sin hora: una pasada sana
+    tras otra sana no reescribe el informe (runHealth no es VOLATILE). Con `dry` (una pasada seca), drySince: el
+    de la racha en curso de ese carril o, en la primera, ahora; la primera seca reescribe el informe, las
+    siguientes de la racha no, y la primera que lee algo lo quita."""
     if _report is None:
         return
-    previous = (_previous or {}).get("runHealth") if _same_season() else None
+    previous = _previous_health(carril)
     health = _red(previous, reasons, now) if reasons else {"ok": True}
     if dry:
-        health["drySince"] = dry_since() or _stamp(now)
-    _report["runHealth"] = health
+        health["drySince"] = dry_since(carril) or _stamp(now)
+    _lane(_report, carril)["runHealth"] = health
 
 
 def new_competitions():
@@ -211,15 +272,20 @@ def carry(code, url=None):
         _report["groups"][code] = dict(entry)
 
 
-def note_run(info):
-    """Las notas de la pasada del bot (VOLATILE: no reescriben el informe por sí solas)."""
+def note_run(info, carril=PRINCIPAL):
+    """Las notas de la pasada del bot, en la parte de `carril` (run; carriles.<carril>.run). Volátiles
+    (VOLATILE, CARRIL_VOLATILE): no reescriben el informe por sí solas."""
     if _report is not None:
-        _report["run"] = info
+        _lane(_report, carril)["run"] = info
 
 
 def meaningful(report):
     """The report without its check timestamps: what a visitor would see change."""
     view = {k: v for k, v in report.items() if k not in VOLATILE}
+    if isinstance(view.get("carriles"), dict):
+        view["carriles"] = {name: ({k: v for k, v in entry.items() if k not in CARRIL_VOLATILE}
+                                   if isinstance(entry, dict) else entry)
+                            for name, entry in view["carriles"].items()}
     view["groups"] = {code: {k: v for k, v in (group or {}).items() if k not in GROUP_VOLATILE}
                       for code, group in (report.get("groups") or {}).items()}
     return view
@@ -262,13 +328,15 @@ def finish(now=None, failed=False):
     now = now or datetime.now(timezone.utc)
     if failed:
         _discard_checks()
-        # Lo publicado de una ejecución fallida es el diagnóstico: en rojo, si la pasada no lo estaba ya.
-        # La racha seca, como estaba: la interrupción no dice si la federación sirve o no.
-        health = _report.get("runHealth") or {}
+        # Lo publicado de una ejecución fallida es el diagnóstico: en rojo, si la pasada no lo estaba ya, la de
+        # su carril (la de otro no se ha juzgado). La racha seca, como estaba: la interrupción no dice si la
+        # federación sirve o no.
+        carril = _carril()
+        health = _lane(_report, carril, create=False).get("runHealth") or {}
         if health.get("ok") is not False:
-            set_run_health([INTERRUPTED], now)
+            set_run_health([INTERRUPTED], now, carril=carril)
             if health.get("drySince"):
-                _report["runHealth"]["drySince"] = health["drySince"]
+                _lane(_report, carril)["runHealth"]["drySince"] = health["drySince"]
     _report["checkedAt"] = _stamp(now)
     text = (ROOT / "index.html").read_text()
     match = re.search(r"Última actualización: (\d{2})/(\d{2})/(\d{4})", text)
@@ -349,6 +417,8 @@ def main(argv=None, now=None):
                         falso); con 0 si es sana o no hay veredicto;
       marcar "<motivo>" pone runHealth en rojo con ese motivo (con `since` y los motivos de antes si ya lo
                         estaba) y escribe el fichero, sin tocar nada más del informe;
+    las dos, las del carril del job (FIFLP_CATS, categorias.carril_actual): con el de mayores, su
+    carriles.mayores.runHealth, y nada del bot de siempre;
       pendiente         sale con 0, e imprime sus ids separados por comas, si update.yml tiene que lanzar
                         activar.yml para las competiciones y grupos nuevos (pending_activation); con 1 si no."""
     args = sys.argv[1:] if argv is None else list(argv)
@@ -359,7 +429,7 @@ def main(argv=None, now=None):
             return 0
         return 1
     if args == ["veredicto"]:
-        health = _read_previous().get("runHealth")
+        health = _lane(_read_previous(), _carril(), create=False).get("runHealth")
         if isinstance(health, dict) and health.get("ok") is False:
             for reason in health.get("reasons") or ["sin motivo"]:
                 print(f"Pasada en rojo: {reason}")
@@ -367,11 +437,12 @@ def main(argv=None, now=None):
         return 0
     if len(args) == 2 and args[0] == "marcar":
         report = _read_previous()
-        health = report.get("runHealth")
+        lane = _lane(report, _carril())
+        health = lane.get("runHealth")
         before = list(health.get("reasons") or []) if isinstance(health, dict) and health.get("ok") is False else []
-        report["runHealth"] = _red(health, before + [args[1]] if args[1] not in before else before)
+        lane["runHealth"] = _red(health, before + [args[1]] if args[1] not in before else before)
         if isinstance(health, dict) and health.get("drySince"):
-            report["runHealth"]["drySince"] = health["drySince"]
+            lane["runHealth"]["drySince"] = health["drySince"]
         escribir_atomico(REPORT_PATH, json.dumps(report, ensure_ascii=False, indent=2) + "\n")
         return 0
     print('uso: source_health.py veredicto | marcar "<motivo>" | pendiente', file=sys.stderr)
