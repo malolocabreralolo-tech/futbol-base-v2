@@ -88,6 +88,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: gh workflow run update.yml --ref main || echo "no se pudo lanzar el bot; lo lanzará el reloj (reloj.yml)"
       # !cancelled(): también si la descarga se pasó de tiempo (lo que llevaba ya está subido).
+      # Solo con «Incompleto.»: con «Frenada.» (el freno de verdad o un runner al que la federación no
+      # sirve) relanzar en seguida sería pedirle más a una federación que no sirve; con «Completo.», nada.
       - name: Siguiente tanda
         if: ${{ !cancelled() }}
         env:
@@ -98,8 +100,8 @@ jobs:
           CATEGORIAS: ${{ inputs.categorias }}
         run: |
           LEFT=$((TANDAS - 1))
-          if grep -q '^Completo\.' detalle.log 2>/dev/null; then
-            echo "Detalle completo."
+          if ! grep -q '^Incompleto\.' detalle.log 2>/dev/null; then
+            echo "Sin otra tanda: $(tail -n 1 detalle.log 2>/dev/null)"
           elif [ "$LEFT" -le 0 ]; then
             echo "Freno: sin tandas."
           else

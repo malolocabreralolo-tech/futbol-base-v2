@@ -237,7 +237,7 @@ def test_crests_only_mode_fills_crests_of_groups_already_read(tmp_path, monkeypa
     monkeypatch.setattr(S, "raw_path", lambda season: tmp_path / "raw.json")
     (tmp_path / "raw.json").write_text(json.dumps({"900:11": {"comp": "900", "grupo": "11", "ok": True,
         "standings": [{"team": "HARIA C.F."}], "scorers": []}}), encoding="utf-8")
-    monkeypatch.setattr(S, "scrape_crests", lambda page, F, season, comp, grupo, teams: {"HARIA C.F.": "u"})
+    monkeypatch.setattr(S, "scrape_crests", lambda page, F, season, comp, grupo, teams: ({"HARIA C.F.": "u"}, True))
     monkeypatch.setattr(S, "scrape_group", lambda *a: pytest.fail("no vuelve a leer goleadores"))
     S.run(FakePage(""), FakeF(), ["20"], time.monotonic() + 60, log=lambda *_: None, crests_only=True)
     raw = json.loads((tmp_path / "raw.json").read_text())
@@ -338,3 +338,205 @@ def test_a_retired_team_of_an_archived_season_gets_a_portal_name():
                                  WHERE sc.group_id=1""").fetchall())
     # 'Guía B' es de otra letra: no es el Guía A retirado.
     assert teams == {"P, UNO": "Moya", "P, DOS": "UD Teror", "P, TRES": "Guía", "P, CUATRO": "San Isidro B"}
+
+
+# ── Con la lectura del bot (fiflp_carga.Federacion) sobre la federación de mentira ──
+# Una competición 900 con los grupos 11 y 12; la clasificación de cada uno (los datos del raspador falso) y
+# sus goleadores (goleadores_2526_A2.html). Temporada 20 (2024-2025). Como para_tanda: sin esperas del freno.
+
+from federacion_falsa import FederacionFalsa, Pagina, Reloj  # noqa: E402
+
+GOLEADORES_HTML = (ROOT / "scripts/tests/fixtures/goleadores_2526_A2.html").read_text(encoding="utf-8")
+EQUIPOS = [{"pos": 1, "team": "TAMARACEITE, U.D. A"}, {"pos": 2, "team": "HURACAN, A.D. A"}]
+
+
+def sitio_goleadores(muertas=()):
+    """La web de la federación para la competición 900: `muertas`, URLs (o trozos) que vienen vacías siempre."""
+    def sitio(url):
+        if any(m in url for m in muertas):
+            return Pagina(html="")
+        if "NFG_VisClasificacion" in url:
+            return Pagina(datos=EQUIPOS)
+        if "NFG_CMP_Goleadores" in url:
+            return Pagina(html=GOLEADORES_HTML)
+        if "NFG_CmpJornada" in url and "CodGrupo=" not in url:
+            return Pagina(opciones={"grupo": [("0", "--"), ("11", "GRUPO 1"), ("12", "GRUPO 2")]})
+        if "NFG_CmpJornada" in url:
+            return Pagina()                                     # una jornada (los escudos)
+        return None
+    return sitio
+
+
+@pytest.fixture
+def S(tmp_path, monkeypatch):
+    import fetch_fiflp_goleadores as S
+    monkeypatch.setattr(S, "catalog_comps", lambda season, cats=None: ["900"])
+    monkeypatch.setattr(S, "comp_names", lambda season: {"900": "LIGA BENJAMIN FASE A"})
+    monkeypatch.setattr(S, "raw_path", lambda season: tmp_path / f"fiflp_goleadores_{S.SEASON_NAME[season]}_raw.json")
+    return S
+
+
+def correr(S, f, **kw):
+    """Una ejecución (otra IP: el cupo de la falsa vuelve a empezar) con su Federacion; da (completo, F, partes)."""
+    import time
+    f.ip_nueva()
+    f.pedidas.clear()
+    F = f.fed(deadline=f.reloj.t + 3600, max_pauses=0)
+    partes = {}
+    ok = S.run(f.page(), F, ["20"], time.monotonic() + 600, log=lambda *_: None, partes=partes, **kw)
+    return ok, F, partes
+
+
+def test_un_runner_rechazado_no_toca_nada(S, tmp_path):
+    f = FederacionFalsa(sitio_goleadores(), Reloj(), nube="aws", rechaza=True)
+    antes = S.parte("20")
+    ok, F, partes = correr(S, f)
+    assert F.parada == "runner" and len(f.pedidas) <= 2 and not ok
+    assert list(tmp_path.iterdir()) == [] and partes == {"goleadores:2024-2025": antes}
+    # Con los ficheros ya escritos (y un grupo pendiente: la ejecución de antes la cortó el freno), salen con
+    # los mismos bytes.
+    correr(S, FederacionFalsa(sitio_goleadores(), Reloj(), cupo=3, bloqueos=(None,)))
+    bytes_antes = {p.name: p.read_bytes() for p in tmp_path.iterdir()}
+    antes = S.parte("20")
+    ok, F, partes = correr(S, f)
+    assert F.parada == "runner" and {p.name: p.read_bytes() for p in tmp_path.iterdir()} == bytes_antes
+    assert partes == {"goleadores:2024-2025": antes}
+
+
+def test_goleadores_con_el_freno_no_dan_un_grupo_por_leido(S, tmp_path):
+    f = FederacionFalsa(sitio_goleadores(), Reloj(), cupo=3, bloqueos=(None,))
+    ok, F, partes = correr(S, f)
+    raw = json.loads((tmp_path / "fiflp_goleadores_2024-2025_raw.json").read_text())
+    assert raw["900:11"]["ok"] and len(raw["900:11"]["scorers"]) > 10 and "900:12" not in raw
+    assert "crests" not in raw["900:11"]                        # el freno cayó en sus escudos
+    assert partes == {"goleadores:2024-2025": {"completo": False, "pendientes": 1, "no_disponible": 0}}
+    assert ok is False and F.parada == "freno"
+
+
+def test_una_pagina_vacia_siempre_acaba_no_disponible_tras_tres_ejecuciones(S, tmp_path):
+    f = FederacionFalsa(sitio_goleadores(muertas=("NFG_CMP_Goleadores?cod_primaria=1000120&CodJornada=&codcompeticion=900"
+                                                  "&codtemporada=20&codgrupo=12",)), Reloj())
+    path = tmp_path / "fiflp_goleadores_2024-2025_raw.json"
+    for n in (1, 2):
+        ok, F, partes = correr(S, f)
+        g2 = json.loads(path.read_text())["900:12"]
+        assert g2["ok"] is False and g2["intentos"] == n and not g2.get("no_disponible") and F.parada is None
+        assert F.dead == 1 and partes["goleadores:2024-2025"]["pendientes"] == 1
+    ok, F, partes = correr(S, f)
+    raw = json.loads(path.read_text())
+    assert raw["900:12"]["no_disponible"] is True and raw["900:12"]["intentos"] == 3 and raw["900:12"]["ok"] is False
+    assert raw["900:11"]["ok"] and raw["900:11"].get("intentos") is None
+    assert partes == {"goleadores:2024-2025": {"completo": True, "pendientes": 0, "no_disponible": 1}}
+    ok, F, partes = correr(S, f)
+    assert f.pedidas == [] and partes["goleadores:2024-2025"]["completo"]
+
+
+def test_la_lista_de_grupos_no_se_vuelve_a_pedir(S, tmp_path):
+    f = FederacionFalsa(sitio_goleadores(), Reloj())
+    ok, F, partes = correr(S, f)
+    grupos = json.loads((tmp_path / "fiflp_goleadores_2024-2025_grupos.json").read_text())
+    assert grupos == {"grupos": {"900": [["11", "GRUPO 1"], ["12", "GRUPO 2"]]}, "intentos": {}}
+    assert ok and partes["goleadores:2024-2025"] == {"completo": True, "pendientes": 0, "no_disponible": 0}
+    ok, F, partes = correr(S, f)
+    assert ok and f.pedidas == []
+
+
+def test_una_competicion_sin_grupos_suma_intentos_y_acaba_sin_grupos(S, tmp_path):
+    """La página de la competición carga sin desplegable de grupos: un intento por ejecución; con tres, sin
+    grupos (hecha), y no se vuelve a pedir."""
+    f = FederacionFalsa(lambda url: Pagina() if "NFG_CmpJornada" in url else None, Reloj())
+    path = tmp_path / "fiflp_goleadores_2024-2025_grupos.json"
+    for n in (1, 2):
+        ok, F, partes = correr(S, f)
+        assert json.loads(path.read_text()) == {"grupos": {}, "intentos": {"900": n}}
+        assert partes["goleadores:2024-2025"]["pendientes"] == 1
+    ok, F, partes = correr(S, f)
+    assert json.loads(path.read_text()) == {"grupos": {"900": []}, "intentos": {"900": 3}}
+    assert partes["goleadores:2024-2025"] == {"completo": True, "pendientes": 0, "no_disponible": 1}
+    ok, F, partes = correr(S, f)
+    assert f.pedidas == []
+
+
+def test_la_clasificacion_tambien_tiene_que_cargar(S, tmp_path):
+    """Un grupo solo está leído con las DOS páginas: sin la clasificación (muerta), un intento, aunque los
+    goleadores carguen."""
+    f = FederacionFalsa(sitio_goleadores(muertas=("codgrupo=12&codjornada=99",)), Reloj())
+    ok, F, partes = correr(S, f)
+    g2 = json.loads((tmp_path / "fiflp_goleadores_2024-2025_raw.json").read_text())["900:12"]
+    assert g2["ok"] is False and g2["intentos"] == 1 and F.dead == 1
+
+
+def test_sin_escudos_no_pide_jornadas_y_los_escudos_van_despues(S, tmp_path):
+    f = FederacionFalsa(sitio_goleadores(), Reloj())
+    path = tmp_path / "fiflp_goleadores_2024-2025_raw.json"
+    ok, F, partes = correr(S, f, escudos=False)
+    assert ok and not any("NFG_CmpJornada" in u and "CodGrupo=" in u for u in f.pedidas)
+    assert all("crests" not in e for e in json.loads(path.read_text()).values())
+    ok, F, partes = correr(S, f, crests_only=True)
+    assert ok and all("crests" in e for e in json.loads(path.read_text()).values())
+    assert partes == {"escudos:2024-2025": {"completo": True, "pendientes": 0, "no_disponible": 0}}
+    assert not any("Goleadores" in u or "VisClasificacion" in u for u in f.pedidas)
+    # Un freno a mitad de los escudos de un grupo: ese grupo, sin escudos (y pendiente).
+    raw = json.loads(path.read_text())
+    for e in raw.values():
+        del e["crests"]
+    path.write_text(json.dumps(raw), encoding="utf-8")
+    f = FederacionFalsa(sitio_goleadores(), Reloj(), cupo=4, bloqueos=(None,))
+    ok, F, partes = correr(S, f, crests_only=True)
+    raw = json.loads(path.read_text())
+    assert F.parada == "freno" and not ok
+    assert "crests" in raw["900:11"] and "crests" not in raw["900:12"]
+    assert partes == {"escudos:2024-2025": {"completo": False, "pendientes": 1, "no_disponible": 0}}
+
+
+def test_main_dice_si_acaba_frenada_o_incompleta(S, monkeypatch, capsys):
+    """La última línea: «Completo.» solo sin nada pendiente; con el freno o el runner, «Frenada: …»; si no,
+    «Incompleto: …». Siempre sale con 0."""
+    import fiflp_carga
+    for parada, completo, linea in (("freno", False, "Frenada: 7 páginas servidas, la federación no sirve; se sigue "
+                                                     "en otra ejecución."),
+                                    ("runner", False, "Frenada: 7 páginas servidas"),
+                                    ("tope", False, "Incompleto: relanzar para seguir."),
+                                    (None, True, "Completo.")):
+        assert S.ultima_linea(type("F", (), {"parada": parada, "served": 7})(), completo).startswith(linea)
+    assert S.ultima_linea(type("F", (), {"parada": None, "served": 7})(), False) == "Incompleto: relanzar para seguir."
+
+
+def test_un_corte_en_cualquier_peticion_no_deja_nada_mal_leido(S, tmp_path):
+    """La pregunta de la parte G: si la federación deja de servir en CUALQUIER petición (la lista de grupos, una
+    clasificación, unos goleadores, una jornada de los escudos), ¿qué queda escrito y qué pide la siguiente?
+    Para cada corte k (el freno de verdad tras k páginas): nada sin `ok` ni con intentos (un freno no gasta
+    intento), ningún grupo con escudos a medias, la parte no dice completo, y una ejecución sin freno después
+    deja exactamente lo mismo que una ejecución entera sin cortes."""
+    def sin_fecha(raw):
+        return {k: {c: v for c, v in e.items() if c != "fetched"} for k, e in raw.items()}
+    raw_path = tmp_path / "fiflp_goleadores_2024-2025_raw.json"
+    gpath = tmp_path / "fiflp_goleadores_2024-2025_grupos.json"
+    ok, F, partes = correr(S, FederacionFalsa(sitio_goleadores(), Reloj()))
+    entera = sin_fecha(json.loads(raw_path.read_text())), json.loads(gpath.read_text())
+    total = F.pages
+    assert ok and total == 1 + 2 * (2 + 3)                      # la competición; por grupo, 2 páginas y 3 jornadas
+    for k in range(total):
+        for p in (raw_path, gpath):
+            p.unlink(missing_ok=True)
+        ok, F, partes = correr(S, FederacionFalsa(sitio_goleadores(), Reloj(), cupo=k, bloqueos=(None,)))
+        assert not ok and F.parada == "freno", k
+        raw = json.loads(raw_path.read_text()) if raw_path.exists() else {}
+        assert all(e["ok"] and "intentos" not in e and e["standings"] and e["scorers"] for e in raw.values()), k
+        assert all(e.get("crests", entera[0][key]["crests"]) == entera[0][key]["crests"] for key, e in raw.items()), k
+        # Lo pendiente: la competición sin lista de grupos, o los grupos que faltan (los escudos van en su parte).
+        assert partes["goleadores:2024-2025"]["pendientes"] == (2 - len(raw) if gpath.exists() else 1), k
+        ok, F, partes = correr(S, FederacionFalsa(sitio_goleadores(), Reloj()))
+        assert ok and (sin_fecha(json.loads(raw_path.read_text())), json.loads(gpath.read_text())) == entera, k
+
+
+def test_el_resumen_se_escribe_al_guardar(S, tmp_path):
+    import time
+    f = FederacionFalsa(sitio_goleadores(), Reloj())
+    F = f.fed(deadline=f.reloj.t + 3600, max_pauses=0)
+    resumen = tmp_path / "resumen" / "r.json"
+    resumen.parent.mkdir()
+    S.run(f.page(), F, ["20"], time.monotonic() + 600, log=lambda *_: None, partes={}, resumen=str(resumen))
+    data = json.loads(resumen.read_text())
+    assert data["partes"] == {"goleadores:2024-2025": {"completo": True, "pendientes": 0, "no_disponible": 0}}
+    assert data["servidas"] == F.served and data["parada"] is None

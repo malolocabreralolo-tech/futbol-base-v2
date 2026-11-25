@@ -19,8 +19,18 @@ Solo escribe raws (reanudables: lo ya leído no se vuelve a pedir):
   scripts/fiflp_detalle_<S>_raw.json   {"_grupos": {comp: [[grupo, nombre]]},
                                         "comp:grupo": {clasificacion, directorio, jornadas…}}
   scripts/fiflp_campos_raw.json        {código: ficha}
-Los importa import_fiflp_detalle.py (lo llama el bot). Solo funciona desde GitHub
-Actions (detalle-federacion.yml): FIFLP contesta vacío a las IPs domésticas.
+Los importa import_fiflp_detalle.py (lo llama el bot), que salta las entradas sin `ok`
+y las claves con «_». Solo funciona desde GitHub Actions (detalle-federacion.yml):
+FIFLP contesta vacío a las IPs domésticas.
+
+Lee como el bot (fiflp_carga.para_tanda): una página vacía solo es el freno si la
+federación tampoco sirve otra. Lo que no carga nunca se guarda como leído: si la
+federación para (el freno, el tope de peticiones, el plazo, un runner rechazado),
+lo de esa entrada se queda como estaba y la ejecución acaba; si sirve otras y esa
+no (una página muerta), la entrada gasta un intento y, con MAX_INTENTOS, queda «no
+disponible en la federación». Las jornadas de un calendario leídas antes de un
+corte se guardan («jornadas_leidas») y la ejecución siguiente pide solo las que
+faltan; «jornadas» solo está con el calendario entero.
 
   python3 scripts/fetch_fiflp_detalle.py --temporadas 12,13,14 --jornadas 12,13,14 [--max-minutes 320]
 """
@@ -35,6 +45,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from fiflp_detalle import parse_campo, parse_clasificacion, parse_directorio  # noqa: E402
 from escritura import escribir_atomico  # noqa: E402
+from fiflp_carga import (MAX_INTENTOS, guardar_resumen, para_tanda, parada_de, ultima_linea,  # noqa: E402
+                         un_intento)
 
 HERE = Path(__file__).resolve().parent
 DB_PATH = HERE.parent / "futbolbase.db"
@@ -77,7 +89,7 @@ def catalog_comps(code, categories=None, catalog=None):
 
 
 def live_comps(page, F, code, categories=None):
-    """Las de la temporada leídas de la web, para una que el catálogo aún no tiene."""
+    """Las de la temporada leídas de la web, para una que el catálogo aún no tiene ([] si la página no carga)."""
     if not F.goto(page, F.BASE + f"/NFG_CmpJornada?cod_primaria=1000120&CodTemporada={code}"):
         return []
     comps = page.evaluate("""() => {
@@ -98,9 +110,10 @@ def save(path, data):
 
 
 def group_done(entry, jornadas):
-    """Un grupo ya leído: cargó la clasificación y el directorio (y, si se piden,
-    las jornadas)."""
-    return bool(entry and entry.get("ok") and (not jornadas or "jornadas" in entry))
+    """Un grupo hecho: «no disponible en la federación» o leído (cargaron la clasificación y el directorio y,
+    si se piden, el calendario entero)."""
+    return bool(entry and (entry.get("no_disponible")
+                           or (entry.get("ok") and (not jornadas or "jornadas" in entry))))
 
 
 def _grupos(page, F):
@@ -117,9 +130,12 @@ def _grupos(page, F):
     return []
 
 
-def _jornadas(page, F, base, log=print):
-    """{etiqueta de jornada: [partidos]} de un grupo, cada jornada por su URL y
-    aplanada (las cifras de los marcadores van ofuscadas)."""
+def _jornadas(page, F, base, log=print, leidas=None):
+    """({etiqueta de jornada: [partidos]}, estado) del calendario ya cargado de un grupo: cada jornada por su
+    URL y aplanada (las cifras de los marcadores van ofuscadas), salvo las de `leidas` (de una ejecución
+    anterior), que no se vuelven a pedir. El estado: "completo" (todas), "parada" (la federación dejó de servir:
+    lo leído hasta ahí vale), "fallo" (alguna no cargó con la federación sirviendo: las demás sí se leen) o
+    "vacio" (el desplegable, sin jornadas)."""
     from fiflp_render import flatten
     from update_fiflp import option_round
     from activate_season import _iso
@@ -133,93 +149,197 @@ def _jornadas(page, F, base, log=print):
         if options:
             break
         page.wait_for_timeout(2500)
-    rounds = {}
+    rounds = dict(leidas or {})
+    if not options:
+        return rounds, "vacio"
+    estado = "completo"
     for opt in options:
         label, when = option_round(opt["text"])
+        if label in rounds:
+            continue
         if not F.goto(page, f"{base}&CodJornada={opt['value']}"):
+            if parada_de(F) is not None:
+                return rounds, "parada"
             log(f"      ! no carga la {label.lower()}")
-            return None
+            estado = "fallo"
+            continue
         flatten(page)
         rounds[label] = [{**m, "date": _iso(m.get("date")) or (when.isoformat() if when else "")}
                          for m in F.parse_matches(page)]
         F.delay()
-    return rounds
+    return rounds, estado
 
 
-def scrape_group(page, F, season, comp, grupo, jornadas, log=print):
-    """(clasificación, directorio, jornadas o None, ok) de un grupo."""
-    clasificacion, directorio, rounds = [], [], None
-    ok = True
-    if F.goto(page, F.BASE + CLASIFICACION_URL.format(season=season, comp=comp, grupo=grupo)):
-        clasificacion = parse_clasificacion(page.content())
+def _sin_fecha(entry):
+    return {k: v for k, v in (entry or {}).items() if k != "fetched"}
+
+
+def scrape_group(page, F, season, comp, grupo, jornadas, previo=None, log=print):
+    """La entrada nueva del grupo (sobre `previo`, la que había), o None si no hay nada que escribir (la
+    federación paró antes de leer nada nuevo: se queda la de antes).
+    Con `previo` ya leído (`ok`), ni la clasificación ni el directorio se vuelven a pedir. Si no, las dos: si una
+    no carga con la federación sirviendo, la entrada queda sin `ok` y gasta un intento (fiflp_carga.un_intento);
+    la otra ni se pide. Con `jornadas`, el calendario: lo leído antes de un corte va a «jornadas_leidas» (la
+    ejecución siguiente pide solo lo que falta) y, con todas, a «jornadas». Una jornada que no carga con la
+    federación sirviendo (o un calendario sin jornadas) gasta un intento del grupo: con MAX_INTENTOS, no
+    disponible, con lo leído en «jornadas_leidas» y sin «jornadas» (no es el calendario entero)."""
+    previo = previo or {}
+    if previo.get("ok"):
+        entry = dict(previo)
     else:
-        ok = False
-    F.delay()
-    if F.goto(page, F.BASE + DIRECTORIO_URL.format(season=season, comp=comp, grupo=grupo)):
-        directorio = parse_directorio(page.content())
-    else:
-        ok = False
-    F.delay()
-    if jornadas:
+        entry = {"comp": comp, "grupo": grupo, "clasificacion": [], "directorio": [], "ok": False}
+        for campo, url, parse in (("clasificacion", CLASIFICACION_URL, parse_clasificacion),
+                                  ("directorio", DIRECTORIO_URL, parse_directorio)):
+            if not F.goto(page, F.BASE + url.format(season=season, comp=comp, grupo=grupo)):
+                if parada_de(F) is not None:
+                    return None
+                return un_intento(entry, previo)
+            entry[campo] = parse(page.content())
+            F.delay()
+        entry["ok"] = True
+    if jornadas and "jornadas" not in entry:
         base = F.BASE + CALENDARIO_URL.format(season=season, comp=comp, grupo=grupo)
-        if F.goto(page, base):
-            rounds = _jornadas(page, F, base, log)
-        if rounds is None:
-            ok = False
-    return clasificacion, directorio, rounds, ok
+        if not F.goto(page, base):
+            if parada_de(F) is None:
+                un_intento(entry, previo)
+        else:
+            rounds, estado = _jornadas(page, F, base, log, entry.get("jornadas_leidas"))
+            if estado == "completo":
+                entry["jornadas"] = rounds
+                entry.pop("jornadas_leidas", None)
+            else:
+                if rounds:
+                    entry["jornadas_leidas"] = rounds
+                if estado != "parada":
+                    un_intento(entry, previo)
+    return None if _sin_fecha(entry) == _sin_fecha(previo) else entry
 
 
-def run_groups(page, F, seasons, jornadas_seasons, deadline, log=print, categories=None):
-    """`categories`: las del catálogo que se recorren ('ALEVIN'…); por defecto, benjamín y
-    prebenjamín. Todas van al mismo raw de la temporada (claves comp:grupo)."""
+def _web_key(categories):
+    """La clave de las competiciones leídas de la web: _comps las de siempre, _comps_alevin las de alevín."""
+    from categorias import DEFAULT_CATEGORIES, web_key
+    return "_comps" if tuple(categories or DEFAULT_CATEGORIES) == DEFAULT_CATEGORIES else \
+        "_comps_" + "_".join(web_key(c) for c in categories)
+
+
+def _parte(comps, data, want_rounds):
+    """{"completo", "pendientes", "no_disponible"} de una temporada. Pendientes: la lista de competiciones si
+    aún no se sabe (comps None), las competiciones sin lista de grupos y los grupos sin hacer. No disponibles:
+    los grupos así y las competiciones que nunca dieron grupos."""
+    if comps is None:
+        return {"completo": False, "pendientes": 1, "no_disponible": 0}
+    pendientes = no_disponible = 0
+    listas = data.get("_grupos") or {}
+    for comp, _ in comps:
+        if comp not in listas:
+            pendientes += 1
+            continue
+        if not listas[comp]:
+            no_disponible += 1
+            continue
+        for grupo, _ in listas[comp]:
+            entry = data.get(f"{comp}:{grupo}")
+            if entry and entry.get("no_disponible"):
+                no_disponible += 1
+            elif not group_done(entry, want_rounds):
+                pendientes += 1
+    return {"completo": pendientes == 0, "pendientes": pendientes, "no_disponible": no_disponible}
+
+
+def _intento_de(data, clave):
+    """Un intento más de `clave` (una competición, o la lista de competiciones de la web) en data["_intentos"];
+    True si ya son MAX_INTENTOS (se da por hecha, sin nada)."""
+    intentos = data.setdefault("_intentos", {})
+    intentos[clave] = int(intentos.get(clave) or 0) + 1
+    return intentos[clave] >= MAX_INTENTOS
+
+
+def run_groups(page, F, seasons, jornadas_seasons, deadline, log=print, categories=None, partes=None, resumen=None):
+    """`categories`: las del catálogo que se recorren ('ALEVIN'…); por defecto, benjamín y prebenjamín. Todas
+    van al mismo raw de la temporada (claves comp:grupo). En `partes`, la de cada temporada pedida
+    («detalle:<S>», o «calendario:<S>» si se piden sus jornadas); con `resumen` (una ruta), guardar_resumen tras
+    cada grupo guardado. Da False si la ejecución se cortó (el plazo o una parada de la federación); True si
+    recorrió todo, aunque quede algo pendiente de una página muerta (las partes lo dicen)."""
+    partes = {} if partes is None else partes
+    key = _web_key(categories)
+
+    def clave(season):
+        return f"{'calendario' if season in jornadas_seasons else 'detalle'}:{season_name(season)}"
+
+    def comps_de(season, data):
+        """Las del catálogo, las ya leídas de la web o None si aún no se saben."""
+        return catalogo[season] or ([tuple(c) for c in data[key]] if key in data else None)
+
+    def anotar(season, data):
+        comps = comps_de(season, data)
+        partes[clave(season)] = _parte(comps, data, season in jornadas_seasons)
+        if comps == [] and int((data.get("_intentos") or {}).get(key) or 0) >= MAX_INTENTOS:
+            partes[clave(season)]["no_disponible"] = 1     # la web nunca dio sus competiciones
+        if resumen:
+            guardar_resumen(resumen, F, partes)
+
+    catalogo = {season: catalog_comps(season, categories) for season in seasons}
+    for season in seasons:
+        anotar(season, load(raw_path(season)))
     for season in seasons:
         path = raw_path(season)
         data = load(path)
-        comps = catalog_comps(season, categories)
-        if not comps:
-            # Las leídas de la web (una temporada que el catálogo aún no tiene), guardadas por
-            # categorías: _comps las de siempre, _comps_alevin las de alevín.
-            from categorias import DEFAULT_CATEGORIES, web_key
-            key = "_comps" if tuple(categories or DEFAULT_CATEGORIES) == DEFAULT_CATEGORIES else \
-                "_comps_" + "_".join(web_key(c) for c in categories)
-            comps = [tuple(c) for c in data.get(key) or []] or live_comps(page, F, season, categories)
-            data[key] = comps
+        comps = comps_de(season, data)
+        if comps is None:
+            # Una temporada que el catálogo aún no tiene: las de la web, guardadas por categorías. Si no las da
+            # (la página no carga o no trae ninguna), un intento; con MAX_INTENTOS, ninguna.
+            comps = live_comps(page, F, season, categories)
+            if not comps and parada_de(F) is not None:
+                return False
+            if comps or _intento_de(data, key):
+                data[key] = comps
             save(path, data)
+            anotar(season, data)
+            if not comps:
+                continue
         log(f"Temporada {season_name(season)}: {len(comps)} competiciones")
         want_rounds = season in jornadas_seasons
         for comp, comp_name in comps:
             if time.monotonic() > deadline:
                 log("  plazo agotado: sigue en la próxima tanda")
                 return False
-            grupos = data.setdefault("_grupos", {}).get(comp)
-            if not grupos:
+            listas = data.setdefault("_grupos", {})
+            if comp not in listas:
                 if not F.goto(page, F.BASE + f"/NFG_CmpJornada?cod_primaria=1000120&CodTemporada={season}"
                                              f"&CodCompeticion={comp}"):
+                    if parada_de(F) is not None:
+                        return False
                     log(f"  ! {comp}: no carga")
-                    continue
-                grupos = _grupos(page, F)
-                F.delay()
-                if not grupos:
-                    log(f"  ! {comp} {comp_name[:50]}: sin grupos")
-                    continue
-                data["_grupos"][comp] = grupos
+                    grupos = []
+                else:
+                    grupos = _grupos(page, F)
+                    F.delay()
+                    if not grupos:
+                        log(f"  ! {comp} {comp_name[:50]}: sin grupos")
+                if grupos or _intento_de(data, comp):
+                    listas[comp] = grupos
                 save(path, data)
+                anotar(season, data)
+                if not grupos:
+                    continue
+            grupos = listas[comp]
             new = 0
             for grupo, grupo_name in grupos:
                 if time.monotonic() > deadline:
-                    break
-                key = f"{comp}:{grupo}"
-                if group_done(data.get(key), want_rounds):
+                    log("  plazo agotado: sigue en la próxima tanda")
+                    return False
+                gkey = f"{comp}:{grupo}"
+                if group_done(data.get(gkey), want_rounds):
                     continue
-                clasificacion, directorio, rounds, ok = scrape_group(page, F, season, comp, grupo, want_rounds, log)
-                entry = {"comp": comp, "comp_name": comp_name, "grupo": grupo, "grupo_name": grupo_name,
-                         "clasificacion": clasificacion, "directorio": directorio,
-                         "ok": ok, "fetched": date.today().isoformat()}
-                if rounds is not None:
-                    entry["jornadas"] = rounds
-                data[key] = entry
-                save(path, data)
-                new += 1
+                entry = scrape_group(page, F, season, comp, grupo, want_rounds, data.get(gkey), log)
+                if entry is not None:
+                    entry.update(comp_name=comp_name, grupo_name=grupo_name, fetched=date.today().isoformat())
+                    data[gkey] = entry
+                    save(path, data)
+                    anotar(season, data)
+                    new += 1
+                if parada_de(F) is not None:
+                    return False
             log(f"  {comp} {comp_name[:50]}: {len(grupos)} grupos, {new} leídos")
     return True
 
@@ -242,9 +362,25 @@ def venue_codes(seasons):
     return sorted(c for c in codes if c)
 
 
-def run_campos(page, F, deadline, log=print):
+def _campo_hecho(entry):
+    return bool(entry and (entry.get("ok") or entry.get("no_disponible")))
+
+
+def _parte_campos(codes, data):
+    pendientes = sum(not _campo_hecho(data.get(str(c))) for c in codes)
+    no_disponible = sum(bool((data.get(str(c)) or {}).get("no_disponible")) for c in codes)
+    return {"completo": pendientes == 0, "pendientes": pendientes, "no_disponible": no_disponible}
+
+
+def run_campos(page, F, deadline, log=print, partes=None, resumen=None):
+    """La ficha de cada campo. Una que no carga con la federación parada no se escribe (y la ejecución acaba);
+    una que no carga con la federación sirviendo, o que carga sin datos (parse_campo None), gasta un intento y,
+    con MAX_INTENTOS, queda no disponible. En `partes`, la parte «campos»."""
+    partes = {} if partes is None else partes
     data = load(CAMPOS_RAW)
-    codes = [c for c in venue_codes(None) if not (data.get(str(c)) or {}).get("ok")]
+    todos = venue_codes(None)
+    codes = [c for c in todos if not _campo_hecho(data.get(str(c)))]
+    partes["campos"] = _parte_campos(todos, data)
     log(f"Campos: {len(codes)} fichas por leer")
     for code in codes:
         if time.monotonic() > deadline:
@@ -253,8 +389,15 @@ def run_campos(page, F, deadline, log=print):
         ficha = None
         if F.goto(page, F.BASE + CAMPO_URL.format(code=code)):
             ficha = parse_campo(page.content())
-        data[str(code)] = {**(ficha or {}), "ok": bool(ficha), "fetched": date.today().isoformat()}
+        elif parada_de(F) is not None:
+            return False
+        previo = data.get(str(code))
+        nueva = {**(ficha or {}), "ok": bool(ficha), "fetched": date.today().isoformat()}
+        data[str(code)] = nueva if ficha else un_intento(nueva, previo)
         save(CAMPOS_RAW, data)
+        partes["campos"] = _parte_campos(todos, data)
+        if resumen:
+            guardar_resumen(resumen, F, partes)
         F.delay()
     return True
 
@@ -266,14 +409,20 @@ def main(argv=None):
                     help="temporadas de las que bajar también el calendario completo")
     ap.add_argument("--sin-campos", action="store_true", help="no leer las fichas de los campos")
     ap.add_argument("--max-minutes", type=float, default=320)
+    ap.add_argument("--max-paginas", type=int, default=0, help="tope de peticiones de la ejecución (0, sin tope)")
+    ap.add_argument("--resumen", default="", help="dónde escribir el resumen de la ejecución (JSON)")
     ap.add_argument("--categorias", default="", help="'benjamin,prebenjamin' (por defecto) o 'alevin'")
     args = ap.parse_args(argv)
     from categorias import parse_categories
     categories = parse_categories(args.categorias)
     seasons = [s.strip() for s in args.temporadas.split(",") if s.strip()]
     jornadas = {s.strip() for s in args.jornadas.split(",") if s.strip()}
-    deadline = time.monotonic() + args.max_minutes * 60
-    import fetch_fiflp_2425 as F
+    import fetch_fiflp_2425
+    # La lectura del bot (la vacía solo es el freno si la federación no sirve otra), sin esperas del freno y
+    # con el tope de la ejecución; la nube, la de la máquina.
+    F = para_tanda(fetch_fiflp_2425, args.max_minutes, args.max_paginas)
+    resumen = args.resumen or None
+    partes = {}
     from fiflp_render import fiflp_launch_args
     from playwright.sync_api import sync_playwright
     with sync_playwright() as p:
@@ -284,12 +433,14 @@ def main(argv=None):
             "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36"))
         page.set_default_timeout(30000)
         try:
-            complete = run_groups(page, F, seasons, jornadas, deadline, categories=categories)
+            complete = run_groups(page, F, seasons, jornadas, F.deadline, categories=categories, partes=partes,
+                                  resumen=resumen)
             if complete and not args.sin_campos:
-                complete = run_campos(page, F, deadline)
+                complete = run_campos(page, F, F.deadline, partes=partes, resumen=resumen)
         finally:
             browser.close()
-    print("Completo." if complete else "Incompleto: relanzar para seguir.")
+            guardar_resumen(resumen, F, partes)
+    print(ultima_linea(F, complete and all(p["completo"] for p in partes.values())))
 
 
 if __name__ == "__main__":

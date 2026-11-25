@@ -1033,6 +1033,20 @@ def test_goleadores_federacion_only_commits_its_raws_even_when_cut():
     assert "$TEMPORADAS" in scrape["run"] and "${{" not in scrape["run"], "la entrada va por env, no interpolada"
 
 
+def test_el_detalle_no_se_relanza_frenado():
+    """La cadena de detalle-federacion.yml solo sigue con «Incompleto.» (el plazo, el tope, lo pendiente de una
+    página muerta): con «Frenada.» (el freno de verdad o un runner al que la federación no sirve) no se relanza
+    contra la federación, y con «Completo.» tampoco."""
+    steps = _load("detalle-federacion.yml")["jobs"]["scrape"]["steps"]
+    nxt = next(s for s in steps if s.get("name") == "Siguiente tanda")
+    run = nxt["run"]
+    assert "! grep -q '^Incompleto\\.' detalle.log" in run and "^Completo" not in run
+    # La comprobación va antes que el relanzamiento: sin «Incompleto.», no se llega a él.
+    assert run.index("! grep -q '^Incompleto") < run.index("gh workflow run detalle-federacion.yml")
+    scrape = next(s for s in steps if "fetch_fiflp_detalle.py" in s.get("run", ""))
+    assert "tee detalle.log" in scrape["run"]
+
+
 def test_actas_federacion_chains_per_season_survives_a_timeout_and_stops_when_stuck():
     data = _load("actas-federacion.yml")
     assert "${{ inputs.temporada }}" in data["concurrency"]["group"], "una cadena por temporada"

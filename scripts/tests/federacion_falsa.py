@@ -229,5 +229,12 @@ class FederacionFalsa:
         kw.setdefault("interval", 7.0)
         kw.setdefault("cloud", self.nube)
         kw.setdefault("log", self.dicho.append)
-        return fiflp_carga.Federacion(RaspadorFalso(), clock=self.reloj.clock, sleep=self.reloj.sleep,
-                                      wall=self.reloj.wall, **kw)
+        fed = fiflp_carga.Federacion(RaspadorFalso(), clock=self.reloj.clock, sleep=self.reloj.sleep,
+                                     wall=self.reloj.wall, **kw)
+        # La pausa de cortesía de los lectores (Federacion.delay: FIFLP_DELAY, ~1,25 s con time.sleep de verdad),
+        # en el reloj de la falsa y sin apuntarla en `dormido`: las pruebas no esperan de verdad, y lo dormido
+        # sigue siendo solo lo que decide Federacion (el intervalo, el freno, los reintentos).
+        def delay(extra=0):
+            self.reloj.t += 1.25 + extra
+        fed.delay = delay
+        return fed

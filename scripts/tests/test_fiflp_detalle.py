@@ -6,6 +6,8 @@ import sys
 import time
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / "scripts"))
 import fetch_fiflp_detalle as D
@@ -179,3 +181,204 @@ def test_plazo_agotado_para_sin_perder_lo_leido(tmp_path, monkeypatch):
     monkeypatch.setattr(D, "HERE", tmp_path)
     page = FakePage(web())
     assert D.run_groups(page, FakeF(page), ["12"], set(), time.monotonic() - 1, log=lambda *a: None) is False
+
+
+# ── Con la lectura del bot (fiflp_carga.Federacion) sobre la federación de mentira ──
+# Temporada 12 (2016-2017), una competición 900 con un grupo G1 de cinco jornadas (sus partidos, los datos del
+# raspador falso). Como para_tanda: sin esperas del freno.
+
+from federacion_falsa import FederacionFalsa, Pagina, Reloj  # noqa: E402
+
+JORNADAS = [(str(10 + n), f"{n} - {day}-10-2016") for n, day in ((1, "01"), (2, "08"), (3, "15"), (4, "22"), (5, "29"))]
+
+
+def partido(n):
+    return [{"home": f"Equipo {n}A", "away": f"Equipo {n}B", "hs": 1, "as": 0, "date": ""}]
+
+
+def sitio_detalle(muertas=()):
+    def sitio(url):
+        if any(m in url for m in muertas):
+            return Pagina(html="")
+        if "NFG_VisClasificacion" in url:
+            return Pagina(html=read("clasificacion_2526_A2.html"))
+        if "NFG_LstDirectorioEquipos" in url:
+            return Pagina(html=read("directorio_2526_A2.html"))
+        if "NFG_VisCampos" in url:
+            return Pagina(html=read("campo_75.html"))
+        if "NFG_CmpJornada" in url and "CodJornada=" in url:
+            n = int(url.rsplit("CodJornada=", 1)[1]) - 10
+            return Pagina(datos=partido(n))
+        if "NFG_CmpJornada" in url and "CodGrupo=" in url:
+            return Pagina(opciones={"jornada": JORNADAS})
+        if "NFG_CmpJornada" in url:
+            return Pagina(opciones={"grupo": [("G1", "GRUPO 1")]})
+        return None
+    return sitio
+
+
+@pytest.fixture
+def fed_detalle(tmp_path, monkeypatch):
+    monkeypatch.setattr(D, "HERE", tmp_path)
+    monkeypatch.setattr(D, "CAMPOS_RAW", tmp_path / "fiflp_campos_raw.json")
+    monkeypatch.setattr(D, "DB_PATH", tmp_path / "no-hay-base.db")
+    monkeypatch.setattr(D, "catalog_comps", lambda code, categories=None: [("900", "LIGA BENJAMIN X")])
+    return tmp_path / "fiflp_detalle_2016-2017_raw.json"
+
+
+def correr(f, jornadas=("12",), campos=False):
+    f.ip_nueva()
+    f.pedidas.clear()
+    F = f.fed(deadline=f.reloj.t + 3600, max_pauses=0)
+    partes = {}
+    if campos:
+        ok = D.run_campos(f.page(), F, time.monotonic() + 600, log=lambda *a: None, partes=partes)
+    else:
+        ok = D.run_groups(f.page(), F, ["12"], set(jornadas), time.monotonic() + 600, log=lambda *a: None,
+                          partes=partes)
+    return ok, F, partes
+
+
+
+def test_el_calendario_de_un_grupo_se_reanuda_por_la_jornada_que_falta(fed_detalle):
+    # La competición, la clasificación, el directorio, el calendario y dos jornadas: la 3.ª, frenada.
+    f = FederacionFalsa(sitio_detalle(), Reloj(), cupo=6, bloqueos=(None,))
+    ok, F, partes = correr(f)
+    g1 = json.loads(fed_detalle.read_text())["900:G1"]
+    assert not ok and F.parada == "freno"
+    assert g1["ok"] and len(g1["clasificacion"]) == 12 and len(g1["directorio"]) == 12
+    assert sorted(g1["jornadas_leidas"]) == ["Jornada 1", "Jornada 2"] and "jornadas" not in g1
+    assert g1["jornadas_leidas"]["Jornada 2"][0]["home"] == "Equipo 2A" and "intentos" not in g1
+    assert partes == {"calendario:2016-2017": {"completo": False, "pendientes": 1, "no_disponible": 0}}
+    f = FederacionFalsa(sitio_detalle(), Reloj())
+    ok, F, partes = correr(f)
+    assert [u.split("NPcd")[1] for u in f.pedidas] == [
+        "/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=12&CodCompeticion=900&CodGrupo=G1"] + [
+        f"/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=12&CodCompeticion=900&CodGrupo=G1&CodJornada={v}"
+        for v in ("13", "14", "15")]
+    g1 = json.loads(fed_detalle.read_text())["900:G1"]
+    assert ok and sorted(g1["jornadas"]) == [f"Jornada {n}" for n in range(1, 6)] and "jornadas_leidas" not in g1
+    assert g1["jornadas"]["Jornada 1"][0]["date"] == "2016-10-01"
+    assert partes == {"calendario:2016-2017": {"completo": True, "pendientes": 0, "no_disponible": 0}}
+
+
+def test_un_freno_no_pisa_un_grupo_ya_leido(fed_detalle):
+    f = FederacionFalsa(sitio_detalle(), Reloj())
+    correr(f, jornadas=())                                      # leído sin jornadas
+    antes = fed_detalle.read_bytes()
+    assert "jornadas" not in json.loads(antes)["900:G1"]
+    f = FederacionFalsa(sitio_detalle(), Reloj(), cupo=0, bloqueos=(None,))
+    ok, F, partes = correr(f)                                   # pedidas sus jornadas, frenada en la primera
+    assert not ok and F.parada == "freno" and fed_detalle.read_bytes() == antes
+    assert partes["calendario:2016-2017"]["pendientes"] == 1
+
+
+def test_un_grupo_cuya_clasificacion_viene_vacia_siempre_acaba_no_disponible(fed_detalle):
+    f = FederacionFalsa(sitio_detalle(muertas=("NFG_VisClasificacion",)), Reloj())
+    for n in (1, 2):
+        ok, F, partes = correr(f, jornadas=())
+        g1 = json.loads(fed_detalle.read_text())["900:G1"]
+        assert g1["ok"] is False and g1["intentos"] == n and F.parada is None and F.dead == 1
+    ok, F, partes = correr(f, jornadas=())
+    assert json.loads(fed_detalle.read_text())["900:G1"]["no_disponible"] is True
+    assert partes == {"detalle:2016-2017": {"completo": True, "pendientes": 0, "no_disponible": 1}}
+    ok, F, partes = correr(f, jornadas=())
+    assert f.pedidas == []
+
+
+def test_una_jornada_muerta_gasta_intentos_y_no_da_el_calendario_por_entero(fed_detalle):
+    """Una jornada que viene vacía siempre: el grupo queda leído (clasificación y directorio) con las otras
+    jornadas en «jornadas_leidas», un intento por ejecución y, con tres, no disponible; nunca «jornadas»."""
+    f = FederacionFalsa(sitio_detalle(muertas=("CodJornada=13",)), Reloj())
+    for n in (1, 2, 3):
+        ok, F, partes = correr(f)
+        g1 = json.loads(fed_detalle.read_text())["900:G1"]
+        assert g1["ok"] and g1["intentos"] == n and "jornadas" not in g1 and len(g1["jornadas_leidas"]) == 4
+    assert g1["no_disponible"] is True and partes["calendario:2016-2017"]["completo"]
+    ok, F, partes = correr(f)
+    assert f.pedidas == []
+
+
+def test_una_competicion_sin_grupos_gasta_intentos_en_el_raw(fed_detalle):
+    f = FederacionFalsa(lambda url: Pagina() if "NFG_CmpJornada" in url else None, Reloj())
+    for n in (1, 2):
+        correr(f, jornadas=())
+        raw = json.loads(fed_detalle.read_text())
+        assert raw["_intentos"] == {"900": n} and "900" not in raw.get("_grupos", {})
+    ok, F, partes = correr(f, jornadas=())
+    raw = json.loads(fed_detalle.read_text())
+    assert raw["_grupos"]["900"] == [] and partes["detalle:2016-2017"] == {"completo": True, "pendientes": 0,
+                                                                          "no_disponible": 1}
+    correr(f, jornadas=())
+    assert f.pedidas == []
+
+
+def test_una_ficha_de_campo_vacia_acaba_no_disponible(fed_detalle):
+    (fed_detalle.parent / "fiflp_detalle_2016-2017_raw.json").write_text(json.dumps(
+        {"900:G1": {"ok": True, "directorio": [{"venue_code": 75}, {"venue_code": 76}]}}), encoding="utf-8")
+    campos = fed_detalle.parent / "fiflp_campos_raw.json"
+    # La ficha 76 carga pero sin datos; la 75, bien.
+    f = FederacionFalsa(lambda url: Pagina(html=read("campo_75.html")) if "Codigo_Campo=75" in url else Pagina(),
+                        Reloj())
+    for n in (1, 2):
+        ok, F, partes = correr(f, campos=True)
+        data = json.loads(campos.read_text())
+        assert data["75"]["ok"] and data["76"] == {**data["76"], "ok": False, "intentos": n}
+        assert "no_disponible" not in data["76"] and partes["campos"]["pendientes"] == 1
+    ok, F, partes = correr(f, campos=True)
+    assert json.loads(campos.read_text())["76"]["no_disponible"] is True
+    assert partes == {"campos": {"completo": True, "pendientes": 0, "no_disponible": 1}}
+    correr(f, campos=True)
+    assert f.pedidas == []
+    # Con el freno, la ficha ni se escribe.
+    campos.unlink()
+    f = FederacionFalsa(lambda url: Pagina(html=read("campo_75.html")), Reloj(), cupo=1, bloqueos=(None,))
+    ok, F, partes = correr(f, campos=True)
+    assert not ok and F.parada == "freno" and list(json.loads(campos.read_text())) == ["75"]
+
+
+def test_una_temporada_sin_competiciones_en_la_web_acaba_sin_ninguna(tmp_path, monkeypatch):
+    """Una temporada que el catálogo no tiene y cuya página no da competiciones: un intento por ejecución
+    (en _intentos), sin guardar la lista vacía como leída; con tres, ninguna, y no se vuelve a pedir. Con el
+    freno, ni el intento."""
+    monkeypatch.setattr(D, "HERE", tmp_path)
+    path = tmp_path / "fiflp_detalle_2016-2017_raw.json"
+    f = FederacionFalsa(lambda url: Pagina(), Reloj(), cupo=0, bloqueos=(None,))
+    ok, F, partes = correr(f, jornadas=())
+    assert not ok and F.parada == "freno" and not path.exists()
+    f = FederacionFalsa(lambda url: Pagina(), Reloj())
+    for n in (1, 2):
+        ok, F, partes = correr(f, jornadas=())
+        raw = json.loads(path.read_text())
+        assert raw["_intentos"] == {"_comps": n} and "_comps" not in raw
+        assert partes["detalle:2016-2017"]["pendientes"] == 1
+    ok, F, partes = correr(f, jornadas=())
+    assert json.loads(path.read_text())["_comps"] == []
+    assert partes == {"detalle:2016-2017": {"completo": True, "pendientes": 0, "no_disponible": 1}}
+    correr(f, jornadas=())
+    assert f.pedidas == []
+
+
+def test_un_corte_en_cualquier_peticion_no_deja_nada_mal_leido(fed_detalle):
+    """La pregunta de la parte G para el detalle: el corte (el freno de verdad) en cada petición posible (la
+    lista de grupos, la clasificación, el directorio, el calendario, cada jornada) deja solo lo leído: ningún
+    grupo sin `ok`, ningún intento gastado, «jornadas» solo con el calendario entero; y una ejecución sin
+    freno después deja lo mismo que una entera sin cortes."""
+    def sin_fecha(raw):
+        return {k: ({c: v for c, v in e.items() if c != "fetched"} if isinstance(e, dict) and "ok" in e else e)
+                for k, e in raw.items()}
+    ok, F, partes = correr(FederacionFalsa(sitio_detalle(), Reloj()))
+    entera, total = sin_fecha(json.loads(fed_detalle.read_text())), F.pages
+    assert ok and total == 1 + 3 + 5
+    for k in range(total):
+        fed_detalle.unlink(missing_ok=True)
+        ok, F, partes = correr(FederacionFalsa(sitio_detalle(), Reloj(), cupo=k, bloqueos=(None,)))
+        assert not ok and F.parada == "freno", k
+        raw = json.loads(fed_detalle.read_text()) if fed_detalle.exists() else {}
+        g1 = raw.get("900:G1")
+        if g1 is not None:
+            assert g1["ok"] and "intentos" not in g1 and "jornadas" not in g1, k
+            assert len(g1["clasificacion"]) == 12 and len(g1["directorio"]) == 12, k
+        assert not partes["calendario:2016-2017"]["completo"], k
+        ok, F, partes = correr(FederacionFalsa(sitio_detalle(), Reloj()))
+        assert ok and sin_fecha(json.loads(fed_detalle.read_text())) == entera, k

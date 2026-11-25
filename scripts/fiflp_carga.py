@@ -687,3 +687,29 @@ def guardar_resumen(path, fed, partes):
     escrito = fed._wall().astimezone(timezone.utc).isoformat(timespec="seconds")
     data = {**fed.resumen(), "partes": partes, "escrito": escrito}
     escribir_atomico(path, json.dumps(data, ensure_ascii=False, indent=1, sort_keys=True) + "\n")
+
+
+def ultima_linea(F, completo):
+    """La última línea del registro de una tanda, la que lee su workflow: «Completo.» (nada pendiente),
+    «Frenada: …» (la federación no sirve: el freno de verdad o un runner rechazado; relanzar en seguida sería
+    pedirle más a una federación que no sirve) o «Incompleto: relanzar para seguir.» (el plazo, el tope, el
+    navegador, o lo pendiente de una página muerta, que gasta un intento por ejecución)."""
+    if completo:
+        return "Completo."
+    if parada_de(F) in ("freno", "runner"):
+        return (f"Frenada: {getattr(F, 'served', 0)} páginas servidas, la federación no sirve; se sigue en otra "
+                "ejecución.")
+    return "Incompleto: relanzar para seguir."
+
+
+def un_intento(entry, previo):
+    """`entry`, la entrada de una tanda cuya página no cargó aunque la federación servía otras (parada_de None:
+    una página muerta o que no existe): `ok` False y un intento más que `previo` (la de antes; uno por ejecución,
+    porque cada entrada se pide una vez en cada una) y, con MAX_INTENTOS, «no disponible en la federación»
+    (`no_disponible`: cuenta como hecha, y los importadores la saltan porque miran `ok`). Si la federación paró,
+    no se llama: la entrada se queda como estaba."""
+    intentos = int((previo or {}).get("intentos") or 0) + 1
+    entry.update(ok=entry.get("ok", False), intentos=intentos)
+    if intentos >= MAX_INTENTOS:
+        entry["no_disponible"] = True
+    return entry
