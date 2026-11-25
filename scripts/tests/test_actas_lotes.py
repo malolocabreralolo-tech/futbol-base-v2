@@ -5,8 +5,8 @@ Un raw de actas de benjamín y prebenjamín pesa unos 20 MB por temporada; el hi
 100 MB). Las de alevín van a scripts/fiflp_actas_<S>_alevin_raw.json, con su índice y su estado:
 
 - fetch_fiflp_actas.py baja en cada tanda las de UN lote y solo escribe los ficheros de ese lote
-  (los de su cadena: dos cadenas nunca escriben el mismo fichero): con varios navegadores
-  (fetch_parallel), en las tandas encadenadas (índice y estado por lote) y al refrescar; un acta
+  (los de su cadena: dos cadenas nunca escriben el mismo fichero): con un navegador (leer_actas),
+  en las tandas encadenadas (índice y estado por lote) y al refrescar; un acta
   que una tanda antigua dejó en el raw que no es el suyo pasa sola al suyo (la adopta la tanda de
   su lote y la suelta la del otro);
 - import_fiflp_actas.py importa los dos (su huella por fichero; el de siempre, primero) sin que la
@@ -124,12 +124,18 @@ def test_the_competitions_of_a_tanda_go_to_the_lote_of_their_category():
 
 # ── La descarga (main con un navegador de mentira) ───────────────────────────
 
+# La federación de la tanda: la de mentira, que lo sirve todo (enumerar y fetch_and_parse_acta van falsos;
+# la Federacion solo pide la página de la temporada antes de las actas: fiflp_carga.preparar).
+from federacion_falsa import FederacionFalsa, Pagina, Reloj  # noqa: E402
+FALSA = []
+
+
 class _Browser:
     def new_context(self, **kw):
         return self
 
     def new_page(self):
-        return object()
+        return FALSA[-1].page()
 
     def close(self):
         pass
@@ -179,6 +185,9 @@ def fed(tmp_path, monkeypatch):
     monkeypatch.setattr(A, "sync_playwright", None, raising=False)
     monkeypatch.setattr(A, "HERE", tmp_path)
     monkeypatch.setattr(A, "delay", lambda *a, **k: None)
+    FALSA[:] = [FederacionFalsa(lambda url: Pagina(), Reloj())]
+    monkeypatch.setattr(A, "federacion", lambda minutos, max_paginas: FALSA[-1].fed(
+        deadline=FALSA[-1].reloj.t + minutos * 60, max_pauses=0))
     LAUNCHES.clear()
     catalogo, entry = json.loads(CATALOGO.read_text(encoding="utf-8")), A._catalog_entry
     monkeypatch.setattr(A, "_catalog_entry",                  # main lee el catálogo por su cuenta: el congelado
@@ -186,20 +195,21 @@ def fed(tmp_path, monkeypatch):
     names = A.catalog_names("21")
     state = {"competition": {}, "read": [], "answer": None, "mislabel": True}
 
-    def enumerate_comp(page, season, comp):
-        out = [{"cod_acta": f"{comp}{i}", "comp_id": comp, "grupo": "1", "jornada": str(i)} for i in (1, 2)]
-        for t in out:
-            state["competition"][t["cod_acta"]] = f"{names[comp]} (GRUPO 1)"
+    def enumerar(page, F, season, comp, ledger, index, intentos, no_disponible, log=print):
+        for i in (1, 2):
+            index[f"{comp}{i}"] = {"comp_id": comp, "grupo": "1", "jornada": str(i)}
+            state["competition"][f"{comp}{i}"] = f"{names[comp]} (GRUPO 1)"
         if state["mislabel"] and comp == "54422885":
             state["competition"]["544228852"] = f"{ALEVIN_COMP} (GRUPO 3)"
-        return out, "main"
+        ledger.update(grupos=[["1", "GRUPO 1"]], pendientes={})
+        return "completa"
 
-    def read(page, cod, dump=""):
+    def read(page, cod, F, dump=None):
         state["read"].append(cod)
         competition = state["competition"][cod]
         return state["answer"](cod, competition) if state["answer"] else synthetic_acta(competition)
 
-    monkeypatch.setattr(A, "enumerate_actas_cascade", enumerate_comp)
+    monkeypatch.setattr(A, "enumerar", enumerar)
     monkeypatch.setattr(A, "fetch_and_parse_acta", read)
 
     def run(*argv):
@@ -214,25 +224,30 @@ def files(folder):
     return {p.name: json.loads(p.read_text(encoding="utf-8")) for p in sorted(folder.glob("fiflp_actas_*.json"))}
 
 
-def test_each_tanda_writes_only_the_files_of_its_lote_with_several_browsers_and_chained_tandas(fed, capsys):
+def status_de(status):
+    """Lo que estas pruebas miran del estado de un lote (el formato 2 lleva más: test_fiflp_actas_enumeration)."""
+    return {k: status[k] for k in ("season", "enumerated", "in_raw", "pending", "unenumerated_comps", "fetched")}
+
+
+def test_each_tanda_writes_only_the_files_of_its_lote_with_one_browser_and_chained_tandas(fed, capsys):
     raw, raw_al = "fiflp_actas_2025-2026_raw.json", "fiflp_actas_2025-2026_alevin_raw.json"
-    fed["run"]("--categorias", "alevin", "--lote", "alevin", "--workers", "3")
-    # Cada navegador (el de enumerar y uno por hilo), sin lo ajeno ni imágenes y sin ruta (con caché).
+    fed["run"]("--categorias", "alevin", "--lote", "alevin")
+    # Un navegador para toda la tanda, sin lo ajeno ni imágenes y sin ruta (con caché).
     from scripts.fiflp_render import fiflp_launch_args
-    assert len(LAUNCHES) == 4 and all(kw == {"headless": True, "args": fiflp_launch_args()} for kw in LAUNCHES)
+    assert len(LAUNCHES) == 1 and all(kw == {"headless": True, "args": fiflp_launch_args()} for kw in LAUNCHES)
     got = files(fed["dir"])
     assert set(got) == {f"fiflp_actas_2025-2026_alevin_{kind}.json" for kind in ("raw", "index", "status")}
     alevin = got[raw_al]
     assert {a["enumeration"]["comp_id"] for a in alevin.values()} == ALEVIN_2526
     assert all(L.lote_of_name(a["header"]["competition"]) == "alevin" for a in alevin.values())
-    assert got["fiflp_actas_2025-2026_alevin_status.json"] == {
+    assert status_de(got["fiflp_actas_2025-2026_alevin_status.json"]) == {
         "season": "2025-2026", "enumerated": 12, "in_raw": 12, "pending": 0, "unenumerated_comps": 0, "fetched": 12}
     alevin_bytes = {p.name: p.read_bytes() for p in fed["dir"].glob("fiflp_actas_*alevin*.json")}
 
-    # Benjamín y prebenjamín (con varios navegadores): el acta de una competición de benjamín cuya
-    # cabecera dice alevín se queda en el raw de la tanda, con un aviso (el de alevín es de otra cadena).
+    # Benjamín y prebenjamín: el acta de una competición de benjamín cuya cabecera dice alevín se queda en
+    # el raw de la tanda, con un aviso (el de alevín es de otra cadena).
     capsys.readouterr()
-    fed["run"]("--lote", "siempre", "--workers", "3")
+    fed["run"]("--lote", "siempre")
     assert "acta 544228852: su cabecera es del lote alevin" in capsys.readouterr().out
     assert {p.name: p.read_bytes() for p in fed["dir"].glob("fiflp_actas_*alevin*.json")} == alevin_bytes
     got = files(fed["dir"])
@@ -244,18 +259,23 @@ def test_each_tanda_writes_only_the_files_of_its_lote_with_several_browsers_and_
     assert sorted(fed["read"]) == sorted(set(fed["read"]))                   # cada acta, una vez
     for argv, lote in ((("--categorias", "alevin"), "alevin"), ((), "")):
         fed["run"](*argv, "--estado")
-        assert json.loads(capsys.readouterr().out) == {"pending": 0, "stuck": 0, "lote": lote}
+        # servidas 1: la página de la temporada antes de las actas (fiflp_carga.preparar); las actas, falsas.
+        assert json.loads(capsys.readouterr().out) == {"pending": 0, "stuck": 0, "lote": lote, "parada": None,
+                                                       "servidas": 1}
 
     # Tandas encadenadas: todo del índice de su lote y nada pendiente.
     fed["read"].clear()
     before = {n: (fed["dir"] / n).read_bytes() for n in (raw, raw_al)}
-    fed["run"]("--categorias", "alevin", "--workers", "2")
-    fed["run"]("--workers", "2")
+    fed["run"]("--categorias", "alevin")
+    fed["run"]()
     assert fed["read"] == []
     assert {n: (fed["dir"] / n).read_bytes() for n in before} == before
     capsys.readouterr()
+    # Con el estado nuevo, «atascada» es solo una tanda que la federación paró sin servir casi nada
+    # (chain_state); sin nada pendiente, la cadena pasa a la temporada siguiente igual.
     fed["run"]("--categorias", "alevin", "--estado")
-    assert json.loads(capsys.readouterr().out) == {"pending": 0, "stuck": 1, "lote": "alevin"}
+    assert json.loads(capsys.readouterr().out) == {"pending": 0, "stuck": 0, "lote": "alevin", "parada": None,
+                                                   "servidas": 0}
 
     # Refrescar: las de benjamín salen mejor y se sustituyen; las de alevín salen peor y se quedan las
     # viejas, marcadas en SU raw. Ninguna cambia de raw y cada tanda solo escribe el suyo.
@@ -266,9 +286,9 @@ def test_each_tanda_writes_only_the_files_of_its_lote_with_several_browsers_and_
             return synthetic_acta(competition, consistent=False, staff_v=STAFF_VERSION)
         return synthetic_acta(competition, staff_v=STAFF_VERSION)
     fed["answer"] = answer
-    fed["run"]("--refrescar", "--workers", "3")
+    fed["run"]("--refrescar")
     assert (fed["dir"] / raw_al).read_bytes() == before[raw_al]
-    fed["run"]("--categorias", "alevin", "--refrescar", "--workers", "3")
+    fed["run"]("--categorias", "alevin", "--refrescar")
     after = files(fed["dir"])
     usual2, alevin2 = after[raw], after[raw_al]
     assert set(usual2) == set(usual) and set(alevin2) == set(alevin)
@@ -362,6 +382,65 @@ def test_the_chain_state_of_each_lote(tmp_path, monkeypatch):
     assert A.chain_state("21", "alevin")["stuck"] == 0
     write("alevin", pending=5, fetched=0, unenumerated_comps=0)
     assert A.chain_state("21", "alevin") == {"pending": 5, "stuck": 1, "lote": "alevin"}
+
+
+def test_un_estado_antiguo_sigue_valiendo(tmp_path, monkeypatch):
+    """El estado de 2018-19 del repositorio (pending 0, fetched 0, sin `formato`): actas_complete y chain_state
+    como hasta ahora (2016-17 a 2018-19 siguen dadas de alta)."""
+    import shutil
+    import import_fiflp_grupos as GR
+    for kind in ("raw", "index", "status"):
+        name = L.file_name("2018-2019", kind)
+        shutil.copy(ROOT / "scripts" / name, tmp_path / name)
+    status = json.loads((tmp_path / L.file_name("2018-2019", "status")).read_text(encoding="utf-8"))
+    assert "formato" not in status and (status["pending"], status["fetched"]) == (0, 0)
+    assert GR.actas_complete(str(tmp_path), "2018-2019")
+    monkeypatch.setattr(A, "HERE", tmp_path)
+    assert A.chain_state("14") == {"pending": 0, "stuck": 1, "lote": ""}
+
+
+def test_un_estado_nuevo_solo_esta_completo_sin_nada_pendiente(tmp_path):
+    """Formato 2: completa solo con pending 0. La regla antigua («la última tanda no trajo ninguna») daba por
+    completa una temporada frenada desde la primera página."""
+    import import_fiflp_grupos as GR
+    season = "2019-2020"
+    for kind in ("raw", "index"):
+        (tmp_path / L.file_name(season, kind)).write_text("{}", encoding="utf-8")
+
+    def status(**kw):
+        (tmp_path / L.file_name(season, "status")).write_text(json.dumps(
+            {"formato": 2, "fetched": 0, "unenumerated_comps": 0, **kw}), encoding="utf-8")
+    status(pending=4)
+    assert not GR.actas_complete(str(tmp_path), season)
+    status(pending=0)
+    assert GR.actas_complete(str(tmp_path), season)
+
+
+def test_la_cadena_vieja_para_con_el_freno(tmp_path, monkeypatch):
+    """Formato 2: atascada si la federación paró la tanda (`parada`) habiendo servido menos de RELANZAR_MIN
+    páginas: la cadena vieja de actas-federacion.yml deja de relanzarse contra el freno."""
+    import fiflp_carga
+    monkeypatch.setattr(A, "HERE", tmp_path)
+
+    def write(**kw):
+        A.status_path("21").write_text(json.dumps({"formato": 2, "pending": 9, "fetched": 0, **kw}), encoding="utf-8")
+    write(parada="freno", paginas={"pedidas": 22, "servidas": 20})
+    assert A.chain_state("21") == {"pending": 9, "stuck": 1, "lote": "", "parada": "freno", "servidas": 20}
+    write(parada="freno", paginas={"pedidas": 210, "servidas": 200})
+    assert A.chain_state("21")["stuck"] == 0
+    write(parada=None, paginas={"pedidas": 2, "servidas": 0})
+    assert A.chain_state("21")["stuck"] == 0
+    assert fiflp_carga.RELANZAR_MIN == 60
+
+
+def test_los_lotes_salen_de_una_tabla():
+    assert L.LOTES == ("", "alevin") and L.LOTE_DE_CATEGORIA == {"ALEVIN": "alevin"}
+    assert L.lote_of("ALEVIN") == "alevin" and L.lote_of("BENJAMIN") == "" and L.lote_of(None) == ""
+    assert A.LOTE_ARG == {"siempre": "", "alevin": "alevin"}
+    for lote in L.LOTES:
+        m = L.RAW_FILE.match(L.file_name("2025-2026", "raw", lote))
+        assert m and (m.group(1), m.group(2) or "") == ("2025-2026", lote), lote
+    assert not L.RAW_FILE.match("fiflp_actas_2025-2026_cadete_raw.json")
 
 
 def test_the_store_only_writes_the_raw_of_its_lote(tmp_path, monkeypatch):

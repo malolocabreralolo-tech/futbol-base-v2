@@ -28,10 +28,16 @@ import os
 import re
 import unicodedata
 
-# En este orden: el de siempre primero (al importar, al juntar índices y raws).
-LOTES = ("", "alevin")
+# El lote de cada categoría que no va al raw de siempre (benjamín y prebenjamín, las que no están aquí). Un
+# lote por categoría nueva: un raw de fútbol 11 (~3.300 actas por categoría y temporada) ya ronda los 20-25 MB,
+# y dos juntos se acercarían al aviso de 50 MB de GitHub. Infantil, cadete y juvenil los añade la parte E (una
+# línea cada uno, y sus nombres en categorias.py); fuera de esta tabla nadie supone «alevín o no».
+LOTE_DE_CATEGORIA = {"ALEVIN": "alevin"}
+# En este orden: el de siempre primero (al importar, al juntar índices y raws), y los demás sin repetir.
+LOTES = ("",) + tuple(dict.fromkeys(LOTE_DE_CATEGORIA.values()))
 # Un raw de actas de cualquier lote: grupo 1, la temporada; grupo 2, el lote (None = el de siempre).
-RAW_FILE = re.compile(r"^fiflp_actas_(\d{4}-\d{4})(?:_(alevin))?_raw\.json$")
+RAW_FILE = re.compile(r"^fiflp_actas_(\d{4}-\d{4})(?:_(" + "|".join(re.escape(lote) for lote in LOTES if lote)
+                      + r"))?_raw\.json$")
 KINDS = ("raw", "index", "status")
 
 
@@ -44,8 +50,9 @@ def _categorias():
 
 
 def lote_of(category):
-    """'ALEVIN' → 'alevin'; 'BENJAMIN', 'PREBENJAMIN' (o None) → '' (el raw de siempre)."""
-    return "alevin" if category == "ALEVIN" else ""
+    """El lote de una categoría (LOTE_DE_CATEGORIA): 'ALEVIN' → 'alevin'; 'BENJAMIN', 'PREBENJAMIN' (o None)
+    → '' (el raw de siempre)."""
+    return LOTE_DE_CATEGORIA.get(category, "")
 
 
 def lote_of_name(name):

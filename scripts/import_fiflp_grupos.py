@@ -345,7 +345,8 @@ def actas_complete(folder, season):
     """¿Ha terminado la descarga de las actas de `season`? Hay raw e índice y su
     _status.json dice que no queda ninguna (pending 0) o que la última tanda no
     trajo ninguna sin dejar competiciones por enumerar: la regla de
-    actas-federacion.yml para pasar a la temporada siguiente. Sin estado, no.
+    actas-federacion.yml para pasar a la temporada siguiente. Con el estado nuevo
+    (formato 2), solo pending 0. Sin estado, no.
     Las de benjamín y prebenjamín (el lote de siempre) siempre; las de alevín
     (actas_lotes, aparte), solo si se han empezado a descargar: entonces también
     tienen que haber terminado."""
@@ -359,8 +360,14 @@ def actas_complete(folder, season):
             status = _load(paths[2], {})
         except ValueError:
             return False
-        if not (status.get("pending") == 0
-                or (status.get("fetched", 1) == 0 and not status.get("unenumerated_comps"))):
+        if status.get("formato") == 2:
+            # El estado nuevo (fetch_fiflp_actas, desde noviembre de 2026) apunta todo lo que falta, también lo
+            # que el freno dejó sin enumerar: completa solo sin nada pendiente. La regla antigua («la última
+            # tanda no trajo ninguna») daba por completa una temporada frenada desde la primera página.
+            if status.get("pending") != 0:
+                return False
+        elif not (status.get("pending") == 0
+                  or (status.get("fetched", 1) == 0 and not status.get("unenumerated_comps"))):
             return False
     return True
 

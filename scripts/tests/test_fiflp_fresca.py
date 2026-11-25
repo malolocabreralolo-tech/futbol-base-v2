@@ -431,11 +431,14 @@ def test_the_batch_readers_retry_fresh(monkeypatch):
     assert F.goto(page, group(1)) and page.fresh_loads(group(1)) == [False, True, True]
 
 
-def test_an_empty_acta_is_asked_again_fresh(monkeypatch):
-    """fetch_and_parse_acta vuelve a pedir un acta vacía (el freno): fresca, o sería la vacía guardada."""
+def test_an_empty_acta_is_asked_again_fresh(monkeypatch, tmp_path):
+    """Un acta que se vuelve a pedir en el mismo navegador (fetch_and_parse_acta con la Federacion de la tanda):
+    la segunda vez, fresca, o sería la vacía guardada; la primera, no. (Desde noviembre de 2026 no hay bucle de
+    reintentos de la vacía: decide la Federacion, y una vacía muerta se pide en la ejecución siguiente.)"""
     from scripts import fetch_fiflp_actas as A
-    page = Page()
-    assert A._fetch_acta_html(page, 125790)
-    assert A._fetch_acta_html(page, 125790)
+    monkeypatch.setattr(A, "HERE", tmp_path)               # el diagnóstico de un acta sin datos, fuera de scripts/
+    page, F = Page(), federacion(monkeypatch)
+    A.fetch_and_parse_acta(page, 125790, F)
+    A.fetch_and_parse_acta(page, 125790, F)
     url = [u for u, _ in page.loads][0]
     assert "CodActa=125790" in url and page.fresh_loads(url) == [False, True]

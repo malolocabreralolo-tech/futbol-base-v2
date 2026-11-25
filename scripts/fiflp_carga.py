@@ -713,3 +713,15 @@ def un_intento(entry, previo):
     if intentos >= MAX_INTENTOS:
         entry["no_disponible"] = True
     return entry
+
+
+def preparar(page, F, season):
+    """Antes de las páginas sin temporada en la URL (un acta, una ficha de campo) en una ejecución que aún no ha
+    servido ninguna, la de competiciones de la temporada `season` (CATALOG_URL, que existe siempre): así, si la
+    primera de ellas viene vacía, Federacion._serving tiene otra página que pedir y distingue una página muerta
+    del freno. Sin ella, la primera acta muerta de una ejecución se tomaba por el freno y la ejecución acababa
+    ahí, sin gastarle un intento, en todas las ejecuciones. Una petición por ejecución, y solo si hace falta.
+    Da False si la federación no la sirvió (parada_de(F) dice por qué); True si ya había servido alguna."""
+    if getattr(F, "served", 1):
+        return True
+    return F.goto(page, F.BASE + CATALOG_URL.format(season=season))

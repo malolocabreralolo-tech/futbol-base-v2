@@ -330,9 +330,9 @@ def test_una_ficha_de_campo_vacia_acaba_no_disponible(fed_detalle):
     assert partes == {"campos": {"completo": True, "pendientes": 0, "no_disponible": 1}}
     correr(f, campos=True)
     assert f.pedidas == []
-    # Con el freno, la ficha ni se escribe.
+    # Con el freno, la ficha ni se escribe (el cupo: la página de la temporada y la ficha 75).
     campos.unlink()
-    f = FederacionFalsa(lambda url: Pagina(html=read("campo_75.html")), Reloj(), cupo=1, bloqueos=(None,))
+    f = FederacionFalsa(lambda url: Pagina(html=read("campo_75.html")), Reloj(), cupo=2, bloqueos=(None,))
     ok, F, partes = correr(f, campos=True)
     assert not ok and F.parada == "freno" and list(json.loads(campos.read_text())) == ["75"]
 
@@ -382,3 +382,16 @@ def test_un_corte_en_cualquier_peticion_no_deja_nada_mal_leido(fed_detalle):
         assert not partes["calendario:2016-2017"]["completo"], k
         ok, F, partes = correr(FederacionFalsa(sitio_detalle(), Reloj()))
         assert ok and sin_fecha(json.loads(fed_detalle.read_text())) == entera, k
+
+
+def test_una_ficha_muerta_al_empezar_no_es_el_freno(fed_detalle):
+    """Una ejecución de solo campos: la URL de una ficha no lleva la temporada, así que antes de la primera, la
+    de competiciones (fiflp_carga.preparar). Una ficha vacía siempre gasta su intento y las demás se leen."""
+    (fed_detalle.parent / "fiflp_detalle_2016-2017_raw.json").write_text(json.dumps(
+        {"900:G1": {"ok": True, "directorio": [{"venue_code": 75}, {"venue_code": 76}]}}), encoding="utf-8")
+    f = FederacionFalsa(lambda url: Pagina(html="") if "Codigo_Campo=75" in url else
+                        Pagina(html=read("campo_75.html")) if "NFG_VisCampos" in url else Pagina(), Reloj())
+    ok, F, partes = correr(f, campos=True)
+    data = json.loads((fed_detalle.parent / "fiflp_campos_raw.json").read_text())
+    assert ok and F.parada is None and "CodTemporada=22" in f.pedidas[0]
+    assert data["75"]["intentos"] == 1 and data["76"]["ok"]

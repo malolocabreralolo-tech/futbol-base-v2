@@ -11,8 +11,8 @@ def test_public_api_importable():
         KNOWN_COMPS,
         SEASON_NAME,
         parse_args,
-        enumerate_actas_main,
-        enumerate_actas_cascade,
+        enumerar,
+        leer_actas,
         fetch_and_parse_acta,
         enumerate_actas_lstpartidos,
         enumerate_actas_via_teams,
@@ -25,8 +25,8 @@ def test_public_api_importable():
         save_raw,
     )
     assert callable(main)
-    assert callable(enumerate_actas_main)
-    assert callable(enumerate_actas_cascade)
+    assert callable(enumerar)
+    assert callable(leer_actas)
     assert callable(fetch_and_parse_acta)
 
 

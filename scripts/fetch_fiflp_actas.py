@@ -3,13 +3,23 @@
 across all 5 seasons, incrementally and resumably.
 
 Saves to scripts/fiflp_actas_<season>_raw.json keyed by CodActa (benjamín y
-prebenjamín) y las de alevín APARTE, en scripts/fiflp_actas_<season>_alevin_raw.json,
-cada lote con su índice y su estado (actas_lotes.py): el histórico alevín en el
-mismo raw lo duplicaría y lo acercaría a los límites de GitHub. Una tanda es de UN
-lote (tanda_lote: las categorías que mezclan los dos se rechazan) y solo escribe los
-ficheros de ese lote, los que sube su cadena de actas-federacion.yml (una por
-temporada y lote): dos cadenas nunca escriben el mismo fichero. Tampoco al refrescar
-ni con varios navegadores.
+prebenjamín) y las de cada otra categoría APARTE (alevín, en
+scripts/fiflp_actas_<season>_alevin_raw.json: actas_lotes.LOTE_DE_CATEGORIA), cada
+lote con su índice y su estado (actas_lotes.py): el histórico alevín en el mismo raw
+lo duplicaría y lo acercaría a los límites de GitHub. Una tanda es de UN lote
+(tanda_lote: las categorías que mezclan dos se rechazan) y solo escribe los ficheros
+de ese lote, los que sube su cadena (una por temporada y lote): dos cadenas nunca
+escriben el mismo fichero. Tampoco al refrescar.
+
+Lee como el bot (fiflp_carga.para_tanda: una página vacía solo es el freno si la
+federación tampoco sirve otra), con UN navegador y una página para toda la tanda, y
+competición a competición: la enumera (enumerar) y en seguida lee sus actas
+(leer_actas). Lo que falta va apuntado en el estado (formato 2: status_de), jornada
+a jornada: si la federación para (el freno, el tope de peticiones, el plazo, un
+runner rechazado), lo que no leyó queda pendiente y la tanda acaba; si sirve otras y
+una página no (una página muerta), esa gasta un intento por tanda y, con
+fiflp_carga.MAX_INTENTOS, queda «no disponible en la federación», fuera de lo
+pendiente. Nada que vino vacío se guarda como leído.
 
 CLI:
   --temporada NN      (required) CodTemporada: 12..22
@@ -20,9 +30,12 @@ CLI:
   --lote siempre|alevin (optional) el lote de la cadena (su grupo de concurrencia en
                       actas-federacion.yml): si las categorías son de otro, para
   --max-actas N       (optional) cap for spike runs
+  --max-paginas N     (optional) tope de peticiones a la federación de la tanda (0, sin tope)
+  --resumen RUTA      (optional) el resumen de la tanda (fiflp_carga.guardar_resumen; parte
+                      «actas:<S>:<lote o siempre>»)
   --dump-fixture COD  (optional) dump acta HTML to scripts/tests/fixtures/
-  --estado            (optional) sin navegador: imprime {"pending", "stuck", "lote"} del lote
-                      de la tanda (lo lee actas-federacion.yml para encadenar)
+  --estado            (optional) sin navegador: imprime chain_state del lote de la tanda
+                      (lo lee actas-federacion.yml para encadenar)
 
 Designed to run only in GitHub Actions (FIFLP blocks the local IP).
 """
@@ -31,6 +44,15 @@ from pathlib import Path
 from scripts.acta_parser import parse_acta
 from scripts import actas_lotes
 from scripts.escritura import escribir_atomico
+
+# La lectura del bot (fiflp_carga) importa sus vecinos por su nombre (fiflp_render, escritura): la carpeta de
+# scripts/ va en sys.path, al final (no tapa nada), también cuando este módulo se importa como
+# scripts.fetch_fiflp_actas o se ejecuta copiado en otra carpeta (las pruebas del workflow).
+_SCRIPTS = str(Path(actas_lotes.__file__).resolve().parent)
+if _SCRIPTS not in sys.path:
+    sys.path.append(_SCRIPTS)
+import fiflp_carga  # noqa: E402
+from fiflp_carga import MAX_INTENTOS, RELANZAR_MIN, guardar_resumen, parada_de  # noqa: E402
 
 # Playwright is only needed at runtime (inside main()). Importing it at module
 # level made the Tests CI pytest job red because the runner doesn't install
@@ -133,8 +155,9 @@ def comp_lotes(season_code, comps, categories=None, names=None):
     return out
 
 
-# --lote de la CLI (actas-federacion.yml lo pasa con el lote de su grupo de concurrencia).
-LOTE_ARG = {"siempre": "", "alevin": "alevin"}
+# --lote de la CLI (actas-federacion.yml lo pasa con el lote de su grupo de concurrencia): «siempre», el de
+# benjamín y prebenjamín, y cada lote de actas_lotes.LOTES por su nombre.
+LOTE_ARG = {"siempre": "", **{lote: lote for lote in actas_lotes.LOTES if lote}}
 
 
 def _lote_label(lote):
@@ -176,15 +199,23 @@ def status_path(season_code, lote=""):
 
 
 def chain_state(season_code, lote=""):
-    """{"pending", "stuck", "lote"} de la tanda por el estado de su lote: lo que queda (sin estado,
-    1: que siga) y si está atascada (no trajo ninguna acta ni dejó competiciones sin enumerar: lo
-    que queda no se deja leer). La regla de actas-federacion.yml para lanzar otra tanda o pasar a
-    la temporada siguiente."""
+    """Lo que queda de la tanda por el estado de su lote: la regla de actas-federacion.yml para lanzar otra
+    tanda o pasar a la temporada siguiente. Sin estado, {"pending": 1, "stuck": 0, "lote"}: que siga.
+    Con el estado nuevo (formato 2), {"pending", "stuck", "lote", "parada", "servidas"}: atascada (stuck 1) si
+    la federación paró la tanda (el freno, el tope, un runner rechazado…) habiendo servido menos de
+    RELANZAR_MIN páginas. Así la cadena deja de relanzarse contra el freno; una tanda con lo pendiente de una
+    página muerta no está atascada (cada tanda le gasta un intento). Con el antiguo, como hasta noviembre de
+    2026: atascada si no trajo ninguna acta ni dejó competiciones sin enumerar."""
     try:
         status = json.loads(status_path(season_code, lote).read_text(encoding="utf-8"))
     except (OSError, ValueError):
         return {"pending": 1, "stuck": 0, "lote": lote}
     pending = int(status.get("pending", 1))
+    if status.get("formato") == 2:
+        parada = status.get("parada")
+        servidas = int((status.get("paginas") or {}).get("servidas") or 0)
+        stuck = parada is not None and servidas < RELANZAR_MIN
+        return {"pending": pending, "stuck": int(stuck), "lote": lote, "parada": parada, "servidas": servidas}
     stuck = int(status.get("fetched", 1)) == 0 and not int(status.get("unenumerated_comps") or 0)
     return {"pending": pending, "stuck": int(stuck), "lote": lote}
 
@@ -227,9 +258,10 @@ def delay(extra=0):
 
 def goto(page, url, retries=3):
     """Carga `url` (hasta `retries` intentos) y espera 2,5 s. Por fiflp_render.goto: un reintento, o
-    una URL que el navegador ya pidió (el acta vacía otra vez de fetch_and_parse_acta, la competición
-    otra vez de enumerate_actas_cascade), pide su documento a la red y no a la caché HTTP: la federación
-    los guarda 5 min (y, con las mismas cabeceras, también su página vacía)."""
+    una URL que el navegador ya pidió, pide su documento a la red y no a la caché HTTP: la federación
+    los guarda 5 min (y, con las mismas cabeceras, también su página vacía). Solo lo usan las
+    estrategias manuales (NFG_LstPartidos, las páginas de los equipos) y discover_comps sin Federacion:
+    la tanda lee por la Federacion (enumerar, fetch_and_parse_acta), que no da por buena una vacía."""
     try:
         from scripts import fiflp_render
     except ImportError:
@@ -362,27 +394,54 @@ class RawStore:
         self.dirty = False
 
 
-class Collector:
-    """on_result de fetch_parallel (lo llaman los hilos de los navegadores, de uno en uno con su
-    cerrojo): cada acta leída va al raw del lote de la tanda (el de su competición), nunca al de
-    otro; si su cabecera dice el otro lote, se avisa (no se escribe el raw de otra cadena). Con
-    --refrescar, la relectura que sale peor se descarta y la vieja queda marcada. Cuenta las actas
-    aplanadas nuevas (el avance de la cadena) y guarda cada `save_every`."""
+def anotar_intento(intentos, no_disponible, clave):
+    """Una página que no cargó aunque la federación servía otras (o un acta que cargó sin datos): un intento más
+    de `clave` («comp:C», «grupo:C:G», «jornada:C:G:J», «acta:N»; uno por tanda, porque cada una se pide una vez
+    en cada tanda). Con MAX_INTENTOS, sale de `intentos` y pasa a `no_disponible` (fuera de lo pendiente): da
+    True. Si la federación paró, no se llama: lo que no leyó sigue pendiente sin gastar nada."""
+    n = int(intentos.get(clave) or 0) + 1
+    if n >= MAX_INTENTOS:
+        intentos.pop(clave, None)
+        if clave not in no_disponible:
+            no_disponible.append(clave)
+        return True
+    intentos[clave] = n
+    return False
 
-    def __init__(self, store, refrescar=False, save_every=25, total=0, log=print):
+
+class Collector:
+    """on_result de leer_actas: cada acta leída va al raw del lote de la tanda (el de su competición), nunca al
+    de otro; si su cabecera dice el otro lote, se avisa (no se escribe el raw de otra cadena). Con --refrescar,
+    la relectura que sale peor se descarta y la vieja queda marcada. Cuenta las actas aplanadas nuevas (el
+    avance de la cadena) y guarda cada `save_every` (y, con `on_save`, el estado).
+    Un acta que no se leyó: si la federación paró (parada_de(F)), nada (sigue pendiente); si no (una página
+    muerta, o que cargó sin datos: is_empty_acta), un intento (anotar_intento)."""
+
+    def __init__(self, store, refrescar=False, save_every=25, total=0, log=print, F=None, intentos=None,
+                 no_disponible=None, on_save=None):
         self.store, self.refrescar, self.save_every, self.total, self.log = store, refrescar, save_every, total, log
+        self.F, self.on_save = F, on_save
+        self.intentos = {} if intentos is None else intentos
+        self.no_disponible = [] if no_disponible is None else no_disponible
         self.lock = threading.Lock()
         self.fetched = 0
+        self.asked = 0                    # las actas pedidas en la tanda (--max-actas)
         self.started = time.time()
+
+    def _fallo(self, cod):
+        if anotar_intento(self.intentos, self.no_disponible, f"acta:{cod}"):
+            self.log(f"  ! acta {cod}: no disponible en la federación ({MAX_INTENTOS} tandas sin cargar)")
 
     def __call__(self, t, acta):
         cod = t["cod_acta"]
         if acta is None:
+            if parada_de(self.F) is None:
+                self._fallo(cod)          # la federación sirve otras y esta no: una muerta
             return
         if is_empty_acta(acta):
-            # Anti-scrape blank survived all retries: do NOT persist it as
-            # done, so the next incremental run retries this acta.
-            self.log(f"  ! acta {cod} empty after retries — not persisted (will retry next run)")
+            # Cargó, pero sin nada: nunca como leída (envenenaría la reanudación); un intento.
+            self.log(f"  ! acta {cod}: sin datos — no se guarda (intento)")
+            self._fallo(cod)
             return
         acta["cod_acta"] = int(cod)
         acta["enumeration"] = {"comp_id": t["comp_id"], "grupo": t["grupo"], "jornada": t["jornada"]}
@@ -406,18 +465,21 @@ class Collector:
             # save every 25 actas to survive crashes
             if flat and self.fetched % self.save_every == 0:
                 self.store.save()
+                if self.on_save:
+                    self.on_save()
                 rate = (time.time() - self.started) / self.fetched
                 self.log(f"    progress: {self.fetched}/{self.total} (saved; {rate:.1f} s por acta)")
 
 
 # ── Comp discovery ────────────────────────────────────────────────────────────
 
-def discover_comps(page, season_code, categories=None, names=None):
+def discover_comps(page, season_code, categories=None, names=None, F=None):
     """Read the comp dropdown from NFG_CmpJornada and keep those of `categories`
     (benjamín/prebenjamín by default; categorias.category_of). `names`, si se da,
-    recibe {id: nombre} de las que se quedan (comp_lotes las reparte por lote)."""
+    recibe {id: nombre} de las que se quedan (comp_lotes las reparte por lote). Con `F` (la
+    Federacion de la tanda), por F.goto; si no, por goto."""
     url = f"{BASE}/NFG_CmpJornada?cod_primaria=1000120&CodTemporada={season_code}"
-    if not goto(page, url):
+    if not (F.goto(page, url) if F is not None else goto(page, url)):
         return []
     opts = page.evaluate("""
         () => {
@@ -469,47 +531,77 @@ def _wanted(comp_id, value, text):
     return False
 
 
-def enumerate_actas_main(page, season, comp_id):
-    """Returns list of dicts: [{cod_acta, comp_id, grupo, jornada}, ...].
+def _completa(ledger):
+    """¿Enumerada la competición? Con su lista de grupos y ningún grupo con jornadas por leer."""
+    return ledger.get("grupos") is not None and not ledger.get("pendientes")
 
-    comp → grupo → jornada por URL directa (&CodGrupo=G&CodJornada=N) y los
-    CodActa de cada jornada. Antes elegía grupo con select_option y jornada con
-    BuscarPartidos sobre el formulario de búsqueda, que la página trae OCULTO
-    (#portlet_search, display:none): select_option daba timeout en todos los
-    grupos salvo el primero (2025-26: solo el grupo 1 del prebenjamín).
-    """
-    out = []
-    base = f"{BASE}/NFG_CmpJornada?cod_primaria=1000120&CodTemporada={season}&CodCompeticion={comp_id}"
-    if not goto(page, base):
-        return out
-    try:
-        labels = dict(page.evaluate("""() => Array.from(document.querySelectorAll('select[name="grupo"] option'))
-            .map(o => [o.value, o.text.trim()])""") or [])
-    except Exception:
-        labels = {}
-    grupos = [g for g in _options(page, "grupo") if _wanted(comp_id, g, labels.get(g))]
-    for grupo in grupos:
-        if not goto(page, f"{base}&CodGrupo={grupo}"):
+
+def enumerar(page, F, season, comp_id, ledger, index, intentos, no_disponible, log=print):
+    """Enumera las actas de una competición pidiendo solo lo pendiente de `ledger` (su entrada en la
+    «enumeracion» del estado: {"grupos": [[valor, nombre]] o None, "pendientes": {grupo: [jornadas] o None}},
+    que va actualizando) y añade a `index` las actas de cada jornada leída. Por URL directa: comp → grupo
+    (&CodGrupo=G) → jornada (&CodGrupo=G&CodJornada=J). Antes elegía grupo con select_option y jornada con
+    BuscarPartidos sobre el formulario de búsqueda, que la página trae OCULTO (#portlet_search, display:none):
+    select_option daba timeout en todos los grupos salvo el primero (2025-26: solo el grupo 1 del prebenjamín).
+    Una jornada que carga sin enlaces a actas está leída (existen: 2018-19 entera). La que no carga: si la
+    federación paró (parada_de), "parada" y lo que falta sigue en `ledger`; si sirve otras, un intento (clave
+    «comp:C», «grupo:C:G» o «jornada:C:G:J»: anotar_intento) y, con MAX_INTENTOS, sale de lo pendiente. Lo
+    mismo una competición o un grupo cuya página carga sin desplegable. Sin esperas entre intentos (las de
+    20-60 s de antes): lo que falta lo pide la tanda siguiente.
+    Con --grupos (GROUP_FILTER), solo esos grupos; los demás siguen pendientes.
+    Da "completa", "pendiente" o "parada"."""
+    base = f"{F.BASE}/NFG_CmpJornada?cod_primaria=1000120&CodTemporada={season}&CodCompeticion={comp_id}"
+    if ledger.get("grupos") is None:
+        valores = []
+        if F.goto(page, base):
+            try:
+                labels = dict(page.evaluate("""() => Array.from(document.querySelectorAll('select[name="grupo"] option'))
+                    .map(o => [o.value, o.text.trim()])""") or [])
+            except Exception:
+                labels = {}
+            valores = _options(page, "grupo")
+            F.delay()
+        elif parada_de(F) is not None:
+            return "parada"
+        if not valores:
+            log(f"  ! comp {comp_id}: sin grupos")
+            if anotar_intento(intentos, no_disponible, f"comp:{comp_id}"):
+                ledger.update(grupos=[], pendientes={})
+            return "completa" if _completa(ledger) else "pendiente"
+        grupos = [[g, labels.get(g, "")] for g in valores]
+        ledger.update(grupos=grupos, pendientes={g: None for g, _ in grupos})
+    pendientes = ledger.setdefault("pendientes", {})
+    for grupo, nombre in ledger["grupos"]:
+        if grupo not in pendientes or not _wanted(comp_id, grupo, nombre):
             continue
-        jornadas = _options(page, "jornada")
-        if not jornadas:
-            print(f"  WARN season={season} comp={comp_id} grupo={grupo} jornadas:0")
-            continue
-        for jornada in jornadas:
-            if not goto(page, f"{base}&CodGrupo={grupo}&CodJornada={jornada}"):
+        if pendientes[grupo] is None:
+            valores = []
+            if F.goto(page, f"{base}&CodGrupo={grupo}"):
+                valores = _options(page, "jornada")
+                F.delay()
+            elif parada_de(F) is not None:
+                return "parada"
+            if not valores:
+                log(f"  WARN season={season} comp={comp_id} grupo={grupo} jornadas:0")
+                if anotar_intento(intentos, no_disponible, f"grupo:{comp_id}:{grupo}"):
+                    del pendientes[grupo]
                 continue
-            html = page.content()
-            for m in ACTA_HREF.finditer(html):
-                out.append({"cod_acta": m.group(1), "comp_id": comp_id, "grupo": grupo, "jornada": jornada})
-            delay()
-    # dedupe by cod_acta
-    seen, uniq = set(), []
-    for r in out:
-        if r["cod_acta"] in seen:
-            continue
-        seen.add(r["cod_acta"])
-        uniq.append(r)
-    return uniq
+            pendientes[grupo] = list(valores)
+        jornadas = pendientes[grupo]
+        for jornada in list(jornadas):
+            if not F.goto(page, f"{base}&CodGrupo={grupo}&CodJornada={jornada}"):
+                if parada_de(F) is not None:
+                    return "parada"
+                if anotar_intento(intentos, no_disponible, f"jornada:{comp_id}:{grupo}:{jornada}"):
+                    jornadas.remove(jornada)
+                continue
+            for m in ACTA_HREF.finditer(page.content()):
+                index[m.group(1)] = {"comp_id": comp_id, "grupo": grupo, "jornada": jornada}
+            jornadas.remove(jornada)
+            F.delay()
+        if not jornadas:
+            del pendientes[grupo]
+    return "completa" if _completa(ledger) else "pendiente"
 
 
 # ── Enumeration: Strategy 2 — NFG_LstPartidos ────────────────────────────────
@@ -562,13 +654,13 @@ def enumerate_actas_via_teams(page, season, comp_id):
 
 # ── Enumeration: Strategy 4 — brute-force range scan ─────────────────────────
 
-def enumerate_actas_by_range(page, season, comp_id, lo, hi):
+def enumerate_actas_by_range(page, F, season, comp_id, lo, hi):
     """Strategy 4: scan CodActa range, keep those whose header season matches.
     Expensive; use only for comps that strategies 1-3 cannot enumerate."""
     out = []
     target_season = SEASON_NAME[season]
     for cod in range(lo, hi + 1):
-        acta = fetch_and_parse_acta(page, str(cod))
+        acta = fetch_and_parse_acta(page, str(cod), F)
         if not acta:
             continue
         s = (acta.get("header", {}).get("season") or "").replace("/", "-")
@@ -583,36 +675,14 @@ def enumerate_actas_by_range(page, season, comp_id, lo, hi):
     return out
 
 
-# ── Enumeration: Cascade (strategies 1 → 2 → 3; 4 is manual) ────────────────
-
-def enumerate_actas_cascade(page, season, comp_id, tries=3):
-    """Las actas de una competición por URL directa (enumerate_actas_main), con
-    reintentos: la federación sirve a veces la página sin los desplegables de
-    grupo o jornada, y eso no quiere decir que no haya actas.
-
-    NFG_LstPartidos y la página de cada equipo no se usan solas: recorrer los
-    equipos lleva horas por competición y come el plazo de la tanda (deja
-    competiciones enteras sin enumerar).
-
-    Returns (list_of_target_dicts, strategy_label_str).
-    """
-    for attempt in range(tries):
-        res = enumerate_actas_main(page, season, comp_id)
-        if res:
-            print(f"  comp {comp_id}: {len(res)} actas (intento {attempt + 1})")
-            return res, "main"
-        time.sleep(20 * (attempt + 1))
-    print(f"  comp {comp_id}: sin actas tras {tries} intentos")
-    return [], "none"
-
-
 # ── Fetch + parse single acta ─────────────────────────────────────────────────
 
-def _fetch_acta_html(page, cod_acta):
-    """Navigate to one acta URL and return concatenated frameset HTML, or '' on goto failure."""
+def _fetch_acta_html(page, cod_acta, F):
+    """Carga un acta por F.goto (la Federacion de la tanda) y da el HTML del frameset con el de sus marcos, o
+    '' si no cargó."""
     url = (f"{BASE}/NFG_CmpPartido?cod_primaria=1000120"
            f"&CodActa={cod_acta}&cod_acta={cod_acta}")
-    if not goto(page, url):
+    if not F.goto(page, url):
         return ""
     # Frameset actas need a longer settle: the content frame issues its own
     # request after the outer frameset loads. 4s tracks the fixture-capture timing
@@ -629,40 +699,29 @@ def _fetch_acta_html(page, cod_acta):
     return html
 
 
-def _is_empty_html(html):
-    """FIFLP sometimes returns ~40-byte blank framesets as anti-scrape. Detect it."""
-    return len(html) < 200 or "<body></body>" in html or "<body> </body>" in html
+def _fixtures_dir():
+    """Donde van los HTML de diagnóstico: scripts/tests/fixtures (junto a HERE: las pruebas lo cambian)."""
+    return HERE / "tests" / "fixtures"
 
 
-def fetch_and_parse_acta(page, cod_acta, dump_fixture_for=None, max_retries=2):
-    """Fetch one acta (with retry-on-empty), optionally dump fixture, parse.
+def fetch_and_parse_acta(page, cod_acta, F, dump_fixture_for=None):
+    """Una sola carga del acta por F.goto, optionally dump fixture, parse. None si no cargó.
 
-    FIFLP returns ~40-byte empty framesets ~50% of the time as anti-scrape. We
-    retry up to `max_retries` times with a longer delay before giving up. This
-    multiplies the harvest yield meaningfully (probe showed ~50% loss without
-    retry; with 2 retries the loss drops substantially). Each retry asks the federation, not the HTTP
-    cache: the same URL again goes through fiflp_render.goto (goto), which sends it to the network
-    (the federation lets its documents be cached for 5 min, likely the empty one too).
-
-    Returns parsed dict from acta_parser.parse_acta, or None on goto failure.
+    Hasta noviembre de 2026 una vacía se reintentaba aquí dos veces (8 y 12 s después): con el freno de octubre
+    salía vacía siempre. Ahora decide la Federacion, como en el bot: si es el freno de verdad, la tanda para
+    (parada_de) y el acta sigue pendiente; si la federación sirve otras, es una página muerta (`dead` + 1) y
+    Collector le gasta un intento. Lo mismo un acta que carga sin datos (is_empty_acta, en Collector). Una URL
+    que el navegador ya pidió va a la red, no a la caché HTTP (fiflp_render.goto, por F.goto).
     """
-    html = ""
-    for attempt in range(max_retries + 1):
-        html = _fetch_acta_html(page, cod_acta)
-        if not html:
-            # goto itself failed — abandon (network-level), no point retrying
-            return None
-        if not _is_empty_html(html):
-            break  # got real content
-        if attempt < max_retries:
-            # Longer cool-down before retry; FIFLP rate-limiter may relax
-            delay(8 + 4 * attempt)
+    html = _fetch_acta_html(page, cod_acta, F)
+    if not html:
+        return None
     # "first" sentinel dumps whatever the first acta we visit is — useful when
     # we don't yet know a good CodActa to target for diagnosis.
     if dump_fixture_for and (
         str(dump_fixture_for) == str(cod_acta) or str(dump_fixture_for).lower() == "first"
     ):
-        fix_dir = Path("scripts/tests/fixtures")
+        fix_dir = _fixtures_dir()
         fix_dir.mkdir(parents=True, exist_ok=True)
         out_path = fix_dir / f"acta_live_{cod_acta}.html"
         escribir_atomico(out_path, html)
@@ -698,11 +757,11 @@ def fetch_and_parse_acta(page, cod_acta, dump_fixture_for=None, max_retries=2):
     if all(h.get(k) is None for k in ("season", "home_team", "away_team", "date")) \
        and not result.get("lineups", {}).get("home") \
        and not getattr(fetch_and_parse_acta, "_dumped_failure", False):
-        fix_dir = Path("scripts/tests/fixtures")
+        fix_dir = _fixtures_dir()
         fix_dir.mkdir(parents=True, exist_ok=True)
         out_path = fix_dir / f"acta_failed_{cod_acta}.html"
         escribir_atomico(out_path, html)
-        print(f"  ! parse failed silently (after {max_retries} retries) — dumped HTML to {out_path}")
+        print(f"  ! parse failed silently — dumped HTML to {out_path}")
         fetch_and_parse_acta._dumped_failure = True
     return result
 
@@ -719,12 +778,14 @@ def parse_args():
                     help="Optional comma-separated comp IDs (override auto-discovery)")
     ap.add_argument("--categorias", default="",
                     help="Categorías del catálogo: 'benjamin,prebenjamin' (por defecto) o 'alevin'")
-    ap.add_argument("--workers", type=int, default=2,
-                    help="navegadores a la vez leyendo actas (por defecto 2)")
     ap.add_argument("--max-actas", type=int, default=0,
                     help="Cap on number of actas to process (0 = unlimited)")
     ap.add_argument("--max-minutes", type=int, default=0,
                     help="Minutos de descarga antes de parar limpio (0 = 330)")
+    ap.add_argument("--max-paginas", type=int, default=0,
+                    help="Tope de peticiones a la federación de la tanda (0 = sin tope)")
+    ap.add_argument("--resumen", default="",
+                    help="Dónde escribir el resumen de la tanda (JSON: fiflp_carga.guardar_resumen)")
     ap.add_argument("--reindex", action="store_true",
                     help="Volver a enumerar aunque haya índice (una fase nueva publicada)")
     ap.add_argument("--grupos", default="",
@@ -746,9 +807,7 @@ def _launch(pw):
     """Chromium para leer la federación: sin la publicidad (colgaba la carga de cada acta) ni lo demás
     ajeno a la federación, sin imágenes y CON la caché HTTP (fiflp_render.fiflp_launch_args; sin
     page.route, que la desactiva: cada acta volvía a pedir los ~20 scripts y las hojas de la federación).
-    Cada navegador tiene un contexto y una página para toda su tanda, así que sus scripts se piden una
-    vez; la caché es por contexto: con --workers 2, dos navegadores, dos cachés (unas decenas de
-    peticiones más por tanda, no por acta)."""
+    Un navegador, con un contexto y una página para toda la tanda: sus scripts se piden una vez."""
     try:
         from scripts.fiflp_render import fiflp_launch_args
     except ImportError:
@@ -756,45 +815,56 @@ def _launch(pw):
     return pw.chromium.launch(headless=True, args=fiflp_launch_args())
 
 
-def fetch_parallel(pending, workers, over, on_result, dump_fixture="", open_page=None):
-    """Lee las actas de `pending` con `workers` navegadores a la vez sobre una cola
-    común (la federación tarda: leídas de una en una salían ~45 s por acta).
-    Cada hilo tiene su Playwright y su página (la API síncrona va por hilo);
-    on_result(target, acta) se llama desde los hilos. Para cuando over() es cierto.
-    open_page() -> (page, close): inyectable en las pruebas."""
-    import queue
-    tasks = queue.Queue()
+def federacion(minutos, max_paginas):
+    """La Federacion de la tanda: la lectura del bot (fiflp_carga.para_tanda, con el raspador de siempre), sin
+    esperas del freno, con su plazo y su tope de peticiones; la nube, la de la máquina. Las pruebas la cambian
+    por la de la federación de mentira."""
+    from scripts import fetch_fiflp_2425
+    return fiflp_carga.para_tanda(fetch_fiflp_2425, minutos, max_paginas)
+
+
+def leer_actas(page, F, pending, over, on_result, dump_fixture=""):
+    """Lee las actas de `pending`, en su orden, con UN navegador (la página de la tanda), hasta que over() o
+    hasta que la federación pare (parada_de(F)). on_result(target, acta) con cada una (None: no cargó).
+    Sustituye a fetch_parallel (varios navegadores sobre una cola): con el intervalo de 7 s de la Federacion,
+    un runner de Azure ya lee ~500 páginas por hora, más de lo que da el tope del día en una tanda; dos
+    navegadores se saltarían el intervalo (el doble de carga) sin que haga falta."""
     for t in pending:
-        tasks.put(t)
-
-    def default_open():
-        from playwright.sync_api import sync_playwright
-        pw = sync_playwright().start()
-        br = _launch(pw)
-        page = br.new_context(user_agent=UA).new_page()
-        return page, lambda: (br.close(), pw.stop())
-
-    def worker():
-        page, close = (open_page or default_open)()
+        if over() or parada_de(F) is not None:
+            return
         try:
-            while not over():
-                try:
-                    t = tasks.get_nowait()
-                except queue.Empty:
-                    return
-                try:
-                    on_result(t, fetch_and_parse_acta(page, t["cod_acta"], dump_fixture))
-                except Exception as ex:
-                    print(f"  ! acta {t['cod_acta']}: {ex}")
-                delay()
-        finally:
-            close()
+            acta = fetch_and_parse_acta(page, t["cod_acta"], F, dump_fixture or None)
+        except Exception as ex:
+            print(f"  ! acta {t['cod_acta']}: {ex}")
+            continue
+        on_result(t, acta)
+        F.delay()
 
-    threads = [threading.Thread(target=worker, daemon=True) for _ in range(max(1, workers))]
-    for th in threads:
-        th.start()
-    for th in threads:
-        th.join()
+
+def status_de(season, comps, enumeracion, objetivos, wanted, store, collector, intentos, no_disponible, F):
+    """El estado del lote, formato 2. `pending`: lo que falta de las competiciones de la tanda (las actas por
+    leer, las jornadas y los grupos sin leer y las competiciones sin lista de grupos), sin lo no disponible."""
+    actas = sum(1 for t in objetivos if f"acta:{t['cod_acta']}" not in no_disponible and wanted(t["cod_acta"]))
+    ledgers = [enumeracion[c] for c in comps]
+    jornadas = sum(len(v) for led in ledgers for v in (led.get("pendientes") or {}).values() if v)
+    grupos = sum(v is None for led in ledgers for v in (led.get("pendientes") or {}).values())
+    sin_lista = sum(led.get("grupos") is None for led in ledgers)
+    return {"formato": 2, "season": SEASON_NAME[season], "enumerated": len(objetivos), "in_raw": len(store.data),
+            "fetched": collector.fetched, "pending": actas + jornadas + grupos + sin_lista,
+            "actas_por_leer": actas, "jornadas_por_leer": jornadas, "grupos_por_leer": grupos,
+            "unenumerated_comps": sin_lista, "no_disponible": no_disponible, "intentos": intentos,
+            "enumeracion": enumeracion, "paginas": {"pedidas": F.pages, "servidas": F.served},
+            "parada": parada_de(F)}
+
+
+def _sin_enumeracion(comps, intentos, no_disponible):
+    """--reindex: lo no disponible y los intentos de la enumeración de esas competiciones vuelven a pedirse."""
+    def suya(clave):
+        kind, _, rest = clave.partition(":")
+        return kind in ("comp", "grupo", "jornada") and rest.split(":")[0] in comps
+    for clave in [c for c in intentos if suya(c)]:
+        del intentos[clave]
+    no_disponible[:] = [c for c in no_disponible if not suya(c)]
 
 
 def main():
@@ -807,7 +877,7 @@ def main():
     expected = LOTE_ARG[args.lote] if args.lote else None
     if args.estado:
         # Sin navegador ni red: lo que queda del lote de la tanda (actas-federacion.yml). Unas
-        # categorías que no existen o de los dos lotes, o de otro lote que el de la cadena: para.
+        # categorías que no existen o de dos lotes, o de otro lote que el de la cadena: para.
         try:
             categories = _categorias().parse_categories(args.categorias)
             state = chain_state(season, tanda_lote(season, categories, comps_arg, expected=expected))
@@ -819,9 +889,26 @@ def main():
     categories = _categorias().parse_categories(args.categorias)
     lote = tanda_lote(season, categories, comps_arg, expected=expected)
 
-    global sync_playwright
-    from playwright.sync_api import sync_playwright  # noqa: F401
+    from playwright.sync_api import sync_playwright
 
+    # El plazo cuenta desde el arranque: enumerar también lleva su tiempo.
+    minutes = args.max_minutes or 330     # bajo el timeout del job, para guardar y subir
+    run_start = time.time()
+    over = lambda: time.time() - run_start > minutes * 60
+    F = federacion(minutes, args.max_paginas)
+    resumen = args.resumen or None
+    with sync_playwright() as p:
+        # Un navegador y una página para toda la tanda (también para descubrir las competiciones).
+        br = _launch(p)
+        page = br.new_context(user_agent=UA).new_page()
+        try:
+            _tanda(page, F, season, lote, categories, comps_arg, args, over, resumen)
+        finally:
+            br.close()
+    print(fiflp_carga.ultima_linea(F, chain_state(season, lote).get("pending") == 0))
+
+
+def _tanda(page, F, season, lote, categories, comps_arg, args, over, resumen):
     # Resolve comp list
     names = {}
     if comps_arg:
@@ -834,11 +921,11 @@ def main():
         comps = KNOWN_COMPS[season]
     else:
         # auto-discover (used for seasons 17 and 18)
-        with sync_playwright() as p:
-            br = _launch(p)
-            page = br.new_context(user_agent=UA).new_page()
-            comps = discover_comps(page, season, categories, names)
-            br.close()
+        comps = discover_comps(page, season, categories, names, F)
+        if not comps:
+            print(f"  sin competiciones de la temporada {season} (parada: {parada_de(F)}): nada que escribir")
+            return
+    comps = [str(c) for c in comps]
 
     # Todas las competiciones, del lote de la tanda: sus actas van a su raw, su índice y su estado.
     tanda_lote(season, categories, comps, names, expected=lote)
@@ -846,81 +933,104 @@ def main():
 
     store = RawStore(season, lote)
     print(f"Resume state ({raw_path(season, lote).name}): {len(store.data)} actas already scraped")
-    # El plazo cuenta desde el arranque: enumerar también lleva su tiempo.
-    BUDGET = (args.max_minutes or 330) * 60   # bajo el timeout del job, para guardar y subir
-    run_start = time.time()
-    over = lambda: time.time() - run_start > BUDGET
-    unenumerated = 0
+    ipath, spath = index_path(season, lote), status_path(season, lote)
+    index = json.loads(ipath.read_text(encoding="utf-8")) if ipath.exists() else {}
+    try:
+        old = json.loads(spath.read_text(encoding="utf-8")) if spath.exists() else {}
+    except ValueError:
+        old = {}
+    nuevo = old.get("formato") == 2
+    enumeracion = dict(old.get("enumeracion") or {}) if nuevo else {}
+    intentos = dict(old.get("intentos") or {}) if nuevo else {}
+    no_disponible = list(old.get("no_disponible") or []) if nuevo else []
+    if args.reindex:
+        for comp in comps:
+            enumeracion.pop(comp, None)
+        _sin_enumeracion(set(comps), intentos, no_disponible)
+    for comp in comps:
+        if comp in enumeracion:
+            continue
+        known = sorted({str(e.get("grupo")) for e in index.values() if str(e.get("comp_id")) == comp})
+        if not nuevo and known and not args.reindex and not GROUP_FILTER:
+            # Un estado antiguo (sin formato): una competición que ya está en el índice se da por enumerada,
+            # como hasta ahora (con --reindex, no).
+            enumeracion[comp] = {"grupos": [[g, ""] for g in known], "pendientes": {}}
+        else:
+            enumeracion[comp] = {"grupos": None, "pendientes": {}}
 
-    with sync_playwright() as p:
-        br = _launch(p)
-        page = br.new_context(user_agent=UA).new_page()
+    # Filter out already scraped (resume support). Una que está en el raw de otro lote: la de
+    # una tanda antigua se adopta (RawStore.get) y la que es de ese lote no es de esta tanda.
+    def wanted(cod):
+        where, acta = store.get(cod)
+        if acta is None:
+            return True
+        return where == lote and (needs_rescrape(acta) or (args.refrescar and needs_refresh(acta)))
 
-        # --- Enumerate targets (o el índice de una tanda anterior), en el índice del lote ---
-        ipath = index_path(season, lote)
-        index = json.loads(ipath.read_text(encoding="utf-8")) if ipath.exists() and not args.reindex else {}
-        all_targets = []
-        for comp_id in comps:
-            cached = [dict(v, cod_acta=k) for k, v in index.items()
-                      if str(v.get("comp_id")) == str(comp_id) and _wanted(comp_id, v.get("grupo"), v.get("grupo_name"))]
-            if cached and not GROUP_FILTER:
-                print(f"  comp {comp_id}: {len(cached)} actas del índice")
-                all_targets += cached
-                continue
-            if over():
-                unenumerated += 1   # la tanda siguiente la enumera
-                continue
-            started = time.time()
-            print(f"  enumerating comp {comp_id}...")
-            actas, strategy = enumerate_actas_cascade(page, season, comp_id)
-            all_targets += actas
-            for t in actas:
-                index[t["cod_acta"]] = {k: v for k, v in t.items() if k != "cod_acta"}
+    def objetivos():
+        """Las actas del índice de las competiciones de la tanda (y de sus grupos pedidos), sin repetir."""
+        out, seen = [], set()
+        for comp in comps:
+            names_of = dict(enumeracion[comp].get("grupos") or [])
+            for cod, e in index.items():
+                if str(e.get("comp_id")) != comp or cod in seen:
+                    continue
+                if not _wanted(comp, e.get("grupo"), names_of.get(str(e.get("grupo")))):
+                    continue
+                seen.add(cod)
+                out.append(dict(e, cod_acta=cod))
+        return out
+
+    collector = Collector(store, refrescar=args.refrescar, F=F, intentos=intentos, no_disponible=no_disponible)
+
+    def guardar_estado():
+        status = status_de(season, comps, enumeracion, objetivos(), wanted, store, collector, intentos,
+                           no_disponible, F)
+        escribir_atomico(spath, json.dumps(status, ensure_ascii=False, indent=1) + "\n")
+        if resumen:
+            parte = f"actas:{SEASON_NAME[season]}:{lote or 'siempre'}"
+            guardar_resumen(resumen, F, {parte: {"completo": status["pending"] == 0, "pendientes": status["pending"],
+                                                 "no_disponible": len(no_disponible)}})
+        return status
+    collector.on_save = guardar_estado
+
+    vistas = set()
+    for comp in comps:
+        if over() or parada_de(F) is not None:
+            break
+        ledger = enumeracion[comp]
+        if not _completa(ledger):
+            print(f"  enumerating comp {comp}...")
+            res = enumerar(page, F, season, comp, ledger, index, intentos, no_disponible)
             # Tras cada competición: una tanda cortada no pierde lo enumerado.
             escribir_atomico(ipath, json.dumps(index, ensure_ascii=False, indent=1))
-            print(f"    ({time.time() - started:.0f} s)")
-            delay()
-        escribir_atomico(ipath, json.dumps(index, ensure_ascii=False, indent=1))
-
-        # Dedupe all_targets by cod_acta (multiple comps may reference same acta)
-        seen_t: set = set()
-        deduped = []
-        for t in all_targets:
-            if t["cod_acta"] not in seen_t:
-                seen_t.add(t["cod_acta"])
-                deduped.append(t)
-        all_targets = deduped
-
-        # Filter out already scraped (resume support). Una que está en el raw de otro lote: la de
-        # una tanda antigua se adopta (RawStore.get) y la que es de ese lote no es de esta tanda.
-        def wanted(cod):
-            where, acta = store.get(cod)
-            if acta is None:
-                return True
-            return where == lote and (needs_rescrape(acta) or (args.refrescar and needs_refresh(acta)))
-        pending = [t for t in all_targets if wanted(t["cod_acta"])]
+            guardar_estado()
+            if res == "parada":
+                break
+        # En seguida, sus actas (las de esta competición que faltan): la de más nivel, antes.
+        pending = [t for t in objetivos() if str(t["comp_id"]) == comp and t["cod_acta"] not in vistas
+                   and f"acta:{t['cod_acta']}" not in no_disponible and wanted(t["cod_acta"])]
+        vistas.update(t["cod_acta"] for t in pending)
+        if args.max_actas:
+            pending = pending[:max(0, args.max_actas - collector.asked)]
+        collector.asked += len(pending)
         if store.adopted:
             print(f"  {store.adopted} acta(s) adoptadas del raw de otro lote (de una tanda antigua)")
-        print(f"Enumerated {len(all_targets)} actas total, {len(pending)} pending")
-
-        # --- Fetch + parse loop ---
-        br.close()
-
-    if args.max_actas:
-        pending = pending[:args.max_actas]
-    collector = Collector(store, refrescar=args.refrescar, total=len(pending))
-    fetch_parallel(pending, args.workers, over, collector, dump_fixture=args.dump_fixture)
+        print(f"  comp {comp}: {len(pending)} actas por leer")
+        # La URL de un acta no lleva la temporada: sin ninguna página servida aún, la de competiciones primero
+        # (fiflp_carga.preparar), o una primera acta muerta se tomaría por el freno.
+        if pending and not fiflp_carga.preparar(page, F, season):
+            break
+        leer_actas(page, F, pending, over, collector, dump_fixture=args.dump_fixture)
+        store.save()
+        guardar_estado()
     if over():
         print(f"  time budget reached, stopping cleanly with {len(store.data)} actas saved")
 
     store.save(force=True)
-    left = sum(1 for t in all_targets if wanted(t["cod_acta"]))
-    # Una competición sin enumerar por falta de plazo cuenta como pendiente: la cadena sigue.
-    escribir_atomico(status_path(season, lote), json.dumps(
-        {"season": SEASON_NAME[season], "enumerated": len(all_targets), "in_raw": len(store.data),
-         "pending": left + unenumerated, "unenumerated_comps": unenumerated,
-         "fetched": collector.fetched}, indent=1) + "\n")
-    print(f"Done season {season} ({raw_path(season, lote).name}): total {len(store.data)} actas in raw, {left} pending")
+    escribir_atomico(ipath, json.dumps(index, ensure_ascii=False, indent=1))
+    status = guardar_estado()
+    print(f"Done season {season} ({raw_path(season, lote).name}): total {len(store.data)} actas in raw, "
+          f"{status['pending']} pending (parada: {status['parada']})")
 
 
 if __name__ == "__main__":

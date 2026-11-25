@@ -45,8 +45,8 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from fiflp_detalle import parse_campo, parse_clasificacion, parse_directorio  # noqa: E402
 from escritura import escribir_atomico  # noqa: E402
-from fiflp_carga import (MAX_INTENTOS, guardar_resumen, para_tanda, parada_de, ultima_linea,  # noqa: E402
-                         un_intento)
+from fiflp_carga import (MAX_INTENTOS, guardar_resumen, para_tanda, parada_de, preparar,  # noqa: E402
+                         ultima_linea, un_intento)
 
 HERE = Path(__file__).resolve().parent
 DB_PATH = HERE.parent / "futbolbase.db"
@@ -372,16 +372,20 @@ def _parte_campos(codes, data):
     return {"completo": pendientes == 0, "pendientes": pendientes, "no_disponible": no_disponible}
 
 
-def run_campos(page, F, deadline, log=print, partes=None, resumen=None):
+def run_campos(page, F, deadline, log=print, partes=None, resumen=None, temporada="22"):
     """La ficha de cada campo. Una que no carga con la federación parada no se escribe (y la ejecución acaba);
     una que no carga con la federación sirviendo, o que carga sin datos (parse_campo None), gasta un intento y,
-    con MAX_INTENTOS, queda no disponible. En `partes`, la parte «campos»."""
+    con MAX_INTENTOS, queda no disponible. En `partes`, la parte «campos». La URL de una ficha no lleva la
+    temporada: sin ninguna página servida aún en la ejecución, antes la de competiciones de `temporada`
+    (fiflp_carga.preparar), o una primera ficha muerta se tomaría por el freno."""
     partes = {} if partes is None else partes
     data = load(CAMPOS_RAW)
     todos = venue_codes(None)
     codes = [c for c in todos if not _campo_hecho(data.get(str(c)))]
     partes["campos"] = _parte_campos(todos, data)
     log(f"Campos: {len(codes)} fichas por leer")
+    if codes and not preparar(page, F, temporada):
+        return False
     for code in codes:
         if time.monotonic() > deadline:
             log("  plazo agotado: sigue en la próxima tanda")
@@ -436,7 +440,7 @@ def main(argv=None):
             complete = run_groups(page, F, seasons, jornadas, F.deadline, categories=categories, partes=partes,
                                   resumen=resumen)
             if complete and not args.sin_campos:
-                complete = run_campos(page, F, F.deadline, partes=partes, resumen=resumen)
+                complete = run_campos(page, F, F.deadline, partes=partes, resumen=resumen, temporada=seasons[-1])
         finally:
             browser.close()
             guardar_resumen(resumen, F, partes)
