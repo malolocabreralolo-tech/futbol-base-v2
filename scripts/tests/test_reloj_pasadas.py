@@ -496,7 +496,8 @@ def test_the_command_line_with_the_lane_fails_without_writing_anything(tmp_path,
 # ── El carril del histórico (historico.yml) ───────────────────────────────────
 #
 # Desde el 25/11/2026 lo lanza el reloj (su cron, '47 */3 * * *', GitHub lo perdía: ese día no llegaron ni el de
-# las 18:47 ni el de las 21:47 UTC): un intento cada 3 h, fuera de las ventanas de partidos (en ellas el carril no
+# las 18:47 ni el de las 21:47 UTC): un intento cada hora y media (desde el 26/11/2026; antes, cada 3 h), fuera de
+# las ventanas de partidos (en ellas el carril no
 # lee: historico.hasta) y nunca con una ejecución sin acabar del histórico, del bot, del carril de las mayores o de
 # la activación. Diciembre de 2026: Canarias en UTC+0.
 
@@ -504,12 +505,13 @@ def test_due_historico():
     tue = utc("2026-12-01T10:00")                           # martes, 10:00
     ok, why = R.due_historico(tue, [])
     assert ok and why.startswith("toca") and "ninguna" in why, why
-    assert R.HISTORICO_CADA == timedelta(hours=3)
+    assert R.HISTORICO_CADA == timedelta(minutes=90)
     # La última, de cualquier evento (el reloj, el propio carril al relanzarse, a mano) y acabe como acabe.
-    ok, why = R.due_historico(tue, [run(tue - 160 * M, number=41)])
-    assert not ok and "la 41" in why, why
-    assert R.due_historico(tue, [run(tue - 170 * M, number=41)])[0]                  # 3 h menos la holgura
-    assert R.due_historico(tue, [run(tue - 210 * M, event="schedule", conclusion="cancelled")])[0]
+    ok, why = R.due_historico(tue, [run(tue - 70 * M, number=41)])
+    assert not ok and "la 41" in why and "toca a partir de los 80" in why, why
+    assert not R.due_historico(tue, [run(tue - 79 * M, number=41)])[0]
+    assert R.due_historico(tue, [run(tue - 80 * M, number=41)])[0]                   # hora y media menos la holgura
+    assert R.due_historico(tue, [run(tue - 120 * M, event="schedule", conclusion="cancelled")])[0]
     assert not R.due_historico(tue, [run(tue - 300 * M), run(tue - 20 * M, conclusion="failure")])[0]
     # Un relanzamiento cuenta desde que se relanzó (run_time); una creada en el futuro, no toca.
     assert not R.due_historico(tue, [run(tue - 300 * M, started=tue - 60 * M)])[0]
@@ -564,8 +566,8 @@ def _solapes(hechas):
 def test_semana_con_historico():
     """Con el carril de las mayores encendido y el histórico rechazado cada vez (acaba en 1 min: el reloj lo intenta
     en cada hueco), las pasadas del bot y las del carril arrancan a la misma hora que sin histórico; nunca corren dos
-    a la vez; y el histórico se lanza como mucho 8 veces al día (cada 3 h), nunca en una ventana, y de lunes a
-    jueves, al menos 6."""
+    a la vez; y el histórico se lanza como mucho 16 veces al día (cada hora y media), nunca en una ventana, y de lunes
+    a jueves, al menos 12 (el viernes, 9; el sábado y el domingo, 6: lo que queda fuera de las ventanas)."""
     sin, con = _semana(True), _semana(True, con_historico=True)
     assert [x for x in con if x[0] != "historico"] == sin, "el bot y el carril, a su hora de siempre"
     assert not _solapes(con), _solapes(con)
@@ -576,9 +578,96 @@ def test_semana_con_historico():
         assert R.window(at) is None, at
     assert all(b - a >= R.HISTORICO_CADA - R.SLACK for a, b in zip(historico, historico[1:]))
     dias = [utc("2026-11-30T00:00").date() + timedelta(days=d) for d in range(7)]
-    assert max(por_dia.values()) <= 8, por_dia
-    assert min(por_dia.get(d, 0) for d in dias[:4]) >= 6, por_dia                     # de lunes a jueves
-    assert all(por_dia.get(d, 0) >= 1 for d in dias), por_dia
+    assert max(por_dia.values()) <= 16, por_dia
+    assert min(por_dia.get(d, 0) for d in dias[:4]) >= 12, por_dia                    # de lunes a jueves
+    assert por_dia.get(dias[4], 0) >= 9 and min(por_dia.get(d, 0) for d in dias[5:]) >= 6, por_dia
+
+
+# La misma semana con el reloj del PC (pc/reloj: un tick cada 5 min, a y 4, 9…, que lanza reloj.yml si toca la pasada,
+# el carril o el histórico; reloj.yml vuelve a decidir un minuto después), el carril de las mayores encendido y el
+# histórico como cae de verdad desde el 26/11/2026: en Azure, 300 páginas en 41 min (150, el freno, 5 min de espera,
+# 150 más y el segundo freno: fin, sin relanzarse); en AWS, nada en un minuto (la mitad, al azar con semilla). Con el
+# tope del día (historico.PAGINAS_DIA, 2.000) y su plazo (historico.hasta: acaba 20 min antes de la ventana siguiente y
+# con menos de 10 no hace nada).
+AZURE = (timedelta(minutes=41), 300)
+TOPE_DIA = 2000
+
+
+def _siguiente_ventana(now):
+    for d in range(8):
+        dia = (now + timedelta(days=d)).date()
+        hora = R.WINDOWS.get(dia.weekday())
+        inicio = None if hora is None else utc(f"{dia.isoformat()}T{hora:02d}:00")
+        if inicio is not None and inicio > now:
+            return inicio
+
+
+def _semana_con_el_pc(con_historico, semilla=7):
+    """[(inicio, tipo, duración, páginas)] de la semana del 30/11/2026, y las páginas del histórico por día."""
+    import random
+    azar = random.Random(semilla)
+    hechas = [(utc("2026-11-29T23:07"), "bot", DURA, 0)]
+
+    def lista(kind, now):
+        return [run(at, status="completed" if at + dura <= now else "in_progress", number=i)
+                for i, (at, k, dura, _) in enumerate(hechas) if k == kind and at <= now][-20:]
+
+    def decide(now):                                # lo que lanzaría reloj.yml (y lo que mira el PC: lo mismo)
+        bot, carril, historico = lista("bot", now), lista("carril", now), lista("historico", now)
+        if R.due(now, bot, carril):
+            return "bot"
+        if R.due_carril(now, bot, carril, historico)[0]:
+            return "carril"
+        if con_historico and R.due_historico(now, historico, bot + carril)[0]:
+            return "historico"
+        return None
+
+    paginas = {}
+    tick, end = utc("2026-11-30T00:04"), utc("2026-12-07T00:00")
+    while tick < end:
+        if decide(tick):                            # el PC lanza reloj.yml…
+            now = tick + M                          # …que decide un minuto después
+            kind = decide(now)
+            if kind in ("bot", "carril"):
+                hechas.append((now, kind, DURA, 0))
+            elif kind == "historico":
+                usadas = paginas.get(now.date(), 0)
+                plazo = _siguiente_ventana(now) - timedelta(minutes=20) - now
+                if plazo < timedelta(minutes=10) or usadas >= TOPE_DIA or azar.random() < 0.5:
+                    hechas.append((now, kind, M, 0))               # nada: AWS, sin plazo o con el tope gastado
+                else:
+                    dura = min(AZURE[0], plazo)
+                    pag = min(int(AZURE[1] * dura / AZURE[0]), TOPE_DIA - usadas)
+                    paginas[now.date()] = usadas + pag
+                    hechas.append((now, kind, dura, pag))
+        tick += timedelta(minutes=5)
+    return hechas[1:], paginas
+
+
+def test_semana_con_el_reloj_del_pc():
+    """Con el reloj del PC, el histórico a hora y media: el bot no le espera (las mismas pasadas o más, y nunca más
+    separadas que sin histórico: con el PC lanzando reloj.yml por el histórico, a veces una sale en ese mismo tick, 5
+    min antes); el histórico nunca coincide con el carril de las mayores ni consigo mismo (con el bot, sí: van en
+    grupos de concurrencia distintos, a propósito), nunca en una ventana; el carril sigue con 30 pasadas a la semana o
+    más (34 sin histórico); y el tope del día, nunca pasado."""
+    sin, _ = _semana_con_el_pc(False)
+    con, paginas = _semana_con_el_pc(True)
+    bot_sin = [at for at, k, *_ in sin if k == "bot"]
+    bot_con = [at for at, k, *_ in con if k == "bot"]
+    huecos = lambda xs: [b - a for a, b in zip(xs, xs[1:])]
+    assert len(bot_con) >= len(bot_sin) and max(huecos(bot_con)) <= max(huecos(bot_sin)), (len(bot_con), len(bot_sin))
+    # Ni el histórico con el carril ni consigo mismo: ordenados, cada uno empieza cuando ha acabado el anterior.
+    tramos = sorted((at, at + dura) for at, k, dura, _ in con if k in ("historico", "carril"))
+    assert all(b[0] >= a[1] for a, b in zip(tramos, tramos[1:]))
+    historico = [(at, pag) for at, k, _, pag in con if k == "historico"]
+    assert all(R.window(at) is None for at, _ in historico)
+    carril = sum(1 for _, k, *_ in con if k == "carril")
+    assert carril >= 30 and sum(1 for _, k, *_ in sin if k == "carril") >= carril, carril
+    assert max(paginas.values()) <= TOPE_DIA
+    por_dia = {}
+    for at, _ in historico:
+        por_dia[at.weekday()] = por_dia.get(at.weekday(), 0) + 1
+    assert min(por_dia[d] for d in range(4)) >= 12 and max(por_dia.values()) <= 16, por_dia
 
 
 # ── La línea de órdenes del histórico (el paso «¿Toca el histórico?» de reloj.yml) ──

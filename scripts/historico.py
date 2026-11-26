@@ -44,11 +44,14 @@ Las reglas del carril, y el porqué de cada número:
     ejecución que acabó en el freno (parada «freno»), ni para una prueba: relanzar en seguida en otro runner sería
     esquivar el bloqueo con una IP nueva; y nunca por caer en un runner que la federación no sirve
     (RELANZAR_SI_RUNNER_RECHAZADO = 0): relanzar hasta que toque Azure es esquivar un bloqueo, y lo decide el
-    dueño. Lo retoma el disparo siguiente del reloj (reloj.yml, cada 3 h desde que empezó la última, cuando el
-    bloqueo hace mucho que acabó: como mucho 8 al día, y la mitad caen en AWS). Lo que cabe esperar, con ~150
-    páginas por tramo: una ejecución en Azure da ~150-300 (un tramo, la espera y otro, quizá más corto); entre
-    semana, ~4 de los 8 intentos en Azure, ~600-1.200 páginas al día; el viernes (hasta las 17:40) ~450-900; el
-    sábado y el domingo (de 0 a 9:40) ~225-600;
+    dueño. Lo retoma el disparo siguiente del reloj (reloj.yml, cada hora y media desde que empezó la última, desde
+    el 26/11/2026; antes, cada 3 h). No es relanzar para esquivar el freno: cada ejecución lo respeta (lo espera una
+    vez y para), entre una y otra pasa más de una hora, cuando el bloqueo (minutos) hace mucho que acabó, y el tope
+    del día (PAGINAS_DIA) sigue siendo el límite de todo. Lo medido el 26/11/2026: una ejecución en Azure, 300
+    páginas en 41 min (150, el freno, 5 min de espera, 150 más y el segundo freno). Lo que cabe esperar (la semana
+    simulada con el reloj del PC, test_reloj_pasadas.test_semana_con_el_reloj_del_pc, la mitad en AWS): de lunes a
+    jueves, 13-14 intentos, ~6-7 en Azure, el tope (2.000 páginas) casi cada día; el viernes (hasta las 17:40), ~9
+    intentos y ~1.200 páginas; el sábado y el domingo (de 0 a 9:40), ~6 y ~900; ~9.800 a la semana;
   - LA CUARENTENA Y LA PRUEBA: lo bajado va a scripts/historico/ (cuarentena.py), que el bot no mira. Un trabajo
     completo se prueba sobre una copia (prueba_historico.py: importar sin red, la base sana y todas las suites),
     una temporada cada vez y con MARGEN_PRUEBA (60 min) antes de la ventana siguiente (la importación del bot en
@@ -695,7 +698,7 @@ def relanzar(resumen, despues, estado):
     nunca, ni para una prueba: relanzar en seguida en otro runner sería esquivar el bloqueo con una IP nueva (y tras
     la prueba se relanzaría la descarga); tras otra descarga, si la federación sirvió RELANZAR_MIN páginas o si lo
     que toca es una prueba (la prueba no pide nada a la federación: da igual lo poco que se haya leído). Si no, lo
-    retoma el disparo siguiente del reloj (cada 3 h: el bloqueo hace mucho que acabó)."""
+    retoma el disparo siguiente del reloj (cada hora y media: el bloqueo hace mucho que acabó)."""
     if despues.get("accion") == "nada":
         return False
     if resumen is None:
@@ -831,7 +834,7 @@ def _linea_ejecucion(e):
     inicio, fin = e.get("inicio"), e.get("fin")
     if e.get("runner_rechazado"):
         return (f"{_hora(inicio, '%d/%m')} a las {_hora(inicio, '%H:%M')}, runner rechazado (nube: "
-                f"{e.get('nube') or '?'}), sin leer nada; se retoma en el próximo disparo (cada 3 h).")
+                f"{e.get('nube') or '?'}), sin leer nada; se retoma en el próximo disparo (cada hora y media).")
     temporadas = ", ".join(_corta(SEASON_NAME.get(t, t)) for t in e.get("temporadas") or [])
     que = f"{e.get('trabajo')} {temporadas}" + (f" {_lote_legible(e.get('lote'))}" if e.get("lote") else "")
     cuando = f"{_hora(inicio, '%d/%m')} de {_hora(inicio, '%H:%M')} a {_hora(fin, '%H:%M')}"

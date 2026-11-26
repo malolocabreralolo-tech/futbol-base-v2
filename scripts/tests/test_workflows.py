@@ -1350,7 +1350,7 @@ def test_el_encargo_no_se_pierde_si_cancelan_el_carril():
 
 
 def test_historico_disparadores_y_entradas():
-    """Solo workflow_dispatch: lo lanza el reloj (reloj.yml, cada 3 h), el propio carril (paso «Siguiente») o el dueño.
+    """Solo workflow_dispatch: lo lanza el reloj (reloj.yml, cada hora y media), el propio carril (paso «Siguiente») o el dueño.
     Su cron ('47 */3 * * *') GitHub lo perdía (el 25/11/2026, el de las 18:47 y el de las 21:47 UTC)."""
     data = _historico()
     trig = _triggers(data)
@@ -2156,7 +2156,7 @@ def test_las_pruebas_no_dependen_del_carril_del_job():
 # ------------------------------------------- el reloj lanza el carril del histórico
 #
 # Desde el 25/11/2026 historico.yml no tiene cron (GitHub lo perdía: ese día, el de las 18:47 y el de las 21:47 UTC):
-# lo lanza el reloj, cada 3 h (reloj_pasadas.due_historico, probada en test_reloj_pasadas.py), en dos pasos al final
+# lo lanza el reloj, cada hora y media (reloj_pasadas.due_historico, probada en test_reloj_pasadas.py), en dos pasos al final
 # del job, con continue-on-error: un fallo suyo no tumba el reloj ni le quita una pasada al bot.
 
 TOCA_HISTORICO = "¿Toca el histórico?"

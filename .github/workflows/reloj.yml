@@ -30,8 +30,11 @@ name: Reloj de las pasadas
 # El carril del histórico (historico.yml; docs/federacion.md, «El carril del histórico») también lo lanza este reloj,
 # desde el 25/11/2026 y siempre (con o sin CARRIL_MAYORES): su cron ('47 */3 * * *') GitHub lo perdía como el de
 # update.yml (ese día no llegaron ni el de las 18:47 ni el de las 21:47 UTC, y el carril se quedó parado hasta que se
-# lanzó a mano). Toca (reloj_pasadas.due_historico) un intento cada 3 h desde que empezó la última del histórico (la
-# lanzara quien la lanzara: el reloj, el propio carril al encadenarse, o a mano), fuera de las ventanas (en ellas no
+# lanzó a mano). Toca (reloj_pasadas.due_historico) un intento cada hora y media desde que empezó la última del
+# histórico (la lanzara quien la lanzara: el reloj, el propio carril al encadenarse, o a mano; hasta el 26/11/2026,
+# cada 3 h: con el freno a las ~150 páginas, cada ejecución en Azure lee 300 y para, y no daba ni para 1.200 al día).
+# No es esquivar el freno: cada ejecución lo espera una vez y para, entre una y otra pasa más de una hora (el bloqueo
+# dura minutos) y el tope del día (2.000 páginas) sigue mandando. Fuera de las ventanas (en ellas no
 # lee), y nunca con una ejecución sin acabar del histórico, de update.yml, carril-mayores.yml o activar.yml; ni en un
 # tick en que se lanza la pasada del bot o la del carril. Va APARTE, en dos pasos al final y con continue-on-error:
 # un fallo suyo (gh, una lista que no se entiende, GitHub que no deja lanzar) queda en el registro del paso y no

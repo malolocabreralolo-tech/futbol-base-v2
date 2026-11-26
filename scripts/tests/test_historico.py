@@ -280,7 +280,7 @@ def test_relanzar_solo_si_la_federacion_sirvio():
 
 def test_tras_una_ejecucion_que_acabo_en_freno_no_se_relanza():
     """Desde el 26/11/2026: relanzar en seguida en otro runner tras acabar en el freno sería esquivar el bloqueo con
-    una IP nueva. Lo retoma el reloj (cada 3 h), cuando el bloqueo hace mucho que acabó; ni para una prueba (tras la
+    una IP nueva. Lo retoma el reloj (cada hora y media), cuando el bloqueo hace mucho que acabó; ni para una prueba (tras la
     prueba se relanzaría la descarga, en seguida). Sin freno al final (el plazo, el tope, nada más que leer, o un
     freno esperado del que la federación volvió), como siempre."""
     bajar, probar, e = {"accion": "descargar"}, {"accion": "probar", "trabajos": ["x"]}, H.estado_vacio()
@@ -375,7 +375,7 @@ def _frenada(servidas, frenos_tras, esperas_s=(), sirvio=(), parada="freno"):
 def test_tras_un_freno_normal_ni_se_para_el_dia_ni_se_relanza():
     """La regla del 26/11/2026: 150 páginas, el freno, su espera (5 min), 140 más y el segundo freno. El día no se
     para (se apunta en dias_frenados, para leer cómo va), no se relanza en seguida (sería esquivar el bloqueo con
-    otra IP) y el disparo siguiente del reloj, a las 3 h, vuelve a descargar."""
+    otra IP) y el disparo siguiente del reloj, a la hora y media, vuelve a descargar."""
     accion, resumen = _frenada(290, [150, 140], [312], [True])
     fin = T("2026-11-25T10:50:00Z")
     e = H.registrar(H.estado_vacio(), accion, resumen, fin)
@@ -842,7 +842,7 @@ def test_estado_legible():
                              "relanzada": False})
     texto = H.estado_legible(plan, e, T("2026-11-25T19:00:00Z"))
     linea = ("Última ejecución: 25/11 a las 18:47, runner rechazado (nube: aws), sin leer nada; se retoma en el "
-             "próximo disparo (cada 3 h).")
+             "próximo disparo (cada hora y media).")
     assert linea in texto
     assert H.linea(e) == linea.removeprefix("Última ejecución: ")
     assert H.estado_legible(None, H.estado_vacio(), MIERCOLES).startswith("Sin encargo.")

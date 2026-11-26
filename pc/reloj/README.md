@@ -12,7 +12,8 @@ Con este reloj, las pasadas salen a su hora mientras el PC esté encendido y con
 Si el PC está apagado, el reloj de GitHub sigue ahí de reserva.
 
 El carril y el histórico también los lanza `reloj.yml`, pero solo en un aviso en el que no toca la pasada: por eso
-este reloj mira también si toca alguno de los dos. El carril, solo si está encendido: lee en GitHub la variable
+este reloj mira también si toca alguno de los dos (el histórico, un intento cada hora y media fuera de los partidos;
+el carril, entre dos pasadas del bot, cada 4 h). El carril, solo si está encendido: lee en GitHub la variable
 `CARRIL_MAYORES` (a `1`, encendido; sin poner o con otra cosa, apagado, y entonces ni lo mira). Para eso el token
 tiene que poder leer las variables del repositorio (el de hoy puede).
 

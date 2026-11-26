@@ -73,12 +73,21 @@ reloj desde el 25/11/2026, siempre (con o sin CARRIL_MAYORES), en un paso aparte
     las mayores o de la activación (`otros`): no arranca con otro leyendo la federación a la vez, ni le quita el
     hueco a una pasada que está en cola;
   - la última del histórico (cualquier evento: el reloj, la que el carril lanza tras de sí, una a mano; y cualquier
-    resultado) empezó hace HISTORICO_CADA menos SLACK (2 h 50 min) o más, o no hay ninguna. Tras una ejecución
-    servida el carril se relanza solo (paso «Siguiente»), así que el reloj solo retoma la cadena cuando se para (un
-    runner rechazado, el tope del día, el freno): un intento cada 3 h, ≤ 8 al día, como el cron;
-  - y en este tick el reloj no lanza ni la pasada del bot ni la del carril (reloj.yml: el paso ni corre).
+    resultado) empezó hace HISTORICO_CADA menos SLACK (1 h 20 min) o más, o no hay ninguna. Tras una ejecución
+    servida que no acabó en el freno el carril se relanza solo (paso «Siguiente»), así que el reloj retoma la cadena
+    cuando se para (un runner rechazado, el tope del día, el freno). Un intento cada hora y media (≤ 16 al día) desde
+    el 26/11/2026; antes, cada 3 h: ese día la federación frenaba a las ~150 páginas, cada ejecución en Azure leía
+    300 en 41 min (150, el freno, su espera de 5 min, 150 más, el segundo freno y fin) y, con la mitad de los runners
+    en AWS, cada 3 h daban ~1.200 páginas al día entre semana (el histórico entero, ~85.000, en meses). No es
+    relanzar para esquivar el freno: cada ejecución lo respeta (lo espera una vez y para), entre una y otra pasa más
+    de una hora, cuando el bloqueo (minutos) hace mucho que acabó, y el tope del día (historico.PAGINAS_DIA, 2.000)
+    sigue siendo el límite de todo;
+  - y en este tick el reloj no lanza ni la pasada del bot ni la del carril (reloj.yml: el paso ni corre): van antes.
 Las horas de las pasadas del bot y del carril son las mismas con el histórico y sin él
-(test_reloj_pasadas.test_semana_con_historico).
+(test_reloj_pasadas.test_semana_con_historico); con el reloj del PC (test_semana_con_el_reloj_del_pc), el bot no le
+espera nunca (el histórico va en otro grupo de concurrencia y puede coincidir con él, a propósito), nunca coincide
+con el carril de las mayores, y el carril pasa de 34 a 30-33 pasadas a la semana (un histórico de 41 min le ocupa
+a veces su hueco).
 
 Puro y sin dependencias (solo la biblioteca estándar): el reloj corre con el python3 del sistema, sin pip ni
 el resto del repositorio (checkout disperso de este fichero). Lo prueban test_reloj_pasadas.py y, el
@@ -123,7 +132,7 @@ CARRIL_DESDE = timedelta(minutes=25)    # tras el arranque de una pasada del bot
 CARRIL_HASTA = timedelta(minutes=75)    # …y el carril (~24 min) acaba antes de la siguiente (110-120 min)
 ANTES_DE_VENTANA = timedelta(hours=1)   # ni en una ventana de partidos ni a menos de 1 h de que empiece una
 # El carril del histórico (historico.yml, due_historico: arriba).
-HISTORICO_CADA = timedelta(hours=3)     # un intento cada 3 h (menos SLACK), como su cron de antes
+HISTORICO_CADA = timedelta(minutes=90)  # un intento cada hora y media (menos SLACK); hasta el 26/11/2026, 3 h
 
 
 def _utc(moment):

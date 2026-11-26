@@ -22,11 +22,14 @@ name: Histórico de la federación (un solo carril)
 # en un runner que la federación no sirve acaba en uno o dos minutos y tampoco (historico.RELANZAR_SI_RUNNER_RECHAZADO
 # = 0, decisión del dueño pendiente). Las dos, las retoma el disparo siguiente del reloj.
 #
-# El disparo: lo lanza el reloj (reloj.yml, reloj_pasadas.due_historico), un intento cada 3 h desde que empezó la
-# última, fuera de las ventanas y sin nada del histórico, del bot, del carril de las mayores ni de la activación sin
-# acabar. Con la mitad de los runners en AWS, unos 4 de los ≤ 8 disparos del día caen en Azure, y cada uno lee ~150-300
-# páginas (un cupo, la espera y otro); tras una ejecución servida (60 páginas o más) que no acabó en el freno, o tras
-# una prueba, la siguiente se lanza en seguida (paso «Siguiente», sin entradas). Hasta el 25/11/2026 tenía su propio cron ('47 */3 * * *'), y GitHub lo perdía
+# El disparo: lo lanza el reloj (reloj.yml, reloj_pasadas.due_historico), un intento cada hora y media desde que
+# empezó la última (desde el 26/11/2026; antes, cada 3 h), fuera de las ventanas y sin nada del histórico, del bot, del
+# carril de las mayores ni de la activación sin acabar. Con la mitad de los runners en AWS, unos 6-7 de los 13-14
+# disparos de un día entre semana caen en Azure, y cada uno lee ~300 páginas en ~41 min (un cupo de ~150, la espera
+# de 5 min y otro): el tope del día (2.000) casi cada día. No es esquivar el freno: cada ejecución lo espera una vez
+# y para, y entre una y otra pasa más de una hora (el bloqueo dura minutos). Tras una ejecución servida (60 páginas o
+# más) que no acabó en el freno, o tras una prueba, la siguiente se lanza en seguida (paso «Siguiente», sin
+# entradas). Hasta el 25/11/2026 tenía su propio cron ('47 */3 * * *'), y GitHub lo perdía
 # como el de update.yml: ese día no llegaron ni el de las 18:47 ni el de las 21:47 UTC, y el carril se quedó parado
 # hasta que se lanzó a mano. Sin schedule, GitHub ya no lo desactiva por inactividad (el reloj, sí: sin él, tampoco
 # hay histórico). Para pararlo, -f accion=parar o desactivar este workflow (gh workflow disable historico.yml), no el
@@ -331,7 +334,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         # GitHub falla a veces al crear el disparo (un HTTP 500 el 25/11/2026, que dejó en rojo una ejecución que
         # había bajado bien): un segundo intento a los 20 s y, si tampoco, no es un fallo del carril: lo retoma el
-        # disparo siguiente del reloj (reloj.yml, cada 3 h).
+        # disparo siguiente del reloj (reloj.yml, cada hora y media).
         run: |
           gh workflow run historico.yml --ref main || { sleep 20; gh workflow run historico.yml --ref main; } \
             || echo "no se pudo lanzar la ejecución siguiente; la retoma el disparo siguiente del reloj"

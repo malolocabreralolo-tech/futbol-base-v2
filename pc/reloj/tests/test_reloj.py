@@ -569,8 +569,8 @@ def test_systemd_solo_con_el_home_de_verdad(tmp_path):
 # ── El carril de las mayores y el histórico ───────────────────────────────────
 #
 # Los ticks del cron de reloj.yml casi no llegan: si este reloj solo lanzara reloj.yml cuando toca una pasada del bot,
-# el carril de las mayores (que entra entre los 25 y los 75 min de una) y el histórico (cada 3 h) casi nunca tendrían
-# un tick en el que decidirse. Con due=false mira también due_carril y due_historico con la misma copia instalada; si
+# el carril de las mayores (que entra entre los 25 y los 75 min de una) y el histórico (cada hora y media) casi nunca
+# tendrían un tick en el que decidirse. Con due=false mira también due_carril y due_historico con la misma copia instalada; si
 # toca uno, lanza reloj.yml como siempre. Un fallo de esa parte no es un fallo del reloj: se apunta y sale con 0.
 
 MARTES = datetime(2026, 12, 1, 10, 40, tzinfo=timezone.utc)      # martes, 10:40 en Canarias (UTC+0): sin ventanas

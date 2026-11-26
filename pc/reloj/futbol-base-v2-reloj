@@ -74,7 +74,7 @@ esac
 
 # 2b. Sin pasada del bot: ¿toca el carril de las mayores (carril-mayores.yml) o el carril del histórico (historico.yml)?
 # Los lanza reloj.yml, y los ticks de su cron casi no llegan: si este reloj solo lo lanzara cuando toca una pasada, el
-# carril (entra entre los 25 y los 75 min de una pasada del bot) y el histórico (cada 3 h) casi nunca tendrían un tick
+# carril (entra entre los 25 y los 75 min de una pasada del bot) y el histórico (cada hora y media) casi nunca tendrían un tick
 # en el que decidirse. Mismas listas y misma copia instalada que reloj.yml: due_carril (con --carril y los dos
 # --activar) y due_historico (con --historico y los --otros). El carril, como en reloj.yml, solo con la variable del
 # repositorio CARRIL_MAYORES a 1 (la lee la API, con el mismo token: tiene que poder leer las variables): sin ella
