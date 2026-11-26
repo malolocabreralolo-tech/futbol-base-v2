@@ -660,21 +660,43 @@
     }
   },
   "activation": {
-    "at": "2026-11-24T10:28:44+00:00",
-    "activated": [
+    "at": "2026-11-26T09:54:19+00:00",
+    "activated": [],
+    "failed": [
       {
-        "competition": "55337395",
-        "name": "LIGA BENJAMIN GRAN CANARIA FASE F",
-        "codes": [
-          "F1"
-        ]
+        "competition": "54976908",
+        "name": "LIGA INFANTIL PREFERENTE DE GRAN CANARIA",
+        "reason": "la descarga no está completa: falta la lista de grupos de la federación"
+      },
+      {
+        "competition": "54976911",
+        "name": "LIGA INFANTIL LANZAROTE FASE 1",
+        "reason": "la descarga no está completa: falta la lista de grupos de la federación"
+      },
+      {
+        "competition": "54976916",
+        "name": "LIGA PRIMERA INFANTIL DE GRAN CANARIA",
+        "reason": "la descarga no está completa: falta la lista de grupos de la federación"
+      },
+      {
+        "competition": "54976929",
+        "name": "LIGA INFANTIL DE FUERTEVENTURA 1ª FASE",
+        "reason": "la descarga no está completa: falta la lista de grupos de la federación"
+      },
+      {
+        "competition": "55184138",
+        "name": "LIGA INFANTIL GRAN CANARIA",
+        "reason": "la descarga no está completa: falta la lista de grupos de la federación"
       }
     ],
-    "failed": [],
     "tried": [
-      "55337395"
+      "54976908",
+      "54976911",
+      "54976916",
+      "54976929",
+      "55184138"
     ],
-    "attempts": 7
+    "attempts": 1
   },
   "newCompetitions": [
     {
