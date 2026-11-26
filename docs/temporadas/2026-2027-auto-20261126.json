@@ -153,6 +153,141 @@
       "island": "fuerteventura",
       "fullName": "INFANTIL FUERTEVENTURA FASE 1 - GRUPO 3",
       "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54976929&CodGrupo=55180174"
+    },
+    {
+      "id": "CADI1",
+      "cat": "cadete",
+      "name": "Grupo 1",
+      "phase": "Interinsular",
+      "island": "interinsular",
+      "fullName": "CADETE INTERINSULAR - GRUPO 1",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54976894&CodGrupo=55028997"
+    },
+    {
+      "id": "CADNG1",
+      "cat": "cadete",
+      "name": "Grupo 1",
+      "phase": "Insular GC Fase 1",
+      "island": "grancanaria",
+      "fullName": "CADETE INSULAR GC FASE 1 - GRUPO 1",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54976896&CodGrupo=55150919"
+    },
+    {
+      "id": "CADNG2",
+      "cat": "cadete",
+      "name": "Grupo 2",
+      "phase": "Insular GC Fase 1",
+      "island": "grancanaria",
+      "fullName": "CADETE INSULAR GC FASE 1 - GRUPO 2",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54976896&CodGrupo=55151092"
+    },
+    {
+      "id": "CADNG3",
+      "cat": "cadete",
+      "name": "Grupo 3",
+      "phase": "Insular GC Fase 1",
+      "island": "grancanaria",
+      "fullName": "CADETE INSULAR GC FASE 1 - GRUPO 3",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54976896&CodGrupo=55151364"
+    },
+    {
+      "id": "CADNG4",
+      "cat": "cadete",
+      "name": "Grupo 4",
+      "phase": "Insular GC Fase 1",
+      "island": "grancanaria",
+      "fullName": "CADETE INSULAR GC FASE 1 - GRUPO 4",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54976896&CodGrupo=55151380"
+    },
+    {
+      "id": "CADNG5",
+      "cat": "cadete",
+      "name": "Grupo 5",
+      "phase": "Insular GC Fase 1",
+      "island": "grancanaria",
+      "fullName": "CADETE INSULAR GC FASE 1 - GRUPO 5",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54976896&CodGrupo=55151406"
+    },
+    {
+      "id": "CADNG6",
+      "cat": "cadete",
+      "name": "Grupo 6",
+      "phase": "Insular GC Fase 1",
+      "island": "grancanaria",
+      "fullName": "CADETE INSULAR GC FASE 1 - GRUPO 6",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54976896&CodGrupo=55151418"
+    },
+    {
+      "id": "CADNG7",
+      "cat": "cadete",
+      "name": "Grupo 7",
+      "phase": "Insular GC Fase 1",
+      "island": "grancanaria",
+      "fullName": "CADETE INSULAR GC FASE 1 - GRUPO 7",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54976896&CodGrupo=55151421"
+    },
+    {
+      "id": "CADPL1",
+      "cat": "cadete",
+      "name": "Grupo 1",
+      "phase": "Preferente Lanzarote",
+      "island": "lanzarote",
+      "fullName": "CADETE PREFERENTE LANZAROTE - GRUPO 1",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54976904&CodGrupo=55087379"
+    },
+    {
+      "id": "CADNF1",
+      "cat": "cadete",
+      "name": "CADETE INSULAR",
+      "phase": "Insular Fuerteventura",
+      "island": "fuerteventura",
+      "fullName": "CADETE INSULAR FUERTEVENTURA - GRUPO 1",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54976906&CodGrupo=55088396"
+    },
+    {
+      "id": "CADNL1",
+      "cat": "cadete",
+      "name": "Grupo 1",
+      "phase": "Insular Lanzarote",
+      "island": "lanzarote",
+      "fullName": "CADETE INSULAR LANZAROTE - GRUPO 1",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54977104&CodGrupo=55103161"
+    },
+    {
+      "id": "CADPLC1",
+      "cat": "cadete",
+      "name": "Grupo 1",
+      "phase": "Copa Preferente Lanzarote",
+      "island": "lanzarote",
+      "fullName": "CADETE COPA PREFERENTE LANZAROTE - GRUPO 1",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54977178&CodGrupo=55069270"
+    },
+    {
+      "id": "CADPLC2",
+      "cat": "cadete",
+      "name": "Grupo 2",
+      "phase": "Copa Preferente Lanzarote",
+      "island": "lanzarote",
+      "fullName": "CADETE COPA PREFERENTE LANZAROTE - GRUPO 2",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54977178&CodGrupo=55069390"
+    },
+    {
+      "id": "CADPG1",
+      "cat": "cadete",
+      "name": "Grupo 1",
+      "phase": "Preferente GC",
+      "island": "grancanaria",
+      "fullName": "CADETE PREFERENTE GC - GRUPO 1",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54977183&CodGrupo=55054982"
+    },
+    {
+      "id": "CADPLCE1",
+      "cat": "cadete",
+      "name": "FINAL",
+      "phase": "Eliminatorias Copa Preferente Lanzarote",
+      "island": "lanzarote",
+      "fullName": "CADETE ELIMINATORIAS COPA PREFERENTE LANZAROTE - GRUPO 1",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54977202&CodGrupo=55301286"
     }
   ]
 }

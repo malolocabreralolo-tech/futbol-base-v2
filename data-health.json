@@ -765,21 +765,131 @@
     }
   },
   "activation": {
-    "at": "2026-11-26T11:38:48+00:00",
+    "at": "2026-11-26T18:25:34+00:00",
     "activated": [
       {
-        "competition": "54976929",
-        "name": "LIGA INFANTIL DE FUERTEVENTURA 1ª FASE",
+        "competition": "54976894",
+        "name": "LIGA CADETE INTERINSULAR",
         "codes": [
-          "INFUF1",
-          "INFUF2",
-          "INFUF3"
+          "CADI1"
+        ]
+      },
+      {
+        "competition": "54976896",
+        "name": "LIGA CADETE INSULAR GRAN CANARIA 1ª FASE",
+        "codes": [
+          "CADNG1",
+          "CADNG2",
+          "CADNG3",
+          "CADNG4",
+          "CADNG5",
+          "CADNG6",
+          "CADNG7"
+        ]
+      },
+      {
+        "competition": "54976904",
+        "name": "LIGA CADETE PREFERENTE LANZAROTE",
+        "codes": [
+          "CADPL1"
+        ]
+      },
+      {
+        "competition": "54976906",
+        "name": "LIGA CADETE INSULAR DE FUERTEVENTURA",
+        "codes": [
+          "CADNF1"
+        ]
+      },
+      {
+        "competition": "54977104",
+        "name": "LIGA CADETE INSULAR DE LANZAROTE",
+        "codes": [
+          "CADNL1"
+        ]
+      },
+      {
+        "competition": "54977178",
+        "name": "COPA CADETE PREFERENTE DE LANZAROTE",
+        "codes": [
+          "CADPLC1",
+          "CADPLC2"
+        ]
+      },
+      {
+        "competition": "54977183",
+        "name": "LIGA CADETE PREFERENTE GRAN CANARIA",
+        "codes": [
+          "CADPG1"
+        ]
+      },
+      {
+        "competition": "54977202",
+        "name": "ELIMINATORIAS COPA CADETE PREFERENTE DE LANZAROTE",
+        "codes": [
+          "CADPLCE1"
         ]
       }
     ],
-    "failed": [],
+    "failed": [
+      {
+        "competition": "54977072",
+        "name": "COPA CADETE INSULAR DE LANZAROTE",
+        "reason": "la descarga no está completa: falta la lista de grupos de la federación"
+      },
+      {
+        "competition": "55133909",
+        "name": "ELIMINATORIAS COPA CADETE INSULAR DE LANZAROTE",
+        "reason": "la descarga no está completa: falta la lista de grupos de la federación"
+      },
+      {
+        "competition": "54976878",
+        "name": "LIGA JUVENIL INTERINSULAR",
+        "reason": "la descarga no está completa: falta la lista de grupos de la federación"
+      },
+      {
+        "competition": "54976880",
+        "name": "LIGA JUVENIL PREFERENTE GRAN CANARIA",
+        "reason": "la descarga no está completa: falta la lista de grupos de la federación"
+      },
+      {
+        "competition": "54976882",
+        "name": "LIGA JUVENIL PREFERENTE LANZAROTE",
+        "reason": "la descarga no está completa: falta la lista de grupos de la federación"
+      },
+      {
+        "competition": "54976884",
+        "name": "LIGA JUVENIL PREFERENTE FUERTEVENTURA",
+        "reason": "la descarga no está completa: falta la lista de grupos de la federación"
+      },
+      {
+        "competition": "54976886",
+        "name": "LIGA PRIMERA JUVENIL GRAN CANARIA",
+        "reason": "la descarga no está completa: falta la lista de grupos de la federación"
+      },
+      {
+        "competition": "54976889",
+        "name": "LIGA SEGUNDA JUVENIL GRAN CANARIA",
+        "reason": "la descarga no está completa: falta la lista de grupos de la federación"
+      }
+    ],
     "tried": [
-      "54976929"
+      "54976878",
+      "54976880",
+      "54976882",
+      "54976884",
+      "54976886",
+      "54976889",
+      "54976894",
+      "54976896",
+      "54976904",
+      "54976906",
+      "54977072",
+      "54977104",
+      "54977178",
+      "54977183",
+      "54977202",
+      "55133909"
     ],
     "attempts": 1
   },
@@ -812,46 +922,6 @@
     {
       "id": "54976889",
       "name": "LIGA SEGUNDA JUVENIL GRAN CANARIA",
-      "firstSeen": "2026-11-26"
-    },
-    {
-      "id": "54976894",
-      "name": "LIGA CADETE INTERINSULAR",
-      "firstSeen": "2026-11-26"
-    },
-    {
-      "id": "54977183",
-      "name": "LIGA CADETE PREFERENTE GRAN CANARIA",
-      "firstSeen": "2026-11-26"
-    },
-    {
-      "id": "54976904",
-      "name": "LIGA CADETE PREFERENTE LANZAROTE",
-      "firstSeen": "2026-11-26"
-    },
-    {
-      "id": "54977178",
-      "name": "COPA CADETE PREFERENTE DE LANZAROTE",
-      "firstSeen": "2026-11-26"
-    },
-    {
-      "id": "54977202",
-      "name": "ELIMINATORIAS COPA CADETE PREFERENTE DE LANZAROTE",
-      "firstSeen": "2026-11-26"
-    },
-    {
-      "id": "54976896",
-      "name": "LIGA CADETE INSULAR GRAN CANARIA 1ª FASE",
-      "firstSeen": "2026-11-26"
-    },
-    {
-      "id": "54976906",
-      "name": "LIGA CADETE INSULAR DE FUERTEVENTURA",
-      "firstSeen": "2026-11-26"
-    },
-    {
-      "id": "54977104",
-      "name": "LIGA CADETE INSULAR DE LANZAROTE",
       "firstSeen": "2026-11-26"
     },
     {
