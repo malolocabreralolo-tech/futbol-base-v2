@@ -47,6 +47,22 @@ def islas(monkeypatch, season, ids="", cats=None):
     return importlib.import_module("fetch_fiflp_islas")
 
 
+
+def test_en_un_runner_rechazado_la_descarga_no_pide_nada(monkeypatch, tmp_path, capsys):
+    """En un runner que la federación no sirve (AWS: fiflp_carga.nube), la descarga de la tanda acaba en seguida sin
+    pedir nada y sin tocar el raw (activar.yml: el intento no cuenta, activar_auto). En Azure o con la nube
+    desconocida, como siempre."""
+    I = islas(monkeypatch, "22al")
+    llamadas = []
+    monkeypatch.setattr(I.F, "main", lambda: llamadas.append("main"))
+    monkeypatch.setattr(I.F, "OUTPUT_PATH", str(tmp_path / "raw.json"))
+    assert I.main(cloud="aws") == 0
+    assert llamadas == [] and not (tmp_path / "raw.json").exists()
+    assert "runner rechazado: no cuenta como intento" in capsys.readouterr().out
+    for cloud in ("azure", "otra", None):          # None: la de la máquina (conftest: Azure)
+        assert I.main(cloud=cloud) == 0
+    assert llamadas == ["main"] * 3
+
 def test_catalog_competitions_by_category():
     import fetch_fiflp_islas as I
     ben = I.comps_from_catalog("2026-2027", CATALOG)

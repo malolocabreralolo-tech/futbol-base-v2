@@ -263,7 +263,17 @@ def guardar_por_grupo(path, hasta=None, now=None):
     return hook
 
 
-if __name__ == "__main__":
+def main(cloud=None):
+    """La descarga de la tanda. En un runner que la federación no sirve (AWS desde el 13/11/2026: vacío desde la
+    primera petición, siempre; `cloud`, o la de la máquina, fiflp_carga.nube), nada: ni una petición ni el raw (este
+    lector, el paso de fetch_fiflp_2425, no distingue un runner rechazado y se pasaría el plazo pidiendo páginas
+    vacías). activar.yml no cuenta ese intento (activar_auto). En Azure o con la nube desconocida, como siempre."""
+    from fiflp_carga import nube
+    cloud = cloud or nube()
+    if cloud == "aws":
+        print(f"Temporada {SEASON}: la federación no sirve a este runner (nube: {cloud}): nada que pedir. "
+              "runner rechazado: no cuenta como intento.")
+        return 0
     print(f"Temporada {SEASON} · {len(F.COMPETITIONS)} competiciones · "
           f"salida {os.path.basename(F.OUTPUT_PATH)}")
     vacios = drop_empty_groups(F.OUTPUT_PATH)
@@ -275,3 +285,8 @@ if __name__ == "__main__":
     except Plazo as error:
         # No es un fallo: lo que queda lo baja el intento siguiente (reanuda por grupo).
         print(f"\n{error}: lo que falta se descarga en el intento siguiente")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

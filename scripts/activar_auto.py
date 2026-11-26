@@ -32,6 +32,8 @@ Reglas (docs/temporada-nueva.md, «Activación automática»):
     falta una regla de PHASE_TABLE, que es código; queda en activation.failed y sale con 1.
   - Nada de una categoría que el bot aún no activa (categorias.ACTIVABLES: la decide el director, paso a paso):
     queda en activation.failed («categoría que el bot aún no activa») sin tocar nada, y no se descarga (--tandas).
+  - Un intento en un runner que la federación no sirve (AWS, fiflp_carga.nube; desde el 26/11/2026) no cuenta: no
+    activa nada ni toca activation, y sale con 0 (la descarga, fetch_fiflp_islas, tampoco pidió nada).
 """
 import argparse
 from datetime import datetime, timezone
@@ -46,6 +48,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
 import categorias  # noqa: E402
+import fiflp_carga  # noqa: E402
 import fiflp_manifest as M  # noqa: E402
 from activate_season import add_groups, fiflp_ids, raw_team_names, validate_manifest, verify_sources  # noqa: E402
 from categorias import TANDAS, category_of, sufijo_tanda  # noqa: E402
@@ -466,7 +469,7 @@ def pruebas_fallaron(health_path, db_path, ejecucion_path):
     escribir_activacion(health_path, activation, {a["competition"] for a in activation["activated"]}, season_pairs)
 
 
-def main(argv=None, root=ROOT, sonda=run_sonda, generar=regenerar, log=print):
+def main(argv=None, root=ROOT, sonda=run_sonda, generar=regenerar, log=print, nube=None):
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     parser.add_argument("--raw", type=Path, help="el raw de todas las pendientes (sin él, el de la tanda de cada una)")
     parser.add_argument("--dry-run", action="store_true", help="solo comprobar: no escribe nada")
@@ -503,6 +506,16 @@ def main(argv=None, root=ROOT, sonda=run_sonda, generar=regenerar, log=print):
         return 0
     if not comps:
         log("Nada pendiente de activar.")
+        return 0
+    # Un intento que cae en un runner que la federación no sirve (AWS desde el 13/11/2026: vacío desde la primera
+    # petición; fiflp_carga.nube, la de la máquina) no ha podido descargar nada (fetch_fiflp_islas no le pide nada):
+    # no cuenta como intento. Ni se activa nada ni se toca activation (ni attempts, de los 8 que tiene una descarga
+    # incompleta, ni failed): lo pendiente sigue igual y la pasada siguiente del bot lo vuelve a lanzar
+    # (source_health.py pendiente), como hoy. Sin esto, con la mitad de los runners en AWS, la mitad de los 8
+    # intentos se gastaban sin leer. En Azure o con la nube desconocida («otra»), como siempre.
+    if not args.dry_run and (nube or fiflp_carga.nube)() == "aws":
+        log("Runner rechazado (nube: aws): la federación no sirve a este runner, la descarga no ha pedido nada y no se "
+            "activa nada. runner rechazado: no cuenta como intento; lo vuelve a lanzar la pasada siguiente del bot.")
         return 0
     conn = get_connection(db_path)
     try:

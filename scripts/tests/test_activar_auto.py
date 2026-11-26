@@ -374,6 +374,48 @@ def test_attempts_cuenta_los_intentos_seguidos_del_mismo_conjunto(tmp_path):
     assert health(root)["activation"]["attempts"] == 1 and health(root)["activation"]["tried"] == [PLZ[0], TORNEO[0]]
 
 
+
+def test_un_intento_en_un_runner_rechazado_no_cuenta(tmp_path):
+    """Un intento de activar.yml que cae en un runner que la federación no sirve (AWS: fiflp_carga.nube) no ha podido
+    descargar nada (fetch_fiflp_islas no pide nada en AWS): no activa nada, no falla, no toca activation (ni attempts
+    ni failed: data-health.json igual byte a byte) y lo dice en el registro. El intento siguiente lo lanza la pasada
+    siguiente del bot, como hoy (source_health.py pendiente: lo de antes sigue pendiente). En Azure o con la nube
+    desconocida («otra», en local), como siempre: gasta su intento."""
+    root = tree(tmp_path, [entry(PLZ, 1)], listed={PLZ[0]: {group_id(PLZ, 1): "GRUPO 1", group_id(PLZ, 2): "GRUPO 2"}},
+                health={"newCompetitions": [new_comp(PLZ)]})
+    assert run(root)[0] == 1                                        # en Azure: descarga incompleta, intento 1
+    antes = (root / "data-health.json").read_bytes()
+    huella = fingerprint(root)
+    logs = []
+    assert A.main([], root=root, log=logs.append, nube=lambda: "aws") == 0
+    assert (root / "data-health.json").read_bytes() == antes and fingerprint(root) == huella
+    assert codes(root) == ["FF1", "FF2", "FF3"]
+    assert any("runner rechazado: no cuenta como intento" in line for line in logs), logs
+    assert health(root)["activation"]["attempts"] == 1
+    for nube in ("azure", "otra"):
+        assert A.main([], root=root, log=lambda *a: None, nube=lambda nube=nube: nube) == 1
+    assert health(root)["activation"]["attempts"] == 3
+    # Con nada pendiente, en AWS como siempre: nada que hacer.
+    (tmp_path / "vacio").mkdir()
+    vacio = tree(tmp_path / "vacio")
+    logs = []
+    assert A.main([], root=vacio, log=logs.append, nube=lambda: "aws") == 0 and logs == ["Nada pendiente de activar."]
+    # Las órdenes que no activan (las de los pasos de antes), en AWS igual.
+    assert A.main(["--pendientes"], root=root, nube=lambda: "aws") == 0
+
+
+def test_sin_darle_la_nube_la_lee_de_la_maquina(tmp_path, monkeypatch):
+    """Sin `nube`, la de fiflp_carga.nube (SYS_VENDOR; conftest la pone de Azure para todas las pruebas)."""
+    import fiflp_carga
+    root = tree(tmp_path, [entry(PLZ, 1)], listed={PLZ[0]: {group_id(PLZ, 1): "GRUPO 1", group_id(PLZ, 2): "GRUPO 2"}},
+                health={"newCompetitions": [new_comp(PLZ)]})
+    vendor = tmp_path / "sys_vendor"
+    vendor.write_text("Amazon EC2\n")
+    monkeypatch.setattr(fiflp_carga, "SYS_VENDOR", str(vendor))
+    assert run(root)[0] == 0 and "activation" not in health(root)
+    vendor.write_text("Microsoft Corporation\n")
+    assert run(root)[0] == 1 and health(root)["activation"]["attempts"] == 1
+
 def test_un_reintento_que_falla_igual_no_reescribe_el_informe_hasta_pasado_un_dia(tmp_path):
     """Sin commits de ruido: mismo resultado que el publicado (nada activado, los mismos fallos, ninguno de
     descarga) de hace menos de 24 h → data-health.json tal cual (ni `at` ni `attempts`). Pasadas 24 h sí se
