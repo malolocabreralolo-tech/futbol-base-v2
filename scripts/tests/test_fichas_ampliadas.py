@@ -17,6 +17,14 @@ sobre la base real de después (conftest.bases_reales: «mayores», con el final
   (e) el ranking y el año de nacimiento de los niños de hoy sin filas nuevas no cambian (ni orden ni índice, salvo
       los que entran o salen por el tope de cada lista).
 
+Solo afirman sobre lo que fabrica base_mayores y los niños de hoy de prebenjamín, benjamín y alevín, nunca sobre los
+datos reales de infantil, cadete y juvenil: estas pruebas van en la puerta del bot, y un dato raro de la federación
+(un id en prebenjamín y en juvenil, dos homónimos sin id en un club) no puede pararlo. Por eso, si la base real ya trae
+grupos de las nuevas (desde D3), se quitan de una copia antes de fabricar (fabricadas: vista_web.quitar_grupos, lo
+mismo que no ve la web de hoy) y todo se compara sobre esa copia; con la base de hoy, son las de bases_reales tal
+cual. Y (b), (c) y (d) miran solo las fichas con filas de los grupos fabricados. Lo real se mira fuera de la puerta:
+medir_identidad.py --entre-categorias (docs/categorias-mayores.md, E2-D2).
+
 Saltan sin futbolbase.db. Lo caro (la web de las dos bases: las fichas, el año y el ranking, sin escribir nada; ~15 s
 cada una con la base real) se hace una vez por módulo y a la vez (paralelo.en_paralelo). Sin nombres de niños: los
 mensajes de error llevan claves."""
@@ -68,13 +76,78 @@ def publicado(path, en_web):
     return out
 
 
+def sin_lo_real(origen, destino):
+    """Una copia de `origen` en `destino` sin los grupos de fuera del EN_WEB de antes (los reales de infantil, cadete
+    y juvenil) ni lo que cuelga de ellos (vista_web.quitar_grupos, como la copia de la web de hoy), con el final de
+    una pasada con ese EN_WEB: la base real de hoy más lo de siempre que ya haya leído el bot."""
+    import shutil
+    import vista_web
+    from db import get_connection
+    shutil.copyfile(origen, destino)
+    conn = get_connection(destino)
+    try:
+        fuera = vista_web.grupos_fuera(conn, base_mayores.EN_WEB_DE_ANTES)
+        conservar = [n for (n,) in conn.execute("SELECT name FROM categories")]
+        conn.commit()
+        conn.execute("PRAGMA foreign_keys=OFF")         # se borra en orden (vista_web); se comprueba al final
+        conn.execute("BEGIN")
+        vista_web.quitar_grupos(conn, fuera, conservar)
+        assert conn.execute("PRAGMA foreign_key_check").fetchall() == []
+        conn.commit()
+    finally:
+        conn.close()
+    base_mayores.fin_de_pasada(destino, "antes")
+    return len(fuera)
+
+
 @pytest.fixture(scope="module")
-def webs(bases_reales):
-    """{"antes": lo publicado con el EN_WEB de antes sobre «mayores», "seis": con el de después sobre
-    «mayores_seis»}, a la vez."""
+def fabricadas(bases_reales, tmp_path_factory):
+    """{"antes": la base de después con el final de una pasada con el EN_WEB de antes, "seis": con el de después,
+    "hecho": lo que devolvió poblar, "grupos": {códigos fabricados}}, sin nada real de las nuevas: con la base de hoy
+    (sin grupos de ellas), las «mayores» y «mayores_seis» de bases_reales; si ya los trae, las mismas fabricadas sobre
+    una copia de la resuelta sin ellos (sin_lo_real), a la vez."""
     from paralelo import en_paralelo
-    antes, seis = en_paralelo((publicado, (bases_reales["mayores"], "antes")),
-                              (publicado, (bases_reales["mayores_seis"], "seis")))
+    import vista_web
+    conn = sqlite3.connect(f"file:{bases_reales['resuelta']}?mode=ro", uri=True)
+    try:
+        reales = vista_web.grupos_fuera(conn, base_mayores.EN_WEB_DE_ANTES)
+    finally:
+        conn.close()
+    if not reales:
+        return {"antes": bases_reales["mayores"], "seis": bases_reales["mayores_seis"], "hecho": bases_reales["hecho"],
+                "grupos": set(bases_reales["hecho"]["grupos"])}
+    carpeta = tmp_path_factory.mktemp("fabricadas")
+    limpia = carpeta / "limpia.db"
+    sin_lo_real(bases_reales["resuelta"], limpia)
+    antes, seis = carpeta / "antes.db", carpeta / "seis.db"
+    hecho, hecho_seis = en_paralelo((base_mayores.leida, (limpia, antes, MAYORES, False, "antes")),
+                                    (base_mayores.leida, (limpia, seis, MAYORES, False, "seis")))
+    assert hecho == hecho_seis
+    return {"antes": antes, "seis": seis, "hecho": hecho, "grupos": set(hecho["grupos"])}
+
+
+def _de_lo_fabricado(path, grupos):
+    """Los ids de players con alguna aparición o suceso en los grupos fabricados (`grupos`, sus códigos) de la
+    temporada en curso."""
+    conn = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+    try:
+        marcas = ",".join("?" * len(grupos))
+        return {p for (p,) in conn.execute(
+            f"""SELECT x.player_id FROM (SELECT player_id, match_id FROM appearances
+                                         UNION SELECT player_id, match_id FROM match_events) x
+                  JOIN matches m ON m.id = x.match_id JOIN groups g ON g.id = m.group_id
+                  JOIN seasons s ON s.id = g.season_id
+                 WHERE s.is_current = 1 AND g.code IN ({marcas})""", sorted(grupos))}
+    finally:
+        conn.close()
+
+
+@pytest.fixture(scope="module")
+def webs(fabricadas):
+    """{"antes": lo publicado con el EN_WEB de antes, "seis": con el de después}, sobre las fabricadas, a la vez."""
+    from paralelo import en_paralelo
+    antes, seis = en_paralelo((publicado, (fabricadas["antes"], "antes")),
+                              (publicado, (fabricadas["seis"], "seis")))
     return {"antes": antes, "seis": seis}
 
 
@@ -164,20 +237,23 @@ def _edad(vistas):
     return lo, hi
 
 
-def test_ninguna_ficha_imposible_ni_dos_ids_nuevos_juntos(bases_reales):
+def test_ninguna_ficha_imposible_ni_dos_ids_nuevos_juntos(fabricadas):
     """(b) Con el EN_WEB de después: ninguna ficha junta dos identificadores que con el de antes estaban en fichas
     distintas (los «ids de un solo uso» que ya juntaba la U0 de hoy siguen como estaban), ni tiene un intervalo de
     edad vacío, ni dos categorías no contiguas en una temporada; y ninguna de dos o más identidades (las que junta
     el resolvedor) es incompatible (identidad.compatibles de todas sus vistas: la edad y el solape de clubes). De
     una identidad sola, lo que no es del resolvedor no se mira: su solape (una fila con id en dos clubes a la vez la
     misma temporada: la base real tiene ~90 desde antes de la parte E), lo que ya era imposible solo con
-    prebenjamín, benjamín y alevín, y la fila «sin nombre publicado» (identidad._fuera: no es un niño)."""
+    prebenjamín, benjamín y alevín, y la fila «sin nombre publicado» (identidad._fuera: no es un niño). Solo las fichas
+    con filas de los grupos fabricados: lo demás es lo de hoy, que no cambia (las demás pruebas de este fichero)."""
     from identidad import _fuera, compatibles
-    seis, _ = _fichas_de(bases_reales["mayores_seis"], "seis")
-    _, principal_antes = _fichas_de(bases_reales["mayores"], "antes")
+    seis, _ = _fichas_de(fabricadas["seis"], "seis")
+    _, principal_antes = _fichas_de(fabricadas["antes"], "antes")
+    fabricados = _de_lo_fabricado(fabricadas["seis"], fabricadas["grupos"])
+    assert fabricados
     dos_ids, vacias, lejanas = [], [], []
     for p, miembros in seis.items():
-        if len(miembros) == 1 and _fuera(miembros[0]):
+        if (len(miembros) == 1 and _fuera(miembros[0])) or not any(i.id in fabricados for i in miembros):
             continue
         con_id = {principal_antes.get(i.id, i.id) for i in miembros if i.fiflp_id is not None}
         if len(con_id) > 1:
@@ -197,15 +273,16 @@ def test_ninguna_ficha_imposible_ni_dos_ids_nuevos_juntos(bases_reales):
     assert lejanas == [], f"{len(lejanas)} fichas con dos categorías no contiguas en una temporada ({lejanas[:20]})"
 
 
-def test_un_sin_id_de_cadete_o_juvenil_no_es_un_pequeno_sin_id_del_club(bases_reales):
+def test_un_sin_id_de_cadete_o_juvenil_no_es_un_pequeno_sin_id_del_club(fabricadas):
     """(c) Los niños sin id de cadete y juvenil que se llaman como un prebenjamín (o benjamín) sin id del mismo club y
     la misma temporada (base_mayores los pone a propósito: SIN_ID_DE) siguen en fichas distintas con el EN_WEB de
-    después: seis años o más de diferencia."""
+    después: seis años o más de diferencia. Solo los de los grupos fabricados."""
     import migrate_identidad as M
     from identidad import club
-    if not bases_reales["hecho"]["sin_id_disponibles"]:
+    if not fabricadas["hecho"]["sin_id_disponibles"]:
         pytest.skip("la temporada en curso aún no tiene sin id de prebenjamín ni de alevín (recién empezada)")
-    conn = sqlite3.connect(f"file:{bases_reales['mayores_seis']}?mode=ro", uri=True)
+    fabricados = _de_lo_fabricado(fabricadas["seis"], fabricadas["grupos"])
+    conn = sqlite3.connect(f"file:{fabricadas['seis']}?mode=ro", uri=True)
     try:
         filas = conn.execute(
             """SELECT DISTINCT p.id, p.norm_name, t.name, p.season_id, upper(c.name), coalesce(p.ficha_id, p.id)
@@ -221,7 +298,7 @@ def test_un_sin_id_de_cadete_o_juvenil_no_es_un_pequeno_sin_id_del_club(bases_re
             pequenos.setdefault((M.nombre_base(norm), club(equipo), sid), set()).add(ficha)
     vistos, juntos = 0, []
     for pid, norm, equipo, sid, cat, ficha in filas:
-        if cat in ("CADETE", "JUVENIL"):
+        if cat in ("CADETE", "JUVENIL") and pid in fabricados:
             suyos = pequenos.get((M.nombre_base(norm), club(equipo), sid), set())
             vistos += bool(suyos)
             if ficha in suyos:
@@ -230,21 +307,22 @@ def test_un_sin_id_de_cadete_o_juvenil_no_es_un_pequeno_sin_id_del_club(bases_re
     assert juntos == [], f"{len(juntos)} sin id de cadete o juvenil en la ficha de un pequeño sin id: {juntos}"
 
 
-def test_trayectorias(bases_reales, webs):
+def test_trayectorias(fabricadas, webs):
     """(d) Los niños de la base que base_mayores pone en infantil, cadete o juvenil con su id (de su edad): al menos la
     mitad, con filas de su categoría de antes y de la nueva en su ficha publicada (la del EN_WEB de después). Y los
     infantiles sin id que se llaman como un alevín sin id de su club y temporada (el mismo niño, que sube), alguno en
     la ficha de ese alevín."""
     seis = webs["seis"]
-    conn = sqlite3.connect(f"file:{bases_reales['mayores_seis']}?mode=ro", uri=True)
+    fabricados = _de_lo_fabricado(fabricadas["seis"], fabricadas["grupos"])
+    conn = sqlite3.connect(f"file:{fabricadas['seis']}?mode=ro", uri=True)
     try:
         nuevas = ",".join("?" * len(MAYORES))
-        reutilizados = [f for (f,) in conn.execute(
-            f"""SELECT DISTINCT p.fiflp_id FROM players p JOIN appearances a ON a.player_id = p.id
+        reutilizados = [f for p, f in conn.execute(
+            f"""SELECT DISTINCT p.id, p.fiflp_id FROM players p JOIN appearances a ON a.player_id = p.id
                   JOIN matches m ON m.id = a.match_id JOIN groups g ON g.id = m.group_id
                   JOIN categories c ON c.id = g.category_id
                  WHERE p.fiflp_id IS NOT NULL AND p.fiflp_id < ? AND upper(c.name) IN ({nuevas})""",
-            (base_mayores.ID_NUEVO, *MAYORES))]
+            (base_mayores.ID_NUEVO, *MAYORES)) if p in fabricados]
         subidos = conn.execute(
             """SELECT count(*) FROM players i JOIN players a ON a.team_id = i.team_id AND a.season_id = i.season_id
                  AND a.fiflp_id IS NULL AND a.id <> i.id AND coalesce(a.ficha_id, a.id) = coalesce(i.ficha_id, i.id)
@@ -252,7 +330,7 @@ def test_trayectorias(bases_reales, webs):
                   AND a.norm_name = substr(i.norm_name, 1, length(i.norm_name) - length('.INFANTIL'))""").fetchone()[0]
     finally:
         conn.close()
-    assert len(reutilizados) >= bases_reales["hecho"]["jugadores_reutilizados"] > 0
+    assert len(reutilizados) >= fabricadas["hecho"]["jugadores_reutilizados"] > 0
     con_las_dos = 0
     for fid in reutilizados:
         ficha = _ficha(seis, str(fid))
@@ -260,7 +338,7 @@ def test_trayectorias(bases_reales, webs):
         if cats & set(NUEVAS) and cats - set(NUEVAS):
             con_las_dos += 1
     assert con_las_dos * 2 >= len(reutilizados), f"solo {con_las_dos} de {len(reutilizados)} con las dos categorías"
-    if bases_reales["hecho"]["sin_id_disponibles"]:
+    if fabricadas["hecho"]["sin_id_disponibles"]:
         assert subidos >= 1, "ningún infantil sin id en la ficha del alevín sin id de su nombre, club y temporada"
 
 

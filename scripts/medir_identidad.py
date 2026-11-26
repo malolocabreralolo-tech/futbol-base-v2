@@ -24,7 +24,11 @@ cual (solo lectura, sin los originales), resuelve las fichas en memoria dos vece
 categoría de antes y una nueva, por regla (docs/identidad.md: el mismo identificador, que no es una regla; U0 de
 equipo, de club y U1, U2), cuántas fichas de antes pierden o juntan identidades, cuántos pares de fichas del mismo
 nombre (una de antes y una solo de las nuevas, del mismo club) no se unen por la edad o por otra cosa, y los
-segundos del resolvedor. No escribe nada (ni la base ni players.ficha_id). Imprime cifras, nunca nombres.
+segundos del resolvedor. Y lo raro de la base que se le dé, con cada EN_WEB: las fichas con una edad imposible, las
+que juntan dos ids de la federación y las que tienen en una temporada dos categorías que no son contiguas (de una
+identidad sola o de varias). Es la vigilancia de los datos reales de las nuevas, fuera de la puerta de pruebas del
+bot (que solo mira lo que fabrica base_mayores): no bloquea nada, se mira antes del paso E2-D2 y cuando se quiera.
+No escribe nada (ni la base ni players.ficha_id). Imprime cifras, nunca nombres.
 """
 import argparse
 import json
@@ -326,6 +330,31 @@ def entre_categorias(db):
                     out["pares del mismo nombre y club que no se unen por otra cosa"] += 1
                 else:
                     out["pares del mismo nombre y club que no se unen por la edad"] += 1
+    # Lo raro, con cada EN_WEB (la regla de las contiguas, la de test_fichas_ampliadas: sus intervalos se cruzan).
+    from identidad import _fuera, intervalo
+    for nombre, ids, fichas in (("antes", ids3, f3), ("después", ids6, f6)):
+        de = {i.id: i for i in ids}
+        grupos = defaultdict(list)
+        for k, (p, _) in fichas.items():
+            grupos[p].append(de[k])
+        imposibles = dos_ids = lejanas = 0
+        for miembros in grupos.values():
+            if len(miembros) == 1 and _fuera(miembros[0]):
+                continue
+            vistas = [v for i in miembros for v in i.vistas]
+            lo, hi = -10 ** 9, 10 ** 9
+            por_temporada = defaultdict(set)
+            for anio, nivel, *_ in vistas:
+                if nivel is not None:
+                    a, b = intervalo(anio, nivel)
+                    lo, hi = max(lo, a), min(hi, b)
+                    por_temporada[anio].add(nivel)
+            imposibles += lo > hi
+            dos_ids += len({i.fiflp_id for i in miembros if i.fiflp_id is not None}) > 1
+            lejanas += any(max(n) - min(n) > 1 for n in por_temporada.values())
+        out[f"fichas con una edad imposible, {nombre}"] = imposibles
+        out[f"fichas con dos ids o más, {nombre}"] = dos_ids
+        out[f"fichas con dos categorías no contiguas en una temporada, {nombre}"] = lejanas
     return dict(out)
 
 
