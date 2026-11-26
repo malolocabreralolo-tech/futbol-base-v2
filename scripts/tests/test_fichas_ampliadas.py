@@ -20,9 +20,9 @@ sobre la base real de después (conftest.bases_reales: «mayores», con el final
 Solo afirman sobre lo que fabrica base_mayores y los niños de hoy de prebenjamín, benjamín y alevín, nunca sobre los
 datos reales de infantil, cadete y juvenil: estas pruebas van en la puerta del bot, y un dato raro de la federación
 (un id en prebenjamín y en juvenil, dos homónimos sin id en un club) no puede pararlo. Por eso, si la base real ya trae
-grupos de las nuevas (desde D3), se quitan de una copia antes de fabricar (fabricadas: vista_web.quitar_grupos, lo
-mismo que no ve la web de hoy) y todo se compara sobre esa copia; con la base de hoy, son las de bases_reales tal
-cual. Y (b), (c) y (d) miran solo las fichas con filas de los grupos fabricados. Lo real se mira fuera de la puerta:
+grupos de las nuevas (desde D3), se quitan de una copia antes de fabricar (conftest.bases_reales: «mayores» y
+«mayores_seis» se fabrican sobre «sin_nuevas», la base sin ellos, quitados como los quita quitar_categoria) y todo se
+compara sobre esa copia; con la base de hoy, la copia es la resuelta tal cual. Y (b), (c) y (d) miran solo las fichas con filas de los grupos fabricados. Lo real se mira fuera de la puerta:
 medir_identidad.py --entre-categorias (docs/categorias-mayores.md, E2-D2).
 
 Saltan sin futbolbase.db. Lo caro (la web de las dos bases: las fichas, el año y el ranking, sin escribir nada; ~15 s
@@ -76,54 +76,14 @@ def publicado(path, en_web):
     return out
 
 
-def sin_lo_real(origen, destino):
-    """Una copia de `origen` en `destino` sin los grupos de fuera del EN_WEB de antes (los reales de infantil, cadete
-    y juvenil) ni lo que cuelga de ellos (vista_web.quitar_grupos, como la copia de la web de hoy), con el final de
-    una pasada con ese EN_WEB: la base real de hoy más lo de siempre que ya haya leído el bot."""
-    import shutil
-    import vista_web
-    from db import get_connection
-    shutil.copyfile(origen, destino)
-    conn = get_connection(destino)
-    try:
-        fuera = vista_web.grupos_fuera(conn, base_mayores.EN_WEB_DE_ANTES)
-        conservar = [n for (n,) in conn.execute("SELECT name FROM categories")]
-        conn.commit()
-        conn.execute("PRAGMA foreign_keys=OFF")         # se borra en orden (vista_web); se comprueba al final
-        conn.execute("BEGIN")
-        vista_web.quitar_grupos(conn, fuera, conservar)
-        assert conn.execute("PRAGMA foreign_key_check").fetchall() == []
-        conn.commit()
-    finally:
-        conn.close()
-    base_mayores.fin_de_pasada(destino, "antes")
-    return len(fuera)
-
-
 @pytest.fixture(scope="module")
-def fabricadas(bases_reales, tmp_path_factory):
+def fabricadas(bases_reales):
     """{"antes": la base de después con el final de una pasada con el EN_WEB de antes, "seis": con el de después,
-    "hecho": lo que devolvió poblar, "grupos": {códigos fabricados}}, sin nada real de las nuevas: con la base de hoy
-    (sin grupos de ellas), las «mayores» y «mayores_seis» de bases_reales; si ya los trae, las mismas fabricadas sobre
-    una copia de la resuelta sin ellos (sin_lo_real), a la vez."""
-    from paralelo import en_paralelo
-    import vista_web
-    conn = sqlite3.connect(f"file:{bases_reales['resuelta']}?mode=ro", uri=True)
-    try:
-        reales = vista_web.grupos_fuera(conn, base_mayores.EN_WEB_DE_ANTES)
-    finally:
-        conn.close()
-    if not reales:
-        return {"antes": bases_reales["mayores"], "seis": bases_reales["mayores_seis"], "hecho": bases_reales["hecho"],
-                "grupos": set(bases_reales["hecho"]["grupos"])}
-    carpeta = tmp_path_factory.mktemp("fabricadas")
-    limpia = carpeta / "limpia.db"
-    sin_lo_real(bases_reales["resuelta"], limpia)
-    antes, seis = carpeta / "antes.db", carpeta / "seis.db"
-    hecho, hecho_seis = en_paralelo((base_mayores.leida, (limpia, antes, MAYORES, False, "antes")),
-                                    (base_mayores.leida, (limpia, seis, MAYORES, False, "seis")))
-    assert hecho == hecho_seis
-    return {"antes": antes, "seis": seis, "hecho": hecho, "grupos": set(hecho["grupos"])}
+    "hecho": lo que devolvió poblar, "grupos": {códigos fabricados}}, sin nada real de las nuevas: las «mayores» y
+    «mayores_seis» de conftest.bases_reales, fabricadas sobre «sin_nuevas» (la base real sin lo que el bot ya haya
+    leído de ellas)."""
+    return {"antes": bases_reales["mayores"], "seis": bases_reales["mayores_seis"], "hecho": bases_reales["hecho"],
+            "grupos": set(bases_reales["hecho"]["grupos"])}
 
 
 def _de_lo_fabricado(path, grupos):

@@ -73,8 +73,9 @@ def _sin_carril_del_job():
 @pytest.fixture(scope="session")
 def bases_reales(tmp_path_factory):
     """La base real tras el final de una pasada, sin y con infantil, cadete y juvenil leídos (base_mayores.bases_reales:
-    con el EN_WEB de antes del paso E2-D2 y, la de las mayores, también con el de después): una vez por sesión para
-    las pruebas que las comparan. Salta sin futbolbase.db. Nadie las cambia: cada prueba copia la suya."""
+    con el EN_WEB de antes del paso E2-D2 y, la de las mayores, también con el de después; lo fabricado, siempre sobre
+    la base sin lo que el bot ya haya leído de las nuevas): una vez por sesión para las pruebas que las comparan.
+    Salta sin futbolbase.db. Nadie las cambia: cada prueba copia la suya."""
     import base_mayores
     origen = Path(__file__).resolve().parents[2] / "futbolbase.db"
     if not origen.exists():

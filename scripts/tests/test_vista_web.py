@@ -153,7 +153,8 @@ def generado(tmp_path, nombre, origen):
 
 
 def test_generador_igual_con_y_sin_mayores(tmp_path, bases_reales, fijar_web):
-    """Dos copias de la base real tras una pasada (conftest.bases_reales): A tal cual y B con infantil, cadete y
+    """Dos copias de la base real tras una pasada (conftest.bases_reales): A tal cual (sin lo que el bot ya haya
+    leído de las nuevas: «sin_nuevas»; con la base de hoy, la resuelta) y B, la misma con infantil, cadete y
     juvenil activados y leídos (y niños de la base reutilizados: el mismo id, el mismo nombre y club sin id), cada
     una con sus fichas y sus enlaces. Lo que escribe el generador es igual byte a byte, salvo los MB de la base y la
     versión; y en B ningún data-*.js nombra un código de los grupos nuevos. Las dos generaciones (~50 s cada una
@@ -168,7 +169,7 @@ def test_generador_igual_con_y_sin_mayores(tmp_path, bases_reales, fijar_web):
     # Los sin id del mismo nombre y club: siempre que la temporada tenga prebenjamines sin id (recién empezada, no).
     assert hecho["sin_id_reutilizados"] or not hecho["sin_id_disponibles"]
     assert hecho["sin_id_en_fila_ajena"] == 0
-    a, b = en_paralelo((generado, (tmp_path, "a", bases_reales["resuelta"])),
+    a, b = en_paralelo((generado, (tmp_path, "a", bases_reales["sin_nuevas"])),
                        (generado, (tmp_path, "b", bases_reales["mayores"])))
     assert sorted(a) == sorted(b)
     distintos = [n for n in a if normalizado(a[n]) != normalizado(b[n])]
