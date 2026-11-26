@@ -17,7 +17,7 @@ Un solo sitio decide la categoría, y separa cuatro preguntas a propósito: **co
 |---|---|---|---|
 | `category_of(nombre)` | la categoría de una competición, de la cabecera de un acta o de una liga de la app: `PREBENJAMIN`, `BENJAMIN`, `ALEVIN`, `INFANTIL`, `CADETE`, `JUVENIL` o `None` | las seis | — |
 | `DB_NAME` | clave de la web (`infantil`) → nombre en `categories` (`INFANTIL`) | las seis | — |
-| `ACTIVABLES` | lo que el bot apunta en `newCompetitions` y `activar_auto` activa solo | `("BENJAMIN", "PREBENJAMIN", "ALEVIN", "INFANTIL")` (D3, el 26/11/2026; antes, sin `INFANTIL`) | el director: D3, D4, D5 |
+| `ACTIVABLES` | lo que el bot apunta en `newCompetitions` y `activar_auto` activa solo | las seis (D3, D4 y D5, los tres el 26/11/2026; antes, `("BENJAMIN", "PREBENJAMIN", "ALEVIN")`) | el director: D3, D4, D5 |
 | `ALEVIN_ISLAS` | el alevín de Lanzarote y Fuerteventura cuenta como alevín (si no, `None`) | `False` | el director: D6 |
 | `CARRILES` | qué lee cada carril: `principal` (prebenjamín, benjamín, alevín: el bot de siempre, sin `FIFLP_CATS`) y `mayores` (infantil, cadete, juvenil: `carril-mayores.yml`) | — | — |
 | `EN_WEB` | lo que ven el generador (`vista_web.copia_web`) y el resolvedor de fichas | las seis (E2-D2, el 26/11/2026; antes, `("BENJAMIN", "PREBENJAMIN", "ALEVIN")`) | el director: E2-D2 (abajo, «En la web») |
@@ -179,6 +179,8 @@ Los ticks del cron de `reloj.yml` casi no llegan y el que lanza `reloj.yml` a su
 6. Vuelta atrás: revertir el commit de `ACTIVABLES` (no activa nada más); el carril sigue leyendo lo activado: para que no lo lea, la vuelta atrás de D2; para sacarlo de la base, con el bot parado (`gh workflow disable reloj.yml -R malolocabreralolo-tech/futbol-base-v2` y `gh workflow disable activar.yml -R malolocabreralolo-tech/futbol-base-v2`, y nada en marcha), `python3 scripts/quitar_categoria.py --temporada 2026-2027 --categoria INFANTIL` (ensayo) y con `--apply`, las suites en verde, el commit de la base y de sus piezas (`python3 scripts/piezas.py partir && python3 scripts/piezas.py verificar`, y `git add futbolbase.db && git add -A base/` en el mismo commit: la pasada siguiente exige que sean la misma base; [almacenamiento.md](almacenamiento.md)) y `gh workflow enable reloj.yml -R malolocabreralolo-tech/futbol-base-v2` y `gh workflow enable activar.yml -R malolocabreralolo-tech/futbol-base-v2` (abajo, «Quitar una categoría»).
 
 ### D4: cadete y D5: juvenil
+
+**Dados los dos el 26/11/2026** (15:57 UTC), el mismo día que D3 y E2-D2 (decisión del director; cada uno con sus suites y su `prueba_mayores.py --con-cambios` en verde: 133 y 137 grupos en la sonda). El bot apuntó las 16 competiciones en su pasada siguiente en Azure (18:01 UTC: la mirada a las competiciones nuevas la hace toda pasada sana a la que le sobra plazo, no solo la de su turno) y la activación las cargó en dos intentos buenos (18:34 y 20:37 UTC; entre medias, uno en AWS que no contó y se relanzó a mano): cadete, 18 grupos; juvenil, 6, a falta de la Segunda de Gran Canaria (descarga incompleta: la relanza el bot). Con `EN_WEB` ya de seis, salieron en la web con su misma activación.
 
 Como D3, cada uno tras al menos un día entero de pasadas en verde del bot y del carril desde el anterior y con la base medida:
 
