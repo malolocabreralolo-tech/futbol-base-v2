@@ -58,7 +58,7 @@
       }
     },
     "actas-2026-2027.db": {
-      "bytes": 1949696,
+      "bytes": 1953792,
       "filas": {
         "appearances": 32770,
         "match_events": 14159,
@@ -92,7 +92,7 @@
         "scorers": 31035,
         "seasons": 15,
         "standings": 5298,
-        "standings_detail": 3656,
+        "standings_detail": 3734,
         "team_seasons": 2245,
         "teams": 485,
         "tournament_matches": 464,
