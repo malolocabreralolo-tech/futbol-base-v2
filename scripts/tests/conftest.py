@@ -70,6 +70,20 @@ def _sin_carril_del_job():
     mp.undo()
 
 
+@pytest.fixture(autouse=True, scope="session")
+def _sin_tope_del_historico():
+    """Lo mismo con historico.yml: pone en el env del job el tope del día y las esperas del freno
+    (HISTORICO_PAGINAS_DIA y HISTORICO_ESPERAS, de las variables del repositorio), y su paso de pruebas los
+    hereda. Con el tope subido a 4.000 (26/11/2026), las pruebas que cuentan con el de siempre («de 2.000
+    páginas») salieron rojas en la prueba del propio carril, y el encargo se quedó sin promover. Como en local:
+    sin ellas; las que las miran las ponen ellas (monkeypatch.setenv o env=…)."""
+    mp = pytest.MonkeyPatch()
+    mp.delenv("HISTORICO_PAGINAS_DIA", raising=False)
+    mp.delenv("HISTORICO_ESPERAS", raising=False)
+    yield
+    mp.undo()
+
+
 @pytest.fixture(scope="session")
 def bases_reales(tmp_path_factory):
     """La base real tras el final de una pasada, sin y con infantil, cadete y juvenil leídos (base_mayores.bases_reales:
