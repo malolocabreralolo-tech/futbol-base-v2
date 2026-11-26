@@ -1,10 +1,12 @@
 {
  "dia": {
-  "fecha": "2026-11-25",
-  "freno": null,
-  "paginas": 119
+  "fecha": "2026-11-26",
+  "freno": "carril",
+  "paginas": 152
  },
- "dias_frenados": [],
+ "dias_frenados": [
+  "2026-11-26"
+ ],
  "ejecuciones": [
   {
    "accion": "descargar",
@@ -160,6 +162,29 @@
     "21"
    ],
    "trabajo": "actas"
+  },
+  {
+   "accion": "descargar",
+   "esperas": 0,
+   "fin": "2026-11-26T02:58:26+00:00",
+   "frenos": 1,
+   "frenos_tras": [
+    150
+   ],
+   "inicio": "2026-11-26T02:40:46+00:00",
+   "lote": "alevin",
+   "muertas": 0,
+   "nube": "azure",
+   "paginas": 2000,
+   "parada": "freno",
+   "pedidas": 152,
+   "relanzada": false,
+   "runner_rechazado": false,
+   "servidas": 150,
+   "temporadas": [
+    "21"
+   ],
+   "trabajo": "actas"
   }
  ],
  "formato": 1,
@@ -177,6 +202,12 @@
   }
  ],
  "trabajos": {
+  "actas:2025-2026:alevin": {
+   "actualizado": "2026-11-26T02:58:26+00:00",
+   "estado": "pendiente",
+   "no_disponible": 0,
+   "pendientes": 550
+  },
   "goleadores:2025-2026": {
    "actualizado": "2026-11-25T19:24:27+00:00",
    "categorias": [
