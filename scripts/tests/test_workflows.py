@@ -1522,7 +1522,9 @@ def test_historico_relanza_solo_cuando_toca(tmp_path):
     import sys
     sys.path.insert(0, str(ROOT / "scripts"))
     import historico
-    assert historico.RELANZAR_SI_RUNNER_RECHAZADO == 0, "relanzar tras un runner rechazado lo decide el dueño"
+    # El dueño decidió el 26/11/2026 relanzar tras un runner rechazado, hasta 3 veces seguidas: lo cuenta
+    # historico.relanzar (test_historico.py) y este paso lo aplica sin más (relanzar == 'true').
+    assert historico.RELANZAR_SI_RUNNER_RECHAZADO == 3, "tras un runner rechazado, hasta 3 relanzamientos seguidos"
 
 
 def test_historico_lanza_el_bot_solo_tras_promover(tmp_path):

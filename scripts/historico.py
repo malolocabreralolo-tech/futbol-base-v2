@@ -42,16 +42,19 @@ Las reglas del carril, y el porqué de cada número:
     lo que toca después es una prueba (no pide nada a la federación: sin esto, un trabajo que se completa con
     dos páginas —el último grupo que faltaba— esperaba al disparo siguiente para probarse); NUNCA tras una
     ejecución que acabó en el freno (parada «freno»), ni para una prueba: relanzar en seguida en otro runner sería
-    esquivar el bloqueo con una IP nueva; y nunca por caer en un runner que la federación no sirve
-    (RELANZAR_SI_RUNNER_RECHAZADO = 0): relanzar hasta que toque Azure es esquivar un bloqueo, y lo decide el
-    dueño. Lo retoma el disparo siguiente del reloj (reloj.yml, cada hora y media desde que empezó la última, desde
-    el 26/11/2026; antes, cada 3 h). No es relanzar para esquivar el freno: cada ejecución lo respeta (lo espera una
-    vez y para), entre una y otra pasa más de una hora, cuando el bloqueo (minutos) hace mucho que acabó, y el tope
-    del día (PAGINAS_DIA) sigue siendo el límite de todo. Lo medido el 26/11/2026: una ejecución en Azure, 300
-    páginas en 41 min (150, el freno, 5 min de espera, 150 más y el segundo freno). Lo que cabe esperar (la semana
-    simulada con el reloj del PC, test_reloj_pasadas.test_semana_con_el_reloj_del_pc, la mitad en AWS): de lunes a
-    jueves, 13-14 intentos, ~6-7 en Azure, el tope (2.000 páginas) casi cada día; el viernes (hasta las 17:40), ~9
-    intentos y ~1.200 páginas; el sábado y el domingo (de 0 a 9:40), ~6 y ~900; ~9.800 a la semana;
+    esquivar el bloqueo con una IP nueva. Tras caer en un runner que la federación no sirve (AWS: «runner
+    rechazado», que no es un freno ni pide nada más tras su primera página vacía), SÍ, en seguida, hasta
+    RELANZAR_SI_RUNNER_RECHAZADO (3) veces seguidas (decisión del dueño del 26/11/2026; hasta entonces, nunca): la
+    cuarta rechazada seguida espera, como lo demás, al disparo siguiente del reloj (reloj.yml, cada hora y media
+    desde que empezó la última, desde el 26/11/2026; antes, cada 3 h). No es relanzar para esquivar el freno: cada
+    ejecución lo respeta (lo espera una vez y para), entre una y otra pasa más de una hora, cuando el bloqueo
+    (minutos) hace mucho que acabó, y el tope del día (PAGINAS_DIA) sigue siendo el límite de todo. Lo medido el
+    26/11/2026: una ejecución en Azure, 300 páginas en 41 min (150, el freno, 5 min de espera, 150 más y el segundo
+    freno). Lo que cabe esperar (la semana simulada con el reloj del PC,
+    test_reloj_pasadas.test_semana_con_el_reloj_del_pc, la mitad en AWS y sin relanzar las rechazadas: con ellas,
+    algo más): de lunes a jueves, 13-14 intentos,
+    ~6-7 en Azure, el tope (2.000 páginas) casi cada día; el viernes (hasta las 17:40), ~9 intentos y ~1.200
+    páginas; el sábado y el domingo (de 0 a 9:40), ~6 y ~900; ~9.800 a la semana;
   - LA CUARENTENA Y LA PRUEBA: lo bajado va a scripts/historico/ (cuarentena.py), que el bot no mira. Un trabajo
     completo se prueba sobre una copia (prueba_historico.py: importar sin red, la base sana y todas las suites),
     una temporada cada vez y con MARGEN_PRUEBA (60 min) antes de la ventana siguiente (la importación del bot en
@@ -107,10 +110,11 @@ MINUTOS_EJECUCION = 300
 MARGEN_VENTANA = timedelta(minutes=20)
 MINIMO_EJECUCION = timedelta(minutes=10)
 MARGEN_PRUEBA = timedelta(minutes=60)
-# Relanzamientos seguidos tras caer en un runner que la federación no sirve: 0, ninguno. Relanzar hasta que toque
-# Azure es esquivar un bloqueo que la federación aplica a AWS, y lo decide el dueño: si dice que sí, se cambia este
-# número y nada más.
-RELANZAR_SI_RUNNER_RECHAZADO = 0
+# Relanzamientos seguidos tras caer en un runner que la federación no sirve (AWS): lo decidió el dueño el 26/11/2026
+# (hasta ese día, 0: ninguno). Un runner rechazado no pide nada más a la federación tras su primera página vacía y
+# no es un freno: relanzarlo es solo buscar un runner de Azure. Con tope (3) para que nunca sea un bucle si un día la
+# federación no sirve a nadie: la cuarta rechazada seguida espera al disparo del reloj (cada hora y media).
+RELANZAR_SI_RUNNER_RECHAZADO = 3
 # En este orden: lo barato que más dice de cada niño (clasificación y goleadores) primero; las actas, que dan a
 # todos los niños con su identificador, después; el detalle (la ficha de los equipos, que no hace falta para las
 # trayectorias), detrás; y las dos fases que reescriben un fichero ya promovido (cuarentena.FAMILIA), al final.
@@ -693,7 +697,8 @@ def registrar_prueba(estado, trabajos, veredicto, now, huellas=None):
 def relanzar(resumen, despues, estado):
     """¿Se lanza otra ejecución en seguida? `despues`, siguiente() con el estado ya registrado: nunca si es nada;
     tras una prueba (resumen None), sí; tras un runner rechazado, solo si las ejecuciones rechazadas seguidas al
-    final de estado["ejecuciones"] (esta incluida) son como mucho RELANZAR_SI_RUNNER_RECHAZADO (con 0, nunca); tras
+    final de estado["ejecuciones"] (esta incluida) son como mucho RELANZAR_SI_RUNNER_RECHAZADO (3: la 1.ª, la 2.ª y
+    la 3.ª se relanzan; la 4.ª espera al reloj; una ejecución que no fue rechazada vuelve a empezar la cuenta); tras
     una descarga que ACABÓ EN EL FRENO (parada «freno»: el segundo, o el primero si no se esperó o no volvió),
     nunca, ni para una prueba: relanzar en seguida en otro runner sería esquivar el bloqueo con una IP nueva (y tras
     la prueba se relanzaría la descarga); tras otra descarga, si la federación sirvió RELANZAR_MIN páginas o si lo

@@ -304,16 +304,64 @@ def test_relanzar_si_lo_que_toca_es_una_prueba():
     assert not H.relanzar({"servidas": 2, "runner_rechazado": False}, {"accion": "descargar"}, e)
 
 
-def test_un_runner_rechazado_no_se_relanza(monkeypatch):
+def test_un_runner_rechazado_se_relanza_hasta_tres_veces_seguidas():
+    """El dueño, el 26/11/2026: tras un runner rechazado (AWS) se relanza en seguida, con tope: mientras las rechazadas
+    seguidas al final de las ejecuciones (esta incluida) sean 3 o menos. La cuarta seguida espera al disparo del reloj:
+    nunca un bucle si un día la federación no sirve a nadie."""
+    assert H.RELANZAR_SI_RUNNER_RECHAZADO == 3
     rechazado = {"servidas": 0, "runner_rechazado": True, "parada": "runner"}
     e = H.estado_vacio()
-    e["ejecuciones"] = [{"runner_rechazado": True}]                               # la que se acaba de apuntar
-    assert not H.relanzar(rechazado, {"accion": "descargar"}, e)
-    assert not H.relanzar(rechazado, {"accion": "probar"}, e)                     # ni para probar: nunca
-    monkeypatch.setattr(H, "RELANZAR_SI_RUNNER_RECHAZADO", 2)                     # si el dueño dice que sí
-    assert H.relanzar(rechazado, {"accion": "descargar"}, e)
-    e["ejecuciones"] = [{"runner_rechazado": True}] * 3
-    assert not H.relanzar(rechazado, {"accion": "descargar"}, e)
+    for seguidas, relanza in ((1, True), (2, True), (3, True), (4, False), (5, False)):
+        e["ejecuciones"] = [{"runner_rechazado": False}] + [{"runner_rechazado": True}] * seguidas
+        assert H.relanzar(rechazado, {"accion": "descargar"}, e) is relanza, seguidas
+        assert H.relanzar(rechazado, {"accion": "probar"}, e) is relanza, seguidas
+    # Con nada que hacer después (el tope, una ventana, el día parado), tampoco.
+    e["ejecuciones"] = [{"runner_rechazado": True}]
+    assert not H.relanzar(rechazado, {"accion": "nada", "motivo": "ventana de partidos"}, e)
+
+
+def _ejecucion(estado, resumen, minuto):
+    """Una ejecución de descarga registrada (registrar) y su relanzar, como «Registrar» de historico.yml."""
+    accion = {"accion": "descargar", "trabajo": "goleadores", "temporadas": ["21"], "categorias": ["alevin"],
+              "dia": "2026-11-25", "inicio": f"2026-11-25T10:{minuto:02d}:00+00:00", "partes": ["goleadores:2025-2026"],
+              "paginas": 2000}
+    now = T(f"2026-11-25T10:{minuto + 2:02d}:00Z")
+    estado = H.registrar(estado, accion, resumen, now)
+    rel = H.relanzar(resumen, H.siguiente(PLAN, estado, now, env={}), estado)
+    estado["ejecuciones"][-1]["relanzada"] = rel
+    return estado, rel
+
+
+def test_las_rechazadas_seguidas_se_cuentan_en_el_estado():
+    """Con registrar de verdad: tras 1, 2 y 3 rechazadas seguidas, se relanza; tras la 4.ª, no. Una que la federación
+    sirvió (sin freno) vuelve a empezar la cuenta. Tras una que acabó en el freno, nunca (las reglas del freno no
+    cambian: un runner rechazado no es un freno), y con el día parado por un freno, tampoco una rechazada."""
+    pendiente = {"goleadores:2025-2026": {"completo": False, "pendientes": 40, "no_disponible": 0}}
+    rechazado = {"pedidas": 2, "servidas": 0, "muertas": 0, "esperas": 0, "frenos": 1, "frenos_tras": [0],
+                 "parada": "runner", "nube": "aws", "runner_rechazado": True, "partes": pendiente}
+    servida = {"pedidas": 300, "servidas": 300, "muertas": 0, "esperas": 0, "frenos": 0, "frenos_tras": [],
+               "parada": "plazo", "nube": "azure", "runner_rechazado": False, "partes": pendiente}
+    e = H.estado_vacio()
+    relanzadas = []
+    for minuto in (0, 4, 8, 12):
+        e, rel = _ejecucion(e, rechazado, minuto)
+        relanzadas.append(rel)
+    assert relanzadas == [True, True, True, False]
+    assert [x["relanzada"] for x in e["ejecuciones"]] == relanzadas
+    e, rel = _ejecucion(e, servida, 20)
+    assert rel
+    e, rel = _ejecucion(e, rechazado, 30)
+    assert rel, "tras una buena, la cuenta vuelve a empezar"
+    # Acabó en el freno (con las páginas de siempre: no para el día): no se relanza.
+    frenada = {**servida, "servidas": 290, "frenos": 2, "frenos_tras": [150, 140], "esperas": 1, "parada": "freno"}
+    e, rel = _ejecucion(e, frenada, 40)
+    assert not rel and e["dia"]["freno"] == H.FRENO_CARRIL
+    # Un freno pronto para el día: la rechazada de después no tiene nada que hacer hoy, y no se relanza.
+    pronto = {**servida, "servidas": 20, "frenos": 1, "frenos_tras": [20], "parada": "freno"}
+    e, rel = _ejecucion(e, pronto, 44)
+    assert not rel and e["dia"]["freno"] == H.FRENO_PRONTO
+    e, rel = _ejecucion(e, rechazado, 48)
+    assert not rel
 
 
 def test_un_runner_rechazado_no_gasta_el_dia_ni_toca_los_trabajos():

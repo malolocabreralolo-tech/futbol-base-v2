@@ -18,9 +18,10 @@ name: Histórico de la federación (un solo carril)
 # sin cancelar), un navegador y 7 s entre peticiones; 2.000 páginas al día como mucho (HISTORICO_PAGINAS_DIA,
 # variable del repositorio); el freno (el cupo de la IP, ~150 páginas: lo medido el 26/11/2026) se espera UNA vez
 # por ejecución, como el bot, y el segundo la acaba (HISTORICO_ESPERAS, variable del repositorio: 0, ninguna); una
-# ejecución que acaba en el freno NO se relanza (sería esquivar el bloqueo con la IP de otro runner); y una que cae
-# en un runner que la federación no sirve acaba en uno o dos minutos y tampoco (historico.RELANZAR_SI_RUNNER_RECHAZADO
-# = 0, decisión del dueño pendiente). Las dos, las retoma el disparo siguiente del reloj.
+# ejecución que acaba en el freno NO se relanza (sería esquivar el bloqueo con la IP de otro runner): la retoma el
+# disparo siguiente del reloj. Una que cae en un runner que la federación no sirve (AWS) acaba en uno o dos minutos sin
+# pedirle nada más y SÍ se relanza en seguida (paso «Siguiente»), hasta 3 veces seguidas
+# (historico.RELANZAR_SI_RUNNER_RECHAZADO; decisión del dueño del 26/11/2026): la cuarta seguida espera al reloj.
 #
 # El disparo: lo lanza el reloj (reloj.yml, reloj_pasadas.due_historico), un intento cada hora y media desde que
 # empezó la última (desde el 26/11/2026; antes, cada 3 h), fuera de las ventanas y sin nada del histórico, del bot, del
@@ -28,7 +29,8 @@ name: Histórico de la federación (un solo carril)
 # disparos de un día entre semana caen en Azure, y cada uno lee ~300 páginas en ~41 min (un cupo de ~150, la espera
 # de 5 min y otro): el tope del día (2.000) casi cada día. No es esquivar el freno: cada ejecución lo espera una vez
 # y para, y entre una y otra pasa más de una hora (el bloqueo dura minutos). Tras una ejecución servida (60 páginas o
-# más) que no acabó en el freno, o tras una prueba, la siguiente se lanza en seguida (paso «Siguiente», sin
+# más) que no acabó en el freno, tras una prueba o tras un runner rechazado (hasta 3 seguidos: así un disparo que cae
+# en AWS no se pierde entero), la siguiente se lanza en seguida (paso «Siguiente», sin
 # entradas). Hasta el 25/11/2026 tenía su propio cron ('47 */3 * * *'), y GitHub lo perdía
 # como el de update.yml: ese día no llegaron ni el de las 18:47 ni el de las 21:47 UTC, y el carril se quedó parado
 # hasta que se lanzó a mano. Sin schedule, GitHub ya no lo desactiva por inactividad (el reloj, sí: sin él, tampoco
@@ -325,9 +327,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: gh workflow run update.yml --ref main || echo "no se pudo lanzar el bot; lo lanzará el reloj (reloj.yml)"
 
-      # Sin entradas (seguir): la ejecución siguiente saca su trabajo de scripts/historico/. Solo tras una prueba o
-      # una descarga que la federación sirvió (historico.relanzar); nunca tras una que acabó en el freno ni tras un
-      # runner rechazado.
+      # Sin entradas (seguir): la ejecución siguiente saca su trabajo de scripts/historico/. Solo tras una prueba, una
+      # descarga que la federación sirvió o un runner rechazado (hasta 3 seguidos), lo que diga historico.relanzar;
+      # nunca tras una que acabó en el freno.
       - name: Siguiente
         if: ${{ !cancelled() && steps.registrar.outputs.relanzar == 'true' && steps.subir.outcome == 'success' }}
         env:
