@@ -19,11 +19,14 @@ pasó el 25/11 con otra base de después. Esto fabrica esa base sobre una copia 
   3. en ese árbol, con su código: base_mayores.poblar (las categorías de --categorias; con --islas, también el
      alevín de Lanzarote), una entrada «ok» en data-health.json por cada grupo nuevo (como la deja el bot),
      migrate_identidad.resolver_fichas, los enlaces de la liga de escuelas y generate_js.main();
-  4. allí, python3 -m pytest scripts/tests/ y node --test scripts/tests/test_*.mjs.
+  4. allí, la sonda de fases (node scripts/sonda_fases.mjs) sobre los data-*.js que acaba de generar: con
+     --con-cambios y EN_WEB ampliado (E2-D2), también las fases de infantil, cadete y juvenil que ya haya leído el
+     bot (las de la base real, no solo las fabricadas), que con el EN_WEB de hoy salen vacías y no se sondean;
+  5. allí, python3 -m pytest scripts/tests/ y node --test scripts/tests/test_*.mjs.
 
 Imprime lo que dice scripts/categorias.py en el árbol temporal (ACTIVABLES, ALEVIN_ISLAS y EN_WEB: con
---con-cambios, los del paso escrito), el tamaño de la base antes y después, los segundos de cada paso y «verde» o
-«rojo» con lo que falló;
+--con-cambios, los del paso escrito), el tamaño de la base antes y después, lo que dice la sonda («2026-2027: N
+grupos, 0 en otra-…»; con una fase en «otra-…», rojo), los segundos de cada paso y «verde» o «rojo» con lo que falló;
 sale con 0 solo en verde. Borra el árbol temporal salvo con --conservar. Nunca toca el árbol de trabajo (ni su
 base, ni sus data-*.js) ni pide nada a ninguna web.
 """
@@ -185,6 +188,12 @@ def main(argv=None):
         print("Segundos dentro: " + ", ".join(f"{k} {v}" for k, v in hecho["segundos"].items()))
 
         t = time.monotonic()
+        so = subprocess.run(["node", "scripts/sonda_fases.mjs"], cwd=arbol, capture_output=True, text=True)
+        tiempos["sonda"] = time.monotonic() - t
+        sonda = so.stdout.strip().splitlines() or [so.stderr.strip()]
+        print("Sonda de fases (con lo generado): " + " · ".join(sonda))
+
+        t = time.monotonic()
         py = subprocess.run([sys.executable, "-m", "pytest", "scripts/tests/", "-q", "-p", "no:cacheprovider"],
                             cwd=arbol, capture_output=True, text=True)
         tiempos["pytest"] = time.monotonic() - t
@@ -197,8 +206,9 @@ def main(argv=None):
         print(f"pytest: {resumen_py}")
         print(f"node: {resumen_node}")
         print("Segundos: " + ", ".join(f"{k} {v:.0f}" for k, v in tiempos.items()))
-        fallos = _fallos(py.stdout) + _fallos(nd.stdout)
-        verde = py.returncode == 0 and nd.returncode == 0
+        fallos = [f"sonda: {' · '.join(sonda)}"] if so.returncode != 0 else []
+        fallos += _fallos(py.stdout) + _fallos(nd.stdout)
+        verde = so.returncode == 0 and py.returncode == 0 and nd.returncode == 0
         if verde:
             print("verde")
         else:
