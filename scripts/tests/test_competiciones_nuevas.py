@@ -23,6 +23,11 @@ from db import SCHEMA  # noqa: E402
 import source_health  # noqa: E402
 import update_fiflp as U  # noqa: E402
 
+# Suponen el mundo de antes de los pasos D3-D6 del director (infantil, cadete y juvenil sin activar, el alevín de
+# Lanzarote y Fuerteventura fuera): lo fijan ellas (conftest.categorias_de_antes) para que cada paso solo cambie
+# categorias.py y test_categorias.test_lo_que_se_activa_y_lo_que_se_ve_no_cambia. Las que miran otro mundo lo ponen.
+pytestmark = pytest.mark.usefixtures("categorias_de_antes")
+
 TODAY = date(2026, 10, 14)
 CATALOG = json.loads((ROOT / "scripts" / "tests" / "fixtures" / "fiflp_comps_catalog.json").read_text(encoding="utf-8"))["2026-2027"]["all"]
 FIFLP = ("https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22"
@@ -91,6 +96,22 @@ def test_new_competitions_solo_las_activables(monkeypatch):
     # Y del catálogo entero de 2026-27, con lo de hoy, ninguna de las categorías nuevas.
     monkeypatch.setattr(categorias, "ACTIVABLES", ("BENJAMIN", "PREBENJAMIN", "ALEVIN"))
     assert [c["id"] for c in U.new_competitions(CATALOG, KNOWN, today=TODAY, ignored={})] == NUEVAS_2627
+
+
+def test_el_desempate_cadete_se_ignora_y_hoy_no_cambia_nada(monkeypatch):
+    """La «ELIMINATORIA DESEMPATE CADETE INSULAR» (sin convenio de código) está en IGNORED_COMPETITIONS: desde que
+    cadete sea activable (paso D4) no sale en newCompetitions, así que activar_auto no la intenta cada día ni deja
+    el aviso de la portada encendido. Con lo activable de hoy, ignorarla no cambia nada."""
+    import categorias
+    assert "55133947" in U.IGNORED_COMPETITIONS
+    assert any(c["id"] == "55133947" for c in CATALOG)
+    monkeypatch.setattr(categorias, "ACTIVABLES", ("BENJAMIN", "PREBENJAMIN", "ALEVIN"))
+    assert U.new_competitions(CATALOG, KNOWN, today=TODAY) == U.new_competitions(CATALOG, KNOWN, today=TODAY, ignored={})
+    monkeypatch.setattr(categorias, "ACTIVABLES", ("BENJAMIN", "PREBENJAMIN", "ALEVIN", "CADETE"))
+    con = [c["id"] for c in U.new_competitions(CATALOG, KNOWN, today=TODAY, ignored={})]
+    sin = [c["id"] for c in U.new_competitions(CATALOG, KNOWN, today=TODAY)]
+    assert "55133947" in con and sin == [c for c in con if c != "55133947"]
+    assert "54976894" in sin                                # la interinsular de cadete, sí
 
 
 def test_ignored_and_known_competitions_are_left_out_and_first_seen_is_kept():

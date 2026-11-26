@@ -27,6 +27,14 @@ salen en nada; las identidades de acta (players) que solo salían en sus partido
 queda sin grupos. Un niño que ya estaba en la base (el de benjamín que la federación da con el mismo id en
 cadete) conserva su fila: solo se le quitan las apariciones de lo borrado. Lo que no es de la categoría se queda,
 aunque lo trajera su carril: el detalle de un campo (venue_details), que es del campo y no de la categoría.
+
+Y, de infantil, cadete o juvenil entera (sin --isla), la huella en raw_imports del raw de actas de su lote en esa
+temporada (scripts/fiflp_actas_<S>_<categoría>_raw.json, el que trae el carril del histórico): si se quedara, al
+reactivarla import_changed_raws no volvería a importar esas actas (su huella no ha cambiado). Ese raw es solo de
+esa categoría: en la base en la que nunca se activó, esa huella no estaría. Con --isla (el alevín de Lanzarote o
+de Fuerteventura) no: su lote es el de alevín, compartido con el de Gran Canaria, y quitar su huella haría que la
+pasada siguiente reimportara entero el alevín de Gran Canaria (docs/categorias-mayores.md dice qué hacer al
+reactivarlo).
 """
 import argparse
 import sqlite3
@@ -36,6 +44,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
+import actas_lotes  # noqa: E402
 from categorias import MAYORES  # noqa: E402
 import vista_web  # noqa: E402
 
@@ -101,6 +110,10 @@ def quitar(conn, temporada, categoria, isla=None, apply=False):
     conn.execute("BEGIN")
     try:
         vista_web.quitar_grupos(conn, ids, conservar)
+        if isla is None and categoria in MAYORES and conn.execute(
+                "SELECT 1 FROM sqlite_master WHERE type='table' AND name='raw_imports'").fetchone():
+            conn.execute("DELETE FROM raw_imports WHERE path=?",
+                         (actas_lotes.file_name(temporada, "raw", actas_lotes.lote_of(categoria)),))
         colgando = conn.execute("PRAGMA foreign_key_check").fetchall()
         if colgando:
             raise ValueError(f"quedarían {len(colgando)} filas apuntando a lo borrado (la primera, en {colgando[0][0]})")

@@ -59,10 +59,10 @@ def acta(local=(), visitante=(), sucesos=()):
                        for i, (s, n, k) in enumerate(sucesos)]}
 
 
-def _pegado_por_nombre(conn, name, fiflp_id=None, team_id=None, season_id=None, ordinal=1):
+def _pegado_por_nombre(conn, name, fiflp_id=None, team_id=None, season_id=None, ordinal=1, categoria=None):
     """El _get_or_create_player anterior a las identidades (tal cual, sin la comprobación de la columna
     fiflp_id): por el id y, si no, por el nombre normalizado en toda la base, adoptando la fila sin id si
-    el nombre lleva coma. El equipo, la temporada y el ordinal no los usaba."""
+    el nombre lleva coma. El equipo, la temporada, el ordinal y la categoría no los usaba."""
     norm = I._norm_player(name)
     with_id = fiflp_id is not None
     if with_id:
@@ -239,9 +239,27 @@ def test_nombre_base_y_norm_sin_id():
     assert M.norm_sin_id("ANA", 3, 2) == "ANA@3.2"
     assert M.norm_sin_id("ANA", 3, 2, 1) == "ANA@3.2"
     assert M.norm_sin_id("ANA", 3, 2, 2) == "ANA@3.2#2"
-    for n in ("ANA", "ANA#501", "ANA@3.2", "ANA@3.2#2"):
+    for n in ("ANA", "ANA#501", "ANA@3.2", "ANA@3.2#2", "ANA@3.2.CADETE", "ANA@3.2.JUVENIL#2"):
         assert M.nombre_base(n) == "ANA"
     assert M.nombre_base("#SIN NOMBRE PUBLICADO") == "#SIN NOMBRE PUBLICADO"
+
+
+def test_la_identidad_sin_id_de_las_mayores_lleva_su_categoria_y_la_de_las_pequenas_no():
+    """Infantil, cadete y juvenil: la categoría del grupo entra en la identidad sin id ('ANA@3.2.CADETE#2'); en
+    prebenjamín, benjamín y alevín (también el de Lanzarote y Fuerteventura), nada: la de siempre."""
+    assert M.norm_sin_id("ANA", 3, 2, None, "CADETE") == "ANA@3.2.CADETE"
+    assert M.norm_sin_id("ANA", 3, 2, 2, "cadete") == "ANA@3.2.CADETE#2"
+    assert M.norm_sin_id("ANA", 3, 2, 1, "INFANTIL") == "ANA@3.2.INFANTIL"
+    for cat in ("PREBENJAMIN", "BENJAMIN", "ALEVIN", "alevin", None, "", "SENIOR"):
+        assert M.norm_sin_id("ANA", 3, 2, 2, cat) == "ANA@3.2#2"
+        assert M.categoria_sin_id(cat) is None
+    assert [M.categoria_de(n) for n in ("ANA@3.2.CADETE", "ANA@3.2.JUVENIL#2", "ANA@3.2", "ANA@3.2#2", "ANA#501",
+                                        "ANA", "#SIN NOMBRE PUBLICADO", None)] == [
+        "CADETE", "JUVENIL", None, None, None, None, None, None]
+    # La clave pública: la de siempre sin categoría; con ella, otra.
+    assert clave_publica(None, "ANA", "Club Tres", 2026, None) == clave_publica(None, "ANA", "Club Tres", 2026)
+    assert clave_publica(None, "ANA", "Club Tres", 2026, "CADETE") not in (
+        clave_publica(None, "ANA", "Club Tres", 2026), clave_publica(None, "ANA", "Club Tres", 2026, "JUVENIL"))
 
 
 def test_separa_exactamente_lo_que_el_original_dice_que_vino_sin_id(mundo):
@@ -622,6 +640,87 @@ def test_la_aparicion_que_chocaria_se_queda_donde_esta():
     assert r["choques"] == 1 and r["movidas"] == 0
     assert dict(conn.execute("SELECT player_id, team_id FROM appearances WHERE match_id=41")) == {lia3: 4, lia4: 4}
     assert M.realinear(conn, log=quiet)["choques"] == 1
+
+
+def _con_cadete():
+    """Club Tres (3) en prebenjamín (PG1, grupo 2) y en cadete (CADNG1, grupo 30) de 2025-26, con un niño sin id
+    del mismo nombre en cada uno («PAZ, LIA»): dos niños (seis años de diferencia), dos identidades."""
+    conn = base()
+    conn.executescript("""
+      INSERT INTO categories(id, name) VALUES (3, 'CADETE');
+      INSERT INTO groups(id, season_id, category_id, code, name, island) VALUES (30, 2, 3, 'CADNG1', 'Grupo 1', 'grancanaria');
+    """)
+    nuevo(conn, 51, 2, 3, 1, "2025-10-04", acta([(9, "PAZ, LIA", None)]))
+    nuevo(conn, 52, 30, 3, 2, "2025-10-05", acta([(9, "PAZ, LIA", None)], (), [("home", "PAZ, LIA", "goal")]))
+    return conn
+
+
+def test_un_cadete_sin_id_no_es_la_fila_del_prebenjamin_sin_id_del_mismo_nombre_club_y_temporada():
+    conn = _con_cadete()
+    peque, cadete = pid_de(conn, "PAZ, LIA@3.2"), pid_de(conn, "PAZ, LIA@3.2.CADETE")
+    assert peque != cadete
+    assert conn.execute("SELECT player_id FROM appearances WHERE match_id=51").fetchall() == [(peque,)]
+    assert conn.execute("SELECT player_id FROM appearances WHERE match_id=52").fetchall() == [(cadete,)]
+    assert conn.execute("SELECT player_id FROM match_events WHERE match_id=52").fetchall() == [(cadete,)]
+    assert conn.execute("SELECT clave FROM players WHERE id=?", (cadete,)).fetchone()[0] == clave_publica(
+        None, "PAZ, LIA", "Club Tres", 2025, "CADETE")
+    assert conn.execute("SELECT clave FROM players WHERE id=?", (peque,)).fetchone()[0] == clave_publica(
+        None, "PAZ, LIA", "Club Tres", 2025)
+    # Lo de cada uno está en su sitio: realinear no mueve nada (y la pasada, tampoco).
+    assert M.realinear(conn, log=quiet) == {"movidas": 0, "sucesos": 0, "reubicadas": 0, "creadas": 0, "choques": 0}
+
+
+def test_realinear_lleva_cada_aparicion_a_la_identidad_de_su_categoria():
+    """(a) Un movimiento de equipo en cadete: la identidad del cadete sigue a sus apariciones y conserva su
+    categoría (y su id y su clave); la del prebenjamín no se toca. (b) Un cadete en la fila sin categoría (como
+    lo dejaría el importador anterior a la categoría): su aparición y su suceso pasan a la de su categoría."""
+    conn = _con_cadete()
+    peque, cadete = pid_de(conn, "PAZ, LIA@3.2"), pid_de(conn, "PAZ, LIA@3.2.CADETE")
+    clave = conn.execute("SELECT clave FROM players WHERE id=?", (cadete,)).fetchone()[0]
+    conn.execute("UPDATE matches SET home_team_id=4 WHERE id=52")
+    for t in ("appearances", "match_events"):
+        conn.execute(f"UPDATE {t} SET team_id=4 WHERE match_id=52 AND team_id=3")
+    conn.commit()
+    r = M.realinear(conn, log=quiet)
+    assert (r["reubicadas"], r["movidas"], r["creadas"]) == (1, 0, 0)
+    assert conn.execute("SELECT norm_name, team_id, clave FROM players WHERE id=?", (cadete,)).fetchone() == (
+        "PAZ, LIA@4.2.CADETE", 4, clave)
+    assert conn.execute("SELECT norm_name, team_id FROM players WHERE id=?", (peque,)).fetchone() == ("PAZ, LIA@3.2", 3)
+
+    conn = _con_cadete()
+    peque, cadete = pid_de(conn, "PAZ, LIA@3.2"), pid_de(conn, "PAZ, LIA@3.2.CADETE")
+    for t in ("appearances", "match_events"):
+        conn.execute(f"UPDATE {t} SET player_id=? WHERE match_id=52", (peque,))
+    conn.execute("DELETE FROM players WHERE id=?", (cadete,))
+    conn.commit()
+    r = M.realinear(conn, log=quiet)
+    assert (r["movidas"], r["sucesos"], r["creadas"], r["reubicadas"]) == (1, 1, 1, 0)
+    nueva = pid_de(conn, "PAZ, LIA@3.2.CADETE")
+    assert conn.execute("SELECT player_id FROM appearances WHERE match_id=52").fetchall() == [(nueva,)]
+    assert conn.execute("SELECT player_id FROM match_events WHERE match_id=52").fetchall() == [(nueva,)]
+    assert conn.execute("SELECT player_id FROM appearances WHERE match_id=51").fetchall() == [(peque,)]
+    assert M.realinear(conn, log=quiet)["movidas"] == 0
+
+
+def test_separar_pone_al_cadete_sin_id_en_la_identidad_de_su_categoria(tmp_path):
+    """La migración (separar) con el original: el cadete sin id va a la identidad de su categoría, nunca a la del
+    prebenjamín del mismo nombre, club y temporada."""
+    conn = base()
+    conn.executescript("""
+      INSERT INTO categories(id, name) VALUES (3, 'CADETE');
+      INSERT INTO groups(id, season_id, category_id, code, name, island) VALUES (30, 2, 3, 'CADNG1', 'Grupo 1', 'grancanaria');
+    """)
+    raws = {}
+    importa(conn, 51, 2, 3, 1, "2025-10-04", 1051, acta([(9, "PAZ, LIA", None)]), raws)
+    importa(conn, 52, 30, 3, 2, "2025-10-05", 1052, acta([(9, "PAZ, LIA", None)]), raws)
+    pegada = conn.execute("SELECT DISTINCT player_id FROM appearances").fetchall()
+    assert len(pegada) == 1                                  # el importador de antes: una fila para los dos
+    escribe_raws(tmp_path, raws)
+    M.asegurar_esquema(conn)
+    originales, _ = M.leer_originales(str(tmp_path))
+    M.separar(conn, originales, log=quiet)
+    assert de_quien(conn, 51, 3)["PAZ, LIA"] == ("PAZ, LIA@3.2", None)
+    assert de_quien(conn, 52, 3)["PAZ, LIA"] == ("PAZ, LIA@3.2.CADETE", None)
 
 
 # ── Dos de la misma alineación no son el mismo niño ─────────────────────────────────────────────

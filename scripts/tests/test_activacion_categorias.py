@@ -82,7 +82,7 @@ def _con_alevin(root):
     return root
 
 
-def test_tandas_pendientes(tmp_path, capsys, monkeypatch):
+def test_tandas_pendientes(tmp_path, capsys, monkeypatch, categorias_de_antes):
     root = _con_alevin(T.tree(tmp_path))
     health = {"newCompetitions": [T.new_comp(T.PLZ), T.new_comp(JUV_PG), T.new_comp(INF_PG)],
               "newGroups": [{"competition": T.FF[0], "competitionName": "BENJAMIN PRIMERA FASE GC", "id": "25",
@@ -196,7 +196,7 @@ def test_desempate_falla_sin_convenio(tmp_path, monkeypatch):
     assert T.health(root)["newCompetitions"] == [T.new_comp(DESEMPATE)]
 
 
-def test_nada_se_activa_sin_activables(tmp_path):
+def test_nada_se_activa_sin_activables(tmp_path, categorias_de_antes):
     """Con ACTIVABLES como hoy, una competición de infantil pendiente (en data-health.json a mano, o un grupo nuevo
     que vio el carril de mayores tras volver atrás un paso) no se activa: queda en activation.failed con su motivo
     (y el bot la reintenta una vez al día, sin cambiar nada)."""
@@ -303,9 +303,19 @@ def _distinto(a, b):
         conn.close()
 
 
+def _en_curso(path):
+    """La temporada en curso de la base (la que puebla base_mayores.poblar): la de hoy no está escrita aquí, para que
+    el cambio de temporada (activate_season) no ponga la puerta de pruebas del bot en rojo."""
+    conn = sqlite3.connect(path)
+    try:
+        return conn.execute("SELECT name FROM seasons WHERE is_current=1").fetchone()[0]
+    finally:
+        conn.close()
+
+
 def _quitar(path, *argv, capsys=None):
     import quitar_categoria
-    code = quitar_categoria.main(["--db", str(path), "--temporada", "2026-2027", *argv])
+    code = quitar_categoria.main(["--db", str(path), "--temporada", _en_curso(path), *argv])
     return code, capsys.readouterr().out if capsys else ""
 
 
@@ -395,6 +405,41 @@ def test_quitar_categoria(tmp_path, capsys, nunca, mayores_leidas):
     assert _distinto(activada, intacta) == []
 
 
+def test_quitar_una_mayor_borra_la_huella_del_raw_de_actas_de_su_lote():
+    """Quitada infantil de 2026-27, la huella de scripts/fiflp_actas_2026-2027_infantil_raw.json (el raw del carril
+    del histórico) sale de raw_imports: si se reactiva, import_changed_raws vuelve a importar esas actas. Las demás
+    huellas se quedan (otra temporada, otro lote). El ensayo no toca nada, y el alevín de Lanzarote (--isla) deja
+    la del raw de alevín, que es el lote de todo el alevín, Gran Canaria incluido."""
+    import quitar_categoria as Q
+    from db import SCHEMA
+    from migrate_actas_schema import migrate as migrate_actas
+    conn = sqlite3.connect(":memory:")
+    conn.executescript(SCHEMA)
+    migrate_actas(conn, log=lambda *a, **k: None)
+    conn.executescript("""
+      CREATE TABLE IF NOT EXISTS raw_imports (path TEXT PRIMARY KEY, sha1 TEXT NOT NULL, imported_at TEXT NOT NULL);
+      INSERT INTO seasons(id, name, start_year, end_year, is_current) VALUES (1, '2025-2026', 2025, 2026, 0),
+                                                                            (2, '2026-2027', 2026, 2027, 1);
+      INSERT INTO categories(id, name) VALUES (1, 'BENJAMIN'), (2, 'ALEVIN'), (3, 'INFANTIL');
+      INSERT INTO groups(id, season_id, category_id, code, name, island) VALUES
+        (1, 2, 1, 'FF1', 'Grupo 1', 'grancanaria'), (2, 2, 2, 'AL1', 'Grupo 1', 'grancanaria'),
+        (3, 2, 2, 'ALUL1', 'Grupo 1', 'lanzarote'), (4, 2, 3, 'INFPG1', 'Grupo 1', 'grancanaria');
+    """)
+    huellas = ["fiflp_actas_2026-2027_raw.json", "fiflp_actas_2026-2027_alevin_raw.json",
+               "fiflp_actas_2026-2027_infantil_raw.json", "fiflp_actas_2025-2026_infantil_raw.json",
+               "fiflp_actas_2026-2027_cadete_raw.json", "grupos:2025-2026"]
+    conn.executemany("INSERT INTO raw_imports VALUES (?, 'x', '2026-11-25')", [(h,) for h in huellas])
+    conn.commit()
+    quedan = lambda: sorted(p for (p,) in conn.execute("SELECT path FROM raw_imports"))  # noqa: E731
+    assert Q.quitar(conn, "2026-2027", "INFANTIL")["filas"]["raw_imports"] == 1          # el ensayo la cuenta
+    assert quedan() == sorted(huellas)                                                   # y no toca nada
+    assert Q.quitar(conn, "2026-2027", "INFANTIL", apply=True)["filas"]["raw_imports"] == 1
+    assert quedan() == sorted(h for h in huellas if h != "fiflp_actas_2026-2027_infantil_raw.json")
+    hecho = Q.quitar(conn, "2026-2027", "ALEVIN", "lanzarote", apply=True)
+    assert hecho["grupos"] == ["ALUL1"] and "raw_imports" not in hecho["filas"]
+    assert "fiflp_actas_2026-2027_alevin_raw.json" in quedan()
+
+
 def test_quitar_el_alevin_de_lanzarote(tmp_path, nunca, bases_reales):
     """El paso D6 hacia atrás: --categoria ALEVIN --isla lanzarote quita solo el alevín de Lanzarote (el de Gran
     Canaria se queda) y, tras la pasada siguiente (sus fichas, que sí miraban esos grupos: alevín es de la web), la
@@ -412,7 +457,8 @@ def test_quitar_el_alevin_de_lanzarote(tmp_path, nunca, bases_reales):
     assert "ALEVIN/lanzarote" in antes
     assert _quitar(activada, "--categoria", "ALEVIN", "--isla", "lanzarote", "--apply")[0] == 0
     quedan = _por_categoria(activada)
-    assert "ALEVIN/lanzarote" not in quedan and quedan["ALEVIN/grancanaria"] == antes["ALEVIN/grancanaria"]
+    # (Recién empezada una temporada puede no haber aún alevín de Gran Canaria: entonces, tampoco después.)
+    assert "ALEVIN/lanzarote" not in quedan and quedan.get("ALEVIN/grancanaria") == antes.get("ALEVIN/grancanaria")
     _fin_de_pasada(activada)
     assert _distinto(activada, nunca) == []
 

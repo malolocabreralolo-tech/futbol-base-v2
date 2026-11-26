@@ -99,6 +99,7 @@ Lo de la parte E1 ([categorias-mayores.md](categorias-mayores.md)) no se reescri
   Una sin convenio se queda en `activation.failed` sin romper las demás; si se quiere, se le añade la regla en `convenio.py` y su fila en `scripts/tests/fixtures/convenio_mayores.json` (con `test_el_catalogo_entero_sin_choques` en verde: ningún prefijo repetido en la temporada).
 - **El carril** sigue solo: `source_health.begin` deja fuera `carriles` al cambiar de temporada (como `runHealth`), y el carril lee los grupos de las mayores de la temporada nueva en cuanto estén activados. Con más de 60 grupos entre las categorías activas, `reloj_pasadas.CARRIL_CADA` a 2 h.
 - **La base**: antes de activar las mayores de la temporada nueva, su tamaño (`ls -l futbolbase.db`): cada temporada de fútbol 11 son ~20 MB más al acabarla.
+- **Las pruebas sobre la base de después** (`scripts/tests/base_mayores.py`, que usan `conftest.bases_reales`, la puerta de pruebas del bot y `prueba_mayores.py`) no llevan la temporada escrita: fabrican las mayores en la temporada en curso de la base (su nombre, la cabecera de las actas, las fechas y los años de los niños, de su año de inicio) y, recién activada y aún sin clasificaciones ni fichas, con los equipos de la temporada anterior; el caso de los sin id del mismo nombre y club solo se monta cuando la temporada ya tiene prebenjamines sin id (antes, su prueba se salta diciéndolo). Comprobado con una copia de la base con 2027-28 en curso, puesta como lo hace `activate_season`.
 
 ## Descubrir y comprobar candidatos
 

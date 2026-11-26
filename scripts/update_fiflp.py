@@ -576,9 +576,16 @@ COMPETITIONS_JS = """() => {
     return Array.from(sel.options).filter(o => o.value && o.value !== '0')
         .map(o => ({id: o.value, name: o.text.trim()}));
 }"""
-# Competiciones de las categorías de la web que no se van a añadir ({id: motivo}): dejan de salir en
-# newCompetitions (Datos y fuentes).
-IGNORED_COMPETITIONS = {}
+# Competiciones de las categorías que el bot activa que no se van a añadir ({id: motivo}): dejan de salir en
+# newCompetitions (Datos y fuentes) y activar_auto no las intenta.
+IGNORED_COMPETITIONS = {
+    # Sin convenio de código, a propósito (scripts/convenio.py): el nombre no dice la isla (hay cadete insular en
+    # las tres) y un desempate no es un tipo de competición conocido. Sin esto, desde que cadete sea activable
+    # (paso D4 del director) quedaría siempre en activation.failed: activar.yml la volvería a intentar cada 24 h y
+    # la portada enseñaría para siempre el aviso de «competiciones aún no cargadas». Mientras cadete no es
+    # activable, no cambia nada (new_competitions ya no la apunta).
+    "55133947": "ELIMINATORIA DESEMPATE CADETE INSULAR (2026-27): sin convenio de código",
+}
 
 
 def _season_urls(conn, season_id):

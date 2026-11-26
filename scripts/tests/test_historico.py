@@ -106,7 +106,8 @@ def test_primero_los_goleadores_de_todas_las_temporadas():
     assert a["minutos"] == 300 and a["inicio"] == "2026-11-25T10:00:00+00:00" and a["lote"] is None
 
 
-def test_despues_las_actas_de_la_mas_reciente():
+def test_despues_las_actas_de_la_mas_reciente(categorias_de_antes):
+    # Con el alevín de las islas fuera (antes de D6): desde D6, el encargo de alevín trae también sus competiciones.
     e = H.estado_vacio()
     for k in ("goleadores:2025-2026", "goleadores:2024-2025"):
         e["trabajos"][k] = {"estado": "promovido", "pendientes": 0, "no_disponible": 0, "categorias": ["alevin"]}

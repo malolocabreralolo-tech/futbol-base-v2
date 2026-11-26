@@ -65,7 +65,10 @@ def test_el_catalogo_entero_sin_choques():
         for comp in CATALOG[temporada].get("all", []):
             nombre = comp["name"]
             plegado = categorias._fold(nombre)
-            if categorias.category_of(nombre) in ("BENJAMIN", "PREBENJAMIN", "ALEVIN"):
+            # Lo de siempre (con los códigos de siempre): el alevín de Lanzarote y Fuerteventura no, aunque desde
+            # el paso D6 (ALEVIN_ISLAS) sea alevín: sus códigos son los del convenio, los de abajo.
+            if (categorias.category_of(nombre) in ("BENJAMIN", "PREBENJAMIN", "ALEVIN")
+                    and not categorias.es_alevin_de_islas(nombre)):
                 de_hoy |= _de_hoy(nombre)
             if not aplica(nombre) or re.search(r"SALA|\bFS\b|FEMENIN", plegado):
                 continue
@@ -180,7 +183,7 @@ def test_el_alevin_de_gran_canaria_no_se_mueve():
             assert list(M.meta(nombre)) == esperado, nombre
 
 
-def test_meta_by_name_de_las_nuevas(monkeypatch):
+def test_meta_by_name_de_las_nuevas(monkeypatch, categorias_de_antes):
     assert G.meta_by_name("LIGA PRIMERA INFANTIL DE LANZAROTE") == ("INF1L", "Primera Lanzarote", "lanzarote")
     assert G.meta_by_name(DESEMPATE) is None
     alevin = "LIGA PRIMERA ALEVIN F-8 DE LANZAROTE"
@@ -189,7 +192,7 @@ def test_meta_by_name_de_las_nuevas(monkeypatch):
     assert G.meta_by_name(alevin) == ("AL1L", "Primera Lanzarote", "lanzarote")
 
 
-def test_comp_meta_de_temporadas_pasadas_lee_el_nombre_de_las_nuevas():
+def test_comp_meta_de_temporadas_pasadas_lee_el_nombre_de_las_nuevas(categorias_de_antes):
     """import_fiflp_grupos.comp_meta (los grupos de una temporada pasada que se crean del raw de
     goleadores) lee el nombre de las categorías nuevas en cualquier temporada, como el de alevín: no
     tienen hermanos de futbolaspalmas ni EXTRA_META."""

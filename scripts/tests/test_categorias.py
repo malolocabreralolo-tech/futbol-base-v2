@@ -65,11 +65,11 @@ ROOT = Path(__file__).resolve().parents[2]
     ("", None),
     (None, None),
 ])
-def test_category_of(name, expected):
+def test_category_of(name, expected, categorias_de_antes):
     assert category_of(name) == expected
 
 
-def test_category_of_whole_catalog():
+def test_category_of_whole_catalog(categorias_de_antes):
     """Cada competición del catálogo de la federación: nada de sala, nada de alevín fuera de Gran
     Canaria, y ningún benjamín tomado por prebenjamín ni al revés. El congelado en fixtures/: el
     vivo lo cambia discover-fiflp.yml y esta prueba corre en el bot antes de publicar."""
@@ -103,7 +103,7 @@ def test_category_of_whole_catalog():
     assert names["54976940"] == "ALEVIN" and names["54976933"] is None and names["54976977"] is None
 
 
-def test_alevin_de_islas_con_la_marca(monkeypatch):
+def test_alevin_de_islas_con_la_marca(monkeypatch, categorias_de_antes):
     """El alevín de Lanzarote y Fuerteventura se reconoce, pero sigue fuera mientras ALEVIN_ISLAS sea False
     (el paso D6 del director): reconocerlo no puede meterlo en el encargo alevín del histórico en marcha."""
     from categorias import excluded, es_alevin_de_islas
@@ -119,7 +119,7 @@ def test_alevin_de_islas_con_la_marca(monkeypatch):
     assert category_of("LIGA ALEVIN FUTBOL SALA LANZAROTE") is None
 
 
-def test_activable(monkeypatch):
+def test_activable(monkeypatch, categorias_de_antes):
     from categorias import activable
     assert activable("LIGA BENJAMIN GRAN CANARIA FASE PREVIA") is True
     assert activable("LIGA ALEVIN GRAN CANARIA FASE PREVIA") is True
@@ -165,7 +165,9 @@ def test_tandas():
 
 def test_lo_que_se_activa_y_lo_que_se_ve_no_cambia():
     """Ninguna tarea de la parte E1 cambia ACTIVABLES, ALEVIN_ISLAS ni EN_WEB: lo hace el director, por pasos
-    (D3-D6). Esta prueba es la que tiene que cambiar en cada paso."""
+    (D3-D6). Esta es la ÚNICA prueba que comprueba lo que hay hoy en scripts/categorias.py, y la que cambia en
+    cada paso D3-D6, con la misma línea (docs/categorias-mayores.md, «Los pasos del director»): las demás fijan
+    el mundo que suponen (conftest.fijar_categorias, categorias_de_antes) y no se tocan."""
     assert categorias.ACTIVABLES == ("BENJAMIN", "PREBENJAMIN", "ALEVIN")
     assert categorias.EN_WEB == ("BENJAMIN", "PREBENJAMIN", "ALEVIN")
     assert categorias.ALEVIN_ISLAS is False
@@ -302,7 +304,7 @@ def test_the_bot_runs_the_category_migration_at_start():
     ("test", False),
     (None, False),
 ])
-def test_excluded(name, expected):
+def test_excluded(name, expected, categorias_de_antes):
     from categorias import excluded
     assert excluded(name) is expected
 

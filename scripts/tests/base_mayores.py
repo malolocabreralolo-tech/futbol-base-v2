@@ -6,13 +6,16 @@ scripts/prueba_mayores.py, que pasa la suite entera sobre esa base. Es la red co
 prueba «sobre la base real» que valía con la base de antes y no con la de después dejó al bot una pasada sin
 publicar. Toda prueba que mira la base real o los data-*.js tiene que valer con las dos.
 
-    poblar(conn, categorias=("INFANTIL", "CADETE", "JUVENIL"), temporada="2026-2027", islas=False) -> dict
+    poblar(conn, categorias=("INFANTIL", "CADETE", "JUVENIL"), temporada=None, islas=False) -> dict
 
-escribe en `conn` (una COPIA: nunca la base del árbol) lo que dejaría el bot, con sus mismos pasos y sus mismas
-funciones, donde se puede sin navegador:
+escribe en `conn` (una COPIA: nunca la base del árbol) lo que dejaría el bot en la temporada EN CURSO de esa base
+(sin `temporada`; con ella, tiene que ser la en curso), con sus mismos pasos y sus mismas funciones, donde se puede
+sin navegador. La temporada sale de la base, no de una fecha escrita aquí: la puerta de pruebas del bot corre esto en
+cada pasada, y el día que activate_season ponga 2027-28 en curso no puede ponerse en rojo (el nombre del acta, las
+fechas de las jornadas y los años de los niños reutilizados salen de su año de inicio):
 
   1. la activación (como activar_auto.activar, por competición): un raw sintético con la forma del de
-     fetch_fiflp_islas (por categoría, tres competiciones de 2026-27 con convenio: una liga de Gran Canaria con
+     fetch_fiflp_islas (por categoría, tres competiciones con convenio, con los nombres del catálogo de 2026-27: una liga de Gran Canaria con
      dos grupos, una liga de Lanzarote y una copa a eliminatorias; en cadete, además, la liga interinsular, con
      equipos de Gran Canaria y de Lanzarote), su manifiesto con fiflp_manifest.build (con
      los códigos que ya tiene la temporada en `taken`), activate_season.validate_manifest, los nombres de los
@@ -26,10 +29,11 @@ Los equipos son clubes que ya están en la base (con su nombre de la federación
 fichas: el mismo club en benjamín y en juvenil es la misma fila de teams) y uno nuevo por grupo. Seis jornadas
 jugadas por liga (y la séptima sin jugar), con resultado, clasificación y goleadores; dos rondas jugadas en la
 copa. Cada acta, 18 jugadores por equipo: un tercio con el id de la federación de un niño de benjamín o alevín
-de 2019-20 a 2021-22 que ya está en la base (el mismo niño, más mayor: la misma fila de players), el resto con
+de entre 7 y 5 temporadas antes (de 2019-20 a 2021-22 para 2026-27) que ya está en la base (el mismo niño, más mayor: la misma fila de players), el resto con
 ids nuevos. Y en el primer grupo de Gran Canaria, los equipos de un grupo de la liga prebenjamín de Gran Canaria
 de esta temporada (que va sin id) llevan además a dos niños sin id con el nombre de dos de ese equipo y
-temporada: la misma identidad sin id (nombre, equipo y temporada), como lo haría el importador.
+temporada: el mismo nombre, club y temporada que dos prebenjamines sin id, pero NO la misma identidad (la de
+infantil lleva su categoría: migrate_identidad.norm_sin_id), como lo hace el importador.
 
 Los nombres de los niños nuevos son inventados (f"JUGADOR {n:06d}, PRUEBA"); los de los reutilizados no se
 escriben (con id, la fila conserva el suyo) salvo los dos sin id, que se leen de la copia al vuelo para que sean
@@ -37,7 +41,9 @@ el mismo nombre (nunca se imprimen ni salen de la copia). Con `islas`, también 
 LANZAROTE FASE 1» (con categorias.ALEVIN_ISLAS a True durante la llamada: el paso D6).
 
 Devuelve {"grupos": [códigos], "partidos": n jugados, "actas": n, "jugadores_reutilizados": n ids de la base,
-"sin_id_reutilizados": n}.
+"sin_id_reutilizados": n nombres sin id de un prebenjamín del mismo club y temporada, "sin_id_disponibles": n
+equipos de la liga prebenjamín de la temporada con dos sin id (con 0, el caso no se monta), "sin_id_en_fila_ajena": n
+identidades sin id con apariciones en una de las mayores y en otra categoría (tiene que ser 0)}.
 """
 import contextlib
 import random
@@ -75,14 +81,18 @@ JORNADAS_JUGADAS = 6
 ID_NUEVO = 900_000_000
 # Los de la federación de la competición y del grupo, inventados (no son los de ninguna de verdad).
 COMP_BASE, GRUPO_BASE, ACTA_BASE = 99_000_000, 99_500_000, 990_000_000
-# Las jornadas: sábados desde el 3 de octubre de 2026.
-PRIMER_SABADO = (2026, 10, 3)
 
 
-def _sabado(k):
+def _primer_sabado(anio):
+    """El primer sábado de octubre del año de inicio de la temporada (el 3 de octubre en 2026-27): las jornadas."""
     from datetime import date, timedelta
-    d = date(*PRIMER_SABADO) + timedelta(days=7 * k)
-    return d.strftime("%d-%m-%Y")
+    d = date(anio, 10, 1)
+    return d + timedelta(days=(5 - d.weekday()) % 7)
+
+
+def _sabado(anio, k):
+    from datetime import timedelta
+    return (_primer_sabado(anio) + timedelta(days=7 * k)).strftime("%d-%m-%Y")
 
 
 def _calendario(equipos):
@@ -118,7 +128,18 @@ def _alevin_de_islas(activo):
 
 def _equipos_de_la_base(conn, sid):
     """{isla: [(team_id, nombre de la federación)]} de los equipos de la temporada con ficha (team_seasons), por
-    id: los de los grupos que la base ya tiene (benjamín, prebenjamín, alevín)."""
+    id: los de los grupos que la base ya tiene (benjamín, prebenjamín, alevín). Recién empezada una temporada
+    (activate_season la acaba de poner en curso y aún no tiene grupos con clasificación ni fichas), los de la más
+    reciente que los tenga: los clubes son los mismos de un año a otro."""
+    for (otra,) in [(sid,)] + conn.execute(
+            "SELECT id FROM seasons WHERE id <> ? ORDER BY start_year DESC", (sid,)).fetchall():
+        por_isla = _equipos_de_la_temporada(conn, otra)
+        if por_isla.get("grancanaria"):
+            return por_isla
+    raise ValueError("la base no tiene ninguna temporada con equipos de Gran Canaria con ficha")
+
+
+def _equipos_de_la_temporada(conn, sid):
     por_isla = {}
     vistos = set()
     for tid, fed, isla in conn.execute(
@@ -150,28 +171,29 @@ def _sin_id_de_prebenjamin(conn, sid):
     return out
 
 
-def _ids_de_la_base(conn, sid):
-    """Los ids de la federación de los niños de benjamín o alevín de 2019-20 a 2021-22 que no juegan esta
-    temporada (los mismos niños, más mayores), por id."""
+def _ids_de_la_base(conn, sid, anio):
+    """Los ids de la federación de los niños de benjamín o alevín de entre 7 y 5 temporadas antes (de 2019-20 a
+    2021-22 para 2026-27) que no juegan esta temporada (los mismos niños, más mayores), por id."""
     return [f for (f,) in conn.execute(
         """SELECT DISTINCT p.fiflp_id FROM players p JOIN appearances a ON a.player_id = p.id
              JOIN matches m ON m.id = a.match_id JOIN groups g ON g.id = m.group_id
              JOIN seasons s ON s.id = g.season_id JOIN categories c ON c.id = g.category_id
-            WHERE p.fiflp_id IS NOT NULL AND upper(c.name) IN ('BENJAMIN', 'ALEVIN') AND s.start_year BETWEEN 2019 AND 2021
+            WHERE p.fiflp_id IS NOT NULL AND upper(c.name) IN ('BENJAMIN', 'ALEVIN') AND s.start_year BETWEEN ? AND ?
               AND p.fiflp_id NOT IN (SELECT p2.fiflp_id FROM players p2 JOIN appearances a2 ON a2.player_id = p2.id
                                      JOIN matches m2 ON m2.id = a2.match_id JOIN groups g2 ON g2.id = m2.group_id
                                      WHERE g2.season_id = ? AND p2.fiflp_id IS NOT NULL)
-            ORDER BY p.fiflp_id""", (sid,))]
+            ORDER BY p.fiflp_id""", (anio - 7, anio - 5, sid))]
 
 
 class _Fabrica:
     """Lo que se inventa, siempre igual para la misma base (SEMILLA): equipos, plantillas, resultados y actas."""
 
-    def __init__(self, conn, sid):
+    def __init__(self, conn, sid, anio):
         self.rnd = random.Random(SEMILLA)
+        self.anio = anio                # el año de inicio de la temporada en curso
         self.equipos = _equipos_de_la_base(conn, sid)
         self.sin_id = _sin_id_de_prebenjamin(conn, sid)
-        ids = _ids_de_la_base(conn, sid)
+        ids = _ids_de_la_base(conn, sid, anio)
         self.rnd.shuffle(ids)
         self.ids_base = ids
         self.reutilizados = set()
@@ -284,7 +306,7 @@ def _grupo_raw(fab, categoria, nombre, isla, n, copa, con_sin_id):
         jugada = k < (1 if copa else JORNADAS_JUGADAS)
         partidos = []
         for local, visitante in ronda:
-            m = {"home": local, "away": visitante, "hs": None, "as": None, "date": _sabado(k), "time": "10:00",
+            m = {"home": local, "away": visitante, "hs": None, "as": None, "date": _sabado(fab.anio, k), "time": "10:00",
                  "venue": "CAMPO DE PRUEBA", "referee": ""}
             if jugada:
                 m["hs"], m["as"] = fab.marcador(copa)
@@ -292,20 +314,20 @@ def _grupo_raw(fab, categoria, nombre, isla, n, copa, con_sin_id):
                 m["fiflp_acta"] = fab.acta
                 actas[fab.acta] = _acta(fab, categoria, nombre, n, k + 1, m)
             partidos.append(m)
-        jornadas.append({"num": str(k + 1), "date": _sabado(k), "matches": partidos})
+        jornadas.append({"num": str(k + 1), "date": _sabado(fab.anio, k), "matches": partidos})
     if copa:
         # Las semifinales: los ganadores de los cuartos, ya jugadas.
         ganadores = [m["home"] if m["hs"] > m["as"] else m["away"] for m in jornadas[0]["matches"]]
         partidos = []
         for local, visitante in ((ganadores[0], ganadores[1]), (ganadores[2], ganadores[3])):
-            m = {"home": local, "away": visitante, "date": _sabado(1), "time": "10:00", "venue": "CAMPO DE PRUEBA",
+            m = {"home": local, "away": visitante, "date": _sabado(fab.anio, 1), "time": "10:00", "venue": "CAMPO DE PRUEBA",
                  "referee": ""}
             m["hs"], m["as"] = fab.marcador(True)
             fab.acta += 1
             m["fiflp_acta"] = fab.acta
             actas[fab.acta] = _acta(fab, categoria, nombre, n, 2, m)
             partidos.append(m)
-        jornadas.append({"num": "2", "date": _sabado(1), "matches": partidos})
+        jornadas.append({"num": "2", "date": _sabado(fab.anio, 1), "matches": partidos})
     entrada = {"competition_id": str(fab.comp), "competition_name": nombre, "cat": categoria.lower(), "island": isla,
                "phase": nombre, "group_id": str(fab.grupo), "group_name": f"GRUPO {n}",
                "standings": [] if copa else _clasificacion(equipos, jornadas), "jornadas": jornadas}
@@ -325,7 +347,7 @@ def _acta(fab, categoria, competicion, n, jornada, m):
             events.append({"kind": "goal", "side": lado, "player_name": autor["name"], "minute": 5 + 7 * g,
                            "goal_type": "normal"})
     events.append({"kind": "yellow", "side": "away", "player_name": lineups["away"][3]["name"], "minute": 40})
-    temporada = "2026/2027"
+    temporada = f"{fab.anio}/{fab.anio + 1}"        # como la cabecera de la federación: «2026/2027»
     header = {"season": temporada, "jornada": str(jornada), "date": m["date"],
               "competition": f"{competicion} (GRUPO {n})", "home_team": m["home"], "away_team": m["away"],
               "home_score": m["hs"], "away_score": m["as"]}
@@ -404,15 +426,18 @@ def _pasada(conn, sid, grupo, entrada, actas, log):
     return jugados, leidas
 
 
-def poblar(conn, categorias=("INFANTIL", "CADETE", "JUVENIL"), temporada="2026-2027", islas=False, log=print):
-    """Ver el docstring del módulo. `conn`: una copia de la base (nunca la del árbol)."""
+def poblar(conn, categorias=("INFANTIL", "CADETE", "JUVENIL"), temporada=None, islas=False, log=print):
+    """Ver el docstring del módulo. `conn`: una copia de la base (nunca la del árbol). Sin `temporada`, la en curso
+    de la base; con ella, tiene que ser la en curso (el bot solo activa y lee la en curso)."""
     from migrate_identidad import asegurar_esquema
     asegurar_esquema(conn)
-    fila = conn.execute("SELECT id, name FROM seasons WHERE is_current=1").fetchall()
-    if len(fila) != 1 or fila[0][1] != temporada:
+    fila = conn.execute("SELECT id, name, start_year FROM seasons WHERE is_current=1").fetchall()
+    if len(fila) != 1:
+        raise ValueError("la base no tiene una sola temporada en curso")
+    if temporada is not None and fila[0][1] != temporada:
         raise ValueError(f"la temporada en curso de la base no es {temporada}")
-    sid, season = fila[0]
-    fab = _Fabrica(conn, sid)
+    sid, season, anio = fila[0]
+    fab = _Fabrica(conn, sid, anio)
     taken = {c for (c,) in conn.execute("SELECT code FROM groups WHERE season_id=?", (sid,))}
     tandas = [(cat, COMPETICIONES[cat]) for cat in categorias]
     if islas:
@@ -447,7 +472,25 @@ def poblar(conn, categorias=("INFANTIL", "CADETE", "JUVENIL"), temporada="2026-2
                 out["actas"] += leidas
     out["jugadores_reutilizados"] = len(fab.reutilizados)
     out["sin_id_reutilizados"] = len(fab.sin_id_usados)
+    # Los prebenjamines sin id de la temporada con los que montar ese caso: recién empezada una temporada, ninguno.
+    out["sin_id_disponibles"] = len(fab.sin_id)
+    out["sin_id_en_fila_ajena"] = sin_id_en_fila_ajena(conn)
     return out
+
+
+def sin_id_en_fila_ajena(conn):
+    """Cuántas identidades sin id tienen apariciones en una de las mayores (infantil, cadete, juvenil) y también
+    en otra categoría: un cadete sin id en la fila de un prebenjamín sin id del mismo nombre, club y temporada
+    (migrate_identidad.categoria_sin_id lo impide). Tiene que ser 0."""
+    mayores = ",".join("?" * len(MAYORES))
+    return conn.execute(
+        f"""SELECT count(*) FROM (SELECT a.player_id FROM appearances a JOIN players p ON p.id = a.player_id
+              JOIN matches m ON m.id = a.match_id JOIN groups g ON g.id = m.group_id
+              JOIN categories c ON c.id = g.category_id
+             WHERE p.fiflp_id IS NULL AND p.team_id IS NOT NULL
+             GROUP BY a.player_id
+            HAVING sum(upper(c.name) IN ({mayores})) > 0 AND sum(upper(c.name) NOT IN ({mayores})) > 0)""",
+        MAYORES + MAYORES).fetchone()[0]
 
 
 # ── Las bases de las pruebas sobre la base real (fixture de sesión bases_reales, conftest.py) ─────────────

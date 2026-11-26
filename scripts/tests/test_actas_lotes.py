@@ -263,7 +263,8 @@ def status_de(status):
     return {k: status[k] for k in ("season", "enumerated", "in_raw", "pending", "unenumerated_comps", "fetched")}
 
 
-def test_each_tanda_writes_only_the_files_of_its_lote_with_one_browser_and_chained_tandas(fed, capsys):
+def test_each_tanda_writes_only_the_files_of_its_lote_with_one_browser_and_chained_tandas(fed, capsys,
+                                                                                           categorias_de_antes):
     raw, raw_al = "fiflp_actas_2025-2026_raw.json", "fiflp_actas_2025-2026_alevin_raw.json"
     fed["run"]("--categorias", "alevin", "--lote", "alevin")
     # Un navegador para toda la tanda, sin lo ajeno ni imágenes y sin ruta (con caché).

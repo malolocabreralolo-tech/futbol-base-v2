@@ -38,12 +38,15 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from fiflp_acta import clean_scorer  # noqa: E402  (la limpieza del goleador que hace el importador)
 from identidad import (NIVEL, UNIR_CORTOS_EN_CLUB, Identidad, clave_publica, club, compatibles, intervalo,  # noqa: E402
                        normalizar, resolver)
+from categorias import MAYORES  # noqa: E402  (las categorías cuya identidad sin id lleva la categoría)
 
 SCRIPTS = os.path.dirname(os.path.abspath(__file__))
 ANON_NORM = "#SIN NOMBRE PUBLICADO"     # la fila del gol sin nombre publicado (import_fiflp_actas): no se toca
 TABLAS = ("appearances", "match_events", "matches", "goals", "scorers", "match_staff_all", "players")
-# 'NOMBRE#id', 'NOMBRE@equipo.temporada' y 'NOMBRE@equipo.temporada#2': el nombre es lo de delante.
-_SUFIJOS = re.compile(r"(@\d+\.\d+)?(#\d+)?$")
+# 'NOMBRE#id', 'NOMBRE@equipo.temporada' y 'NOMBRE@equipo.temporada#2' (y, en infantil, cadete y juvenil,
+# 'NOMBRE@equipo.temporada.CADETE' y 'NOMBRE@equipo.temporada.CADETE#2': norm_sin_id): el nombre es lo de delante.
+_SUFIJOS = re.compile(r"(@\d+\.\d+(?:\.[A-Z]+)?)?(#\d+)?$")
+_CATEGORIA = re.compile(r"@\d+\.\d+\.([A-Z]+)(?:#\d+)?$")
 _RAW = re.compile(r"^fiflp_actas_\d{4}-\d{4}(?:_\w+)?_raw\.json$")
 _BOT = re.compile(r"^actas_bot_\d{4}-\d{4}_\w+\.jsonl$")
 SEMILLA = 20261114
@@ -133,9 +136,10 @@ def poner_claves(conn, pids=None) -> int:
             if equipo is None:
                 continue        # sin apariciones tampoco: generate_js._fichas le busca otra clave
         norm = base + (f"#{ordinal}" if ordinal and ordinal > 1 else "")
-        clave = clave_publica(None, norm, equipo, anio)
+        categoria = categoria_de(norm_name)
+        clave = clave_publica(None, norm, equipo, anio, categoria)
         if conn.execute("SELECT 1 FROM players WHERE clave=? AND id<>?", (clave, pid)).fetchone():
-            clave = clave_publica(None, f"{norm}|{pid}", equipo, anio)
+            clave = clave_publica(None, f"{norm}|{pid}", equipo, anio, categoria)
         conn.execute("UPDATE players SET clave=? WHERE id=?", (clave, pid))
         puestas += 1
     return puestas
@@ -146,10 +150,34 @@ def nombre_base(norm_name: str) -> str:
     return _SUFIJOS.sub("", norm_name or "") if not (norm_name or "").startswith("#") else norm_name
 
 
-def norm_sin_id(nombre: str, team_id: int, season_id: int, ordinal: int | None = None) -> str:
-    """El norm_name (UNIQUE) de la identidad sin id: 'NOMBRE@<equipo>.<temporada>', con '#<ordinal>' si es
-    el segundo o siguiente del mismo nombre en una alineación."""
-    return f"{nombre}@{team_id}.{season_id}" + (f"#{ordinal}" if ordinal and ordinal > 1 else "")
+def categoria_sin_id(categoria) -> str | None:
+    """La categoría que entra en la identidad sin id: la del grupo del partido si es de las mayores (infantil,
+    cadete o juvenil: categorias.MAYORES), en mayúsculas; None en las demás.
+
+    Por qué solo en las mayores. Los clubes son la misma fila de teams en todas las categorías (en 2026-27, 155
+    de los 259 equipos salen en más de una), así que un cadete sin id que se llamara como un prebenjamín sin id
+    del mismo club y temporada caería en SU fila y sus partidos se mezclarían en la base: seis años de
+    diferencia, no son el mismo niño. En prebenjamín, benjamín y alevín la identidad sigue siendo la de siempre
+    (nombre, equipo, temporada y ordinal): un niño de prebenjamín que juega también en benjamín, o en alevín,
+    es UNA fila, y sus filas, su norm_name y su clave no cambian."""
+    c = (categoria or "").strip().upper()
+    return c if c in MAYORES else None
+
+
+def categoria_de(norm_name: str) -> str | None:
+    """La categoría que lleva el norm_name de una identidad sin id ('NOMBRE@3.2.CADETE#2' → 'CADETE'); None
+    si no lleva (prebenjamín, benjamín, alevín, o una fila con id)."""
+    m = _CATEGORIA.search(norm_name or "")
+    return m.group(1) if m else None
+
+
+def norm_sin_id(nombre: str, team_id: int, season_id: int, ordinal: int | None = None, categoria=None) -> str:
+    """El norm_name (UNIQUE) de la identidad sin id: 'NOMBRE@<equipo>.<temporada>', con '.<CATEGORÍA>' si el
+    partido es de infantil, cadete o juvenil (categoria_sin_id: las demás, sin nada) y '#<ordinal>' si es el
+    segundo o siguiente del mismo nombre en una alineación."""
+    cat = categoria_sin_id(categoria)
+    return (f"{nombre}@{team_id}.{season_id}" + (f".{cat}" if cat else "")
+            + (f"#{ordinal}" if ordinal and ordinal > 1 else ""))
 
 
 def recuentos(conn) -> dict:
@@ -405,8 +433,8 @@ def separar(conn, originales: dict, log=print) -> dict:
         conn.execute("PRAGMA defer_foreign_keys=ON")
         movidas = []
 
-        def fila_sin_id(norm, tid, season_id, ordinal, nombre):
-            clave = norm_sin_id(norm, tid, season_id, ordinal)
+        def fila_sin_id(norm, tid, season_id, ordinal, nombre, categoria):
+            clave = norm_sin_id(norm, tid, season_id, ordinal, categoria)
             pid = por_norm.get(clave)
             if pid is None:
                 pid = conn.execute(
@@ -435,7 +463,7 @@ def separar(conn, originales: dict, log=print) -> dict:
 
         cambios = []
         for (mid, tid), d in sorted(destinos.items()):
-            season_id = partidos[mid][3]
+            season_id, categoria = partidos[mid][3], partidos[mid][4]
             nuevo = {}
             for pid, dest in d.items():
                 if dest is None:
@@ -443,7 +471,7 @@ def separar(conn, originales: dict, log=print) -> dict:
                 elif dest[0] == "id":
                     nuevo[pid] = fila_con_id(dest[1], dest[2])
                 else:
-                    nuevo[pid] = fila_sin_id(dest[1], tid, season_id, dest[2], dest[3])
+                    nuevo[pid] = fila_sin_id(dest[1], tid, season_id, dest[2], dest[3], categoria)
             # Dos apariciones a la misma fila: la que cambiaría se queda donde está (no se pierde ninguna).
             while True:
                 usados = Counter(nuevo.values())
@@ -494,9 +522,18 @@ def separar(conn, originales: dict, log=print) -> dict:
 # Realinear
 # ---------------------------------------------------------------------------
 
-# Lo de una identidad sin id (x: una aparición o un suceso) que no está en su equipo o su temporada.
+# La categoría de la identidad sin id en SQL: la de su norm_name (categoria_de), NULL si no lleva.
+_CAT_FILA = ("(CASE " + " ".join(
+    f"WHEN p.norm_name GLOB '*@[0-9]*.[0-9]*.{c}' OR p.norm_name GLOB '*@[0-9]*.[0-9]*.{c}#[0-9]*' THEN '{c}'"
+    for c in MAYORES) + " END)")
+# Y la que le toca a una aparición o un suceso: la de su grupo si es de las mayores (categoria_sin_id), NULL si no.
+# Con c, LEFT JOIN de categories: un grupo sin categoría es, como siempre, de la identidad sin categoría.
+_CAT_X = f"(CASE WHEN upper(c.name) IN ({', '.join(repr(c) for c in MAYORES)}) THEN upper(c.name) END)"
+# Lo de una identidad sin id (x: una aparición o un suceso) que no está en su equipo, su temporada o su categoría
+# (la de las mayores: un cadete sin id nunca es la fila de un prebenjamín sin id del mismo club y temporada). Sin
+# grupos de infantil, cadete ni juvenil, las dos categorías son NULL: lo de siempre.
 _FUERA = ("p.fiflp_id IS NULL AND p.team_id IS NOT NULL AND x.team_id IS NOT NULL "
-          "AND (x.team_id IS NOT p.team_id OR g.season_id IS NOT p.season_id)")
+          f"AND (x.team_id IS NOT p.team_id OR g.season_id IS NOT p.season_id OR {_CAT_FILA} IS NOT {_CAT_X})")
 
 
 def realinear(conn, log=print) -> dict:
@@ -505,30 +542,33 @@ def realinear(conn, log=print) -> dict:
     match_events.team_id, y pueden borrar la fila vieja de teams, sin mirar players.
 
     Cada aparición (con los sucesos de ese jugador en ese partido y equipo) y cada suceso sin aparición
-    cuyo equipo o temporada no son los de su identidad sin id pasan a la identidad sin id de (nombre, ese
-    equipo, esa temporada, mismo ordinal), creándola si falta. Si todo lo de la identidad está en un único
-    (equipo, temporada) que no es el suyo y esa identidad no existe, se cambia la misma fila: conserva su
-    id y su clave. La aparición que chocaría con otra de la identidad destino en el mismo partido y equipo
-    se queda donde está y se cuenta (como en separar). Idempotente; sin nada que mover no escribe nada.
-    Devuelve {"movidas", "sucesos", "reubicadas", "creadas", "choques"}."""
+    cuyo equipo, temporada o categoría (la de las mayores: categoria_sin_id) no son los de su identidad sin id
+    pasan a la identidad sin id de (nombre, ese equipo, esa temporada, mismo ordinal, esa categoría), creándola
+    si falta. Si todo lo de la identidad está en un único (equipo, temporada, categoría) que no es el suyo y esa
+    identidad no existe, se cambia la misma fila: conserva su id y su clave. La aparición que chocaría con otra
+    de la identidad destino en el mismo partido y equipo se queda donde está y se cuenta (como en separar).
+    Idempotente; sin nada que mover no escribe nada. Devuelve {"movidas", "sucesos", "reubicadas", "creadas",
+    "choques"}."""
     cuenta = {"movidas": 0, "sucesos": 0, "reubicadas": 0, "creadas": 0, "choques": 0}
     if conn.in_transaction:
         conn.commit()
-    desde = "JOIN players p ON p.id = x.player_id JOIN matches m ON m.id = x.match_id JOIN groups g ON g.id = m.group_id"
-    apps = conn.execute(f"SELECT x.player_id, x.match_id, x.team_id, g.season_id FROM appearances x {desde} "
-                        f"WHERE {_FUERA}").fetchall()
-    sucesos = conn.execute(f"SELECT x.id, x.player_id, x.match_id, x.team_id, g.season_id FROM match_events x "
-                           f"{desde} WHERE {_FUERA}").fetchall()
+    desde = ("JOIN players p ON p.id = x.player_id JOIN matches m ON m.id = x.match_id JOIN groups g ON g.id = m.group_id "
+             "LEFT JOIN categories c ON c.id = g.category_id")
+    apps = conn.execute(f"SELECT x.player_id, x.match_id, x.team_id, g.season_id, {_CAT_X} FROM appearances x "
+                        f"{desde} WHERE {_FUERA}").fetchall()
+    sucesos = conn.execute(f"SELECT x.id, x.player_id, x.match_id, x.team_id, g.season_id, {_CAT_X} "
+                           f"FROM match_events x {desde} WHERE {_FUERA}").fetchall()
     if not apps and not sucesos:
         return cuenta
     # Los sucesos de una aparición que se mueve van con ella; los demás (sin aparición), por su equipo.
-    con_aparicion = {(pid, mid, tid) for pid, mid, tid, _ in apps}
-    por_pid = defaultdict(lambda: defaultdict(lambda: ([], [])))   # pid -> (equipo, temporada) -> (partidos, sucesos)
-    for pid, mid, tid, sid in apps:
-        por_pid[pid][(tid, sid)][0].append(mid)
-    for eid, pid, mid, tid, sid in sucesos:
+    con_aparicion = {(pid, mid, tid) for pid, mid, tid, _, _ in apps}
+    # pid -> (equipo, temporada, categoría) -> (partidos, sucesos)
+    por_pid = defaultdict(lambda: defaultdict(lambda: ([], [])))
+    for pid, mid, tid, sid, cat in apps:
+        por_pid[pid][(tid, sid, cat)][0].append(mid)
+    for eid, pid, mid, tid, sid, cat in sucesos:
         if (pid, mid, tid) not in con_aparicion:
-            por_pid[pid][(tid, sid)][1].append(eid)
+            por_pid[pid][(tid, sid, cat)][1].append(eid)
     conn.execute("BEGIN")
     try:
         for pid in sorted(por_pid):
@@ -537,19 +577,21 @@ def realinear(conn, log=print) -> dict:
             base = nombre_base(norm_name)
             destinos = por_pid[pid]
             if len(destinos) == 1:
-                (tid, sid), = destinos
-                norm = norm_sin_id(base, tid, sid, ordinal)
+                (tid, sid, cat), = destinos
+                norm = norm_sin_id(base, tid, sid, ordinal, cat)
                 queda = any(conn.execute(
                     f"SELECT 1 FROM {t} x JOIN matches m ON m.id = x.match_id JOIN groups g ON g.id = m.group_id "
-                    "WHERE x.player_id=? AND (x.team_id IS NOT ? OR g.season_id IS NOT ?) LIMIT 1",
-                    (pid, tid, sid)).fetchone() for t in ("appearances", "match_events"))
+                    f"LEFT JOIN categories c ON c.id = g.category_id WHERE x.player_id=? AND (x.team_id IS NOT ? "
+                    f"OR g.season_id IS NOT ? OR {_CAT_X} IS NOT ?) LIMIT 1",
+                    (pid, tid, sid, cat)).fetchone() for t in ("appearances", "match_events"))
                 if not queda and not conn.execute("SELECT 1 FROM players WHERE norm_name=?", (norm,)).fetchone():
                     conn.execute("UPDATE players SET team_id=?, season_id=?, norm_name=? WHERE id=?",
                                  (tid, sid, norm, pid))
                     cuenta["reubicadas"] += 1
                     continue
-            for (tid, sid), (partidos, sueltos) in sorted(destinos.items()):
-                norm = norm_sin_id(base, tid, sid, ordinal)
+            for (tid, sid, cat), (partidos, sueltos) in sorted(destinos.items(), key=lambda kv: (
+                    kv[0][0], kv[0][1], kv[0][2] or "")):
+                norm = norm_sin_id(base, tid, sid, ordinal, cat)
                 r = conn.execute("SELECT id FROM players WHERE norm_name=?", (norm,)).fetchone()
                 if r:
                     destino = r[0]
