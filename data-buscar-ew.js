@@ -1,1 +1,1 @@
-const BUSCAR_EW = [["232020","CABRERA LOPEZ, EWAN","Internacional D","2025-2026",[2016]]];
+const BUSCAR_EW = [["231291","SMITH, EWAN DAVID","Guiniguada","2026-2027",[2013,2014]],["232020","CABRERA LOPEZ, EWAN","Internacional D","2025-2026",[2016]]];
