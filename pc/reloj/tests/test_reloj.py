@@ -69,6 +69,8 @@ elif args[:1] == ["api"] and len(args) > 1 and args[1].split("?")[0].endswith("/
     nombre = "contenido"
 elif args[:1] == ["api"] and len(args) > 1 and args[1].endswith("/actions/workflows/reloj.yml"):
     nombre = "workflow"
+elif args[:1] == ["api"] and len(args) > 1 and args[1].endswith("/actions/variables/CARRIL_MAYORES"):
+    nombre = "variable"
 else:
     nombre = None
 if nombre is None:
@@ -81,7 +83,8 @@ if fallo.exists():
 if nombre == "lanzar":
     sys.exit(0)
 respuesta = json.loads((aqui / "respuestas" / f"{{nombre}}.json").read_text(encoding="utf-8"))
-print(respuesta["sha"] if opcion("--jq") == ".sha" else json.dumps(respuesta))
+jq = opcion("--jq")
+print(respuesta[jq[1:]] if jq in (".sha", ".value") else json.dumps(respuesta))
 '''
 
 
@@ -154,6 +157,15 @@ class Entorno:
         self.responder("carril", [])
         self.responder("activar", [])
         self.responder("historico", _pasada(timedelta(minutes=10)))
+        self.variable(None)
+
+    def variable(self, valor: str | None) -> None:
+        """La variable del repositorio CARRIL_MAYORES: None, sin poner (la API da 404, como gh: «Not Found (HTTP 404)»)."""
+        (self.respuestas / "variable.fallo").unlink(missing_ok=True)
+        if valor is None:
+            self.fallar("variable", "gh: Not Found (HTTP 404)\n")
+        else:
+            self.responder("variable", {"name": "CARRIL_MAYORES", "value": valor})
 
     def responder(self, nombre: str, contenido) -> None:
         (self.respuestas / f"{nombre}.json").write_text(json.dumps(contenido), encoding="utf-8")
@@ -572,10 +584,13 @@ def _ejecucion(momento: datetime, numero: int = 1, status: str = "completed") ->
             "conclusion": "success" if status == "completed" else "", "createdAt": texto, "startedAt": texto}
 
 
-def _preparar(entorno: Entorno, ahora: datetime = MARTES, bot: int = 10, historico: int | None = 60) -> None:
+def _preparar(entorno: Entorno, ahora: datetime = MARTES, bot: int = 10, historico: int | None = 60,
+              variable: str | None = "1") -> None:
     """A la hora `ahora`: la última pasada del bot, de hace `bot` min; la del histórico, de hace `historico` min (None:
-    ninguna); sin carril ni activación."""
+    ninguna); sin ejecuciones del carril ni de la activación; y CARRIL_MAYORES a `variable` (por defecto, encendido;
+    None, sin poner)."""
     entorno.a_las(ahora)
+    entorno.variable(variable)
     entorno.responder("pasadas", [_ejecucion(ahora - timedelta(minutes=bot), 1200)])
     entorno.responder("historico", [] if historico is None else [_ejecucion(ahora - timedelta(minutes=historico), 40)])
 
@@ -615,6 +630,7 @@ def test_toca_el_carril_y_lanza(entorno):
     assert r.returncode == 0, r.stderr
     assert entorno.lanzamientos() == [LANZAR_V2]
     assert _listados(entorno) == ["update.yml", *LISTAS, "reloj.yml"]
+    assert [f"repos/{V2}/actions/variables/CARRIL_MAYORES", "--jq", ".value"] in [c["args"][1:] for c in entorno.llamadas()]
     assert "No toca:" in r.stdout and "Carril de las categorías mayores: toca:" in r.stdout, r.stdout
     assert r.stdout.rstrip().endswith("Lanzado reloj.yml.") and len(r.stdout.splitlines()) == 1, r.stdout
 
@@ -747,4 +763,67 @@ def test_la_parte_nueva_no_muestra_el_token(entorno, escenario):
     assert {c["token"] for c in llamadas} == {_huella(TOKEN)}
     con_token = [p for p in entorno.raiz.rglob("*") if p.is_file() and TOKEN.encode() in p.read_bytes()]
     assert con_token == [entorno.token]
+    assert list(entorno.tmpdir.iterdir()) == []
+
+
+# ── El carril, solo con CARRIL_MAYORES a 1 ────────────────────────────────────
+#
+# Como reloj.yml: sin la variable (404) o con otro valor, el carril ni se mira ni se nombra, y ningún reloj.yml se lanza
+# por él (si no, con el carril apagado, uno en cada tick de su hueco: ~120 al día en vano). El histórico, igual.
+
+@pytest.mark.parametrize("variable", [None, "0", "", "true"])
+def test_con_el_carril_apagado_ni_se_mira_ni_se_lanza(entorno, variable):
+    _preparar(entorno, bot=30, historico=60, variable=variable)      # el hueco del carril: tocaría
+    r = entorno.ejecutar()
+    assert r.returncode == 0 and r.stderr == "", r.stderr
+    assert entorno.lanzamientos() == []
+    lineas = r.stdout.splitlines()
+    assert len(lineas) == 1 and "No toca:" in lineas[0] and lineas[0].endswith("(toca a partir de los 110)."), r.stdout
+    assert "Carril" not in r.stdout and "CARRIL_MAYORES" not in r.stdout and "No se pudo" not in r.stdout
+    # Y el histórico, aun así: sin ninguna ejecución suya, toca y lanza.
+    otro = _otro(entorno, "historico")
+    _preparar(otro, bot=30, historico=None, variable=variable)
+    r = otro.ejecutar()
+    assert r.returncode == 0 and otro.lanzamientos() == [LANZAR_V2], r.stderr
+    assert "Carril del histórico: toca" in r.stdout and "Carril de las categorías mayores" not in r.stdout, r.stdout
+
+
+def test_con_el_carril_apagado_y_carril_mayores_yml_sin_estar_no_dice_nada(entorno):
+    """Apagado y sin carril-mayores.yml en main (404): el histórico se decide sin esa lista, y nada del carril."""
+    _preparar(entorno, bot=30, historico=None, variable=None)
+    entorno.fallar("carril", "HTTP 404: Not Found\n")
+    r = entorno.ejecutar()
+    assert r.returncode == 0 and entorno.lanzamientos() == [LANZAR_V2], r.stderr
+    assert "Carril del histórico: toca" in r.stdout and "carril-mayores" not in r.stdout and "No se pudo" not in r.stdout
+
+
+def test_si_la_variable_no_se_lee_el_carril_va_apagado_y_se_dice(entorno):
+    _preparar(entorno, bot=30, historico=None)
+    entorno.fallar("variable", "HTTP 403: Resource not accessible by personal access token\n")
+    r = entorno.ejecutar()
+    assert r.returncode == 0 and r.stderr == "", r.stderr
+    assert "No se pudo leer la variable CARRIL_MAYORES: HTTP 403: Resource not accessible by personal access token." \
+        in r.stdout, r.stdout
+    assert "Carril de las categorías mayores" not in r.stdout and "Carril del histórico: toca" in r.stdout
+    assert entorno.lanzamientos() == [LANZAR_V2]
+    # Sin histórico que lanzar: no lanza, lo dice y sale con 0.
+    otro = _otro(entorno, "sin-historico")
+    _preparar(otro, bot=30, historico=60)
+    otro.fallar("variable", "HTTP 403: Forbidden\n")
+    r = otro.ejecutar()
+    assert r.returncode == 0 and otro.lanzamientos() == [] and "No se pudo leer la variable CARRIL_MAYORES" in r.stdout
+
+
+@pytest.mark.parametrize("variable", ["1", None, "falla"])
+def test_la_variable_no_muestra_el_token(entorno, variable):
+    _preparar(entorno, bot=30, historico=None, variable=None if variable == "falla" else variable)
+    if variable == "falla":
+        entorno.fallar("variable", "HTTP 403: Forbidden\n")
+    r = entorno.ejecutar()
+    assert r.returncode == 0, r.stderr
+    assert TOKEN not in r.stdout and TOKEN not in r.stderr
+    llamadas = entorno.llamadas()
+    assert any("CARRIL_MAYORES" in " ".join(c["args"]) for c in llamadas)
+    assert all(TOKEN not in " ".join(c["args"]) for c in llamadas) and {c["token"] for c in llamadas} == {_huella(TOKEN)}
+    assert [p for p in entorno.raiz.rglob("*") if p.is_file() and TOKEN.encode() in p.read_bytes()] == [entorno.token]
     assert list(entorno.tmpdir.iterdir()) == []

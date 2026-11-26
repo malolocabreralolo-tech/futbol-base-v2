@@ -12,8 +12,9 @@ Con este reloj, las pasadas salen a su hora mientras el PC esté encendido y con
 Si el PC está apagado, el reloj de GitHub sigue ahí de reserva.
 
 El carril y el histórico también los lanza `reloj.yml`, pero solo en un aviso en el que no toca la pasada: por eso
-este reloj mira también si toca alguno de los dos. No sabe si el carril está encendido (la variable `CARRIL_MAYORES`
-de GitHub): con el carril apagado, lanza `reloj.yml` unas cuantas veces tras cada pasada y GitHub no hace nada.
+este reloj mira también si toca alguno de los dos. El carril, solo si está encendido: lee en GitHub la variable
+`CARRIL_MAYORES` (a `1`, encendido; sin poner o con otra cosa, apagado, y entonces ni lo mira). Para eso el token
+tiene que poder leer las variables del repositorio (el de hoy puede).
 
 ## Es aparte del de v1
 
@@ -41,6 +42,8 @@ Enseña una línea por cada vez que miró:
   `Carril del histórico: toca`, ese carril).
 - `No se pudo mirar el carril` o `No se pudo mirar el histórico`: GitHub no dio una de sus listas, o la copia
   instalada es antigua (entonces dice que hay que reinstalar). No es un error: la pasada del bot sigue igual.
+- `No se pudo leer la variable CARRIL_MAYORES`: el token no la deja leer o falló la red. Hace como si el carril
+  estuviera apagado; el histórico y la pasada, igual.
 - `No se lanza: reloj.yml está «disabled_manually»`: alguien lo apagó en GitHub (pestaña Actions). Espera sin dar error.
 - `AVISO: reloj_pasadas.py ha cambiado en main`: en GitHub cambió la regla de cuándo toca. Sigue con la suya, la revisada. Revisa el cambio y reinstala (abajo).
 - `error: GitHub desactivó reloj.yml por inactividad`: pasa tras 60 días sin cambios. El mensaje dice la orden que lo reactiva.
