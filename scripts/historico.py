@@ -44,8 +44,9 @@ Las reglas del carril, y el porqué de cada número:
     ejecución que acabó en el freno (parada «freno»), ni para una prueba: relanzar en seguida en otro runner sería
     esquivar el bloqueo con una IP nueva. Tras caer en un runner que la federación no sirve (AWS: «runner
     rechazado», que no es un freno ni pide nada más tras su primera página vacía), SÍ, en seguida, hasta
-    RELANZAR_SI_RUNNER_RECHAZADO (3) veces seguidas (decisión del dueño del 26/11/2026; hasta entonces, nunca): la
-    cuarta rechazada seguida espera, como lo demás, al disparo siguiente del reloj (reloj.yml, cada hora y media
+    RELANZAR_SI_RUNNER_RECHAZADO (3) veces seguidas por disparo (decisión del dueño del 26/11/2026; hasta entonces,
+    nunca), como el bot: la cuarta rechazada de la misma cadena espera, como lo demás, al disparo siguiente del
+    reloj, que vuelve a tener sus 3 (reloj.yml, cada hora y media
     desde que empezó la última, desde el 26/11/2026; antes, cada 3 h). No es relanzar para esquivar el freno: cada
     ejecución lo respeta (lo espera una vez y para), entre una y otra pasa más de una hora, cuando el bloqueo
     (minutos) hace mucho que acabó, y el tope del día (PAGINAS_DIA) sigue siendo el límite de todo. Lo medido el
@@ -112,8 +113,9 @@ MINIMO_EJECUCION = timedelta(minutes=10)
 MARGEN_PRUEBA = timedelta(minutes=60)
 # Relanzamientos seguidos tras caer en un runner que la federación no sirve (AWS): lo decidió el dueño el 26/11/2026
 # (hasta ese día, 0: ninguno). Un runner rechazado no pide nada más a la federación tras su primera página vacía y
-# no es un freno: relanzarlo es solo buscar un runner de Azure. Con tope (3) para que nunca sea un bucle si un día la
-# federación no sirve a nadie: la cuarta rechazada seguida espera al disparo del reloj (cada hora y media).
+# no es un freno: relanzarlo es solo buscar un runner de Azure. Con tope (3 por disparo, relanzar) para que nunca sea
+# un bucle si un día la federación no sirve a nadie: la cuarta rechazada de la cadena espera al disparo del reloj
+# (cada hora y media), que tiene otras 3.
 RELANZAR_SI_RUNNER_RECHAZADO = 3
 # En este orden: lo barato que más dice de cada niño (clasificación y goleadores) primero; las actas, que dan a
 # todos los niños con su identificador, después; el detalle (la ficha de los equipos, que no hace falta para las
@@ -696,9 +698,10 @@ def registrar_prueba(estado, trabajos, veredicto, now, huellas=None):
 
 def relanzar(resumen, despues, estado):
     """¿Se lanza otra ejecución en seguida? `despues`, siguiente() con el estado ya registrado: nunca si es nada;
-    tras una prueba (resumen None), sí; tras un runner rechazado, solo si las ejecuciones rechazadas seguidas al
-    final de estado["ejecuciones"] (esta incluida) son como mucho RELANZAR_SI_RUNNER_RECHAZADO (3: la 1.ª, la 2.ª y
-    la 3.ª se relanzan; la 4.ª espera al reloj; una ejecución que no fue rechazada vuelve a empezar la cuenta); tras
+    tras una prueba (resumen None), sí; tras un runner rechazado, solo si la cadena de su disparo (esta, la última
+    de estado["ejecuciones"], y las rechazadas de antes que se relanzaron, «relanzada») es como mucho
+    RELANZAR_SI_RUNNER_RECHAZADO (3: la 1.ª, la 2.ª y la 3.ª se relanzan; la 4.ª espera al reloj; el disparo
+    siguiente, aunque vuelva a caer en AWS, tiene otras 3; una ejecución que no fue rechazada corta la cadena); tras
     una descarga que ACABÓ EN EL FRENO (parada «freno»: el segundo, o el primero si no se esperó o no volvió),
     nunca, ni para una prueba: relanzar en seguida en otro runner sería esquivar el bloqueo con una IP nueva (y tras
     la prueba se relanzaría la descarga); tras otra descarga, si la federación sirvió RELANZAR_MIN páginas o si lo
@@ -709,9 +712,15 @@ def relanzar(resumen, despues, estado):
     if resumen is None:
         return True
     if resumen.get("runner_rechazado"):
-        seguidas = 0
-        for ejecucion in reversed(estado.get("ejecuciones") or []):
-            if not ejecucion.get("runner_rechazado"):
+        # La cadena de este disparo: esta (la última de las ejecuciones, ya apuntada) y, hacia atrás, las rechazadas
+        # que se relanzaron («relanzada», que main pone al registrar cada una): cada una lanzó la siguiente. Una
+        # rechazada que no se relanzó (la cuarta de otra cadena, o de antes del 26/11/2026) la abrió otro disparo, y
+        # corta la cuenta: así cada disparo del reloj (o a mano) tiene sus 3, como el bot (update.yml, reintento), y
+        # una racha vieja no deja sin reintentos a los disparos siguientes. Si un relanzamiento no llegó a lanzarse
+        # (GitHub no dejó), la del reloj de después cuenta como de la misma cadena: de menos, nunca de más.
+        seguidas = 1
+        for ejecucion in reversed((estado.get("ejecuciones") or [])[:-1]):
+            if not (ejecucion.get("runner_rechazado") and ejecucion.get("relanzada")):
                 break
             seguidas += 1
         return seguidas <= RELANZAR_SI_RUNNER_RECHAZADO

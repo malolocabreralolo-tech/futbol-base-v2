@@ -20,8 +20,8 @@ name: Histórico de la federación (un solo carril)
 # por ejecución, como el bot, y el segundo la acaba (HISTORICO_ESPERAS, variable del repositorio: 0, ninguna); una
 # ejecución que acaba en el freno NO se relanza (sería esquivar el bloqueo con la IP de otro runner): la retoma el
 # disparo siguiente del reloj. Una que cae en un runner que la federación no sirve (AWS) acaba en uno o dos minutos sin
-# pedirle nada más y SÍ se relanza en seguida (paso «Siguiente»), hasta 3 veces seguidas
-# (historico.RELANZAR_SI_RUNNER_RECHAZADO; decisión del dueño del 26/11/2026): la cuarta seguida espera al reloj.
+# pedirle nada más y SÍ se relanza en seguida (paso «Siguiente»), hasta 3 veces seguidas por disparo, como el bot
+# (historico.RELANZAR_SI_RUNNER_RECHAZADO; decisión del dueño del 26/11/2026): la cuarta espera al reloj, que tiene otras 3.
 #
 # El disparo: lo lanza el reloj (reloj.yml, reloj_pasadas.due_historico), un intento cada hora y media desde que
 # empezó la última (desde el 26/11/2026; antes, cada 3 h), fuera de las ventanas y sin nada del histórico, del bot, del

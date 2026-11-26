@@ -305,16 +305,23 @@ def test_relanzar_si_lo_que_toca_es_una_prueba():
 
 
 def test_un_runner_rechazado_se_relanza_hasta_tres_veces_seguidas():
-    """El dueño, el 26/11/2026: tras un runner rechazado (AWS) se relanza en seguida, con tope: mientras las rechazadas
-    seguidas al final de las ejecuciones (esta incluida) sean 3 o menos. La cuarta seguida espera al disparo del reloj:
+    """El dueño, el 26/11/2026: tras un runner rechazado (AWS) se relanza en seguida, con tope por disparo: mientras la
+    cadena (esta y las rechazadas de antes que se relanzaron) sea de 3 o menos. La cuarta espera al disparo del reloj:
     nunca un bucle si un día la federación no sirve a nadie."""
     assert H.RELANZAR_SI_RUNNER_RECHAZADO == 3
     rechazado = {"servidas": 0, "runner_rechazado": True, "parada": "runner"}
     e = H.estado_vacio()
+    relanzo = {"runner_rechazado": True, "relanzada": True}
+    esta = {"runner_rechazado": True, "relanzada": False}                  # la que se acaba de apuntar
     for seguidas, relanza in ((1, True), (2, True), (3, True), (4, False), (5, False)):
-        e["ejecuciones"] = [{"runner_rechazado": False}] + [{"runner_rechazado": True}] * seguidas
+        e["ejecuciones"] = [{"runner_rechazado": False}] + [relanzo] * (seguidas - 1) + [esta]
         assert H.relanzar(rechazado, {"accion": "descargar"}, e) is relanza, seguidas
         assert H.relanzar(rechazado, {"accion": "probar"}, e) is relanza, seguidas
+    # Una rechazada que no se relanzó (la 4.ª de otra cadena) corta la cuenta: este disparo tiene sus 3.
+    e["ejecuciones"] = [relanzo] * 3 + [esta, esta]
+    assert H.relanzar(rechazado, {"accion": "descargar"}, e)
+    e["ejecuciones"] = [relanzo] * 3 + [esta] + [relanzo] * 2 + [esta]
+    assert H.relanzar(rechazado, {"accion": "descargar"}, e)
     # Con nada que hacer después (el tope, una ventana, el día parado), tampoco.
     e["ejecuciones"] = [{"runner_rechazado": True}]
     assert not H.relanzar(rechazado, {"accion": "nada", "motivo": "ventana de partidos"}, e)
@@ -362,6 +369,60 @@ def test_las_rechazadas_seguidas_se_cuentan_en_el_estado():
     assert not rel and e["dia"]["freno"] == H.FRENO_PRONTO
     e, rel = _ejecucion(e, rechazado, 48)
     assert not rel
+
+
+def test_cada_disparo_tiene_sus_tres_relanzamientos():
+    """Como el bot (update.yml, reintento): disparo → AWS → relanza → AWS → relanza → AWS → relanza → AWS → para; el
+    disparo siguiente del reloj que cae en AWS vuelve a tener sus 3 (una racha vieja no lo deja sin reintentos); una
+    buena en medio corta la cadena."""
+    pendiente = {"goleadores:2025-2026": {"completo": False, "pendientes": 40, "no_disponible": 0}}
+    rechazado = {"pedidas": 2, "servidas": 0, "muertas": 0, "esperas": 0, "frenos": 1, "frenos_tras": [0],
+                 "parada": "runner", "nube": "aws", "runner_rechazado": True, "partes": pendiente}
+    servida = {"pedidas": 300, "servidas": 300, "muertas": 0, "esperas": 0, "frenos": 0, "frenos_tras": [],
+               "parada": "plazo", "nube": "azure", "runner_rechazado": False, "partes": pendiente}
+    e = H.estado_vacio()
+    cadenas = []
+    for disparo in range(3):                       # tres disparos del reloj seguidos, todos en AWS hasta el tope
+        cadena = []
+        for vez in range(4):
+            e, rel = _ejecucion(e, rechazado, disparo * 16 + vez * 4)
+            cadena.append(rel)
+        cadenas.append(cadena)
+    assert cadenas == [[True, True, True, False]] * 3
+    # Rechazada, relanzada, buena (en Azure, se relanza por lo servido), y otra rechazada: abre cadena nueva.
+    e, rel = _ejecucion(e, rechazado, 50)
+    assert rel
+    e, rel = _ejecucion(e, servida, 52)
+    assert rel
+    seguidas = []
+    for minuto in (54, 55, 56, 57):
+        e, rel = _ejecucion(e, rechazado, minuto)
+        seguidas.append(rel)
+    assert seguidas == [True, True, True, False]
+
+
+def test_el_estado_de_hoy_se_lee_bien(tmp_path):
+    """El estado.json del 26/11/2026 (copiado de scripts/historico/, sin tocar el de verdad): sus rechazadas son de
+    antes de relanzar («relanzada» falsa en todas), así que el disparo siguiente que cae en AWS abre cadena y tiene
+    sus 3. El formato no cambia."""
+    import shutil
+    real = ROOT / "scripts" / "historico" / "estado.json"
+    copia = tmp_path / "estado.json"
+    shutil.copy2(real, copia)
+    e = json.loads(copia.read_text(encoding="utf-8"))
+    assert e["formato"] == H.estado_vacio()["formato"]
+    rechazado = {"servidas": 0, "runner_rechazado": True, "parada": "runner"}
+    nueva = {"runner_rechazado": True, "relanzada": False}
+    hoy = {**e, "ejecuciones": e["ejecuciones"] + [nueva]}
+    assert H.relanzar(rechazado, {"accion": "descargar"}, hoy)
+    for _ in range(2):                                   # la 2.ª y la 3.ª de la cadena, también
+        hoy["ejecuciones"][-1]["relanzada"] = True
+        hoy["ejecuciones"].append(dict(nueva))
+        assert H.relanzar(rechazado, {"accion": "descargar"}, hoy)
+    hoy["ejecuciones"][-1]["relanzada"] = True
+    hoy["ejecuciones"].append(dict(nueva))
+    assert not H.relanzar(rechazado, {"accion": "descargar"}, hoy)       # la 4.ª
+    assert real.read_bytes() != b"" and json.loads(real.read_text(encoding="utf-8")) == e
 
 
 def test_un_runner_rechazado_no_gasta_el_dia_ni_toca_los_trabajos():
