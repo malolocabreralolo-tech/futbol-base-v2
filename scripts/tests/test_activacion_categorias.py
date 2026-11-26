@@ -261,23 +261,6 @@ def test_un_equipo_de_lanzarote_en_una_interinsular_conserva_su_nombre():
 
 # ── quitar_categoria.py ──────────────────────────────────────────────────────
 
-def _fin_de_pasada(path, web=None):
-    """Lo que hace el final de una pasada con la base: las fichas y los enlaces de la liga de escuelas (con `web`,
-    con ese EN_WEB: base_mayores.fin_de_pasada)."""
-    import base_mayores
-    base_mayores.fin_de_pasada(path, web)
-
-
-def _poblar(path, **kw):
-    import base_mayores
-    from db import get_connection
-    conn = get_connection(path)
-    try:
-        return base_mayores.poblar(conn, log=lambda *a: None, **kw)
-    finally:
-        conn.close()
-
-
 def _distinto(a, b):
     """Las tablas (y el esquema) en que dos bases difieren, fila a fila (sin sqlite_sequence, el contador de los
     AUTOINCREMENT: no es un dato)."""
@@ -327,9 +310,6 @@ def _por_categoria(path):
         conn.close()
 
 
-_NUEVAS = ("INFANTIL/", "CADETE/", "JUVENIL/", "ALEVIN/lanzarote", "ALEVIN/fuerteventura")
-
-
 @pytest.fixture(scope="module", params=["antes", "seis"])
 def web(request):
     """El EN_WEB con el que se prueba quitar_categoria: el de antes del paso E2-D2 y el de después (las seis), los
@@ -339,36 +319,21 @@ def web(request):
 
 
 @pytest.fixture(scope="module")
-def nunca(web, bases_reales, tmp_path_factory):
-    """La copia de la base real en la que nunca se activaron las categorías nuevas (ni el alevín de islas), tras el
-    final de una pasada con el EN_WEB `web`. Con la base de hoy, la resuelta de conftest.bases_reales tal cual (no
-    tiene nada de ellas: quitar_categoria no quitaría nada, y sin ellas las fichas son las mismas con los dos
-    EN_WEB). Con la base de después (la del bot con las mayores ya leídas: prueba_mayores.py), lo que ya hubiera de
-    ellas se quita primero y se pasan las fichas: lo que se compara es lo que añade poblar."""
-    resuelta = bases_reales["resuelta"]
-    if not any(k.startswith(_NUEVAS) for k in _por_categoria(resuelta)):
-        return resuelta
-    path = tmp_path_factory.mktemp("nunca") / "nunca.db"
-    shutil_copy(resuelta, path)
-    for argv in (["--categoria", "INFANTIL"], ["--categoria", "CADETE"], ["--categoria", "JUVENIL"],
-                 ["--categoria", "ALEVIN", "--isla", "lanzarote"], ["--categoria", "ALEVIN", "--isla", "fuerteventura"]):
-        assert _quitar(path, *argv, "--apply", web=web)[0] == 0
-    _fin_de_pasada(path, web)
-    return path
+def nunca(bases_reales):
+    """La copia de la base real en la que nunca se activaron infantil, cadete y juvenil, tras el final de una pasada:
+    la «sin_nuevas» de conftest.bases_reales (con la base de hoy, la resuelta tal cual; con la del bot que ya las ha
+    leído, sin ellas: quitadas con quitar_categoria, base_mayores.sin_lo_real). La misma con los dos EN_WEB: sin nada
+    de las nuevas, las fichas y los enlaces son los mismos con uno y con otro. Lo que se compara es lo que añade
+    poblar."""
+    return bases_reales["sin_nuevas"]
 
 
 @pytest.fixture(scope="module")
-def mayores_leidas(web, nunca, bases_reales, tmp_path_factory):
+def mayores_leidas(web, bases_reales):
     """La de nunca con infantil, cadete y juvenil activados y leídos (base_mayores.poblar) y el final de una pasada
-    con el EN_WEB `web`: (ruta, lo que devolvió poblar). Con la base de hoy, la de conftest.bases_reales (la misma
-    cuenta, ya hecha: «mayores» con el de antes, «mayores_seis» con el de después)."""
-    if nunca == bases_reales["resuelta"]:
-        return bases_reales["mayores" if web == "antes" else "mayores_seis"], bases_reales["hecho"]
-    path = tmp_path_factory.mktemp("mayores") / "mayores.db"
-    shutil_copy(nunca, path)
-    hecho = _poblar(path)
-    _fin_de_pasada(path, web)
-    return path, hecho
+    con el EN_WEB `web`: (ruta, lo que devolvió poblar). Las de conftest.bases_reales, ya hechas: «mayores» con el
+    de antes, «mayores_seis» con el de después."""
+    return bases_reales["mayores" if web == "antes" else "mayores_seis"], bases_reales["hecho"]
 
 
 def test_quitar_categoria(tmp_path, capsys, web, nunca, mayores_leidas):
@@ -451,18 +416,83 @@ def test_quitar_una_mayor_borra_la_huella_del_raw_de_actas_de_su_lote():
     assert "fiflp_actas_2026-2027_alevin_raw.json" in quedan()
 
 
-def test_quitar_el_alevin_de_lanzarote(tmp_path, web, nunca, bases_reales):
+def _base_con_un_cadete_principal():
+    """Una base en memoria con un benjamín sin id de 2020-21 y un cadete con id de 2026-27 del mismo nombre (nombre
+    inventado), que caben por la edad (los dos de 2011 a 2014): con las seis en la web, U2 los une y la principal es
+    el cadete. Quitado cadete, el borrado deja su fila (el benjamín apunta a ella) y, resueltas otra vez las fichas,
+    se queda suelta: la quita la resolución, no el borrado."""
+    from db import SCHEMA
+    import migrate_identidad as M
+    from migrate_actas_schema import migrate as migrate_actas
+    conn = sqlite3.connect(":memory:")
+    conn.executescript(SCHEMA)
+    migrate_actas(conn, log=lambda *a, **k: None)
+    M.asegurar_esquema(conn)
+    conn.executescript("""
+      INSERT INTO seasons(id, name, start_year, end_year, is_current) VALUES (1, '2020-2021', 2020, 2021, 0),
+                                                                            (2, '2026-2027', 2026, 2027, 1);
+      INSERT INTO categories(id, name) VALUES (1, 'BENJAMIN'), (2, 'CADETE');
+      INSERT INTO teams(id, name) VALUES (1, 'Prueba Uno'), (2, 'Prueba Dos');
+      INSERT INTO groups(id, season_id, category_id, code, name, island) VALUES
+        (1, 1, 1, 'BPGC1', 'Grupo 1', 'grancanaria'), (2, 2, 2, 'CADPG1', 'Grupo 1', 'grancanaria');
+      INSERT INTO matches(id, group_id, jornada, date, home_team_id, away_team_id, home_score, away_score) VALUES
+        (1, 1, 'Jornada 1', '2020-10-10', 1, 2, 1, 0), (2, 2, 'Jornada 1', '2026-10-10', 1, 2, 1, 0);
+    """)
+    nombre = "PRUEBA INVENTADA, NINO"
+    conn.execute("INSERT INTO players(id, full_name, norm_name, team_id, season_id) VALUES (1, ?, ?, 1, 1)",
+                 (nombre, M.norm_sin_id(nombre, 1, 1, None, None)))
+    conn.execute("INSERT INTO players(id, full_name, norm_name, fiflp_id) VALUES (2, ?, ?, 900000001)",
+                 (nombre, f"{nombre}#900000001"))
+    M.poner_claves(conn, [1])
+    conn.executemany("INSERT INTO appearances(match_id, team_id, player_id, dorsal, role, goals, ord) "
+                     "VALUES (?, 1, ?, 1, 'starter', 0, 1)", [(1, 1), (2, 2)])
+    conn.commit()
+    return conn
+
+
+def test_quitar_cuenta_en_el_ensayo_lo_que_quita_al_resolver_y_va_en_una_transaccion(monkeypatch):
+    """El ensayo (sin --apply) cuenta también las identidades que se quedan sueltas al resolver otra vez las fichas
+    (las quita el --apply después del borrado): lo mismo que el --apply. Y con --apply todo va de una vez: si falla
+    la resolución de las fichas (o los enlaces), la base queda como estaba, sin el borrado a medias."""
+    import base_mayores
+    import enlace_mygol
+    import migrate_identidad as M
+    import quitar_categoria as Q
+    with base_mayores.con_en_web("seis"):
+        conn = _base_con_un_cadete_principal()
+        M.resolver_fichas(conn, log=lambda *a: None)
+        assert conn.execute("SELECT ficha_id, union_por FROM players WHERE id = 1").fetchone() == (2, "nombre")
+        foto = lambda: [conn.execute(f"SELECT * FROM {t} ORDER BY 1").fetchall()  # noqa: E731
+                        for t in ("groups", "matches", "appearances", "players")]
+        antes = foto()
+        ensayo = Q.quitar(conn, "2026-2027", "CADETE")
+        assert foto() == antes                                                   # el ensayo no toca nada
+        assert ensayo["filas"]["players"] == 1 and ensayo["fichas"]["sueltas_quitadas"] == 1
+
+        def falla(*a, **k):
+            raise RuntimeError("falla a propósito")
+        monkeypatch.setattr(enlace_mygol, "guardar_enlaces", falla)
+        with pytest.raises(RuntimeError):
+            Q.quitar(conn, "2026-2027", "CADETE", apply=True)
+        assert foto() == antes                                                   # nada a medias
+        monkeypatch.undo()
+
+        hecho = Q.quitar(conn, "2026-2027", "CADETE", apply=True)
+        assert hecho["filas"] == ensayo["filas"]                                 # lo que contó el ensayo
+        assert conn.execute("SELECT id, ficha_id, union_por FROM players").fetchall() == [(1, None, None)]
+        assert conn.execute("SELECT count(*) FROM groups").fetchone()[0] == 1
+
+
+def test_quitar_el_alevin_de_lanzarote(tmp_path, web, bases_reales):
     """El paso D6 hacia atrás: --categoria ALEVIN --isla lanzarote quita solo el alevín de Lanzarote (el de Gran
     Canaria se queda) y vuelve a resolver las fichas (que sí miraban esos grupos: alevín es de la web), así que la
-    base es ya la de nunca, sin esperar a la pasada siguiente. Con los dos EN_WEB."""
+    base es ya la de nunca (la «nunca» de conftest.bases_reales: sin las nuevas ni el alevín de islas de la
+    temporada), sin esperar a la pasada siguiente. Con los dos EN_WEB. La activada, la «islas» de bases_reales: la
+    de nunca con el alevín de Lanzarote leído (sin nada de las mayores, sus fichas son las mismas con los dos)."""
     activada = tmp_path / "activada.db"
-    if nunca == bases_reales["resuelta"]:               # la base de hoy: la de bases_reales (la misma cuenta, ya hecha)
-        shutil_copy(bases_reales["islas"], activada)
-        hecho = bases_reales["hecho_islas"]
-    else:
-        shutil_copy(nunca, activada)
-        hecho = _poblar(activada, categorias=(), islas=True)
-        _fin_de_pasada(activada, web)
+    nunca = bases_reales["nunca"]
+    shutil_copy(bases_reales["islas"], activada)
+    hecho = bases_reales["hecho_islas"]
     assert hecho["grupos"] and all(g.startswith("ALUL") for g in hecho["grupos"])
     antes = _por_categoria(activada)
     assert "ALEVIN/lanzarote" in antes

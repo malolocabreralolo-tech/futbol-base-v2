@@ -7,8 +7,11 @@ categoría nueva de una temporada, como si el bot nunca la hubiera activado ni l
     python3 scripts/quitar_categoria.py --temporada 2026-2027 --categoria ALEVIN --isla lanzarote --apply
     python3 scripts/quitar_categoria.py ... --db <copia>                                       # otra base
 
-Por defecto es un ENSAYO: hace el borrado en una transacción, cuenta lo que quitaría tabla a tabla y la deshace;
-la base queda como estaba. Con --apply, lo mismo pero confirmando la transacción: o todo o nada. Para usarlo de
+Por defecto es un ENSAYO: lo hace todo (el borrado y, si toca, las fichas: abajo) en una copia en memoria de la base,
+cuenta lo que quitaría tabla a tabla (también las identidades que solo se quitan al resolver otra vez las fichas) y
+tira la copia; la base queda como estaba. Con --apply, lo mismo y, si todo ha ido bien, la copia se escribe sobre la
+base de una vez (la copia de SQLite, en una sola transacción): o todo o nada, también si falla la resolución de las
+fichas o los enlaces. Para usarlo de
 verdad, con el bot parado (reloj.yml desactivado: si no, una pasada podría estar escribiendo la base a la vez) y,
 después, las suites en verde y el commit de la base (docs/superpowers/plans/2026-11-25-ampliacion-e1-categorias-
 datos.md, «PASO DEL DIRECTOR»).
@@ -43,9 +46,8 @@ la pasada siguiente sin esa categoría: el resolvedor une fichas de una categor�
 uniones que solo sostenían sus partidos (y la base no sería la de nunca haberla activado). Entre las dos cosas, quita
 las identidades que solo salían en sus partidos y no se borraron con ellos porque eran la principal de una ficha
 (un cadete con id al que se había unido un benjamín sin id): resueltas otra vez, ya no lo son de nadie. Va después
-del borrado, en su propia transacción: si fallara, el borrado ya está hecho y lo rehace la pasada siguiente, que
-resuelve las fichas desde cero. Fuera de la web no hace falta: sus apariciones no cuentan para ninguna ficha ni
-enlace (y sus identidades no son la principal de ninguna).
+del borrado, en la misma copia: el ensayo las cuenta y, si algo falla, la base no cambia. Fuera de la web no hace
+falta: sus apariciones no cuentan para ninguna ficha ni enlace (y sus identidades no son la principal de ninguna).
 """
 import argparse
 import sqlite3
@@ -98,11 +100,13 @@ def grupos(conn, temporada, categoria, isla=None):
 
 
 def quitar(conn, temporada, categoria, isla=None, apply=False):
-    """Quita (con `apply`) o cuenta (sin él: la transacción se deshace) los grupos de `categoria` (e `isla`) de
-    `temporada` y lo que cuelga de ellos. Devuelve {"grupos": [códigos], "partidos": n, "actas": n, "filas":
-    {tabla: filas quitadas}} y, si con `apply` ha vuelto a resolver las fichas (la categoría está en la web: ver el
-    docstring del módulo), "fichas": lo que devolvió resolver_fichas. Con claves ajenas que quedaran colgando,
-    ValueError y nada cambia."""
+    """Quita (con `apply`) o cuenta (sin él) los grupos de `categoria` (e `isla`) de `temporada` y lo que cuelga de
+    ellos. Todo se hace en una copia en memoria de la base (el borrado y, si la categoría está en la web, las fichas
+    otra vez: ver el docstring del módulo) y, con `apply`, la copia se escribe sobre `conn` de una vez, en una sola
+    transacción; sin él, se tira. Devuelve {"grupos": [códigos], "partidos": n, "actas": n, "filas": {tabla: filas
+    quitadas, las mismas en el ensayo que con apply}} y, si ha resuelto otra vez las fichas, "fichas": lo que devolvió
+    resolver_fichas. Con claves ajenas que quedaran colgando, ValueError; con eso o con cualquier otro fallo, `conn`
+    no cambia."""
     if not conn.execute("SELECT 1 FROM seasons WHERE name=?", (temporada,)).fetchone():
         raise ValueError(f"la temporada {temporada} no está en la base")
     elegidos = grupos(conn, temporada, categoria, isla)
@@ -125,32 +129,29 @@ def quitar(conn, temporada, categoria, isla=None, apply=False):
         conservar.append(categoria)
     antes = _recuentos(conn)
     conn.commit()
-    conn.execute("PRAGMA foreign_keys=OFF")      # se borra en orden (vista_web); al final se comprueba que no cuelga nada
-    conn.execute("BEGIN")
+    copia = sqlite3.connect(":memory:")
     try:
-        vista_web.quitar_grupos(conn, ids, conservar)
-        if isla is None and categoria in MAYORES and conn.execute(
+        conn.backup(copia)
+        copia.execute("PRAGMA foreign_keys=OFF")    # se borra en orden (vista_web); al final se comprueba que no cuelga nada
+        copia.execute("BEGIN")
+        vista_web.quitar_grupos(copia, ids, conservar)
+        if isla is None and categoria in MAYORES and copia.execute(
                 "SELECT 1 FROM sqlite_master WHERE type='table' AND name='raw_imports'").fetchone():
-            conn.execute("DELETE FROM raw_imports WHERE path=?",
-                         (actas_lotes.file_name(temporada, "raw", actas_lotes.lote_of(categoria)),))
-        colgando = conn.execute("PRAGMA foreign_key_check").fetchall()
+            copia.execute("DELETE FROM raw_imports WHERE path=?",
+                          (actas_lotes.file_name(temporada, "raw", actas_lotes.lote_of(categoria)),))
+        colgando = copia.execute("PRAGMA foreign_key_check").fetchall()
         if colgando:
             raise ValueError(f"quedarían {len(colgando)} filas apuntando a lo borrado (la primera, en {colgando[0][0]})")
-        despues = _recuentos(conn)
+        copia.commit()
+        copia.execute("PRAGMA foreign_keys=ON")
+        if categoria in categorias.EN_WEB:
+            out["fichas"] = rehacer_fichas(copia, suyas)
+        despues = _recuentos(copia)
         out["filas"] = {t: antes[t] - despues.get(t, 0) for t in antes if antes[t] != despues.get(t, 0)}
         if apply:
-            conn.commit()
-        else:
-            conn.rollback()
-    except BaseException:
-        conn.rollback()
-        raise
+            copia.backup(conn)                      # de una vez: una sola transacción en `conn`
     finally:
-        conn.execute("PRAGMA foreign_keys=ON")
-    if apply and categoria in categorias.EN_WEB:
-        out["fichas"] = rehacer_fichas(conn, suyas)
-        if out["fichas"]["sueltas_quitadas"]:
-            out["filas"]["players"] = out["filas"].get("players", 0) + out["fichas"]["sueltas_quitadas"]
+        copia.close()
     return out
 
 
@@ -203,8 +204,9 @@ def main(argv=None):
     print("Filas por tabla: " + ", ".join(f"{t} {n}" for t, n in sorted(filas.items())))
     if "fichas" in hecho:
         f = hecho["fichas"]
-        print(f"Fichas resueltas otra vez (la categoría está en la web): {f['identidades']} identidades → "
-              f"{f['fichas']} fichas, {f['cambiadas']} filas cambiadas")
+        print(f"Fichas {'resueltas' if args.apply else 'que se resolverían'} otra vez (la categoría está en la "
+              f"web): {f['identidades']} identidades → {f['fichas']} fichas, {f['cambiadas']} filas cambiadas, "
+              f"{f['sueltas_quitadas']} identidades sueltas (contadas en «jugadores sueltos»)")
     print("Quitado." if args.apply else "Es un ensayo: la base no ha cambiado (con --apply, se quita).")
     return 0
 

@@ -36,7 +36,10 @@ primer grupo de Gran Canaria de cada categoría, dos equipos llevan además a do
 y la temporada de dos sin id de otra categoría (SIN_ID_DE): en infantil, de dos alevines (el mismo niño, que sube);
 en cadete y juvenil, de dos prebenjamines (otro niño, que se llama igual). Nunca la misma identidad: la de las
 mayores lleva su categoría (migrate_identidad.norm_sin_id), como lo hace el importador; si son la misma ficha lo
-decide el resolvedor por sus edades, cuando la web las enseñe.
+decide el resolvedor por sus edades, cuando la web las enseñe. Y dos homónimos de las nuevas que caben por la edad
+entre sí (un cadete con id y un juvenil sin id) con el nombre de una ficha de hoy de dos identidades unidas por U2
+(candidata única) que no cabe por la edad con ninguno de los dos (HOMONIMOS: la re-revisión de E2, I1; sin el arreglo
+de identidad.resolver, «por_edad», deshacían esa ficha de hoy en cuanto la web enseñara las nuevas).
 
 Los nombres de los niños nuevos son inventados (f"JUGADOR {n:06d}, PRUEBA"); los de los reutilizados no se
 escriben (con id, la fila conserva el suyo) salvo los sin id, que se leen de la copia al vuelo para que sean
@@ -47,7 +50,8 @@ Devuelve {"grupos": [códigos], "partidos": n jugados, "actas": n, "jugadores_re
 "sin_id_reutilizados": n nombres sin id de otra categoría del mismo club y temporada, "sin_id_disponibles": n
 equipos de la liga alevín y la prebenjamín de la temporada con dos sin id (con 0, el caso no se monta),
 "sin_id_en_fila_ajena": n identidades sin id con apariciones en una de las mayores y en otra categoría (tiene que
-ser 0)}.
+ser 0), "homonimos_de_hoy": n de los dos homónimos de HOMONIMOS puestos (2, o 0 si no hay ficha de hoy con la que
+montarlo o no se puebla cadete y juvenil)}.
 """
 import contextlib
 import random
@@ -216,6 +220,32 @@ def _sin_id_de(conn, sid, categoria):
     return out
 
 
+# El caso «dos homónimos de las nuevas que caben entre sí»: en el primer equipo de cadete y en el primero de
+# juvenil, el jugador de este puesto de la plantilla (uno con id nuevo: ni un reutilizado ni un sin id de SIN_ID_DE)
+# se llama como la principal de una ficha de hoy unida por U2 (_homonimo_de_hoy); el de cadete con su id, el de
+# juvenil sin id. Cadete y juvenil de la temporada caben entre sí (los nacidos en Y-15 y Y-14).
+HOMONIMOS = ("CADETE", "JUVENIL")
+HUECO_HOMONIMO = 14
+
+
+def _homonimo_de_hoy(conn, anio):
+    """El nombre de la principal de la primera ficha de hoy (por id) unida por U2 (union_por 'nombre') que no cabe por
+    la edad con un cadete ni con un juvenil de la temporada que empieza `anio` (el intervalo del resolvedor de sus
+    filas de prebenjamín, benjamín y alevín empieza después de Y-12), o None. Se lee de la copia al vuelo y no sale
+    de ella."""
+    from identidad import NIVEL, intervalo
+    for (ficha,) in conn.execute("SELECT DISTINCT ficha_id FROM players WHERE union_por = 'nombre' ORDER BY ficha_id"):
+        vistas = conn.execute(
+            """SELECT DISTINCT s.start_year, upper(c.name) FROM players p JOIN appearances a ON a.player_id = p.id
+                 JOIN matches m ON m.id = a.match_id JOIN groups g ON g.id = m.group_id
+                 JOIN seasons s ON s.id = g.season_id JOIN categories c ON c.id = g.category_id
+                WHERE coalesce(p.ficha_id, p.id) = ? AND upper(c.name) IN ('PREBENJAMIN', 'BENJAMIN', 'ALEVIN')""",
+            (ficha,)).fetchall()
+        if vistas and max(intervalo(y, NIVEL[c])[0] for y, c in vistas) > anio - 12:
+            return conn.execute("SELECT full_name FROM players WHERE id = ?", (ficha,)).fetchone()[0]
+    return None
+
+
 def categoria_natural(anio, nacido):
     """La categoría de las nuevas (infantil, cadete o juvenil) en la que juega la temporada que empieza `anio` quien
     nació en `nacido`, por su ventana natural (nacimiento.VENTANA), o None."""
@@ -298,6 +328,8 @@ class _Fabrica:
         self.ids_base = ids
         self.reutilizados = set()
         self.sin_id_usados = set()
+        self.homonimo = _homonimo_de_hoy(conn, anio)
+        self.homonimos_usados = set()
         # Sobre una base que ya tiene lo de una pasada anterior (la de después, que es la del bot cuando ya ha
         # leído las mayores: prueba_mayores pasa la suite, y esta la vuelve a poblar), todo lo inventado va
         # detrás de lo que ya hay: otros ids de niño, de acta, de competición y de grupo.
@@ -368,6 +400,11 @@ class _Fabrica:
                 for j, nombre in enumerate(nombres):
                     jugadores[JUGADORES_POR_EQUIPO - 1 - j] = {"name": nombre, "fiflp_id": None}
                     self.sin_id_usados.add((categoria, tid, nombre))
+        if self.homonimo and categoria in HOMONIMOS and categoria not in self.homonimos_usados:
+            puesto = jugadores[HUECO_HOMONIMO]
+            jugadores[HUECO_HOMONIMO] = {"name": self.homonimo,
+                                         "fiflp_id": puesto["fiflp_id"] if categoria == "CADETE" else None}
+            self.homonimos_usados.add(categoria)
         self.plantillas[clave] = jugadores
         return jugadores
 
@@ -586,6 +623,7 @@ def poblar(conn, categorias=("INFANTIL", "CADETE", "JUVENIL"), temporada=None, i
     # temporada, ninguno.
     out["sin_id_disponibles"] = fab.sin_id_disponibles
     out["sin_id_en_fila_ajena"] = sin_id_en_fila_ajena(conn)
+    out["homonimos_de_hoy"] = len(fab.homonimos_usados) if len(fab.homonimos_usados) == len(HOMONIMOS) else 0
     return out
 
 
@@ -638,34 +676,116 @@ def leida(resuelta, path, categorias=MAYORES, islas=False, en_web=None):
     return hecho
 
 
+def lo_real(conn, islas=False):
+    """[(temporada, categoría, isla o None)] de lo que la base ya tiene de infantil, cadete y juvenil (de cualquier
+    temporada: lo que el bot ya haya activado y leído, desde el paso D3) y, con `islas`, del alevín de Lanzarote y de
+    Fuerteventura de la temporada en curso (el paso D6; de las anteriores, el de siempre)."""
+    marcas = ",".join("?" * len(MAYORES))
+    out = [(t, c, None) for t, c in conn.execute(
+        f"""SELECT DISTINCT s.name, upper(c.name) FROM groups g JOIN categories c ON c.id = g.category_id
+              JOIN seasons s ON s.id = g.season_id WHERE upper(c.name) IN ({marcas}) ORDER BY 1, 2""", MAYORES)]
+    if islas:
+        out += [(t, "ALEVIN", i) for t, i in conn.execute(
+            """SELECT DISTINCT s.name, g.island FROM groups g JOIN categories c ON c.id = g.category_id
+                 JOIN seasons s ON s.id = g.season_id
+                WHERE s.is_current = 1 AND upper(c.name) = 'ALEVIN' AND g.island IN ('lanzarote', 'fuerteventura')
+                ORDER BY 1, 2""")]
+    return out
+
+
+def _lo_real_de(path):
+    """(¿hay infantil, cadete o juvenil?, ¿hay alevín de islas de la temporada en curso?) de la base `path`."""
+    import sqlite3
+    conn = sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+    try:
+        nuevas = len(lo_real(conn))
+        return bool(nuevas), len(lo_real(conn, islas=True)) > nuevas
+    finally:
+        conn.close()
+
+
+def sin_lo_real(path, islas=False):
+    """Quita de la base `path` (una copia) lo_real (con `islas`, también el alevín de islas de la temporada en curso)
+    como lo quita la marcha atrás (quitar_categoria.quitar con --apply, con el EN_WEB de antes) y le pasa el final de
+    una pasada con ese EN_WEB: la base en la que el bot nunca las activó. Antes de quitar, también el final de una
+    pasada con el EN_WEB de antes: la base del bot después de E2-D2 trae fichas resueltas con las seis, y una identidad
+    de las nuevas que es la principal de una ficha no se borra con sus partidos (otra fila apunta a ella) ni, con el
+    EN_WEB de antes, al quitar (no vuelve a resolver). Devuelve cuántos grupos ha quitado."""
+    import quitar_categoria
+    from db import get_connection
+    fin_de_pasada(path, "antes")
+    conn = get_connection(path)
+    quitados = 0
+    try:
+        with con_en_web("antes"):
+            for temporada, categoria, isla in lo_real(conn, islas):
+                quitados += len(quitar_categoria.quitar(conn, temporada, categoria, isla, apply=True)["grupos"])
+    finally:
+        conn.close()
+    fin_de_pasada(path, "antes")
+    return quitados
+
+
+def _poblada(origen, path):
+    """Una copia de `origen` en `path` con lo de poblar (infantil, cadete y juvenil), sin el final de una pasada: lo
+    que devolvió poblar."""
+    import shutil
+    from db import get_connection
+    shutil.copyfile(origen, path)
+    conn = get_connection(path)
+    try:
+        return poblar(conn, log=lambda *a: None)
+    finally:
+        conn.close()
+
+
 def bases_reales(origen, carpeta):
     """Copias de la base real `origen`, en `carpeta`, tras el final de una pasada con el EN_WEB de antes del paso
-    E2-D2 (fin_de_pasada con «antes», valga lo que valga categorias.py): «resuelta», tal cual; «mayores», la misma
-    con infantil, cadete y juvenil activados y leídos (poblar); e «islas», la misma con solo el alevín de Lanzarote
-    (poblar con islas). Y «mayores_seis»: la de «mayores» (poblar es siempre igual para la misma base) con el final de
-    una pasada con el EN_WEB del paso E2-D2 (las seis): la que dejará el bot cuando la web enseñe las mayores. Con
-    «resuelta» e «islas» no hace falta la de seis: sin grupos de las mayores, las fichas son las mismas con los dos.
-    Las usan test_vista_web.test_generador_igual_con_y_sin_mayores (lo que genera la web con una y con otra), las
-    pruebas de quitar_categoria (test_activacion_categorias.py) y test_fichas_ampliadas.py: una vez por sesión, y
-    las tres últimas a la vez (paralelo.en_paralelo), porque las fichas de la base real tardan ~10 s cada vez y la
-    puerta de pruebas del bot pasa la suite entera en cada pasada. Quien las usa no las cambia: trabaja sobre su
-    propia copia. {'resuelta', 'mayores', 'mayores_seis', 'islas': rutas; 'hecho', 'hecho_islas': lo que devolvió
-    poblar}."""
+    E2-D2 (fin_de_pasada con «antes», valga lo que valga categorias.py):
+      - «sin_nuevas»: sin lo que el bot ya haya leído de infantil, cadete y juvenil (lo_real, quitado con
+        quitar_categoria: sin_lo_real); con la base de hoy, que no tiene nada de ellas, la real tal cual;
+      - «nunca»: además sin el alevín de islas de la temporada en curso (la misma ruta que «sin_nuevas» si no lo
+        hay): la base en la que el bot nunca las activó;
+      - «mayores»: la de «sin_nuevas» con infantil, cadete y juvenil activados y leídos (poblar), y «mayores_seis»,
+        la misma con el final de una pasada con el EN_WEB del paso E2-D2 (las seis): la que dejará el bot cuando la
+        web enseñe las mayores;
+      - «islas»: la de «nunca» con solo el alevín de Lanzarote (poblar con islas). Sin la de seis: sin grupos de las
+        mayores, las fichas son las mismas con los dos.
+    Lo de poblar va siempre sobre la base sin lo real: lo que se compara (una con lo fabricado y otra sin ello) es
+    solo lo fabricado, también desde el paso D3. Las usan test_vista_web.test_generador_igual_con_y_sin_mayores (lo
+    que genera la web con una y con otra), las pruebas de quitar_categoria (test_activacion_categorias.py) y
+    test_fichas_ampliadas.py: una vez por sesión, y lo que se puede a la vez (paralelo.en_paralelo), porque las fichas
+    de la base real tardan ~10 s cada vez y la puerta de pruebas del bot pasa la suite entera en cada pasada: nada se
+    fabrica ni se resuelve dos veces. Quien las usa no las cambia: trabaja sobre su propia copia. {'sin_nuevas',
+    'nunca', 'mayores', 'mayores_seis', 'islas': rutas; 'hecho', 'hecho_islas': lo que devolvió poblar}."""
+    import shutil
     import sqlite3
     from paralelo import en_paralelo
     carpeta = Path(carpeta)
-    resuelta, mayores, islas = carpeta / "resuelta.db", carpeta / "mayores.db", carpeta / "islas.db"
+    real, mayores, islas = carpeta / "real.db", carpeta / "mayores.db", carpeta / "islas.db"
     mayores_seis = carpeta / "mayores_seis.db"
     src = sqlite3.connect(f"file:{origen}?mode=ro", uri=True)
-    dst = sqlite3.connect(str(resuelta))
+    dst = sqlite3.connect(str(real))
     src.backup(dst)
     dst.close()
     src.close()
-    fin_de_pasada(resuelta, "antes")
-    hecho, hecho_islas, hecho_seis = en_paralelo((leida, (resuelta, mayores, MAYORES, False, "antes")),
-                                                 (leida, (resuelta, islas, (), True, "antes")),
-                                                 (leida, (resuelta, mayores_seis, MAYORES, False, "seis")))
-    if hecho_seis != hecho:
-        raise AssertionError("poblar no ha dado lo mismo dos veces sobre la misma base")
-    return {"resuelta": resuelta, "mayores": mayores, "mayores_seis": mayores_seis, "islas": islas, "hecho": hecho,
-            "hecho_islas": hecho_islas}
+    # Las bases sin lo real: con la base de hoy, la real tal cual, con el final de una pasada; si no, cada una en su
+    # copia y a la vez (sin_lo_real ya le pasa el final de una pasada).
+    nuevas, de_islas = _lo_real_de(real)
+    sin_nuevas = carpeta / "sin_nuevas.db" if nuevas else real
+    nunca = carpeta / "nunca.db" if de_islas else sin_nuevas
+    tareas = []
+    for destino in dict.fromkeys((sin_nuevas, nunca)):
+        if destino == real:
+            tareas.append((fin_de_pasada, (real, "antes")))
+        else:
+            shutil.copyfile(real, destino)
+            tareas.append((sin_lo_real, (destino, destino == nunca)))
+    en_paralelo(*tareas)
+    # Lo fabricado: poblar una vez para las dos de las mayores (el final de una pasada resuelve las fichas y los
+    # enlaces desde cero: lo de uno no cuenta para el otro), a la vez que la de islas; y los dos finales, a la vez.
+    hecho, hecho_islas = en_paralelo((_poblada, (sin_nuevas, mayores)), (leida, (nunca, islas, (), True, "antes")))
+    shutil.copyfile(mayores, mayores_seis)
+    en_paralelo((fin_de_pasada, (mayores, "antes")), (fin_de_pasada, (mayores_seis, "seis")))
+    return {"sin_nuevas": sin_nuevas, "nunca": nunca, "mayores": mayores, "mayores_seis": mayores_seis, "islas": islas,
+            "hecho": hecho, "hecho_islas": hecho_islas}
