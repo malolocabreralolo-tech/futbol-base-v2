@@ -451,6 +451,73 @@ def test_quitar_una_mayor_borra_la_huella_del_raw_de_actas_de_su_lote():
     assert "fiflp_actas_2026-2027_alevin_raw.json" in quedan()
 
 
+def _base_con_un_cadete_principal():
+    """Una base en memoria con un benjamín sin id de 2020-21 y un cadete con id de 2026-27 del mismo nombre (nombre
+    inventado), que caben por la edad (los dos de 2011 a 2014): con las seis en la web, U2 los une y la principal es
+    el cadete. Quitado cadete, el borrado deja su fila (el benjamín apunta a ella) y, resueltas otra vez las fichas,
+    se queda suelta: la quita la resolución, no el borrado."""
+    from db import SCHEMA
+    import migrate_identidad as M
+    from migrate_actas_schema import migrate as migrate_actas
+    conn = sqlite3.connect(":memory:")
+    conn.executescript(SCHEMA)
+    migrate_actas(conn, log=lambda *a, **k: None)
+    M.asegurar_esquema(conn)
+    conn.executescript("""
+      INSERT INTO seasons(id, name, start_year, end_year, is_current) VALUES (1, '2020-2021', 2020, 2021, 0),
+                                                                            (2, '2026-2027', 2026, 2027, 1);
+      INSERT INTO categories(id, name) VALUES (1, 'BENJAMIN'), (2, 'CADETE');
+      INSERT INTO teams(id, name) VALUES (1, 'Prueba Uno'), (2, 'Prueba Dos');
+      INSERT INTO groups(id, season_id, category_id, code, name, island) VALUES
+        (1, 1, 1, 'BPGC1', 'Grupo 1', 'grancanaria'), (2, 2, 2, 'CADPG1', 'Grupo 1', 'grancanaria');
+      INSERT INTO matches(id, group_id, jornada, date, home_team_id, away_team_id, home_score, away_score) VALUES
+        (1, 1, 'Jornada 1', '2020-10-10', 1, 2, 1, 0), (2, 2, 'Jornada 1', '2026-10-10', 1, 2, 1, 0);
+    """)
+    nombre = "PRUEBA INVENTADA, NINO"
+    conn.execute("INSERT INTO players(id, full_name, norm_name, team_id, season_id) VALUES (1, ?, ?, 1, 1)",
+                 (nombre, M.norm_sin_id(nombre, 1, 1, None, None)))
+    conn.execute("INSERT INTO players(id, full_name, norm_name, fiflp_id) VALUES (2, ?, ?, 900000001)",
+                 (nombre, f"{nombre}#900000001"))
+    M.poner_claves(conn, [1])
+    conn.executemany("INSERT INTO appearances(match_id, team_id, player_id, dorsal, role, goals, ord) "
+                     "VALUES (?, 1, ?, 1, 'starter', 0, 1)", [(1, 1), (2, 2)])
+    conn.commit()
+    return conn
+
+
+def test_quitar_cuenta_en_el_ensayo_lo_que_quita_al_resolver_y_va_en_una_transaccion(monkeypatch):
+    """El ensayo (sin --apply) cuenta también las identidades que se quedan sueltas al resolver otra vez las fichas
+    (las quita el --apply después del borrado): lo mismo que el --apply. Y con --apply todo va de una vez: si falla
+    la resolución de las fichas (o los enlaces), la base queda como estaba, sin el borrado a medias."""
+    import base_mayores
+    import enlace_mygol
+    import migrate_identidad as M
+    import quitar_categoria as Q
+    with base_mayores.con_en_web("seis"):
+        conn = _base_con_un_cadete_principal()
+        M.resolver_fichas(conn, log=lambda *a: None)
+        assert conn.execute("SELECT ficha_id, union_por FROM players WHERE id = 1").fetchone() == (2, "nombre")
+        foto = lambda: [conn.execute(f"SELECT * FROM {t} ORDER BY 1").fetchall()  # noqa: E731
+                        for t in ("groups", "matches", "appearances", "players")]
+        antes = foto()
+        ensayo = Q.quitar(conn, "2026-2027", "CADETE")
+        assert foto() == antes                                                   # el ensayo no toca nada
+        assert ensayo["filas"]["players"] == 1 and ensayo["fichas"]["sueltas_quitadas"] == 1
+
+        def falla(*a, **k):
+            raise RuntimeError("falla a propósito")
+        monkeypatch.setattr(enlace_mygol, "guardar_enlaces", falla)
+        with pytest.raises(RuntimeError):
+            Q.quitar(conn, "2026-2027", "CADETE", apply=True)
+        assert foto() == antes                                                   # nada a medias
+        monkeypatch.undo()
+
+        hecho = Q.quitar(conn, "2026-2027", "CADETE", apply=True)
+        assert hecho["filas"] == ensayo["filas"]                                 # lo que contó el ensayo
+        assert conn.execute("SELECT id, ficha_id, union_por FROM players").fetchall() == [(1, None, None)]
+        assert conn.execute("SELECT count(*) FROM groups").fetchone()[0] == 1
+
+
 def test_quitar_el_alevin_de_lanzarote(tmp_path, web, nunca, bases_reales):
     """El paso D6 hacia atrás: --categoria ALEVIN --isla lanzarote quita solo el alevín de Lanzarote (el de Gran
     Canaria se queda) y vuelve a resolver las fichas (que sí miraban esos grupos: alevín es de la web), así que la
