@@ -25,6 +25,11 @@ import update_fiflp as U  # noqa: E402
 from activate_season import add_groups, fiflp_evidence, validate_manifest, verify_sources  # noqa: E402
 from db import SCHEMA  # noqa: E402
 
+# Suponen el mundo de antes de los pasos D3-D6 del director (infantil, cadete y juvenil sin activar, el alevín de
+# Lanzarote y Fuerteventura fuera): lo fijan ellas (conftest.categorias_de_antes) para que cada paso solo cambie
+# categorias.py y test_categorias.test_lo_que_se_activa_y_lo_que_se_ve_no_cambia. Las que miran otro mundo lo ponen.
+pytestmark = pytest.mark.usefixtures("categorias_de_antes")
+
 URL = ("https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120"
        "&CodTemporada=22&CodCompeticion={comp}&CodGrupo={grupo}")
 

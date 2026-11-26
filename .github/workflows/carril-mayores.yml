@@ -1,0 +1,30 @@
+name: Pasadas de infantil, cadete y juvenil
+
+# El carril de las categorías mayores (docs/categorias-mayores.md, «El carril»): una pasada del bot (update.yml,
+# llamado con workflow_call) que lee solo los grupos de infantil, cadete y juvenil (FIFLP_CATS; su veredicto, en
+# carriles.mayores de data-health.json, aparte del bot de siempre). Un workflow aparte, y no el mismo update.yml
+# lanzado con una entrada, por su número de pasada: llamado desde aquí, GITHUB_RUN_NUMBER es el de este workflow,
+# así que no gasta números del bot (su rotación sin estado sale de ellos: update_fiflp.run_number) y sus
+# ejecuciones no salen en la lista de update.yml que mira el reloj, que no las cuenta como pasadas del bot.
+#
+# Lo lanza el reloj (reloj.yml, reloj_pasadas.due_carril) entre dos pasadas del bot, fuera de las ventanas de
+# partidos, cada 4 h, solo con la variable del repositorio CARRIL_MAYORES a 1: encenderlo, `gh variable set
+# CARRIL_MAYORES --body 1 -R malolocabreralolo-tech/futbol-base-v2`; apagarlo, `--body 0` (o `gh variable delete`).
+# También a mano (gh workflow run carril-mayores.yml), con lo mismo: mejor sin nada en marcha en update-data.
+#
+# Sin concurrencia propia: la del job de update.yml (grupo update-data, como el bot y activar.yml); con la misma
+# aquí, GitHub lo daría por bloqueo mutuo. Los permisos, los de update.yml (el llamado no puede tener más que el
+# llamante): contents para subir lo leído y actions, que update.yml pide (lanzar activar.yml, que en el carril no
+# corre).
+on:
+  workflow_dispatch:          # el reloj y a mano
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  pasada:
+    uses: ./.github/workflows/update.yml
+    with:
+      cats: infantil,cadete,juvenil

@@ -106,7 +106,8 @@ def test_primero_los_goleadores_de_todas_las_temporadas():
     assert a["minutos"] == 300 and a["inicio"] == "2026-11-25T10:00:00+00:00" and a["lote"] is None
 
 
-def test_despues_las_actas_de_la_mas_reciente():
+def test_despues_las_actas_de_la_mas_reciente(categorias_de_antes):
+    # Con el alevín de las islas fuera (antes de D6): desde D6, el encargo de alevín trae también sus competiciones.
     e = H.estado_vacio()
     for k in ("goleadores:2025-2026", "goleadores:2024-2025"):
         e["trabajos"][k] = {"estado": "promovido", "pendientes": 0, "no_disponible": 0, "categorias": ["alevin"]}
@@ -277,11 +278,21 @@ def test_relanzar_solo_si_la_federacion_sirvio():
     assert H.relanzar(None, bajar, e)                                             # tras una prueba
 
 
+def test_relanzar_si_lo_que_toca_es_una_prueba():
+    # El último grupo que faltaba se lee en una ejecución de dos páginas (25/11/2026): el trabajo queda «bajado,
+    # por probar», y la prueba, que no pide nada a la federación, no espera tres horas al disparo siguiente.
+    probar, e = {"accion": "probar", "trabajos": ["goleadores:2025-2026"]}, H.estado_vacio()
+    assert H.relanzar({"servidas": 2, "runner_rechazado": False}, probar, e)
+    assert H.relanzar({"servidas": 0, "runner_rechazado": False}, probar, e)
+    assert not H.relanzar({"servidas": 2, "runner_rechazado": False}, {"accion": "descargar"}, e)
+
+
 def test_un_runner_rechazado_no_se_relanza(monkeypatch):
     rechazado = {"servidas": 0, "runner_rechazado": True, "parada": "runner"}
     e = H.estado_vacio()
     e["ejecuciones"] = [{"runner_rechazado": True}]                               # la que se acaba de apuntar
     assert not H.relanzar(rechazado, {"accion": "descargar"}, e)
+    assert not H.relanzar(rechazado, {"accion": "probar"}, e)                     # ni para probar: nunca
     monkeypatch.setattr(H, "RELANZAR_SI_RUNNER_RECHAZADO", 2)                     # si el dueño dice que sí
     assert H.relanzar(rechazado, {"accion": "descargar"}, e)
     e["ejecuciones"] = [{"runner_rechazado": True}] * 3
@@ -497,6 +508,28 @@ def test_el_freno_de_verdad_para_el_dia():
     assert not H.freno_del_bot({**salud, "checkedAt": "2026-11-24T22:00:00+00:00"}, MIERCOLES)
     assert not H.freno_del_bot(None, MIERCOLES) and not H.freno_del_bot({"run": "?"}, MIERCOLES)
     assert not H.freno_del_bot({**salud, "run": {"cloud": "azure"}}, MIERCOLES)
+
+
+def test_el_freno_que_vio_el_carril_de_las_mayores_tambien_para_el_dia():
+    """El carril de infantil, cadete y juvenil (carril-mayores.yml) lee la misma federación que el bot: su freno de
+    verdad en Azure (carriles.mayores.run de data-health.json) también para al histórico ese día; el de AWS o sin
+    pausas, no. Con el informe de hoy (checkedAt), como el del bot."""
+    frenado = {"pauses": 1, "cloud": "azure"}
+    salud = {"checkedAt": "2026-11-25T09:21:28+00:00", "run": {"pauses": 0, "cloud": "azure"},
+             "carriles": {"mayores": {"runHealth": {"ok": True}, "run": frenado}}}
+    assert H.freno_del_bot(salud, MIERCOLES)
+    assert H.siguiente(PLAN, H.estado_vacio(), MIERCOLES, env={}, salud=salud)["motivo"] == "freno de verdad hoy"
+    assert H.apuntar_freno_del_bot(H.estado_vacio(), salud, MIERCOLES)["dia"]["freno"] == "bot"
+    # Sin `run` del bot (aún no ha pasado hoy), también.
+    assert H.freno_del_bot({k: v for k, v in salud.items() if k != "run"}, MIERCOLES)
+    for lane in ({"pauses": 1, "cloud": "aws", "refusedRunner": True}, {"pauses": 0, "cloud": "azure"},
+                 {"pauses": 2, "cloud": "azure", "refusedRunner": True}, {"pauses": "x"}, "?", None):
+        assert not H.freno_del_bot({**salud, "carriles": {"mayores": {"run": lane}}}, MIERCOLES), lane
+    for carriles in (None, "?", {}, {"mayores": None}, {"mayores": "?"}, {"mayores": {"runHealth": {"ok": True}}}):
+        assert not H.freno_del_bot({**salud, "carriles": carriles}, MIERCOLES), carriles
+    assert not H.freno_del_bot({**salud, "checkedAt": "2026-11-24T22:00:00+00:00"}, MIERCOLES)
+    # Y el del bot sigue valiendo solo, con el carril sano.
+    assert H.freno_del_bot({**salud, "run": frenado, "carriles": {"mayores": {"run": {"pauses": 0}}}}, MIERCOLES)
 
 
 def test_encargar_valida():

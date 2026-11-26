@@ -56,3 +56,63 @@ def _runner_de_azure(tmp_path_factory):
 def _originales_aparte(_originales_fuera_de_scripts, tmp_path_factory, monkeypatch):
     """Y cada prueba, en su carpeta: lo que guarda una no lo ve la siguiente."""
     monkeypatch.setenv("ACTAS_BOT_DIR", str(tmp_path_factory.mktemp("actas_bot")))
+
+
+@pytest.fixture(autouse=True, scope="session")
+def _sin_carril_del_job():
+    """update.yml pone FIFLP_CATS en el env del job (la ven todos sus pasos, también el de las pruebas): en una
+    pasada del carril de las mayores llegaría aquí con infantil,cadete,juvenil, y una prueba que no la mira daría
+    lo del carril y no lo de siempre (y la puerta de pruebas del carril, en rojo). Como en local: sin ella; las que
+    la miran la ponen ellas (monkeypatch.setenv). De sesión, como las de arriba."""
+    mp = pytest.MonkeyPatch()
+    mp.delenv("FIFLP_CATS", raising=False)
+    yield
+    mp.undo()
+
+
+@pytest.fixture(scope="session")
+def bases_reales(tmp_path_factory):
+    """La base real tras el final de una pasada, sin y con infantil, cadete y juvenil leídos (base_mayores.bases_reales):
+    una vez por sesión para las pruebas que las comparan. Salta sin futbolbase.db. Nadie las cambia: cada prueba
+    copia la suya."""
+    import base_mayores
+    origen = Path(__file__).resolve().parents[2] / "futbolbase.db"
+    if not origen.exists():
+        pytest.skip("futbolbase.db no está")
+    return base_mayores.bases_reales(origen, tmp_path_factory.mktemp("bases_reales"))
+
+
+# El mundo que suponen las pruebas que miran qué activa el bot: el de antes de los pasos D3-D6 del director
+# (docs/categorias-mayores.md), con infantil, cadete y juvenil sin activar y el alevín de Lanzarote y
+# Fuerteventura fuera. Esas pruebas lo FIJAN ellas (fixture categorias_de_antes, o su monkeypatch) en vez de leer
+# lo que diga scripts/categorias.py: así cada paso del director es de verdad una línea en categorias.py y una en
+# la única prueba que comprueba lo que hay hoy (test_categorias.test_lo_que_se_activa_y_lo_que_se_ve_no_cambia), y
+# la puerta de pruebas del bot no se pone en rojo por pruebas que suponían el mundo de antes. Lo que cambia de
+# verdad con cada paso lo prueba prueba_mayores.py con el paso ya dado (--con-cambios).
+ACTIVABLES_DE_ANTES = ("BENJAMIN", "PREBENJAMIN", "ALEVIN")
+ALEVIN_ISLAS_DE_ANTES = False
+
+
+def fijar_categorias(mp, activables=ACTIVABLES_DE_ANTES, alevin_islas=ALEVIN_ISLAS_DE_ANTES):
+    """categorias.ACTIVABLES y categorias.ALEVIN_ISLAS a lo que supone la prueba, con el MonkeyPatch `mp`, en las
+    dos copias del módulo si las hay (categorias y scripts.categorias: algunos importadores cargan la segunda)."""
+    import categorias
+    for modulo in [categorias] + [m for m in (sys.modules.get("scripts.categorias"),) if m and m is not categorias]:
+        mp.setattr(modulo, "ACTIVABLES", tuple(activables))
+        mp.setattr(modulo, "ALEVIN_ISLAS", alevin_islas)
+
+
+@pytest.fixture
+def categorias_de_antes(monkeypatch):
+    """ACTIVABLES y ALEVIN_ISLAS como antes de los pasos D3-D6, durante la prueba (ver arriba)."""
+    fijar_categorias(monkeypatch)
+
+
+@pytest.fixture(scope="module")
+def categorias_de_antes_modulo():
+    """Lo mismo para todo un módulo, también para sus fixtures de módulo (que se montan antes que las de cada
+    prueba): pytestmark = pytest.mark.usefixtures("categorias_de_antes_modulo")."""
+    mp = pytest.MonkeyPatch()
+    fijar_categorias(mp)
+    yield
+    mp.undo()

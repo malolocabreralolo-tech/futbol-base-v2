@@ -24,6 +24,11 @@ sys.path.insert(0, str(ROOT / "scripts"))
 from db import SCHEMA  # noqa: E402
 from migrate_actas_schema import migrate  # noqa: E402
 
+# Suponen el mundo de antes de los pasos D3-D6 del director (infantil, cadete y juvenil sin activar, el alevín de
+# Lanzarote y Fuerteventura fuera): lo fijan ellas (conftest.categorias_de_antes) para que cada paso solo cambie
+# categorias.py y test_categorias.test_lo_que_se_activa_y_lo_que_se_ve_no_cambia. Las que miran otro mundo lo ponen.
+pytestmark = pytest.mark.usefixtures("categorias_de_antes")
+
 TEAMS = ["Arucas", "Moya", "Gáldar", "Tablero", "Guía", "Firgas"]
 FED = ["ARUCAS, C.F.", "MOYA, U.D.", "GALDAR, C.F.", 'TABLERO, C.D. "A"', "GUIA, U.D.", "FIRGAS, C.D."]
 ALEVIN_COMP = "LIGA ALEVIN GRAN CANARIA FASE PREVIA"

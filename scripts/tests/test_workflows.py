@@ -42,10 +42,10 @@ import yaml
 ROOT = Path(__file__).resolve().parents[2]
 WF_DIR = ROOT / ".github" / "workflows"
 
-OWNED = ["update.yml", "tests.yml", "reloj.yml", "activar.yml"]
+OWNED = ["update.yml", "tests.yml", "reloj.yml", "activar.yml", "carril-mayores.yml"]
 
 # Los workflows que hay: uno nuevo o uno que vuelve se piensa antes (¿escribe la base?, ¿va en cola?) y se apunta aquí.
-WORKFLOWS = {"actas-federacion.yml", "activar.yml", "discover-fiflp.yml", "fetch-fiflp-islas.yml", "freno-fiflp.yml",
+WORKFLOWS = {"actas-federacion.yml", "activar.yml", "carril-mayores.yml", "discover-fiflp.yml", "fetch-fiflp-islas.yml", "freno-fiflp.yml",
              "historico.yml", "mygol.yml", "probe-fiflp.yml", "reloj.yml", "tests.yml", "update.yml"}
 # Lo que publica una pasada: quien lo sube tiene que hacer cola con el bot, o dos subidas se pisan la base. Las
 # piezas de la base (base/, docs/almacenamiento.md), también.
@@ -106,15 +106,34 @@ def test_workflows_que_hay():
     assert not list(WF_DIR.glob("*.yaml"))
 
 
+def _grupo(data, job):
+    """El grupo de concurrencia de un job: el suyo o, sin él, el del workflow."""
+    return (job.get("concurrency") or data.get("concurrency") or {}).get("group")
+
+
 def test_solo_el_bot_escribe_la_base():
-    """Solo el bot (update.yml) y la activación (activar.yml) suben la base o lo publicado, y los dos en el grupo
-    update-data: así ninguna subida pisa la base de otra."""
+    """Solo el bot (update.yml) y la activación (activar.yml) suben la base o lo publicado, y cada job que la sube,
+    en el grupo update-data (el del bot, desde el carril de las mayores, en su job; el de activar.yml, en el
+    workflow): así ninguna subida pisa la base de otra. El carril de las mayores (carril-mayores.yml) la sube a
+    través de update.yml (workflow_call), en el mismo job y el mismo grupo, y sin grupo propio: con el del
+    llamante y el del llamado iguales, GitHub los daría por bloqueo mutuo."""
     escriben = set()
     for path in sorted(WF_DIR.glob("*.yml")):
-        if any(_publica(p) for run in _all_runs(path.name) for p in _git_add_paths(run)):
-            escriben.add(path.name)
-            assert (_load(path.name).get("concurrency") or {}).get("group") == "update-data", path.name
+        data = _load(path.name)
+        for job_name, job in data["jobs"].items():
+            runs = [step.get("run") or "" for step in job.get("steps", [])]
+            if any(_publica(p) for run in runs for p in _git_add_paths(run)):
+                escriben.add(path.name)
+                assert _grupo(data, job) == "update-data", (path.name, job_name)
     assert escriben == {"update.yml", "activar.yml"}, escriben
+    llaman = {}
+    for path in sorted(WF_DIR.glob("*.yml")):
+        data = _load(path.name)
+        for job_name, job in data["jobs"].items():
+            if "uses" in job:
+                llaman[(path.name, job_name)] = job["uses"]
+                assert "concurrency" not in job and "concurrency" not in data, path.name
+    assert llaman == {("carril-mayores.yml", "pasada"): "./.github/workflows/update.yml"}, llaman
 
 
 def test_git_add_paths_sees_through_a_wrapper():
@@ -218,11 +237,14 @@ def test_update_installs_test_dependencies():
 
 
 def test_update_has_concurrency_and_timeout():
+    """La concurrencia, en el job (desde el carril de las mayores): llamado desde carril-mayores.yml, una en el
+    workflow llamado y otra igual en el llamante serían un bloqueo mutuo, y en el job vale igual para las dos
+    formas de lanzarlo. El mismo grupo que activar.yml (en su workflow): una sola escritura de la base a la vez."""
     data = _load("update.yml")
-    conc = data.get("concurrency")
+    assert "concurrency" not in data, "en el job, no en el workflow"
+    conc = data["jobs"]["update"].get("concurrency")
     assert conc, "update.yml must declare a concurrency group"
-    assert conc.get("group") == "update-data"
-    assert conc.get("cancel-in-progress") is False
+    assert conc == {"group": "update-data", "cancel-in-progress": False}
     # 40 min: pasadas cortas (16 min de plazo; una espera del freno por pasada: la federación sirve ~15
     # páginas por IP y frena ~5 min), y el resto del job son 4-8 min más. Las lanza reloj.yml: cada 2 h, y
     # cada hora en las ventanas de partidos.
@@ -252,8 +274,8 @@ def test_update_has_no_schedule_the_clock_launches_it():
     data = _load("update.yml")
     trig = _triggers(data)
     assert "schedule" not in trig, "el reloj (reloj.yml) es el único reloj del bot"
-    assert "workflow_dispatch" in trig
-    assert data["concurrency"] == {"group": "update-data", "cancel-in-progress": False}
+    assert set(trig) == {"workflow_dispatch", "workflow_call"}, "y carril-mayores.yml, que lo llama"
+    assert data["jobs"]["update"]["concurrency"] == {"group": "update-data", "cancel-in-progress": False}
 
 
 def _reloj_job():
@@ -308,7 +330,7 @@ def test_the_clock_launches_update_on_main_only_when_due():
     _, job = _reloj_job()
     steps = job["steps"]
     decide = next(st for st in steps if "reloj_pasadas.py" in (st.get("run") or ""))
-    launch = next(st for st in steps if "gh workflow run" in (st.get("run") or ""))
+    launch = next(st for st in steps if "gh workflow run update.yml" in (st.get("run") or ""))
     assert steps.index(decide) < steps.index(launch)
     assert "set -euo pipefail" in decide["run"]
     assert re.search(r"gh run list [^\n]*--workflow update\.yml", decide["run"])
@@ -321,12 +343,15 @@ def test_the_clock_launches_update_on_main_only_when_due():
     assert launch["if"] == f"steps.{decide['id']}.outputs.due == 'true'"
     assert "gh workflow run update.yml --ref main" in launch["run"]
     assert launch["env"]["GH_TOKEN"] == "${{ github.token }}"
-    assert [st for st in steps if "gh workflow run" in (st.get("run") or "")] == [launch]
+    # Y nada más que la pasada, el carril (test_the_clock_launches_the_lane_…) y el histórico (…_the_historico_…).
+    assert [st for st in steps if "gh workflow run" in (st.get("run") or "")] == [
+        launch, _lanzar_carril(steps), _reloj_step(LANZAR_HISTORICO)]
 
 
-def _run_decide_step(tmp_path, gh_script):
+def _run_decide_step(tmp_path, gh_script, env_extra=None):
     """El guion del paso que decide de reloj.yml, con bash y un gh de mentira (`gh_script`, su cuerpo), desde
-    la raíz del repositorio: (código de salida, lo que escribió en $GITHUB_OUTPUT o None, la salida)."""
+    la raíz del repositorio, con `env_extra` (lo que GitHub pondría por el env: del paso, ya interpolado): (código
+    de salida, lo que escribió en $GITHUB_OUTPUT o None, la salida)."""
     _, job = _reloj_job()
     decide = next(st for st in job["steps"] if "reloj_pasadas.py" in (st.get("run") or ""))
     bin_dir = tmp_path / "bin"
@@ -336,7 +361,7 @@ def _run_decide_step(tmp_path, gh_script):
     gh.chmod(0o755)
     out = tmp_path / "salida"
     env = {"PATH": f"{bin_dir}{os.pathsep}{os.environ.get('PATH', '')}", "RUNNER_TEMP": str(tmp_path),
-           "GITHUB_OUTPUT": str(out), "GITHUB_REPOSITORY": "dueño/futbol-base", "GH_TOKEN": "x"}
+           "GITHUB_OUTPUT": str(out), "GITHUB_REPOSITORY": "dueño/futbol-base", "GH_TOKEN": "x", **(env_extra or {})}
     done = subprocess.run(["bash", "-c", decide["run"]], cwd=ROOT, env=env, capture_output=True, text=True,
                           timeout=60)
     return done.returncode, (out.read_text() if out.exists() else None), done.stdout + done.stderr
@@ -351,7 +376,7 @@ def test_a_gh_failure_fails_the_clock_and_launches_nothing(tmp_path):
     code, out, log = _run_decide_step(tmp_path / "basura", 'echo "<html>no es la lista</html>"')
     assert code != 0 and out is None, (code, out, log)
     code, out, log = _run_decide_step(tmp_path / "vacia", 'echo "[]"')
-    assert code == 0 and out == "due=true\n", (code, out, log)
+    assert code == 0 and out == "due=true\ndue_carril=false\n", (code, out, log)
 
 
 def test_every_workflow_that_launches_the_bot_is_named_where_the_bot_is():
@@ -611,14 +636,21 @@ def test_update_logs_the_federation_pass_as_it_goes():
 def test_update_admite_pasada_de_pocas_categorias():
     """A mano, una pasada puede leer solo algunas categorías (la entrada cats, que llega a FIFLP_CATS de
     update_fiflp.update_groups): así la primera de un repositorio nuevo es pequeña. El reloj y las tandas la
-    lanzan sin entradas: vacía, se leen todas, como siempre. Y va por env, no interpolada en el guion."""
+    lanzan sin entradas: vacía, el carril principal, como siempre. carril-mayores.yml la pasa por workflow_call
+    (infantil,cadete,juvenil). FIFLP_CATS va en el env del JOB: la ven todos los pasos, no solo el del bot (la
+    marca del diagnóstico y el veredicto, source_health.py marcar y veredicto, eligen por ella el carril cuyo
+    informe tocan), y ningún paso la cambia. Y por env, nunca interpolada en un guion."""
     data = _load("update.yml")
-    entrada = _triggers(data)["workflow_dispatch"]["inputs"]["cats"]
-    assert entrada["required"] is False and entrada["default"] == ""
-    assert entrada["type"] == "string"
-    paso = next(s for s in _steps(data, "update") if s.get("id") == "scrape")
-    assert paso["env"]["FIFLP_CATS"] == "${{ inputs.cats }}"
-    assert "${{" not in paso["run"], "la entrada va por env, no interpolada en el guion"
+    trig = _triggers(data)
+    for event in ("workflow_dispatch", "workflow_call"):
+        entrada = trig[event]["inputs"]["cats"]
+        assert entrada["required"] is False and entrada["default"] == "", event
+        assert entrada["type"] == "string", event
+        assert set(trig[event]["inputs"]) == {"cats"}, event
+    assert data["jobs"]["update"]["env"] == {"FIFLP_CATS": "${{ inputs.cats }}"}
+    for paso in _steps(data, "update"):
+        assert "FIFLP_CATS" not in (paso.get("env") or {}), paso.get("name")
+        assert "inputs." not in (paso.get("run") or ""), paso.get("name")
 
 
 def test_update_prints_the_runner_ip_before_the_bot_and_never_fails():
@@ -686,7 +718,7 @@ def test_update_gates_db_commit_on_published_changes():
     )
 
 
-def _run_commit_step(tmp_path, actas_bot=True, data_changed=False, piezas="failure"):
+def _run_commit_step(tmp_path, actas_bot=True, data_changed=False, piezas="failure", cats=None):
     """El guion de verdad de «Commit y push si hay cambios», con bash, en un clon de un repositorio de mentira
     (con su remoto) con data-x.js, futbolbase.db y data-health.json publicados. La pasada cambia la base (sus
     bytes cambian siempre) y, si `actas_bot`, guarda un original nuevo (scripts/actas_bot_*.jsonl); si
@@ -723,7 +755,8 @@ def _run_commit_step(tmp_path, actas_bot=True, data_changed=False, piezas="failu
         (work / "scripts" / ".actas_bot_2026-2027_benjamin.jsonl.x.tmp").write_text("a medias", encoding="utf-8")
     if data_changed:
         (work / "data-x.js").write_text("de esta pasada", encoding="utf-8")
-    done = subprocess.run(["bash", "-e", "-c", step["run"]], cwd=work, env={**git_env, "PIEZAS": piezas},
+    lane = {} if cats is None else {"FIFLP_CATS": cats}            # la del env del job
+    done = subprocess.run(["bash", "-e", "-c", step["run"]], cwd=work, env={**git_env, "PIEZAS": piezas, **lane},
                           capture_output=True, text=True, timeout=60)
     files = git("show", "--name-only", "--format=", "main", cwd=remote).split()
     return done.returncode, files, done.stdout + done.stderr
@@ -1205,9 +1238,11 @@ def test_actions_run_on_node24(name):
 # Ubuntu 26 el 19/10/2026, y el bot, con el Python 3.11 de setup-python, podría quedarse sin él. Una
 # imagen nueva se prueba antes y se cambia aquí y en los workflows a la vez.
 def test_every_workflow_pins_its_runner_image():
+    """Un job que llama a otro workflow (uses: carril-mayores.yml) no tiene runner: corre en el del llamado."""
     workflows = sorted(WF_DIR.glob("*.yml"))
     wrong = {f"{path.name} {job}": spec.get("runs-on")
-             for path in workflows for job, spec in _load(path.name)["jobs"].items() if spec.get("runs-on") != "ubuntu-24.04"}
+             for path in workflows for job, spec in _load(path.name)["jobs"].items()
+             if spec.get("runs-on") != "ubuntu-24.04" and "uses" not in spec}
     assert workflows and wrong == {}, wrong
 
 
@@ -1315,10 +1350,14 @@ def test_el_encargo_no_se_pierde_si_cancelan_el_carril():
 
 
 def test_historico_disparadores_y_entradas():
+    """Solo workflow_dispatch: lo lanza el reloj (reloj.yml, cada 3 h), el propio carril (paso «Siguiente») o el dueño.
+    Su cron ('47 */3 * * *') GitHub lo perdía (el 25/11/2026, el de las 18:47 y el de las 21:47 UTC)."""
     data = _historico()
     trig = _triggers(data)
-    assert set(trig) == {"schedule", "workflow_dispatch"}
-    assert [e["cron"] for e in trig["schedule"]] == ["47 */3 * * *"]
+    assert set(trig) == {"workflow_dispatch"} and "schedule" not in trig, "lo lanza el reloj (reloj.yml)"
+    texto = (WF_DIR / HISTORICO).read_text(encoding="utf-8")
+    cabecera = "\n".join(l for l in texto.split("\non:")[0].splitlines() if l.startswith("#"))
+    assert "reloj.yml" in cabecera and "'47 */3 * * *'" in cabecera, "quién lo lanza y por qué ya no tiene cron"
     entradas = trig["workflow_dispatch"]["inputs"]
     assert entradas["accion"]["type"] == "choice"
     assert entradas["accion"]["options"] == ["seguir", "encargar", "parar", "reanudar", "reintentar"]
@@ -1456,7 +1495,7 @@ def _run_siguiente(tmp_path, name):
 
 def test_historico_si_github_no_deja_relanzar_no_es_un_fallo(tmp_path):
     """Un 500 de GitHub al crear el disparo (25/11/2026) no pone en rojo una ejecución que bajó bien: se intenta
-    otra vez y, si tampoco, lo retoma el disparo programado."""
+    otra vez y, si tampoco, lo retoma el disparo siguiente del reloj (reloj.yml: historico.yml ya no tiene cron)."""
     step = _carril_step("Siguiente")
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir(parents=True)
@@ -1469,7 +1508,7 @@ def test_historico_si_github_no_deja_relanzar_no_es_un_fallo(tmp_path):
                           timeout=60)
     assert done.returncode == 0, done.stderr
     assert (tmp_path / "gh.txt").read_text(encoding="utf-8").splitlines() == ["gh workflow run historico.yml --ref main"] * 2
-    assert "la retoma el disparo programado" in done.stdout
+    assert "la retoma el disparo siguiente del reloj" in done.stdout
 
 
 def test_historico_relanza_solo_cuando_toca(tmp_path):
@@ -1891,7 +1930,9 @@ def test_update_launches_activar_when_something_new_is_pending():
     names = [s.get("name") for s in steps]
     assert names.index("Commit y push si hay cambios") < names.index(DIAGNOSTICO) < names.index(LANZAR) \
         < names.index("Pasada en rojo")
-    assert step["if"] == "success()" and step.get("continue-on-error") is True
+    # Solo el carril principal (sin cats): el de las mayores no busca competiciones nuevas (sus extras son solo
+    # el directorio) y una activación lanzada desde él haría cola en update-data sin nada suyo que activar.
+    assert step["if"] == "success() && inputs.cats == ''" and step.get("continue-on-error") is True
     assert step["env"] == {"GH_TOKEN": "${{ github.token }}"}
     assert "python3 scripts/source_health.py pendiente" in step["run"]
     assert f"gh workflow run activar.yml -R {V2_REPO} --ref main" in step["run"]
@@ -1955,3 +1996,304 @@ def test_how_to_stop_and_launch_activar_is_written_down():
     nueva = (ROOT / "docs" / "temporada-nueva.md").read_text(encoding="utf-8")
     assert f"gh workflow disable activar.yml -R {V2_REPO}" in nueva
     assert f"gh workflow enable activar.yml -R {V2_REPO}" in nueva
+
+
+# ------------------------------------------- el carril de las categorías mayores
+#
+# carril-mayores.yml llama a update.yml (workflow_call) con cats: infantil,cadete,juvenil, y lo lanza el reloj entre
+# dos pasadas del bot, solo con la variable del repositorio CARRIL_MAYORES a 1 (reloj_pasadas.due_carril, probada en
+# test_reloj_pasadas.py). Aquí, la forma: lo que solo se ve en GitHub está en docs/categorias-mayores.md (paso D2).
+
+CARRIL = "carril-mayores.yml"
+LANZAR_CARRIL = "Lanzar el carril"
+CATS_MAYORES = "infantil,cadete,juvenil"
+
+
+def _lanzar_carril(steps):
+    return next(st for st in steps if "gh workflow run carril-mayores.yml" in (st.get("run") or ""))
+
+
+def test_carril_mayores_llama_al_bot_con_sus_categorias():
+    """Solo a mano o desde el reloj (workflow_dispatch sin entradas: su único número de pasada es el suyo); un solo
+    job que llama a update.yml con las categorías del carril de las mayores, sin concurrencia propia (la del job de
+    update.yml; las dos iguales serían un bloqueo mutuo), sin runner ni pasos ni secretos (update.yml solo usa el
+    GITHUB_TOKEN), y con los mismos permisos que update.yml: el llamado no puede tener más que el llamante."""
+    import sys
+    sys.path.insert(0, str(ROOT / "scripts"))
+    import categorias
+    data = _load(CARRIL)
+    assert data["name"] == "Pasadas de infantil, cadete y juvenil"
+    trig = _triggers(data)
+    assert set(trig) == {"workflow_dispatch"} and not trig["workflow_dispatch"], "sin entradas ni otro disparador"
+    assert data["permissions"] == {"contents": "write", "actions": "write"}
+    assert data["permissions"] == _load("update.yml")["permissions"]
+    assert "concurrency" not in data and list(data["jobs"]) == ["pasada"]
+    assert data["jobs"]["pasada"] == {"uses": "./.github/workflows/update.yml", "with": {"cats": CATS_MAYORES}}
+    cats = categorias.parse_categories(CATS_MAYORES)
+    assert categorias.carril_de(cats) == "mayores" and set(cats) == set(categorias.CARRILES["mayores"])
+    texto = (WF_DIR / CARRIL).read_text(encoding="utf-8")
+    assert "docs/categorias-mayores.md" in texto and "GITHUB_RUN_NUMBER" in texto
+
+
+def test_update_sirve_igual_lanzado_y_llamado():
+    """Llamado desde carril-mayores.yml, `github` es el del llamante (su evento, su número de pasada): update.yml no
+    mira github.event (las entradas, solo por `inputs`, que existe con los dos disparadores; con el del reloj,
+    vacía) ni github.workflow."""
+    texto = (WF_DIR / "update.yml").read_text(encoding="utf-8")
+    assert "github.event" not in texto and "github.workflow" not in texto
+    assert texto.count("inputs.") == 2, "FIFLP_CATS del job y la condición de la activación"
+
+
+def test_el_asunto_del_commit_dice_el_carril(tmp_path):
+    """El commit de datos del bot de siempre, como siempre; el del carril de las mayores dice sus categorías (así se
+    distinguen en git log). FIFLP_CATS llega del env del job."""
+    fecha = r"\d\d/\d\d/\d{4} \d\d:\d\d UTC"
+    for i, (cats, asunto) in enumerate(((None, rf"Actualización automática {fecha}"),
+                                        ("", rf"Actualización automática {fecha}"),
+                                        (CATS_MAYORES, rf"Actualización automática \({CATS_MAYORES}\) {fecha}"))):
+        code, files, log = _run_commit_step(tmp_path / f"c{i}", data_changed=True, cats=cats)
+        assert code == 0 and "data-x.js" in files, log
+        subject = subprocess.run(["git", "log", "-1", "--format=%s", "main"], cwd=tmp_path / f"c{i}" / "remoto.git",
+                                 capture_output=True, text=True, check=True).stdout.strip()
+        assert re.fullmatch(asunto, subject), subject
+
+
+def test_the_clock_launches_the_lane_only_when_due_and_switched_on():
+    """El paso que decide lee la variable CARRIL_MAYORES por env (nunca interpolada en el guion) y solo con ella a 1
+    lista también carril-mayores.yml, activar.yml e historico.yml y pasa --carril y --activar; el que lanza el
+    carril, solo con due_carril, sobre main, y espera a verlo como el de la pasada. Nada más lanza carril-mayores.yml."""
+    _, job = _reloj_job()
+    steps = job["steps"]
+    decide = next(st for st in steps if "reloj_pasadas.py" in (st.get("run") or ""))
+    lane = _lanzar_carril(steps)
+    assert lane["name"] == LANZAR_CARRIL
+    assert steps.index(decide) < steps.index(lane)
+    assert decide["env"] == {"GH_TOKEN": "${{ github.token }}", "CARRIL_MAYORES": "${{ vars.CARRIL_MAYORES }}"}
+    run = decide["run"]
+    switch = run.index('if [ "${CARRIL_MAYORES:-}" = 1 ]; then')
+    other = run.index("else", switch)
+    assert re.search(r"for wf in carril-mayores activar historico; do", run)       # los tres, solo aquí
+    listing = re.search(r'gh run list --repo "\$GITHUB_REPOSITORY" --workflow "\$wf\.yml" --limit 20 \\\n\s+'
+                        r'--json (\S+) > "\$RUNNER_TEMP/\$wf\.json"', run)
+    assert listing and switch < listing.start() < other, run
+    assert set(listing.group(1).split(",")) >= {"status", "createdAt", "startedAt"}
+    lane_call = run.index("--carril")
+    assert switch < lane_call < other and run.count("--carril") == 1 and run.count("--activar") == 2
+    assert '--activar "$RUNNER_TEMP/activar.json" --activar "$RUNNER_TEMP/historico.json"' in run
+    assert lane["if"] == f"steps.{decide['id']}.outputs.due_carril == 'true'"
+    assert lane["env"] == {"GH_TOKEN": "${{ github.token }}"} and not lane.get("continue-on-error")
+    assert "set -euo pipefail" in lane["run"]
+    assert 'gh workflow run carril-mayores.yml --ref main --repo "$GITHUB_REPOSITORY"' in lane["run"]
+    assert re.search(r"gh run list [^\n]*--workflow carril-mayores\.yml", lane["run"]) and "update.yml" not in lane["run"]
+    launchers = sorted(f.name for f in WF_DIR.glob("*.yml") if "carril-mayores.yml" in "\n".join(
+        (s.get("run") or "") for j in _load(f.name)["jobs"].values() for s in j.get("steps", [])))
+    assert launchers == ["reloj.yml"], launchers
+
+
+def _gh_por_workflow(tmp_path, listas):
+    """Un gh de mentira que apunta cada llamada en tmp_path/llamadas y responde a `gh run list --workflow X` con
+    listas[X] (un texto; sin él, un fallo)."""
+    (tmp_path / "listas").mkdir(parents=True)
+    for name, text in listas.items():
+        (tmp_path / "listas" / f"{name}.json").write_text(text, encoding="utf-8")
+    calls = tmp_path / "llamadas"
+    return (f'echo "$*" >> "{calls}"\n'
+            'wf=""; prev=""; for a in "$@"; do [ "$prev" = --workflow ] && wf="$a"; prev="$a"; done\n'
+            f'f="{tmp_path}/listas/$wf.json"\n'
+            '[ -f "$f" ] || { echo "HTTP 502: Bad Gateway" >&2; exit 1; }\n'
+            'cat "$f"'), calls
+
+
+def test_the_decide_step_runs_for_real_with_and_without_the_lane(tmp_path):
+    """El guion de verdad del paso que decide, con un gh de mentira. Sin la variable (o con otra cosa que 1): solo
+    lista update.yml, como siempre, y due_carril=false. Con ella a 1: lista también el carril, la activación y el
+    histórico; un fallo de cualquiera de las cuatro listas lo deja en rojo y sin escribir nada (ni due: no se sabe
+    si el carril está en marcha)."""
+    busy = json.dumps([{"number": 9, "event": "workflow_dispatch", "status": "in_progress", "conclusion": "",
+                        "createdAt": "2026-12-01T10:00:00Z", "startedAt": "2026-12-01T10:00:00Z"}])
+    for i, value in enumerate((None, "", "0", "true")):
+        body, calls = _gh_por_workflow(tmp_path / f"off{i}", {"update.yml": "[]"})
+        code, out, log = _run_decide_step(tmp_path / f"off{i}", body, {} if value is None else {"CARRIL_MAYORES": value})
+        assert code == 0 and out == "due=true\ndue_carril=false\n", (value, code, out, log)
+        assert [l.split("--workflow ")[1].split()[0] for l in calls.read_text().splitlines()] == ["update.yml"], value
+    todas = {"update.yml": busy, "carril-mayores.yml": "[]", "activar.yml": "[]", "historico.yml": "[]"}
+    body, calls = _gh_por_workflow(tmp_path / "on", todas)
+    code, out, log = _run_decide_step(tmp_path / "on", body, {"CARRIL_MAYORES": "1"})
+    assert code == 0 and out == "due=false\ndue_carril=false\n", (code, out, log)
+    listed = [l.split("--workflow ")[1].split()[0] for l in calls.read_text().splitlines()]
+    assert listed == ["update.yml", "carril-mayores.yml", "activar.yml", "historico.yml"], listed
+    assert "Carril de las categorías mayores: no toca" in log, log
+    for missing in ("carril-mayores.yml", "activar.yml", "historico.yml"):
+        body, _ = _gh_por_workflow(tmp_path / f"falla-{missing}", {k: v for k, v in todas.items() if k != missing})
+        code, out, log = _run_decide_step(tmp_path / f"falla-{missing}", body, {"CARRIL_MAYORES": "1"})
+        assert code != 0 and out is None, (missing, code, out, log)
+    body, _ = _gh_por_workflow(tmp_path / "basura", {**todas, "historico.yml": "<html>no es la lista</html>"})
+    code, out, log = _run_decide_step(tmp_path / "basura", body, {"CARRIL_MAYORES": "1"})
+    assert code != 0 and out is None, (code, out, log)
+
+
+def test_el_carril_esta_nombrado_donde_el_bot():
+    """Para parar las pasadas hay que saber quién lanza o llama a update.yml: los comentarios de update.yml y de
+    reloj.yml nombran el carril (con su número de pasada propio y por qué el reloj no lo cuenta como del bot)."""
+    for name in ("update.yml", "reloj.yml"):
+        head = "\n".join(line for line in (WF_DIR / name).read_text(encoding="utf-8").splitlines()
+                         if line.lstrip().startswith("#"))
+        assert "carril-mayores.yml" in head and "CARRIL_MAYORES" in head, name
+
+
+def test_tests_yml_paths_cover_the_lane():
+    trig = _triggers(_load("tests.yml"))
+    for event in ("push", "pull_request"):
+        assert ".github/workflows/carril-mayores.yml" in trig[event]["paths"], event
+
+
+def test_las_pruebas_no_dependen_del_carril_del_job():
+    """En una pasada del carril, FIFLP_CATS (del env del job) llega también a las pruebas de la puerta: conftest
+    la quita, y las que la miran la ponen ellas (monkeypatch)."""
+    assert "FIFLP_CATS" not in os.environ
+
+
+# ------------------------------------------- el reloj lanza el carril del histórico
+#
+# Desde el 25/11/2026 historico.yml no tiene cron (GitHub lo perdía: ese día, el de las 18:47 y el de las 21:47 UTC):
+# lo lanza el reloj, cada 3 h (reloj_pasadas.due_historico, probada en test_reloj_pasadas.py), en dos pasos al final
+# del job, con continue-on-error: un fallo suyo no tumba el reloj ni le quita una pasada al bot.
+
+TOCA_HISTORICO = "¿Toca el histórico?"
+LANZAR_HISTORICO = "Lanzar el histórico"
+# Los pasos de antes del histórico (el checkout, «¿Toca una pasada?», «Lanzar la pasada» y «Lanzar el carril»), tal
+# cual estaban en b671477a: la huella de su YAML (json.dumps(pasos, sort_keys=True, ensure_ascii=False), sha256).
+# Un cambio en ellos se hace a propósito, y entonces se cambia aquí.
+PASOS_DEL_RELOJ = ["Checkout (solo el reloj)", "¿Toca una pasada?", "Lanzar la pasada", "Lanzar el carril"]
+HUELLA_PASOS_DEL_RELOJ = "9397d539ee10a6b9cf260993ac3489e27d7e0e8d382e9b561641dcee673dcc88"
+LISTA_RUNS = "number,event,status,conclusion,createdAt,startedAt"
+
+
+def _reloj_step(name):
+    _, job = _reloj_job()
+    return next(st for st in job["steps"] if st.get("name") == name)
+
+
+def test_los_pasos_del_reloj_de_antes_no_cambian():
+    """Lo del histórico va detrás y aparte: los pasos que lanzan las pasadas del bot y del carril no se tocan."""
+    import hashlib
+    _, job = _reloj_job()
+    steps = job["steps"]
+    assert [st.get("name") for st in steps] == PASOS_DEL_RELOJ + [TOCA_HISTORICO, LANZAR_HISTORICO]
+    huella = hashlib.sha256(json.dumps(steps[:4], sort_keys=True, ensure_ascii=False).encode()).hexdigest()
+    assert huella == HUELLA_PASOS_DEL_RELOJ, "los pasos del bot y del carril han cambiado"
+    assert "continue-on-error" not in job, "un fallo de lo del bot sigue dejando el job en rojo"
+    assert not any(st.get("continue-on-error") for st in steps[:4])
+
+
+def test_the_clock_launches_the_historico_last_and_apart():
+    """«¿Toca el histórico?» corre solo si en este tick no se lanza ni la pasada del bot ni la del carril, siempre (con o
+    sin CARRIL_MAYORES), lista el histórico, el carril y la activación en ficheros suyos y llama a reloj_pasadas.py
+    con --historico y tres --otros (la lista del bot, la del primer paso); «Lanzar el histórico», solo con
+    due_historico, sobre main, y espera a verlo como los otros dos. Los dos, con continue-on-error: el job sigue en
+    verde aunque fallen (un fallo del histórico no deja al bot sin pasadas: el reloj en rojo cada 15 min se miraría
+    como si fuera del bot)."""
+    _, job = _reloj_job()
+    decide, toca, lanza = _reloj_step("¿Toca una pasada?"), _reloj_step(TOCA_HISTORICO), _reloj_step(LANZAR_HISTORICO)
+    assert toca["id"] == "historico" and toca.get("continue-on-error") is True and lanza.get("continue-on-error") is True
+    assert toca["if"] == (f"steps.{decide['id']}.outputs.due != 'true' && "
+                          f"steps.{decide['id']}.outputs.due_carril != 'true'")
+    assert toca["env"] == {"GH_TOKEN": "${{ github.token }}"}, "sin CARRIL_MAYORES: siempre"
+    run = toca["run"]
+    assert run.startswith("set -euo pipefail\n") and "||" not in run and "CARRIL_MAYORES" not in run
+    assert re.search(r"for wf in historico carril-mayores activar; do", run)
+    listing = re.search(r'gh run list --repo "\$GITHUB_REPOSITORY" --workflow "\$wf\.yml" --limit 20 \\\n\s+'
+                        r'--json (\S+) > "(\$RUNNER_TEMP/historico/\$wf\.json)"', run)
+    assert listing and listing.group(1) == LISTA_RUNS, run
+    # Sus ficheros no pisan los del primer paso ($RUNNER_TEMP/pasadas.json y $RUNNER_TEMP/$wf.json).
+    primeros = set(re.findall(r'> "([^"]+)"', decide["run"]))
+    assert primeros == {"$RUNNER_TEMP/pasadas.json", "$RUNNER_TEMP/$wf.json"}, primeros
+    assert not primeros & set(re.findall(r'> "([^"]+)"', run))
+    llamada = run[run.index("python3 scripts/reloj_pasadas.py"):]
+    args = re.findall(r'--(historico|otros) "([^"]+)"', llamada)
+    assert args == [("historico", "$RUNNER_TEMP/historico/historico.json"), ("otros", "$RUNNER_TEMP/pasadas.json"),
+                    ("otros", "$RUNNER_TEMP/historico/carril-mayores.json"),
+                    ("otros", "$RUNNER_TEMP/historico/activar.json")], args
+    assert "<" not in llamada, "el modo del histórico no lee la entrada estándar"
+    assert lanza["if"] == "steps.historico.outputs.due_historico == 'true'"
+    assert lanza["env"] == {"GH_TOKEN": "${{ github.token }}"}
+    assert "set -euo pipefail" in lanza["run"]
+    assert 'gh workflow run historico.yml --ref main --repo "$GITHUB_REPOSITORY"' in lanza["run"]
+    assert " -f " not in lanza["run"], "sin entradas: accion=seguir"
+    assert re.search(r"gh run list [^\n]*--workflow historico\.yml", lanza["run"])
+    assert "update.yml" not in lanza["run"] and "carril-mayores.yml" not in lanza["run"]
+    # La misma espera que los otros dos pasos que lanzan.
+    espera = lanza["run"].split("\n", 2)[2]
+    assert espera.replace("historico.yml", "carril-mayores.yml").replace("Histórico lanzado", "Carril lanzado") \
+        .replace("El histórico está lanzado", "El carril está lanzado") \
+        == _lanzar_carril(job["steps"])["run"].split("\n", 2)[2]
+
+
+def test_solo_el_reloj_y_el_propio_carril_lanzan_el_historico():
+    """historico.yml sin cron: lo lanzan el reloj y su paso «Siguiente» (y el dueño, a mano). Y los workflows con cron
+    son los que son: GitHub los desactiva tras 60 días sin actividad (reloj.yml: test_how_to_wake_the_clock_…)."""
+    launchers = sorted(f.name for f in WF_DIR.glob("*.yml") if "gh workflow run historico.yml" in "\n".join(
+        (s.get("run") or "") for j in _load(f.name)["jobs"].values() for s in j.get("steps", [])))
+    assert launchers == ["historico.yml", "reloj.yml"], launchers
+    con_cron = sorted(f.name for f in WF_DIR.glob("*.yml") if "schedule" in _triggers(_load(f.name)))
+    assert con_cron == ["mygol.yml", "reloj.yml", "tests.yml"], con_cron
+
+
+def _run_reloj_step(tmp_path, name, gh_script, pasadas="[]"):
+    """El guion de un paso de reloj.yml, con bash y un gh de mentira (`gh_script`), desde la raíz del repositorio, con
+    la lista del bot que dejó el primer paso ($RUNNER_TEMP/pasadas.json): (código, $GITHUB_OUTPUT o None, la salida)."""
+    step = _reloj_step(name)
+    bin_dir = tmp_path / "bin"
+    bin_dir.mkdir(parents=True)
+    (bin_dir / "gh").write_text("#!/bin/bash\n" + gh_script + "\n", encoding="utf-8")
+    (bin_dir / "gh").chmod(0o755)
+    (bin_dir / "sleep").write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")       # sin esperar
+    (bin_dir / "sleep").chmod(0o755)
+    (tmp_path / "pasadas.json").write_text(pasadas, encoding="utf-8")
+    out = tmp_path / "salida"
+    env = {"PATH": f"{bin_dir}{os.pathsep}{os.environ.get('PATH', '')}", "RUNNER_TEMP": str(tmp_path),
+           "GITHUB_OUTPUT": str(out), "GITHUB_REPOSITORY": "dueño/futbol-base", "GH_TOKEN": "x"}
+    done = subprocess.run(["bash", "-c", step["run"]], cwd=ROOT, env=env, capture_output=True, text=True, timeout=60)
+    return done.returncode, (out.read_text() if out.exists() else None), done.stdout + done.stderr
+
+
+def test_the_historico_step_runs_for_real(tmp_path):
+    """El guion de verdad de «¿Toca el histórico?», con un gh de mentira: lista los tres workflows (y no update.yml: su
+    lista es la del primer paso) y escribe due_historico, y solo eso. Con un gh que falla en cualquiera de las tres
+    listas, o que responde otra cosa: en rojo, sin due_historico (el paso que lanza no corre) y sin lanzar nada."""
+    busy = json.dumps([{"number": 9, "event": "workflow_dispatch", "status": "in_progress", "conclusion": "",
+                        "createdAt": "2026-12-01T10:00:00Z", "startedAt": "2026-12-01T10:00:00Z"}])
+    todas = {"historico.yml": busy, "carril-mayores.yml": "[]", "activar.yml": "[]"}
+    body, calls = _gh_por_workflow(tmp_path / "bien", todas)
+    code, out, log = _run_reloj_step(tmp_path / "bien", TOCA_HISTORICO, body)
+    assert code == 0 and out == "due_historico=false\n", (code, out, log)
+    assert "Carril del histórico: no toca: la 9 de historico.yml está in_progress." in log, log
+    listed = [l.split("--workflow ")[1].split()[0] for l in calls.read_text().splitlines()]
+    assert listed == ["historico.yml", "carril-mayores.yml", "activar.yml"], listed
+    # La lista del bot es la del primer paso: una pasada en marcha también lo para.
+    body, _ = _gh_por_workflow(tmp_path / "bot", {**todas, "historico.yml": "[]"})
+    code, out, log = _run_reloj_step(tmp_path / "bot", TOCA_HISTORICO, body, pasadas=busy)
+    assert code == 0 and out == "due_historico=false\n" and "update.yml, carril-mayores.yml o activar.yml" in log, log
+    for missing in todas:
+        body, calls = _gh_por_workflow(tmp_path / f"falla-{missing}", {k: v for k, v in todas.items() if k != missing})
+        code, out, log = _run_reloj_step(tmp_path / f"falla-{missing}", TOCA_HISTORICO, body)
+        assert code != 0 and out is None, (missing, code, out, log)
+        assert not any("workflow run" in l for l in calls.read_text().splitlines()), missing
+    body, _ = _gh_por_workflow(tmp_path / "basura", {**todas, "activar.yml": "<html>no es la lista</html>"})
+    code, out, log = _run_reloj_step(tmp_path / "basura", TOCA_HISTORICO, body)
+    assert code != 0 and out is None, (code, out, log)
+    code, out, log = _run_reloj_step(tmp_path / "sin-pasadas", TOCA_HISTORICO, _gh_por_workflow(
+        tmp_path / "sin-pasadas", {k: "[]" for k in todas})[0], pasadas="no es json")
+    assert code != 0 and out is None, (code, out, log)
+
+
+def test_the_historico_launch_step_runs_for_real(tmp_path):
+    """«Lanzar el histórico» lanza historico.yml sobre main, sin entradas, y espera a que GitHub lo enseñe."""
+    calls = tmp_path / "llamadas"
+    body = (f'echo "$*" >> "{calls}"\n'
+            'case "$1 $2" in "run list") echo 1 ;; esac')
+    code, out, log = _run_reloj_step(tmp_path, LANZAR_HISTORICO, body)
+    assert code == 0 and "Histórico lanzado: 1 sin acabar." in log, log
+    lines = calls.read_text().splitlines()
+    assert lines[0] == "workflow run historico.yml --ref main --repo dueño/futbol-base", lines
+    assert len(lines) == 2 and "--workflow historico.yml" in lines[1], lines

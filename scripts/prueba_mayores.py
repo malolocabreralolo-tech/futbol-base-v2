@@ -169,7 +169,8 @@ def main(argv=None):
         mb_despues = _mb(arbol / "futbolbase.db")
         print(f"Base de después: {len(hecho['grupos'])} grupos ({', '.join(hecho['grupos'])}), {hecho['partidos']} "
               f"partidos jugados, {hecho['actas']} actas, {hecho['jugadores_reutilizados']} niños de la base con su "
-              f"id, {hecho['sin_id_reutilizados']} sin id con el mismo nombre y club")
+              f"id, {hecho['sin_id_reutilizados']} sin id con el mismo nombre y club (en la fila de otra categoría: "
+              f"{hecho['sin_id_en_fila_ajena']})")
         print(f"La base: {mb_antes} MB antes, {mb_despues} MB después")
         print("Segundos dentro: " + ", ".join(f"{k} {v}" for k, v in hecho["segundos"].items()))
 

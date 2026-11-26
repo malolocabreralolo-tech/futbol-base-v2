@@ -9,29 +9,52 @@ name: Actualización automática
 # desde el 16/10/2026; '0 */6 * * *' antes) casi no llegaba: 5 de 13 en ~26 h, una pasada cada 4-6 h. El reloj es otro workflow, y no un job «¿toca?» aquí,
 # porque cada ejecución de update.yml, aunque no haga nada, sube GITHUB_RUN_NUMBER, del que sale el orden de
 # cada pasada (update_fiflp.run_number): así solo sube en pasadas de verdad.
+#
+# El carril de las categorías mayores (infantil, cadete y juvenil; docs/categorias-mayores.md): este mismo
+# workflow, llamado (workflow_call) desde carril-mayores.yml con cats: infantil,cadete,juvenil, que lanza el reloj
+# entre dos pasadas del bot solo con la variable del repositorio CARRIL_MAYORES a 1. Llamado así, GITHUB_RUN_NUMBER
+# es el de carril-mayores.yml (el contexto github es el del llamante): no gasta números del bot, del que sale su
+# rotación sin estado, y sus ejecuciones no salen en la lista de update.yml que mira el reloj, que no las cuenta
+# como pasadas del bot (si las contara, cada una retrasaría hasta 2 h la siguiente). La concurrencia va en el job
+# y no en el workflow: con la misma en el llamante y en el llamado, GitHub lo daría por bloqueo mutuo; en el job
+# vale igual para las dos formas de lanzarlo (mismo grupo update-data que activar.yml: una escritura de la base
+# cada vez). Lanzado por el reloj, sin entradas, todo es como antes del carril.
 on:
   workflow_dispatch:          # el reloj (reloj.yml), el carril del histórico, las tandas de actas y a mano
     inputs:
       # Solo a mano, para una pasada pequeña (la primera de un repositorio nuevo): el reloj y el histórico no
-      # la pasan y, vacía, se leen todas las categorías (update_fiflp.update_groups).
+      # la pasan y, vacía, se lee el carril principal (update_fiflp.update_groups: prebenjamín, benjamín y alevín).
       cats:
-        description: 'Categorías a leer, separadas por comas (vacío: todas)'
+        description: 'Categorías a leer, separadas por comas (vacío: prebenjamín, benjamín y alevín)'
+        required: false
+        default: ''
+        type: string
+  workflow_call:              # carril-mayores.yml, con cats: infantil,cadete,juvenil
+    inputs:
+      cats:
+        description: 'Categorías a leer, separadas por comas (vacío: prebenjamín, benjamín y alevín)'
         required: false
         default: ''
         type: string
 
 # actions: write, desde la fase 2D (14/11/2026), solo para lanzar activar.yml («Lanzar la activación si hay
-# algo nuevo»).
+# algo nuevo»). Llamado desde carril-mayores.yml, el llamante le da los mismos (no puede pedir más que él).
 permissions:
   contents: write
   actions: write
 
-concurrency:
-  group: update-data
-  cancel-in-progress: false
-
 jobs:
   update:
+    # Una pasada cada vez, del bot o del carril, y en fila con activar.yml, sin cancelar la que corre: el grupo
+    # update-data, en el job (arriba, por qué no en el workflow).
+    concurrency:
+      group: update-data
+      cancel-in-progress: false
+    # Las categorías de la pasada (la entrada cats; vacía, el carril principal), para TODOS los pasos: el bot
+    # (update_fiflp.update_groups) y también source_health.py marcar y veredicto, que eligen por ella el carril
+    # cuyo informe tocan (runHealth o carriles.mayores), y el asunto del commit.
+    env:
+      FIFLP_CATS: ${{ inputs.cats }}
     # La imagen fijada y las acciones en Node 24, como tests.yml (plan B4, decisión 55; test_workflows.py).
     runs-on: ubuntu-24.04
     # 40: los grupos de la federación se leen con navegador (~7 s por página, fiflp_carga.py) y la
@@ -95,7 +118,6 @@ jobs:
           # update_fiflp deja aquí una marca cuando cambia en la base estado suyo que no se publica
           # (la primera pasada completa de un grupo recién activado): el commit sube la base también entonces.
           FIFLP_DB_MARK: ${{ runner.temp }}/base-cambiada
-          FIFLP_CATS: ${{ inputs.cats }}
         run: python3 scripts/fetch_futbolaspalmas.py
 
       # La base que se va a subir, entera (integridad, referencias, el WAL volcado al fichero, que es lo único
@@ -166,7 +188,9 @@ jobs:
           # ninguno todavía, el patrón no casa con nada: no es un error.
           git add 'scripts/actas_bot_*.jsonl' 2>/dev/null || true
           if ! git diff --cached --quiet; then
-            git commit -m "Actualización automática $(date '+%d/%m/%Y %H:%M UTC')"
+            # El del carril de las mayores dice sus categorías (FIFLP_CATS, del env del job): se distinguen en git log.
+            if [ -n "${FIFLP_CATS:-}" ]; then ASUNTO="Actualización automática ($FIFLP_CATS)"; else ASUNTO="Actualización automática"; fi
+            git commit -m "$ASUNTO $(date '+%d/%m/%Y %H:%M UTC')"
             # El run dura hasta ~25 min: si alguien ha empujado a main
             # mientras tanto (una tanda de la federación sube su raw), se
             # rebasa y se reintenta. Dos pasadas seguidas no se pisan: la
@@ -223,9 +247,11 @@ jobs:
       # (source_health.py pendiente: lo nuevo, ya; una descarga a medias, otro intento, hasta 8; lo que no se
       # arregla solo, una vez al día), lanza activar.yml sobre main; arranca en fila tras esta pasada
       # (concurrency update-data), y así pasadas e intentos se alternan. Un fallo al lanzarlo no pone la pasada
-      # en rojo: la pasada siguiente lo vuelve a mirar.
+      # en rojo: la pasada siguiente lo vuelve a mirar. Solo el carril principal (sin cats): el de las mayores no
+      # busca competiciones nuevas (sus extras son solo el directorio), y lo que hubiera pendiente lo lanza la
+      # pasada siguiente del bot (una activación más en cola en update-data cancelaría la que espera).
       - name: Lanzar la activación si hay algo nuevo
-        if: success()
+        if: success() && inputs.cats == ''
         continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}

@@ -91,17 +91,101 @@
     "21"
    ],
    "trabajo": "goleadores"
+  },
+  {
+   "accion": "descargar",
+   "esperas": 0,
+   "fin": "2026-11-25T19:26:22+00:00",
+   "frenos": 1,
+   "frenos_tras": [
+    0
+   ],
+   "inicio": "2026-11-25T19:26:12+00:00",
+   "lote": "alevin",
+   "muertas": 0,
+   "nube": "aws",
+   "paginas": 1881,
+   "parada": "runner",
+   "pedidas": 2,
+   "relanzada": false,
+   "runner_rechazado": true,
+   "servidas": 0,
+   "temporadas": [
+    "21"
+   ],
+   "trabajo": "actas"
+  },
+  {
+   "accion": "descargar",
+   "esperas": 0,
+   "fin": "2026-11-25T22:04:09+00:00",
+   "frenos": 1,
+   "frenos_tras": [
+    0
+   ],
+   "inicio": "2026-11-25T22:03:58+00:00",
+   "lote": "alevin",
+   "muertas": 0,
+   "nube": "aws",
+   "paginas": 1881,
+   "parada": "runner",
+   "pedidas": 2,
+   "relanzada": false,
+   "runner_rechazado": true,
+   "servidas": 0,
+   "temporadas": [
+    "21"
+   ],
+   "trabajo": "actas"
+  },
+  {
+   "accion": "descargar",
+   "esperas": 0,
+   "fin": "2026-11-25T23:49:12+00:00",
+   "frenos": 1,
+   "frenos_tras": [
+    0
+   ],
+   "inicio": "2026-11-25T23:49:02+00:00",
+   "lote": "alevin",
+   "muertas": 0,
+   "nube": "aws",
+   "paginas": 1881,
+   "parada": "runner",
+   "pedidas": 2,
+   "relanzada": false,
+   "runner_rechazado": true,
+   "servidas": 0,
+   "temporadas": [
+    "21"
+   ],
+   "trabajo": "actas"
   }
  ],
  "formato": 1,
- "pruebas": [],
+ "pruebas": [
+  {
+   "at": "2026-11-25T19:24:27+00:00",
+   "mb_antes": 45.379,
+   "mb_despues": 45.699,
+   "motivo": "",
+   "segundos": 27.8,
+   "trabajos": [
+    "goleadores:2025-2026"
+   ],
+   "verde": true
+  }
+ ],
  "trabajos": {
   "goleadores:2025-2026": {
-   "actualizado": "2026-11-25T19:17:22+00:00",
+   "actualizado": "2026-11-25T19:24:27+00:00",
    "categorias": [
     "alevin"
    ],
-   "estado": "completo",
+   "estado": "promovido",
+   "huellas": {
+    "fiflp_goleadores_2025-2026_raw.json": "8a491a65c75cd2bce9148fa6597193a0a2e680c4"
+   },
    "no_disponible": 1,
    "pendientes": 0
   }

@@ -123,37 +123,22 @@ def normalizado(texto):
     return _VERSION.sub("V", _MB.sub('"mb":0', texto))
 
 
-def sitio(tmp_path, nombre, poblar=False):
-    """Una raíz con index.html, sw.js, los data-*.js del árbol y una copia de la base real (con la base de
-    después si `poblar`); devuelve (raíz, base, lo que devolvió poblar)."""
+def sitio(tmp_path, nombre, origen):
+    """Una raíz con index.html, sw.js, los data-*.js del árbol y una copia de la base `origen`."""
     raiz = tmp_path / nombre
     raiz.mkdir()
     for p in [ROOT / "index.html", ROOT / "sw.js"] + sorted(ROOT.glob("data-*.js")):
         shutil.copy2(p, raiz / p.name)
     db = raiz / "futbolbase.db"
-    src = sqlite3.connect(f"file:{DB_PATH}?mode=ro", uri=True)
-    dst = sqlite3.connect(str(db))
-    src.backup(dst)
-    src.close()
-    hecho = None
-    if poblar:
-        import base_mayores
-        hecho = base_mayores.poblar(dst, log=quiet)
-    dst.close()
-    return raiz, db, hecho
+    shutil.copyfile(origen, db)
+    return raiz, db
 
 
-def generar(monkeypatch, raiz, db):
-    """La pasada del bot desde las fichas: resolver_fichas, los enlaces de la liga de escuelas y generate_js.main
-    con su raíz y su base. Devuelve {fichero: texto} de lo que queda en la raíz."""
-    import enlace_mygol
+def generar(raiz, db):
+    """generate_js.main con su raíz y su base (que ya ha pasado por el final de una pasada: fichas y enlaces,
+    base_mayores.bases_reales). Devuelve {fichero: texto} de lo que queda en la raíz."""
     import generate_js
-    import migrate_identidad
-    conn = sqlite3.connect(str(db))
-    migrate_identidad.resolver_fichas(conn, log=quiet)
-    enlace_mygol.guardar_enlaces(conn, registro=quiet)
-    conn.close()
-    with monkeypatch.context() as m:
+    with pytest.MonkeyPatch.context() as m:
         m.setattr(generate_js, "PROJECT_ROOT", str(raiz))
         m.setattr(generate_js, "get_connection", lambda: sqlite3.connect(str(db)))
         generate_js.main()
@@ -161,19 +146,50 @@ def generar(monkeypatch, raiz, db):
             if p.is_file() and p.name != "futbolbase.db" and not p.name.startswith("futbolbase.db-")}
 
 
-def test_generador_igual_con_y_sin_mayores(tmp_path, monkeypatch):
-    """Dos copias de la base real: A tal cual y B con infantil, cadete y juvenil activados y leídos (y niños de
-    la base reutilizados: el mismo id, el mismo nombre y club sin id). Lo que escribe el generador es igual byte
-    a byte, salvo los MB de la base y la versión; y en B ningún data-*.js nombra un código de los grupos nuevos."""
-    if not DB_PATH.exists():
-        pytest.skip("futbolbase.db no está")
-    raiz_a, db_a, _ = sitio(tmp_path, "a")
-    raiz_b, db_b, hecho = sitio(tmp_path, "b", poblar=True)
-    assert hecho["grupos"] and hecho["actas"] and hecho["jugadores_reutilizados"] and hecho["sin_id_reutilizados"]
-    a = generar(monkeypatch, raiz_a, db_a)
-    b = generar(monkeypatch, raiz_b, db_b)
+def generado(tmp_path, nombre, origen):
+    """sitio y generar, de una vez (para paralelo.en_paralelo, que la manda por su nombre)."""
+    return generar(*sitio(tmp_path, nombre, origen))
+
+
+def test_generador_igual_con_y_sin_mayores(tmp_path, bases_reales):
+    """Dos copias de la base real tras una pasada (conftest.bases_reales): A tal cual y B con infantil, cadete y
+    juvenil activados y leídos (y niños de la base reutilizados: el mismo id, el mismo nombre y club sin id), cada
+    una con sus fichas y sus enlaces. Lo que escribe el generador es igual byte a byte, salvo los MB de la base y la
+    versión; y en B ningún data-*.js nombra un código de los grupos nuevos. Las dos generaciones (~50 s cada una
+    con la base real), a la vez (paralelo.en_paralelo): cada una con su raíz y su base."""
+    from paralelo import en_paralelo
+    hecho = bases_reales["hecho"]
+    assert hecho["grupos"] and hecho["actas"] and hecho["jugadores_reutilizados"]
+    # Los sin id del mismo nombre y club: siempre que la temporada tenga prebenjamines sin id (recién empezada, no).
+    assert hecho["sin_id_reutilizados"] or not hecho["sin_id_disponibles"]
+    assert hecho["sin_id_en_fila_ajena"] == 0
+    a, b = en_paralelo((generado, (tmp_path, "a", bases_reales["resuelta"])),
+                       (generado, (tmp_path, "b", bases_reales["mayores"])))
     assert sorted(a) == sorted(b)
     distintos = [n for n in a if normalizado(a[n]) != normalizado(b[n])]
     assert distintos == [], distintos
     codigos = re.compile(r"\b(?:" + "|".join(map(re.escape, hecho["grupos"])) + r")\b")
     assert [n for n, t in b.items() if n.startswith("data-") and codigos.search(t)] == []
+
+
+def test_los_sin_id_de_las_mayores_no_caen_en_la_fila_de_un_pequeno(bases_reales):
+    """En la base de después (conftest.bases_reales), los niños sin id de infantil que se llaman como un
+    prebenjamín sin id del mismo club y temporada (base_mayores los pone a propósito) son OTRA identidad, con su
+    categoría (migrate_identidad.norm_sin_id): ninguna identidad sin id tiene apariciones en una de las mayores y
+    en otra categoría. Sin eso, sus partidos se mezclarían en la base desde la primera acta."""
+    import base_mayores
+    import migrate_identidad as M
+    hecho = bases_reales["hecho"]
+    if not hecho["sin_id_disponibles"]:
+        pytest.skip("la temporada en curso aún no tiene prebenjamines sin id (recién empezada): no hay con quién "
+                    "montar el caso")
+    conn = sqlite3.connect(f"file:{bases_reales['mayores']}?mode=ro", uri=True)
+    try:
+        filas = conn.execute("SELECT norm_name, team_id, season_id FROM players "
+                             "WHERE fiflp_id IS NULL AND team_id IS NOT NULL").fetchall()
+        pequenos = {(M.nombre_base(n), t, s) for n, t, s in filas if M.categoria_de(n) is None}
+        homonimos = [n for n, t, s in filas if M.categoria_de(n) and (M.nombre_base(n), t, s) in pequenos]
+        assert len(homonimos) >= hecho["sin_id_reutilizados"] > 0
+        assert base_mayores.sin_id_en_fila_ajena(conn) == 0
+    finally:
+        conn.close()
