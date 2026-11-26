@@ -310,11 +310,13 @@ def test_sin_tablas_de_mygol(tmp_path):
     assert E.fichas_de(vieja) == [] and E.guardar_enlaces(vieja, registro=quiet) == 0
 
 
-def test_lo_de_fuera_de_la_web_no_mueve_los_enlaces(tmp_path, monkeypatch):
+def test_lo_de_fuera_de_la_web_no_mueve_los_enlaces(tmp_path, monkeypatch, fijar_web):
     """Hasta que la web enseñe infantil (parte E2), sus actas están en la base pero no mueven ningún enlace:
     Raul (1001) juega además en infantil de 2026-27 (su año, con eso, sería otro y su escuela no cuadraría) y
-    un niño nuevo de infantil (2003) se llama como Hugo (sería una segunda ficha de su nombre)."""
+    un niño nuevo de infantil (2003) se llama como Hugo (sería una segunda ficha de su nombre). El EN_WEB de antes
+    del paso E2-D2 lo fija la prueba (conftest.fijar_web): sigue valiendo cuando el director lo amplíe."""
     import categorias
+    fijar_web("antes")
     conn = base_con_escuela(tmp_path)
     E.guardar_enlaces(conn, registro=quiet)
     antes = enlaces(conn)

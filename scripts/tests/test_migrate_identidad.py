@@ -810,12 +810,13 @@ def _con_infantil(a_en_prebenjamin=False):
     return conn, a, b, c
 
 
-def test_resolver_no_mira_categorias_fuera_de_la_web(monkeypatch):
+def test_resolver_no_mira_categorias_fuera_de_la_web(monkeypatch, fijar_web):
     """Hasta que la web enseñe infantil (parte E2), lo de infantil está en la base pero no mueve ninguna
     ficha: B queda suelto, A no se une a nadie y la ficha de C es la de sus vistas de benjamín (su intervalo
     de edad, el de benjamín). Con las seis categorías en la web, las edades siguen separando lo imposible
-    y C sigue siendo una sola ficha."""
+    y C sigue siendo una sola ficha. El EN_WEB de antes del paso E2-D2 lo fija la prueba (conftest.fijar_web)."""
     import categorias
+    fijar_web("antes")
     conn, a, b, c = _con_infantil()
     M.resolver_fichas(conn, log=quiet)
     assert fila(conn, b)[6:] == (None, None)

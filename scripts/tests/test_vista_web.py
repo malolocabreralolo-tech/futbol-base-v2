@@ -83,9 +83,10 @@ def test_sin_otras_categorias_es_la_misma_conexion():
     assert vista_web.copia_web(conn) is conn
 
 
-def test_la_copia_no_tiene_lo_de_infantil(monkeypatch):
+def test_la_copia_no_tiene_lo_de_infantil(monkeypatch, fijar_web):
     import categorias
     import vista_web
+    fijar_web("antes")                  # el EN_WEB de antes del paso E2-D2 (conftest.fijar_web)
     conn = base()
     antes = recuento(conn)
     copia = vista_web.copia_web(conn)
@@ -151,13 +152,17 @@ def generado(tmp_path, nombre, origen):
     return generar(*sitio(tmp_path, nombre, origen))
 
 
-def test_generador_igual_con_y_sin_mayores(tmp_path, bases_reales):
+def test_generador_igual_con_y_sin_mayores(tmp_path, bases_reales, fijar_web):
     """Dos copias de la base real tras una pasada (conftest.bases_reales): A tal cual y B con infantil, cadete y
     juvenil activados y leídos (y niños de la base reutilizados: el mismo id, el mismo nombre y club sin id), cada
     una con sus fichas y sus enlaces. Lo que escribe el generador es igual byte a byte, salvo los MB de la base y la
     versión; y en B ningún data-*.js nombra un código de los grupos nuevos. Las dos generaciones (~50 s cada una
-    con la base real), a la vez (paralelo.en_paralelo): cada una con su raíz y su base."""
+    con la base real), a la vez (paralelo.en_paralelo): cada una con su raíz y su base. Es lo que garantiza el EN_WEB
+    de antes del paso E2-D2: lo fija la prueba (conftest.fijar_web; las dos bases, con sus fichas de ese EN_WEB),
+    así que sigue valiendo cuando el director lo amplíe. Lo que cambia con el de después lo mira
+    test_fichas_ampliadas.py."""
     from paralelo import en_paralelo
+    fijar_web("antes")                  # los procesos de en_paralelo (fork) lo heredan
     hecho = bases_reales["hecho"]
     assert hecho["grupos"] and hecho["actas"] and hecho["jugadores_reutilizados"]
     # Los sin id del mismo nombre y club: siempre que la temporada tenga prebenjamines sin id (recién empezada, no).

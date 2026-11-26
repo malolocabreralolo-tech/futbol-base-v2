@@ -72,9 +72,9 @@ def _sin_carril_del_job():
 
 @pytest.fixture(scope="session")
 def bases_reales(tmp_path_factory):
-    """La base real tras el final de una pasada, sin y con infantil, cadete y juvenil leídos (base_mayores.bases_reales):
-    una vez por sesión para las pruebas que las comparan. Salta sin futbolbase.db. Nadie las cambia: cada prueba
-    copia la suya."""
+    """La base real tras el final de una pasada, sin y con infantil, cadete y juvenil leídos (base_mayores.bases_reales:
+    con el EN_WEB de antes del paso E2-D2): una vez por sesión para las pruebas que las comparan. Salta sin
+    futbolbase.db. Nadie las cambia: cada prueba copia la suya."""
     import base_mayores
     origen = Path(__file__).resolve().parents[2] / "futbolbase.db"
     if not origen.exists():
@@ -82,30 +82,59 @@ def bases_reales(tmp_path_factory):
     return base_mayores.bases_reales(origen, tmp_path_factory.mktemp("bases_reales"))
 
 
-# El mundo que suponen las pruebas que miran qué activa el bot: el de antes de los pasos D3-D6 del director
-# (docs/categorias-mayores.md), con infantil, cadete y juvenil sin activar y el alevín de Lanzarote y
-# Fuerteventura fuera. Esas pruebas lo FIJAN ellas (fixture categorias_de_antes, o su monkeypatch) en vez de leer
-# lo que diga scripts/categorias.py: así cada paso del director es de verdad una línea en categorias.py y una en
-# la única prueba que comprueba lo que hay hoy (test_categorias.test_lo_que_se_activa_y_lo_que_se_ve_no_cambia), y
-# la puerta de pruebas del bot no se pone en rojo por pruebas que suponían el mundo de antes. Lo que cambia de
-# verdad con cada paso lo prueba prueba_mayores.py con el paso ya dado (--con-cambios).
+# El mundo que suponen las pruebas que miran qué activa el bot o qué ve la web: el de antes de los pasos D3-D6 del
+# director (docs/categorias-mayores.md) y del paso E2-D2, con infantil, cadete y juvenil sin activar, el alevín de
+# Lanzarote y Fuerteventura fuera y la web con prebenjamín, benjamín y alevín. Esas pruebas lo FIJAN ellas (fixture
+# categorias_de_antes, o fijar_categorias) en vez de leer lo que diga scripts/categorias.py: así cada paso del
+# director es de verdad una línea en categorias.py y una en la única prueba que comprueba lo que hay hoy
+# (test_categorias.test_lo_que_se_activa_y_lo_que_se_ve_no_cambia), y la puerta de pruebas del bot no se pone en
+# rojo por pruebas que suponían el mundo de antes. Lo que cambia de verdad con cada paso lo prueba prueba_mayores.py
+# con el paso ya dado (--con-cambios). Una prueba que mire la base real o los data-*.js no puede fijar EN_WEB para
+# lo que lee (lo escribió la pasada con el de categorias.py): tiene que valer con los dos, o fijarlo solo para lo
+# que ella misma vuelve a calcular (las fichas de su copia, la web que ella genera).
 ACTIVABLES_DE_ANTES = ("BENJAMIN", "PREBENJAMIN", "ALEVIN")
 ALEVIN_ISLAS_DE_ANTES = False
+# EN_WEB de antes del paso E2-D2 y el de después (las seis): los de base_mayores, que también los fija (con_en_web)
+# para lo que calcula en las bases compartidas.
+from base_mayores import EN_WEB_DE_ANTES, EN_WEB_SEIS  # noqa: E402
 
 
-def fijar_categorias(mp, activables=ACTIVABLES_DE_ANTES, alevin_islas=ALEVIN_ISLAS_DE_ANTES):
-    """categorias.ACTIVABLES y categorias.ALEVIN_ISLAS a lo que supone la prueba, con el MonkeyPatch `mp`, en las
-    dos copias del módulo si las hay (categorias y scripts.categorias: algunos importadores cargan la segunda)."""
+def _modulos_categorias():
+    """categorias y, si está cargada, su otra copia (scripts.categorias: algunos importadores cargan la segunda)."""
     import categorias
-    for modulo in [categorias] + [m for m in (sys.modules.get("scripts.categorias"),) if m and m is not categorias]:
+    return [categorias] + [m for m in (sys.modules.get("scripts.categorias"),) if m and m is not categorias]
+
+
+def fijar_en_web(mp, en_web):
+    """Solo categorias.EN_WEB, con el MonkeyPatch `mp`: «antes» (EN_WEB_DE_ANTES), «seis» (EN_WEB_SEIS) o una tupla.
+    Los módulos que lo usan lo leen al llamar (vista_web, migrate_identidad, generate_js, enlace_mygol,
+    migrate_categories): el parche les llega, también a los procesos de paralelo.en_paralelo (fork)."""
+    valor = {"antes": EN_WEB_DE_ANTES, "seis": EN_WEB_SEIS}.get(en_web, en_web) if isinstance(en_web, str) else en_web
+    for modulo in _modulos_categorias():
+        mp.setattr(modulo, "EN_WEB", tuple(valor))
+
+
+def fijar_categorias(mp, activables=ACTIVABLES_DE_ANTES, alevin_islas=ALEVIN_ISLAS_DE_ANTES, en_web=EN_WEB_DE_ANTES):
+    """categorias.ACTIVABLES, categorias.ALEVIN_ISLAS y categorias.EN_WEB a lo que supone la prueba, con el
+    MonkeyPatch `mp`, en las dos copias del módulo si las hay."""
+    for modulo in _modulos_categorias():
         mp.setattr(modulo, "ACTIVABLES", tuple(activables))
         mp.setattr(modulo, "ALEVIN_ISLAS", alevin_islas)
+    fijar_en_web(mp, en_web)
 
 
 @pytest.fixture
 def categorias_de_antes(monkeypatch):
-    """ACTIVABLES y ALEVIN_ISLAS como antes de los pasos D3-D6, durante la prueba (ver arriba)."""
+    """ACTIVABLES, ALEVIN_ISLAS y EN_WEB como antes de los pasos D3-D6 y E2-D2, durante la prueba (ver arriba)."""
     fijar_categorias(monkeypatch)
+
+
+@pytest.fixture
+def fijar_web(monkeypatch):
+    """fijar_web("antes") o fijar_web("seis"): categorias.EN_WEB durante la prueba, sin tocar lo demás. Para las
+    que comprueban lo que hace la web (las fichas, el generador, la copia de la web) con el EN_WEB de hoy, con el
+    del paso E2-D2 o con los dos (parametrizadas)."""
+    return lambda en_web: fijar_en_web(monkeypatch, en_web)
 
 
 @pytest.fixture(scope="module")

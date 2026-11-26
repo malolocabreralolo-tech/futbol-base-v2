@@ -126,6 +126,30 @@ def _alevin_de_islas(activo):
             m.ALEVIN_ISLAS = v
 
 
+# El EN_WEB de antes del paso E2-D2 de la parte E2 (docs/categorias-mayores.md, «En la web») y el de después.
+EN_WEB_DE_ANTES = ("BENJAMIN", "PREBENJAMIN", "ALEVIN")
+EN_WEB_SEIS = ("BENJAMIN", "PREBENJAMIN", "ALEVIN", "INFANTIL", "CADETE", "JUVENIL")
+
+
+@contextlib.contextmanager
+def con_en_web(en_web):
+    """categorias.EN_WEB a `en_web` («antes», «seis» o una tupla; None: lo que diga categorias.py) mientras dura, en
+    las dos copias del módulo si las hay. Para lo que una prueba vuelve a calcular ella misma sobre su copia (las
+    fichas, los enlaces, la web): así vale igual con el EN_WEB de hoy y con el del paso E2-D2."""
+    import categorias
+    modulos = [categorias] + [m for m in (sys.modules.get("scripts.categorias"),) if m and m is not categorias]
+    antes = [m.EN_WEB for m in modulos]
+    valor = {"antes": EN_WEB_DE_ANTES, "seis": EN_WEB_SEIS}.get(en_web, en_web) if isinstance(en_web, str) else en_web
+    try:
+        if valor is not None:
+            for m in modulos:
+                m.EN_WEB = tuple(valor)
+        yield
+    finally:
+        for m, v in zip(modulos, antes):
+            m.EN_WEB = v
+
+
 def _equipos_de_la_base(conn, sid):
     """{isla: [(team_id, nombre de la federación)]} de los equipos de la temporada con ficha (team_seasons), por
     id: los de los grupos que la base ya tiene (benjamín, prebenjamín, alevín). Recién empezada una temporada
@@ -495,23 +519,26 @@ def sin_id_en_fila_ajena(conn):
 
 # ── Las bases de las pruebas sobre la base real (fixture de sesión bases_reales, conftest.py) ─────────────
 
-def fin_de_pasada(path):
+def fin_de_pasada(path, en_web=None):
     """Lo que hace el final de una pasada con la base de `path`: las fichas (migrate_identidad.resolver_fichas) y
-    los enlaces de la liga de escuelas (enlace_mygol.guardar_enlaces)."""
+    los enlaces de la liga de escuelas (enlace_mygol.guardar_enlaces). Con `en_web` («antes», «seis»), con ese
+    categorias.EN_WEB (con_en_web): el resolvedor rehace las fichas desde cero, así que lo que dejó la pasada que
+    escribió la base no cuenta."""
     import enlace_mygol
     import migrate_identidad
     from db import get_connection
     conn = get_connection(path)
     try:
-        migrate_identidad.resolver_fichas(conn, log=lambda *a: None)
-        enlace_mygol.guardar_enlaces(conn, registro=lambda *a: None)
+        with con_en_web(en_web):
+            migrate_identidad.resolver_fichas(conn, log=lambda *a: None)
+            enlace_mygol.guardar_enlaces(conn, registro=lambda *a: None)
     finally:
         conn.close()
 
 
-def leida(resuelta, path, categorias=MAYORES, islas=False):
+def leida(resuelta, path, categorias=MAYORES, islas=False, en_web=None):
     """Una copia de `resuelta` en `path` con lo de poblar (esas categorías y, con `islas`, el alevín de Lanzarote)
-    activado y leído y el final de una pasada: lo que devolvió poblar."""
+    activado y leído y el final de una pasada (con `en_web`, fin_de_pasada): lo que devolvió poblar."""
     import shutil
     from db import get_connection
     shutil.copyfile(resuelta, path)
@@ -520,18 +547,19 @@ def leida(resuelta, path, categorias=MAYORES, islas=False):
         hecho = poblar(conn, categorias=categorias, islas=islas, log=lambda *a: None)
     finally:
         conn.close()
-    fin_de_pasada(path)
+    fin_de_pasada(path, en_web)
     return hecho
 
 
 def bases_reales(origen, carpeta):
-    """Copias de la base real `origen`, en `carpeta`, tras el final de una pasada: «resuelta», tal cual; «mayores»,
-    la misma con infantil, cadete y juvenil activados y leídos (poblar); e «islas», la misma con solo el alevín de
-    Lanzarote (poblar con islas). Las usan test_vista_web.test_generador_igual_con_y_sin_mayores (lo que genera la
-    web con una y con otra) y las pruebas de quitar_categoria (test_activacion_categorias.py): una vez por sesión,
-    y las dos últimas a la vez (paralelo.en_paralelo), porque las fichas de la base real tardan ~10 s cada vez y la
-    puerta de pruebas del bot pasa la suite entera en cada pasada. Quien las usa no las cambia: trabaja sobre su
-    propia copia. {'resuelta', 'mayores', 'islas': rutas; 'hecho', 'hecho_islas': lo que devolvió poblar}."""
+    """Copias de la base real `origen`, en `carpeta`, tras el final de una pasada con el EN_WEB de antes del paso
+    E2-D2 (fin_de_pasada con «antes», valga lo que valga categorias.py): «resuelta», tal cual; «mayores», la misma
+    con infantil, cadete y juvenil activados y leídos (poblar); e «islas», la misma con solo el alevín de Lanzarote
+    (poblar con islas). Las usan test_vista_web.test_generador_igual_con_y_sin_mayores (lo que genera la web con una
+    y con otra) y las pruebas de quitar_categoria (test_activacion_categorias.py): una vez por sesión, y las dos
+    últimas a la vez (paralelo.en_paralelo), porque las fichas de la base real tardan ~10 s cada vez y la puerta de
+    pruebas del bot pasa la suite entera en cada pasada. Quien las usa no las cambia: trabaja sobre su propia copia.
+    {'resuelta', 'mayores', 'islas': rutas; 'hecho', 'hecho_islas': lo que devolvió poblar}."""
     import sqlite3
     from paralelo import en_paralelo
     carpeta = Path(carpeta)
@@ -541,7 +569,7 @@ def bases_reales(origen, carpeta):
     src.backup(dst)
     dst.close()
     src.close()
-    fin_de_pasada(resuelta)
-    hecho, hecho_islas = en_paralelo((leida, (resuelta, mayores)),
-                                     (leida, (resuelta, islas, (), True)))
+    fin_de_pasada(resuelta, "antes")
+    hecho, hecho_islas = en_paralelo((leida, (resuelta, mayores, MAYORES, False, "antes")),
+                                     (leida, (resuelta, islas, (), True, "antes")))
     return {"resuelta": resuelta, "mayores": mayores, "islas": islas, "hecho": hecho, "hecho_islas": hecho_islas}

@@ -5,10 +5,13 @@
     que dejó import_history.py al pasar la clave en minúsculas), solo si nada las usa: la
     única tabla que apunta a categories es groups.category_id, pero se mira cualquier
     columna category_id y cualquier clave ajena a categories, por si llega otra.
-  - Crea las que faltan de las que ve la web (categorias.EN_WEB: ALEVIN), en mayúsculas:
-    generate_js las busca por su nombre exacto. Las demás de DB_NAME (infantil, cadete y
-    juvenil) no: las crea activate_season al activar su primer grupo. Creadas aquí, la primera
-    pasada del bot tras conocerlas cambiaría la base sin que cambie nada más.
+  - Crea las que faltan de las que ve la web (categorias.EN_WEB, leído al llamar: ALEVIN), en
+    mayúsculas: generate_js las busca por su nombre exacto. Infantil, cadete y juvenil
+    (categorias.MAYORES) no, estén o no en EN_WEB: las crea activate_season al activar su primer
+    grupo (sin la fila, el generador las publica vacías, como con la base de hoy). Creadas aquí, la
+    primera pasada del bot tras conocerlas (o tras el paso E2-D2, que las pone en EN_WEB) cambiaría
+    la base sin que cambie nada más, y una quitada con quitar_categoria volvería en la pasada
+    siguiente.
 
 Una fila duplicada que sí se usa se queda (se avisa): moverla de grupo es otra cosa.
 La ejecuta el bot al arrancar (fetch_futbolaspalmas.main) y se puede lanzar a mano:
@@ -19,7 +22,7 @@ import os
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from categorias import EN_WEB  # noqa: E402
+import categorias  # noqa: E402
 
 
 def _referencing_columns(conn):
@@ -57,8 +60,8 @@ def migrate(conn, log=print):
         report["dropped"].append(name)
         log(f"  categoría '{name}' (id {cid}) duplicada y sin uso: borrada")
     have = {r[0].upper() for r in conn.execute("SELECT name FROM categories")}
-    for name in EN_WEB:
-        if name not in have:
+    for name in categorias.EN_WEB:
+        if name not in have and name not in categorias.MAYORES:
             conn.execute("INSERT INTO categories(name) VALUES (?)", (name,))
             report["created"].append(name)
             log(f"  categoría '{name}' creada")
