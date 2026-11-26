@@ -7,8 +7,10 @@
 //   node scripts/sonda_fases.mjs [raíz] [--json]
 //
 // Lee de la raíz (por defecto, la del repositorio) src/config.js y los data-*.js de benjamín,
-// prebenjamín y alevín (más data-history.js si está). Sale con 0 si ninguna fase cae en «otra-…» y con
-// 1 nombrando cada grupo que cae; con --json imprime solo [{cat, id, phase, compKey}].
+// prebenjamín y alevín, más data-history.js y los perezosos de infantil, cadete y juvenil si están (con
+// EN_WEB ampliado, una fase nueva de las nuevas tiene que parar la activación como las de siempre). Sale
+// con 0 si ninguna fase cae en «otra-…» y con 1 nombrando cada grupo que cae; con --json imprime solo
+// [{cat, id, phase, compKey}].
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -16,7 +18,10 @@ import vm from 'node:vm';
 import { buildSeason } from '../src/model.js';
 
 const REPO = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const FILES = ['data-benjamin.js', 'data-prebenjamin.js', 'data-alevin.js', 'data-history.js'];
+const FILES = ['data-benjamin.js', 'data-prebenjamin.js', 'data-alevin.js', 'data-history.js',
+  'data-infantil.js', 'data-cadete.js', 'data-juvenil.js'];
+// Los que pueden faltar: data-history.js y los de las categorías nuevas (un árbol de antes de E2 no los tiene).
+const OPTIONAL = new Set(['data-history.js', 'data-infantil.js', 'data-cadete.js', 'data-juvenil.js']);
 // Fuera de Gran Canaria la clave lleva delante la isla: 'lanzarote-otra-…'.
 const OTRA = /(^|-)otra-/;
 
@@ -25,13 +30,13 @@ export async function sonda(root = REPO) {
   const data = vm.createContext({});
   for (const file of FILES) {
     const full = path.join(root, file);
-    // data-history.js es opcional; los tres de categoría no: sin ellos la sonda no diría nada.
-    if (!existsSync(full) && file === 'data-history.js') continue;
+    // Los de benjamín, prebenjamín y alevín no son opcionales: sin ellos la sonda no diría nada.
+    if (!existsSync(full) && OPTIONAL.has(file)) continue;
     vm.runInContext(readFileSync(full, 'utf8').replace(/^const /gm, 'var '), data);
   }
   const season = buildSeason({
     name: PORTAL.season, current: true, benjamin: data.BENJAMIN, prebenjamin: data.PREBENJAMIN,
-    alevin: data.ALEVIN, history: data.HISTORY,
+    alevin: data.ALEVIN, infantil: data.INFANTIL, cadete: data.CADETE, juvenil: data.JUVENIL, history: data.HISTORY,
   });
   const otras = season.groups.filter((group) => OTRA.test(group.compKey))
     .map((group) => ({ cat: group.cat, id: group.id, phase: group.phase, compKey: group.compKey }));
