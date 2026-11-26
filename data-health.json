@@ -660,23 +660,6 @@
       }
     }
   },
-  "activation": {
-    "at": "2026-11-24T10:28:44+00:00",
-    "activated": [
-      {
-        "competition": "55337395",
-        "name": "LIGA BENJAMIN GRAN CANARIA FASE F",
-        "codes": [
-          "F1"
-        ]
-      }
-    ],
-    "failed": [],
-    "tried": [
-      "55337395"
-    ],
-    "attempts": 7
-  },
   "run": {
     "pass": 201,
     "groups": 107,
@@ -814,9 +797,26 @@
     "cloud": "aws",
     "refusedRunner": true
   },
-  "checkedAt": "2026-11-26T05:37:01+00:00",
+  "activation": {
+    "at": "2026-11-24T10:28:44+00:00",
+    "activated": [
+      {
+        "competition": "55337395",
+        "name": "LIGA BENJAMIN GRAN CANARIA FASE F",
+        "codes": [
+          "F1"
+        ]
+      }
+    ],
+    "failed": [],
+    "tried": [
+      "55337395"
+    ],
+    "attempts": 7
+  },
+  "checkedAt": "2026-11-26T06:32:48+00:00",
   "lastDataChange": "2026-11-26",
-  "dataVersion": "20261126",
+  "dataVersion": "20261126b",
   "summary": {
     "ok": 107,
     "rejected": 0,
