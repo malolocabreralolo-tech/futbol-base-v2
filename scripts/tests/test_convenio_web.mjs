@@ -10,10 +10,12 @@ import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
 import { readFileSync } from 'node:fs';
 import {
-  CATEGORIES, CAT_NAMES, CAT_WORDS, CAT_SHORT, LAZY_CATS, buildSeason, competitionKey, groupKind, groupLabel,
-  phaseLevel,
+  CATEGORIES, CAT_NAMES, CAT_WORDS, CAT_SHORT, LAZY_CATS, buildSeason, competitionKey, competitions, groupKind,
+  groupLabel, phaseLevel,
 } from '../../src/model.js';
 import { isCupGroup } from '../../src/state.js';
+import { SCREEN_MAP } from '../../src/screens.js';
+import { ctxFor, datasetsFor, lazyWith, PORTAL_SEASON } from './fixtures/rediseno/screens.mjs';
 
 const CONVENIO = JSON.parse(readFileSync(new URL('./fixtures/convenio_mayores.json', import.meta.url), 'utf8'));
 const SEASON = '2026-2027';
@@ -103,4 +105,81 @@ test('buildSeason con las perezosas: cada grupo con su categoría', () => {
   assert.deepEqual(season.groups.map(x => [x.id, x.cat]), [
     ['FF1', 'benjamin'], ['AL1', 'alevin'], ['INFPG1', 'infantil'], ['CADNG1', 'cadete'], ['JUV2G1', 'juvenil']]);
   assert.equal(season.groups[2].label, 'Infantil, Preferente, Grupo 1');
+});
+
+// ── El orden de las competiciones de infantil, cadete y juvenil ──────────
+//
+// Dentro de una categoría nueva, las ligas van del nivel más alto al más bajo, y el nivel manda sobre la isla y
+// sobre la fase: División de Honor, Autonómica, Interinsular, (Fase Oro), Preferente, (Fase Plata), Primera,
+// Segunda, Insular, Insular B y, al final, las de una sola división de su isla; a igual nivel, Gran Canaria,
+// Lanzarote, Fuerteventura y las interinsulares. Después, las copas, ascensos, eliminatorias y finales, con la
+// misma regla (como en benjamín, detrás de todas las ligas). Con TODAS las fases del convenio, en Ligas
+// (`c=<cat>`) y en Explorar.
+const ORDEN_LIGAS = {
+  infantil: ['Preferente Fase Oro', 'Preferente', 'Preferente de Lanzarote', 'Preferente Fase Plata', 'Primera',
+    'Primera de Lanzarote', 'Gran Canaria', 'Fase 2 de Lanzarote', 'Fase 1 de Lanzarote', 'Fase 2 de Fuerteventura',
+    'Fase 1 de Fuerteventura', 'Fuerteventura'],
+  cadete: ['Autonómica', 'Interinsular', 'Preferente', 'Preferente de Lanzarote', 'Primera', 'Primera de Lanzarote',
+    'Insular Fase 1', 'Insular', 'Insular de Lanzarote', 'Insular de Fuerteventura', 'Insular B de Lanzarote',
+    'Fuerteventura'],
+  juvenil: ['División de Honor Fase 2 C', 'División de Honor Fase 2 D', 'División de Honor', 'Interinsular',
+    'Preferente', 'Preferente de Lanzarote', 'Preferente de Fuerteventura', 'Primera', 'Segunda'],
+};
+// Una competición por prefijo y fase del convenio, de cada categoría nueva, con un id propio cada una.
+function convenioPorCategoria() {
+  const out = { infantil: [], cadete: [], juvenil: [] };
+  const seen = new Set();
+  for (const [name, [prefix, phase, island]] of Object.entries(CONVENIO)) {
+    const cat = catOf(prefix);
+    if (!out[cat] || seen.has(`${prefix}|${phase}`)) continue;
+    seen.add(`${prefix}|${phase}`);
+    out[cat].push({ id: `${prefix}${out[cat].length + 1}`, phase, island, fullName: `${name} - GRUPO 1`, teams: ['Club Uno', 'Club Dos'] });
+  }
+  return out;
+}
+const DIVISIONES = ['division-de-honor', 'autonomica', 'interinsular', 'territorial', 'preferente', 'primera', 'segunda',
+  'insular', 'insular-b', 'unica'];
+const ISLAS = ['grancanaria', 'lanzarote', 'fuerteventura', 'interinsular'];
+// El nivel de la liga de una competición, para comprobar las copas: su división y, en ella, oro antes y plata
+// después.
+const nivelDe = ck => DIVISIONES.indexOf(ck.division) * 3 + (ck.phase === 'oro' ? 0 : ck.phase === 'plata' ? 2 : 1);
+
+test('test_orden_de_las_ligas: en las nuevas, el nivel de la liga manda sobre la isla y la fase; las copas, detrás', () => {
+  const por = convenioPorCategoria();
+  const raws = Object.fromEntries(Object.entries(por).map(([cat, list]) => [cat, list.map(({ teams, ...g }) => ({ ...g, name: 'Grupo 1', standings: [], matches: [] }))]));
+  const season = buildSeason({ name: SEASON, current: true, ...raws });
+  const model = { season: n => (n === SEASON ? season : null), cups: () => null };
+  for (const cat of Object.keys(ORDEN_LIGAS)) {
+    const list = competitions(model, SEASON, { cat });
+    assert.deepEqual(list.filter(e => e.kind === 'liga').map(e => e.label), ORDEN_LIGAS[cat], `ligas de ${cat}`);
+    const kinds = list.map(e => e.kind);
+    assert.equal(kinds.lastIndexOf('liga') < kinds.indexOf('copa'), true, `${cat}: las copas, detrás de las ligas`);
+    const copas = list.filter(e => e.kind === 'copa').map(e => competitionKey(e.groups[0], SEASON));
+    assert.ok(copas.length > 0);
+    copas.forEach((ck, k) => {
+      if (!k) return;
+      const a = [nivelDe(copas[k - 1]), ISLAS.indexOf(copas[k - 1].island)], b = [nivelDe(ck), ISLAS.indexOf(ck.island)];
+      assert.ok(a[0] < b[0] || (a[0] === b[0] && a[1] <= b[1]), `${cat}: «${ck.label}» después de una de nivel o isla mayor`);
+    });
+    // Sin `cat` (Explorar), lo mismo dentro de cada categoría.
+    assert.deepEqual(competitions(model, SEASON).filter(e => e.cat === cat).map(e => e.key), list.map(e => e.key), `${cat} sin filtro`);
+  }
+});
+
+test('test_orden_de_las_ligas: en Ligas (c=<cat>) y en Explorar, con todas las fases del convenio', () => {
+  const por = convenioPorCategoria();
+  const lazy = Object.fromEntries(Object.entries(por).map(([cat, list]) => [cat, lazyWith(cat, list)]));
+  const seasons = [{ name: PORTAL_SEASON, current: true, lazy: ['infantil', 'cadete', 'juvenil'] }, { name: '2024-2025', current: false }];
+  const datasets = datasetsFor({ seasons, lazy });
+  const labels = (out, cls = 'link-row') => [...String(out).matchAll(new RegExp(`<a class="${cls}[^"]*" href="([^"]+)">(.*?)</a>`, 'g'))]
+    .map(m => [m[1].replace(/&amp;/g, '&'), m[2].replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim()]);
+  const explorar = String(SCREEN_MAP.explorar.render(ctxFor('explorar', {}, { datasets })));
+  for (const cat of Object.keys(ORDEN_LIGAS)) {
+    const ligas = labels(SCREEN_MAP.ligas.render(ctxFor('ligas', { s: PORTAL_SEASON, c: cat }, { datasets })))
+      .filter(([href]) => href.includes(`c=${cat}&f=`));
+    const nombres = ligas.map(([, t]) => t.replace(/ \d+ grupos?$/, ''));
+    assert.deepEqual(nombres.slice(0, ORDEN_LIGAS[cat].length), ORDEN_LIGAS[cat], `Ligas de ${cat}`);
+    const enExplorar = labels(explorar).filter(([href]) => href.includes(`c=${cat}&f=`)).map(([, t]) => t.replace(/ \d+ grupos?$/, ''));
+    assert.deepEqual(enExplorar, ORDEN_LIGAS[cat], `Explorar, ligas de ${cat}`);
+  }
 });

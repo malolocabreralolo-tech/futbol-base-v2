@@ -977,8 +977,8 @@ async function mayoresWidths() {
 }
 
 // Ligas de cadete y la Tabla de CADI1 (la Interinsular) a 320 px (mundo M), en claro y en oscuro: sin
-// desplazamiento horizontal de la página y con la barra en su sitio; Ligas lista las dos ligas de cadete y abre
-// la Interinsular, cuya Tabla dice su categoría y su fase y lleva los seis equipos, sin errores de JavaScript.
+// desplazamiento horizontal de la página y con la barra en su sitio; Ligas lista las dos ligas de cadete (la
+// Interinsular, de más nivel, antes que la Insular de Gran Canaria) y abre la Interinsular, cuya Tabla dice su categoría y su fase y lleva los seis equipos, sin errores de JavaScript.
 async function mayoresM() {
   const viewport = { width: 320, height: 568 };
   for (const colorScheme of ['light', 'dark']) {
@@ -994,7 +994,7 @@ async function mayoresM() {
       await paintedAs(page, 'ligas', { label: `${label}, Ligas` });
       let m = await checkLayout(page, viewport.width, `${label}, Ligas`);
       assert.equal(m.paper, PAPER[colorScheme], `${label}, Ligas: fondo del tema`);
-      assert.deepEqual(await page.locator('#contenido .link-row-title').allTextContents(), ['Insular', 'Interinsular'], `${label}, Ligas`);
+      assert.deepEqual(await page.locator('#contenido .link-row-title').allTextContents(), ['Interinsular', 'Insular'], `${label}, Ligas: la de más nivel, la primera`);
       await click(page, '#contenido a.link-row:has-text("Interinsular")', label);
       await paintedAs(page, 'ligas', { label: `${label}, la Interinsular` });
       await click(page, '#contenido a.link-row[href*="g=CADI1"]', label);

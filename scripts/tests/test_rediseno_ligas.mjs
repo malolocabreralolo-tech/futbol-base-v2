@@ -240,16 +240,16 @@ test('test_ligas_interinsular: juvenil con la División de Honor (interinsular) 
     { id: 'JUVPG1', phase: 'Preferente GC', fullName: 'LIGA JUVENIL PREFERENTE DE GRAN CANARIA - GRUPO 1', teams: ['Club Gc Uno', 'Club Gc Dos'] },
   ]);
   const data = { lazy: { juvenil: JUV } };
-  // Las tres, con su nombre (la División de Honor, sin «de Interinsular») y por isla: Gran Canaria, Lanzarote
-  // e Interinsular, la última (ISLAND_ORDER).
+  // Las tres, con su nombre (la División de Honor, sin «de Interinsular»): primero el nivel de la liga (la
+  // División de Honor, interinsular, la primera) y, a igual nivel, Gran Canaria y Lanzarote (ISLAND_ORDER).
   const all = render({ c: 'juvenil' }, {}, data);
   assert.deepEqual(rows(all), [
+    [`#/ligas?s=${PORTAL_SEASON}&c=juvenil&f=interinsular-division-de-honor`, 'División de Honor 1 grupo'],
     [`#/ligas?s=${PORTAL_SEASON}&c=juvenil&f=preferente`, 'Preferente 1 grupo'],
     [`#/ligas?s=${PORTAL_SEASON}&c=juvenil&f=lanzarote-preferente`, 'Preferente de Lanzarote 1 grupo'],
-    [`#/ligas?s=${PORTAL_SEASON}&c=juvenil&f=interinsular-division-de-honor`, 'División de Honor 1 grupo'],
   ]);
   assert.doesNotMatch(all, /de Interinsular/);
-  assert.deepEqual(ligasView(ctxWith({ c: 'juvenil' }, {}, data)).list.map((e) => e.groups[0].island), ['grancanaria', 'lanzarote', 'interinsular']);
+  assert.deepEqual(ligasView(ctxWith({ c: 'juvenil' }, {}, data)).list.map((e) => e.groups[0].island), ['interinsular', 'grancanaria', 'lanzarote']);
   // El filtro de isla con «interinsular» («Otras ligas» de un grupo de la División de Honor): solo la suya.
   const only = render({ c: 'juvenil', i: 'interinsular', to: 'tabla' }, {}, data);
   assert.deepEqual(rows(only).map(([, label]) => label), ['División de Honor 1 grupo']);
