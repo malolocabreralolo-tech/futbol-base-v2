@@ -868,9 +868,9 @@ def _launch(pw):
 
 
 def federacion(minutos, max_paginas):
-    """La Federacion de la tanda: la lectura del bot (fiflp_carga.para_tanda, con el raspador de siempre), sin
-    esperas del freno, con su plazo y su tope de peticiones; la nube, la de la máquina. Las pruebas la cambian
-    por la de la federación de mentira."""
+    """La Federacion de la tanda: la lectura del bot (fiflp_carga.para_tanda, con el raspador de siempre), con una
+    espera del freno por ejecución (HISTORICO_ESPERAS), su plazo y su tope de peticiones; la nube, la de la máquina.
+    Las pruebas la cambian por la de la federación de mentira."""
     from scripts import fetch_fiflp_2425
     return fiflp_carga.para_tanda(fetch_fiflp_2425, minutos, max_paginas)
 
@@ -879,8 +879,8 @@ def leer_actas(page, F, pending, over, on_result, dump_fixture=""):
     """Lee las actas de `pending`, en su orden, con UN navegador (la página de la tanda), hasta que over() o
     hasta que la federación pare (parada_de(F)). on_result(target, acta) con cada una (None: no cargó).
     Sustituye a fetch_parallel (varios navegadores sobre una cola): con el intervalo de 7 s de la Federacion,
-    un runner de Azure ya lee ~500 páginas por hora, más de lo que da el tope del día en una tanda; dos
-    navegadores se saltarían el intervalo (el doble de carga) sin que haga falta.
+    un runner lee ~500 páginas por hora mientras la federación sirve (hasta su cupo por IP, ~150: el 26/11/2026);
+    dos navegadores se saltarían el intervalo (el doble de carga) y gastarían el cupo antes.
     Un acta que cargó y no se entiende (una excepción al leerla o interpretarla): on_result(target, None,
     motivo=<tipo de la excepción>), como una muerta (Collector le gasta un intento si la federación sirve). Antes
     se saltaba sin apuntar nada: pendiente para siempre, con la tanda en verde. El tipo, nunca el texto."""

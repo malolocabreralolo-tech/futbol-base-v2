@@ -6,11 +6,13 @@ El problema. Hasta noviembre de 2026 las tandas del histórico (fetch_fiflp_gole
 con su workflow) daban por leída una página vacía: con el freno de la federación (desde el 14/10) habrían guardado
 grupos y jornadas vacíos como buenos (docs/ampliacion-mapa.md, sección 2). Lo medido (docs/freno-2026-11.md, 840
 registros de pasadas): en los runners de GitHub en Azure la federación sirve ~124-138 páginas por pasada de 16
-min, sin freno, a todas horas (~500 por hora); a los de AWS (cerca de la mitad de los jobs desde el 13/11) les
-contesta vacío desde la primera petición, siempre; y hay páginas que vienen vacías siempre aunque la federación
-sirva las demás (páginas muertas: lo que paraba las pasadas de v2 desde el 21/11). Los descargadores ya leen como
-el bot (fiflp_carga.para_tanda) y llevan lo pendiente en sus ficheros; este módulo decide, en cada ejecución del
-carril, qué toca.
+min, sin freno, a todas horas; a los de AWS (cerca de la mitad de los jobs desde el 13/11) les contesta vacío
+desde la primera petición, siempre; y hay páginas que vienen vacías siempre aunque la federación sirva las demás
+(páginas muertas: lo que paraba las pasadas de v2 desde el 21/11). Y el 26/11/2026, la primera ejecución larga del
+carril en Azure: 150 páginas y el freno. Las pasadas del bot no lo ven porque acaban por tiempo antes del cupo:
+la federación sigue frenando, a las ~150 páginas por IP (no ~500 por hora sin freno, como se creía). Los
+descargadores leen como el bot (fiflp_carga.para_tanda, con su espera del freno) y llevan lo pendiente en sus
+ficheros; este módulo decide, en cada ejecución del carril, qué toca.
 
 Las reglas del carril, y el porqué de cada número:
   - UNA ejecución cada vez (historico.yml: concurrencia historico-federacion, sin cancelar): un solo runner, un
@@ -19,23 +21,34 @@ Las reglas del carril, y el porqué de cada número:
     hora de Canarias), que son del bot en vivo; cada ejecución acaba MARGEN_VENTANA (20 min) antes de la
     siguiente, y no empieza si le quedan menos de MINIMO_EJECUCION (10 min). Como mucho MINUTOS_EJECUCION (300):
     con la instalación y la subida cabe en el job de 350;
-  - PAGINAS_DIA (2.000) páginas al día, hora de Canarias, para empezar: es lo que el bot leía a diario sin
-    problemas del 21/10 al 13/11 (1.240-2.720; v1 y v2 juntas, ~3.700 el 14/11 sin consecuencias). En Azure son
-    ~4 h de lectura, que caben fuera de las ventanas cualquier día y en una sola ejecución, y bajan el alevín de
-    Gran Canaria de siete temporadas en unos 9-10 días. La rampa la sube a mano quien dirige
-    (HISTORICO_PAGINAS_DIA, variable del repositorio): 2.000 → 3.000 → 4.000, cada escalón tras tres días seguidos
-    sin ninguno en `dias_frenados` y con las pasadas del bot igual de servidas; de 4.000 no se pasa sin medir;
-  - EL DÍA PARADO POR EL FRENO DE VERDAD: si en una ejecución la federación frena (una vacía sin servir otra, o un
-    503/429; `frenos` del resumen, no solo `parada`: un freno cortado por el tope da parada «tope»), o si el último
-    data-health.json del día dice que el bot en vivo lo ha esperado en Azure (freno_del_bot), no se lee nada más
-    ese día; al día siguiente, el tope entero;
+  - PAGINAS_DIA (2.000) páginas al día, hora de Canarias, como límite global: es lo que el bot leía a diario sin
+    problemas del 21/10 al 13/11 (1.240-2.720; v1 y v2 juntas, ~3.700 el 14/11 sin consecuencias). Con el freno a
+    las ~150 páginas por IP no se llega a él (abajo: unas 600-1.200 en un día entre semana). La rampa
+    (HISTORICO_PAGINAS_DIA, variable del repositorio: 2.000 → 3.000 → 4.000, a mano) no hace falta mientras el
+    límite sea el freno; de 4.000 no se pasa sin medir;
+  - EL FRENO, UNA ESPERA POR EJECUCIÓN (desde el 26/11/2026; fiflp_carga.ESPERAS_TANDA, HISTORICO_ESPERAS): como el
+    bot, la ejecución espera el primero (4 min y un sondeo por minuto, ~5 min, con tope de 20) y sigue leyendo; el
+    segundo (el bloqueo escala dentro de la misma IP) la acaba. La espera nunca pasa del plazo de la ejecución;
+  - UN FRENO NO PARA EL DÍA (desde el 26/11/2026): se apunta (dia["freno"] «carril» y la fecha en dias_frenados,
+    para leer cómo va) y la ejecución siguiente es la del reloj. Solo PARAN EL DÍA (no se lee nada más ese día; al
+    día siguiente, el tope entero) un freno con menos de RELANZAR_MIN páginas servidas en la ejecución, sin ser un
+    runner rechazado (dia["freno"] «carril_pronto»: la federación limita más de lo normal, y no se insiste), y el
+    del bot en vivo con el mismo criterio: el último data-health.json del día dice que una pasada lo ha esperado en
+    Azure tras menos de RELANZAR_MIN páginas servidas (freno_del_bot, «bot»; con 60 o más, o sin el dato, no para).
+    Freno es una vacía sin servir otra o un 503/429 (`frenos` del resumen, no solo `parada`: un freno cortado por
+    el tope da parada «tope»). Hasta el 26/11/2026 cualquier freno paraba el día: el carril bajaba ~150 páginas
+    al día, y un «carril» de entonces se lee hoy como lo que fue, un freno normal;
   - RELANZAR solo si la federación sirvió (fiflp_carga.RELANZAR_MIN, 60 páginas: con menos, algo iba mal) o si
     lo que toca después es una prueba (no pide nada a la federación: sin esto, un trabajo que se completa con
-    dos páginas —el último grupo que faltaba— esperaba al disparo siguiente para probarse), y
-    nunca por caer en un runner que la federación no sirve (RELANZAR_SI_RUNNER_RECHAZADO = 0): relanzar hasta que
-    toque Azure es esquivar un bloqueo, y lo decide el dueño. Lo retoma el disparo siguiente del reloj (reloj.yml,
-    cada 3 h: con la mitad de los runners en AWS, alguno de los ≤ 8 disparos del día cae en Azure, y uno solo llega al
-    tope);
+    dos páginas —el último grupo que faltaba— esperaba al disparo siguiente para probarse); NUNCA tras una
+    ejecución que acabó en el freno (parada «freno»), ni para una prueba: relanzar en seguida en otro runner sería
+    esquivar el bloqueo con una IP nueva; y nunca por caer en un runner que la federación no sirve
+    (RELANZAR_SI_RUNNER_RECHAZADO = 0): relanzar hasta que toque Azure es esquivar un bloqueo, y lo decide el
+    dueño. Lo retoma el disparo siguiente del reloj (reloj.yml, cada 3 h desde que empezó la última, cuando el
+    bloqueo hace mucho que acabó: como mucho 8 al día, y la mitad caen en AWS). Lo que cabe esperar, con ~150
+    páginas por tramo: una ejecución en Azure da ~150-300 (un tramo, la espera y otro, quizá más corto); entre
+    semana, ~4 de los 8 intentos en Azure, ~600-1.200 páginas al día; el viernes (hasta las 17:40) ~450-900; el
+    sábado y el domingo (de 0 a 9:40) ~225-600;
   - LA CUARENTENA Y LA PRUEBA: lo bajado va a scripts/historico/ (cuarentena.py), que el bot no mira. Un trabajo
     completo se prueba sobre una copia (prueba_historico.py: importar sin red, la base sana y todas las suites),
     una temporada cada vez y con MARGEN_PRUEBA (60 min) antes de la ventana siguiente (la importación del bot en
@@ -45,7 +58,8 @@ Las reglas del carril, y el porqué de cada número:
 
 Los ficheros del carril (en carpeta(): HISTORICO_CARPETA o cuarentena.CARPETA):
   plan.json    el encargo (solo lo escribe el job del encargo: encargar, parar, reanudar, reintentar);
-  estado.json  lo que lleva hecho (solo lo escribe el carril): el día, los días frenados, cada trabajo
+  estado.json  lo que lleva hecho (solo lo escribe el carril): el día (sus páginas y su freno: «carril», que no
+               lo para, o «carril_pronto» o «bot», que sí), los días con algún freno, cada trabajo
                (pendiente, completo, fallo, promovido; las huellas de lo que se probó y, los de un fichero de
                todas las categorías, las que tiene enteras), las ejecuciones y las pruebas. De aquí leerá «Datos y
                fuentes» (no de data-health.json, que reescribe el bot: dos escritores chocarían al rebasar).
@@ -119,6 +133,13 @@ NOMBRE_CATEGORIA = {"benjamin": "benjamín", "prebenjamin": "prebenjamín", "ale
                     "infantil": "infantil", "cadete": "cadete", "juvenil": "juvenil"}
 PARADAS = {"tope": "tope del día", "freno": "freno de verdad", "plazo": "plazo", "navegador": "navegador cerrado",
            "runner": "runner rechazado", None: "sin cortes"}
+# Lo que dice estado["dia"]["freno"]: quién vio hoy el freno, y si para el día. Desde el 26/11/2026 un freno del
+# carril con las páginas de siempre ya servidas («carril») solo se apunta: es el cupo de la IP (~150 páginas), la
+# ejecución lo espera una vez y la siguiente, la del reloj, vuelve a leer. Paran el día el freno con menos de
+# RELANZAR_MIN páginas servidas («carril_pronto»: la federación limita más de lo normal) y el que vio el bot en vivo
+# («bot»). Un «carril» de antes (la regla vieja lo apuntaba con cualquier freno) se lee como lo que es: no para.
+FRENO_CARRIL, FRENO_PRONTO, FRENO_BOT = "carril", "carril_pronto", "bot"
+PARAN_EL_DIA = (FRENO_PRONTO, FRENO_BOT)
 
 
 # ── La carpeta y sus ficheros ────────────────────────────────────────────────
@@ -235,21 +256,32 @@ def cupo_hoy(estado, now, env=None):
 
 
 def _frenado(run):
-    """¿Esta pasada esperó el freno en Azure? (pauses >= 1, cloud "azure" y no refusedRunner)."""
+    """¿Esta pasada esperó el freno en Azure (pauses >= 1, cloud "azure" y no refusedRunner) y frenó PRONTO, con menos
+    de RELANZAR_MIN páginas servidas (brakeAfter[0]: las servidas antes del primer freno, update_fiflp)? Desde el
+    26/11/2026, el mismo criterio que con el carril: el cupo ronda las ~150 páginas por IP y las pasadas del bot
+    sirven ~137, así que una algo más larga frena sin que pase nada raro (ese freno no dice nada del día). Sin
+    brakeAfter (o sin entenderlo) no se sabe cuántas llevaba: un freno normal, que no para."""
     try:
-        return (isinstance(run, dict) and int(run.get("pauses") or 0) >= 1 and run.get("cloud") == "azure"
-                and not run.get("refusedRunner"))
+        if not (isinstance(run, dict) and int(run.get("pauses") or 0) >= 1 and run.get("cloud") == "azure"
+                and not run.get("refusedRunner")):
+            return False
+        tras = run.get("brakeAfter")
+        if not isinstance(tras, list) or not tras or isinstance(tras[0], bool):
+            return False
+        return int(tras[0]) < RELANZAR_MIN
     except (TypeError, ValueError):
         return False
 
 
 def freno_del_bot(salud, now):
-    """¿El bot en vivo ha esperado hoy el freno en Azure? Con el data-health.json publicado: su checkedAt es de hoy
-    en Canarias y la última pasada de alguno de sus carriles (`run`, la del bot de siempre; `carriles.mayores.run`,
-    la del carril de infantil, cadete y juvenil: docs/categorias-mayores.md) tiene pauses >= 1, cloud "azure" y no
-    refusedRunner (un runner de AWS no es el freno: es la federación que no sirve a AWS). Los dos leen la misma
-    federación: si cualquiera vio hoy el freno de verdad, el histórico no lee más ese día. Sin fichero, sin
-    `run` o con algo que no se entiende, False: no se para por un dato que no se lee."""
+    """¿El bot en vivo ha esperado hoy el freno en Azure, y pronto? Con el data-health.json publicado: su checkedAt es
+    de hoy en Canarias y la última pasada de alguno de sus carriles (`run`, la del bot de siempre;
+    `carriles.mayores.run`, la del carril de infantil, cadete y juvenil: docs/categorias-mayores.md) tiene pauses >= 1,
+    cloud "azure", no refusedRunner (un runner de AWS no es el freno: es la federación que no sirve a AWS) y frenó con
+    menos de RELANZAR_MIN páginas servidas (brakeAfter[0]: _frenado). Los dos leen la misma federación: si cualquiera
+    vio hoy que la federación limita más de lo normal, el histórico no lee más ese día. Un freno del bot con 60
+    páginas o más (el cupo de siempre) no para el día, ni uno sin brakeAfter. Sin fichero, sin `run` o con algo que
+    no se entiende, False: no se para por un dato que no se lee."""
     try:
         visto = _instante(salud.get("checkedAt"))
         if visto is None or fecha_de(visto) != fecha_de(now):
@@ -262,8 +294,9 @@ def freno_del_bot(salud, now):
 
 
 def _freno_hoy(estado, now):
+    """¿Está hoy el día parado por el freno (PARAN_EL_DIA)? Un freno normal del carril («carril») no lo para."""
     dia = estado.get("dia") or {}
-    return bool(dia.get("freno")) and dia.get("fecha") == fecha_de(now)
+    return dia.get("freno") in PARAN_EL_DIA and dia.get("fecha") == fecha_de(now)
 
 
 # ── Los trabajos ─────────────────────────────────────────────────────────────
@@ -540,10 +573,13 @@ def argumentos(accion, resumen):
 # ── Lo que deja cada ejecución ───────────────────────────────────────────────
 
 def _frenar_dia(estado, fecha, quien):
+    """Apunta en el día `fecha` el freno que vio `quien` (FRENO_CARRIL, FRENO_PRONTO o FRENO_BOT) y la fecha en
+    dias_frenados (los días con algún freno: para leer cómo va; no decide nada). Uno que para el día pasa por delante
+    de uno que no; entre dos que lo paran, se queda el primero."""
     dia = estado["dia"]
     if dia.get("fecha") != fecha:
         estado["dia"] = dia = {"fecha": fecha, "paginas": 0, "freno": None}
-    if not dia.get("freno"):
+    if not dia.get("freno") or (quien in PARAN_EL_DIA and dia["freno"] not in PARAN_EL_DIA):
         dia["freno"] = quien
     if fecha not in estado["dias_frenados"]:
         estado["dias_frenados"] = (estado["dias_frenados"] + [fecha])[-MAX_DIAS_FRENADOS:]
@@ -551,12 +587,12 @@ def _frenar_dia(estado, fecha, quien):
 
 def apuntar_freno_del_bot(estado, salud, now):
     """El estado con el día de hoy parado por el bot en vivo (freno_del_bot), o None si no hay nada que apuntar
-    (no frenó, o hoy ya está parado). Así `dias_frenados`, lo que mira la rampa, tiene también los días en que el
-    carril no leyó nada por el freno que vio el bot."""
+    (no frenó, o hoy ya está parado; un freno normal del carril, «carril», no lo para: se cambia por «bot»). Así
+    `dias_frenados` tiene también los días en que el carril no leyó nada por el freno que vio el bot."""
     if not freno_del_bot(salud, now) or _freno_hoy(estado, now):
         return None
     estado = copy.deepcopy(estado)
-    _frenar_dia(estado, fecha_de(now), "bot")
+    _frenar_dia(estado, fecha_de(now), FRENO_BOT)
     return estado
 
 
@@ -571,12 +607,20 @@ def _cambiado(previo, actuales):
     return any(h is not None and h != guardadas.get(n) for n, h in (actuales or {}).items())
 
 
+def _frenada(resumen):
+    """¿Frenó de verdad la federación en esta ejecución? Parada «freno», o alguna señal del freno (`frenos`: un freno
+    cortado por el tope da parada «tope», y uno esperado del que volvió, la del final)."""
+    return resumen.get("parada") == "freno" or int(resumen.get("frenos") or 0) > 0
+
+
 def registrar(estado, accion, resumen, now, salud=None, huellas=None):
     """El estado tras una descarga: suma las páginas pedidas al día de accion["dia"] (si es otro que el de
     estado["dia"], empieza uno nuevo), pasa cada parte del resumen a su trabajo (completo o pendiente) y apunta la
     ejecución. Un runner rechazado no cambia ningún trabajo ni gasta el tope del día. Si la federación frenó de
-    verdad (parada «freno», o `frenos` > 0: un freno cortado por el tope da parada «tope»), el día queda parado
-    («carril») y en dias_frenados; si el bot lo vio hoy (`salud`), también («bot»). Lo que ya estaba «fallo» o
+    verdad (parada «freno», o `frenos` > 0: un freno cortado por el tope da parada «tope»), el freno se apunta en el
+    día y en dias_frenados: con RELANZAR_MIN páginas servidas o más, sin parar el día («carril»: el cupo de la IP, que
+    la ejecución ya esperó una vez); con menos, parándolo («carril_pronto»: la federación limita más de lo normal, y
+    no se insiste hasta mañana). Si el bot lo vio hoy (`salud`), también, y lo para («bot»). Lo que ya estaba «fallo» o
     «promovido» y vuelve entero se queda como estaba (no se prueba otra vez solo), salvo que el contenido de alguno
     de sus ficheros en la cuarentena haya cambiado desde su prueba (`huellas(clave)`, {nombre: sha1 o None}, contra
     las que guardó registrar_prueba: _cambiado). No basta con que el fichero esté: tras una prueba en rojo se queda
@@ -608,15 +652,17 @@ def registrar(estado, accion, resumen, now, salud=None, huellas=None):
             if clave.split(":")[0] in COMPARTIDOS and parte.get("completo") and nuevo != "fallo":
                 suyas = set(previo.get("categorias") or []) | set(accion.get("categorias") or [])
                 datos["categorias"] = [c for c in DB_NAME if c in suyas]
-        if resumen.get("parada") == "freno" or int(resumen.get("frenos") or 0) > 0:
-            _frenar_dia(estado, accion.get("dia"), "carril")
+        if _frenada(resumen):
+            pronto = int(resumen.get("servidas") or 0) < RELANZAR_MIN
+            _frenar_dia(estado, accion.get("dia"), FRENO_PRONTO if pronto else FRENO_CARRIL)
     r = resumen or {}
     estado["ejecuciones"] = (estado["ejecuciones"] + [{
         "inicio": accion.get("inicio"), "fin": _iso(now), "accion": accion.get("accion"),
         "trabajo": accion.get("trabajo"), "temporadas": accion.get("temporadas"), "lote": accion.get("lote"),
         "paginas": accion.get("paginas"), "pedidas": r.get("pedidas") if resumen else None,
         "servidas": r.get("servidas"), "muertas": r.get("muertas"), "esperas": r.get("esperas"),
-        "frenos": r.get("frenos"), "frenos_tras": r.get("frenos_tras"), "parada": r.get("parada"),
+        "frenos": r.get("frenos"), "frenos_tras": r.get("frenos_tras"), "esperas_s": r.get("esperas_s"),
+        "esperas_sirvio": r.get("esperas_sirvio"), "parada": r.get("parada"),
         "nube": r.get("nube"), "runner_rechazado": rechazado, "relanzada": False}])[-MAX_EJECUCIONES:]
     apuntado = apuntar_freno_del_bot(estado, salud, now)
     return apuntado or estado
@@ -645,8 +691,11 @@ def relanzar(resumen, despues, estado):
     """¿Se lanza otra ejecución en seguida? `despues`, siguiente() con el estado ya registrado: nunca si es nada;
     tras una prueba (resumen None), sí; tras un runner rechazado, solo si las ejecuciones rechazadas seguidas al
     final de estado["ejecuciones"] (esta incluida) son como mucho RELANZAR_SI_RUNNER_RECHAZADO (con 0, nunca); tras
-    otra descarga, si la federación sirvió RELANZAR_MIN páginas o si lo que toca es una prueba (la prueba no pide
-    nada a la federación: da igual lo poco que se haya leído). Si no, lo retoma el disparo siguiente del reloj."""
+    una descarga que ACABÓ EN EL FRENO (parada «freno»: el segundo, o el primero si no se esperó o no volvió),
+    nunca, ni para una prueba: relanzar en seguida en otro runner sería esquivar el bloqueo con una IP nueva (y tras
+    la prueba se relanzaría la descarga); tras otra descarga, si la federación sirvió RELANZAR_MIN páginas o si lo
+    que toca es una prueba (la prueba no pide nada a la federación: da igual lo poco que se haya leído). Si no, lo
+    retoma el disparo siguiente del reloj (cada 3 h: el bloqueo hace mucho que acabó)."""
     if despues.get("accion") == "nada":
         return False
     if resumen is None:
@@ -658,6 +707,8 @@ def relanzar(resumen, despues, estado):
                 break
             seguidas += 1
         return seguidas <= RELANZAR_SI_RUNNER_RECHAZADO
+    if resumen.get("parada") == "freno":
+        return False
     if despues.get("accion") == "probar":
         return True
     return int(resumen.get("servidas") or 0) >= RELANZAR_MIN
@@ -788,8 +839,50 @@ def _linea_ejecucion(e):
         return f"{cuando}, {que}: el descargador no dejó su resumen (falló)."
     muertas = int(e.get("muertas") or 0)
     de = f" de {_miles(e['paginas'])}" if e.get("paginas") is not None else ""
-    return (f"{cuando}, {que}, {_miles(e.get('servidas') or 0)}{de} páginas servidas ({muertas} "
-            f"muerta{'' if muertas == 1 else 's'}), {PARADAS.get(e.get('parada'), e.get('parada'))}.")
+    servidas = (f"{cuando}, {que}, {_miles(e.get('servidas') or 0)}{de} páginas servidas ({muertas} "
+                f"muerta{'' if muertas == 1 else 's'})")
+    tramos = _tramos(e)
+    return f"{servidas}: {tramos}." if tramos else f"{servidas}, {PARADAS.get(e.get('parada'), e.get('parada'))}."
+
+
+_ORDINAL = {1: "segundo", 2: "tercer", 3: "cuarto"}
+
+
+def _minutos(segundos):
+    return f"{float(segundos) / 60:.0f} min" if float(segundos) >= 60 else f"{float(segundos):.0f} s"
+
+
+def _tramos(e):
+    """Cómo fue una ejecución que frenó, tramo a tramo (para calibrar la cadencia): «150 páginas, freno, esperó 5 min,
+    140 más, segundo freno: fin de la ejecución». De frenos_tras (las páginas servidas antes de cada freno, desde el
+    anterior), esperas_s y esperas_sirvio (cada espera, cuánto duró y si volvió a servir; las ejecuciones de antes del
+    26/11/2026 no las tienen: no esperaban). "" sin frenos, o si no se entiende."""
+    try:
+        frenos = [int(n) for n in e.get("frenos_tras") or []]
+        esperas = [float(s) for s in e.get("esperas_s") or []]
+        sirvio = [bool(v) for v in e.get("esperas_sirvio") or []] + [True] * len(esperas)
+        servidas = int(e.get("servidas") or 0)
+    except (TypeError, ValueError):
+        return ""
+    if not frenos:
+        return ""
+    partes = []
+    for i, n in enumerate(frenos):
+        paginas = f"{_miles(n)} página{'' if n == 1 else 's'}" if i == 0 else f"{_miles(n)} más"
+        freno = "freno" if i == 0 else f"{_ORDINAL.get(i, 'otro')} freno"
+        if i >= len(esperas):
+            # No se esperó (el segundo, sin esperas, sin plazo o con el tope): la ejecución acaba aquí.
+            fin = "fin de la ejecución" if e.get("parada") == "freno" else PARADAS.get(e.get("parada"), e.get("parada"))
+            sin = "" if i else ", sin esperarlo"
+            partes.append(f"{paginas}{' y ' if i == 0 else ', '}{freno}{sin}: {fin}")
+            return ", ".join(partes)
+        partes.append(f"{paginas}, {freno}, esperó {_minutos(esperas[i])}")
+        if not sirvio[i]:
+            partes[-1] += " y no volvió a servir: fin de la ejecución"
+            return ", ".join(partes)
+    # La última espera volvió a servir y la ejecución acabó por otra cosa (el plazo, el tope, nada más que leer).
+    resto = max(0, servidas - sum(frenos))
+    return ", ".join(partes) + f", {_miles(resto)} más: {PARADAS.get(e.get('parada'), e.get('parada'))}"
 
 
 def _linea_prueba(p):
@@ -830,12 +923,17 @@ def estado_legible(plan, estado, now, env=None):
                       + (" Parado." if plan.get("parado") else ""))
     hoy = f"{_local(_utc(now)):%d/%m/%Y}"
     dia = estado.get("dia") or {}
-    if _freno_hoy(estado, now):
-        quien = "lo vio el bot en vivo" if dia.get("freno") == "bot" else "lo vio el carril"
-        lineas.append(f"Hoy ({hoy}): parado por el freno de verdad ({quien}).")
+    if _freno_hoy(estado, now) and dia.get("freno") == FRENO_BOT:
+        lineas.append(f"Hoy ({hoy}): parado por el freno de verdad (lo vio el bot en vivo).")
+    elif _freno_hoy(estado, now):
+        lineas.append(f"Hoy ({hoy}): parado: la federación frenó al carril con menos de {RELANZAR_MIN} páginas "
+                      "servidas (limita más de lo normal); mañana, el tope entero.")
     else:
         usadas = int(dia.get("paginas") or 0) if dia.get("fecha") == fecha_de(now) else 0
-        lineas.append(f"Hoy ({hoy}): {_miles(usadas)} de {_miles(paginas_dia(env))} páginas.")
+        frenado = dia.get("freno") == FRENO_CARRIL and dia.get("fecha") == fecha_de(now)
+        lineas.append(f"Hoy ({hoy}): {_miles(usadas)} de {_miles(paginas_dia(env))} páginas"
+                      + (" (con algún freno, que no para el día: sigue el disparo siguiente del reloj)." if frenado
+                         else "."))
     if plan:
         lineas += [_linea_trabajo(estado, k, plan) for k in trabajos_del_plan(plan)]
     if estado.get("ejecuciones"):
@@ -946,8 +1044,8 @@ def main(argv=None):
     plan, estado = leer_plan(), leer_estado()
     if args.orden == "siguiente":
         accion = siguiente(plan, estado, now, salud=salud)
-        # El freno del bot, apuntado en el día (y en dias_frenados, lo que mira la rampa) solo si es lo que para al
-        # carril: terminado, sin encargo o en una ventana, no hay nada que apuntar (sería un commit al día, siempre).
+        # El freno del bot, apuntado en el día (y en dias_frenados) solo si es lo que para al carril: terminado, sin
+        # encargo o en una ventana, no hay nada que apuntar (sería un commit al día, siempre).
         apuntado = apuntar_freno_del_bot(estado, salud, now) if accion.get("motivo") == "freno de verdad hoy" else None
         if apuntado is not None:
             guardar_estado(apuntado)

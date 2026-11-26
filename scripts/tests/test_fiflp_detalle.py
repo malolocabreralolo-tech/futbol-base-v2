@@ -185,7 +185,8 @@ def test_plazo_agotado_para_sin_perder_lo_leido(tmp_path, monkeypatch):
 
 # ── Con la lectura del bot (fiflp_carga.Federacion) sobre la federación de mentira ──
 # Temporada 12 (2016-2017), una competición 900 con un grupo G1 de cinco jornadas (sus partidos, los datos del
-# raspador falso). Como para_tanda: sin esperas del freno.
+# raspador falso). Sin esperas del freno (HISTORICO_ESPERAS=0): la espera del carril, en test_fiflp_carga y en las
+# de las actas y los goleadores.
 
 from federacion_falsa import FederacionFalsa, Pagina, Reloj  # noqa: E402
 

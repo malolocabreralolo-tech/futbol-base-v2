@@ -80,12 +80,19 @@ Federacion).
 
 LAS TANDAS DEL HISTÓRICO (fetch_fiflp_actas, _goleadores, _detalle: las temporadas pasadas) leen con
 para_tanda: la misma Federacion y la misma detección que el bot (una página vacía solo es el freno si la
-federación tampoco sirve otra; si la sirve, es una página muerta), pero sin esperas por defecto (ESPERAS_TANDA:
-con el freno de verdad la tanda para, no lo espera) y con un TOPE de peticiones por ejecución (`max_pages`,
+federación tampoco sirve otra; si la sirve, es una página muerta), con UNA espera del freno por ejecución, como
+el bot (ESPERAS_TANDA; HISTORICO_ESPERAS=0, ninguna), y con un TOPE de peticiones por ejecución (`max_pages`,
 `topped`). Al acabar, la Federacion dice por qué paró (`parada`: el navegador, el runner rechazado, el tope,
 el freno o el plazo) y da su resumen (guardar_resumen: el carril del histórico decide con él qué hace
-después). Hasta noviembre de 2026 leían con el paso de fetch_fiflp_2425 y daban por buena una página vacía;
-solo fetch_fiflp_islas (la activación de la temporada en curso) sigue con ese paso, sin prisa.
+después), con lo que mide cada espera (cuánto duró y si volvió a servir). Hasta noviembre de 2026 leían con el
+paso de fetch_fiflp_2425 y daban por buena una página vacía; solo fetch_fiflp_islas (la activación de la
+temporada en curso) sigue con ese paso, sin prisa.
+
+EL FRENO SIGUE AHÍ (26/11/2026, docs/freno-2026-11.md): se creía que en Azure la federación ya no frenaba (las
+pasadas del bot sirven ~124-138 páginas sin freno), pero esas pasadas acaban por tiempo (16 min) antes del cupo.
+La primera ejecución larga del carril en Azure (de 02:40 a 02:58 UTC) sirvió 150 páginas y frenó: el cupo por IP
+ronda hoy las ~150 páginas, no ~500 por hora. Hasta ese día las tandas no esperaban el freno (ESPERAS_TANDA 0) y
+el carril paraba el día con el primero: 150 páginas al día.
 """
 from datetime import datetime, timedelta, timezone
 import json
@@ -135,19 +142,22 @@ CLOSED = "navegador cerrado"
 # en los de AWS, a los que la federación no sirve desde el 13/11/2026 (docs/freno-2026-11.md).
 SYS_VENDOR = "/sys/class/dmi/id/sys_vendor"
 # Las tandas del histórico (para_tanda). RELANZAR_MIN: las páginas servidas en una ejecución por debajo de
-# las cuales no se relanza en seguida. En Azure, sin freno, una ejecución lee ~500 por hora; con menos de 60
-# (unos 7 min de lectura) algo iba mal (el freno, un runner rechazado, una caída) y se deja al disparo
-# siguiente.
+# las cuales no se relanza en seguida y, si frenó, el día se para (historico.registrar). En Azure la federación
+# sirve ~150 páginas por IP antes de frenar (lo medido el 26/11/2026: la creencia de antes, ~500 por hora sin
+# freno, salía de pasadas del bot que acaban por tiempo con ~137); con menos de 60 (unos 7 min de lectura) algo
+# va mal (la federación limita más de lo normal, un runner rechazado, una caída) y no se insiste.
 RELANZAR_MIN = 60
 # Las ejecuciones (cada una con su runner y su IP) en que una página no carga aunque la federación sirve
 # otras, antes de dejarla «no disponible en la federación». Tres y no los cuatro de las actas del bot: el bot
 # reintenta en pasadas de horas para dar tiempo a que la federación complete un acta recién jugada; en
 # temporadas cerradas no hay nada que esperar, y tres IPs distintas con la misma página muerta bastan.
 MAX_INTENTOS = 3
-# Las esperas del freno por ejecución de una tanda (HISTORICO_ESPERAS). Cero: con el freno de verdad el
-# carril para la ejecución y el día, no lo espera; la detección es la del bot (la vacía solo es freno si la
-# federación tampoco sirve otra).
-ESPERAS_TANDA = 0
+# Las esperas del freno por ejecución de una tanda (HISTORICO_ESPERAS). Una, como el bot (BRAKE_PAUSES): el
+# 26/11/2026 la primera ejecución larga en Azure frenó a las 150 páginas, y con cero (lo de antes: parar la
+# ejecución y el día) el carril bajaría 150 páginas al día. Esperar el primero (~5 min) da otro cupo con la misma
+# IP; el segundo bloqueo escala (~15 min) y acaba la ejecución. La detección es la del bot (la vacía solo es freno
+# si la federación tampoco sirve otra).
+ESPERAS_TANDA = 1
 
 _OPTION = ' option:not([value=""]):not([value="0"])'
 
@@ -238,11 +248,14 @@ def brake_pauses(env=None):
 
 
 def esperas_tanda(env=None):
-    """Cuántos frenos espera una ejecución de una tanda del histórico (HISTORICO_ESPERAS): por defecto
-    ninguno (ESPERAS_TANDA). Lo que no se entiende, también ninguno: a diferencia del bot, el carril no
-    tiene prisa por leer y lo prudente es parar."""
+    """Cuántos frenos espera una ejecución de una tanda del histórico (HISTORICO_ESPERAS): por defecto uno
+    (ESPERAS_TANDA), también con la variable vacía (la del repositorio sin poner: el workflow la pasa siempre);
+    con 0, ninguno. Lo que no se entiende, ninguno: a diferencia del bot, el carril no tiene prisa por leer y lo
+    prudente es pedir menos."""
     text = (os.environ if env is None else env).get("HISTORICO_ESPERAS", "").strip()
-    return int(text) if text.isdigit() else ESPERAS_TANDA
+    if not text:
+        return ESPERAS_TANDA
+    return int(text) if text.isdigit() else 0
 
 
 def nube(leer=None):
@@ -391,7 +404,9 @@ class Federacion:
         pasada, uno por defecto y None sin tope: brake_pause_seconds, brake_probe_seconds,
         brake_cap_seconds y brake_pauses); `resumed`, tras cuántos volvió a servir; `probes`, los sondeos; `brake_after`, las
         páginas servidas antes de cada freno, desde el anterior (el cupo, que el registro da también:
-        «frena tras 15 páginas»); `paused`, los segundos esperando (no son coste de ninguna página ni de ningún grupo); y
+        «frena tras 15 páginas»); `paused`, los segundos esperando (no son coste de ninguna página ni de ningún grupo);
+        `wait_seconds` y `wait_resumed`, de cada freno esperado, cuánto duró la espera (de la página vacía al sondeo
+        que volvió a servir, o hasta rendirse) y si volvió (solo se apuntan: el resumen de una tanda); y
         `halted`: frenó y no volvió (sin sitio en el plazo, pasado el tope o sin esperas), y no se le pide
         nada más (`blocked`);
       - `cloud`, la nube del runner (nube(), si no se da: "azure", "aws" u "otra"), y `refused_runner`: frenó
@@ -427,6 +442,10 @@ class Federacion:
         self.max_pauses = brake_pauses() if max_pauses is DEFAULT else max_pauses     # None: sin tope
         self.pauses = self.resumed = self.probes = 0
         self.paused = 0.0
+        # Cada espera, para medir (el resumen de una tanda: con ellas se calibra la cadencia del carril): cuánto
+        # duró, desde la página vacía hasta el sondeo que volvió a servir o hasta rendirse, y si volvió.
+        self.wait_seconds, self.wait_resumed = [], []
+        self._back_after = None           # a los cuántos segundos volvió a servir la última espera
         self.halted = self.closed = False
         self.max_pages = max_pages        # None: sin tope (el bot)
         self.topped = False
@@ -462,7 +481,8 @@ class Federacion:
         return {"pedidas": self.pages, "servidas": self.served, "muertas": self.dead, "esperas": self.pauses,
                 "reanudadas": self.resumed, "frenos": self.brakes, "frenos_tras": list(self.brake_after),
                 "parada": self.parada, "nube": self.cloud, "runner_rechazado": self.refused_runner,
-                "segundos_en_espera": round(self.paused)}
+                "segundos_en_espera": round(self.paused), "esperas_s": list(self.wait_seconds),
+                "esperas_sirvio": list(self.wait_resumed)}
 
     def _at_cap(self):
         """¿Se gastó ya el tope de peticiones de la ejecución (`max_pages`)? Entonces `topped`, y el registro lo
@@ -581,6 +601,7 @@ class Federacion:
                 self.resumed += 1
                 self.dead += not loaded
                 self._run = 0 if loaded else 1       # la que cargó, la 1.ª de la vuelta (esta la cuenta _goto)
+                self._back_after = at - began
                 self._log(f"      la federación vuelve a servir a los {at - began:.0f} s"
                           f"{'' if loaded else ', pero no esta página'}: se sigue")
                 return loaded, True
@@ -642,7 +663,13 @@ class Federacion:
         # En vez de rendirse, la espera del freno: la misma página hasta que vuelva a servir.
         braking = not loaded and (empty or streak)
         if braking:
+            waited, began = self.pauses, self._clock()
             loaded, resumed = self._wait_brake(page, url)
+            if self.pauses > waited:
+                # Se esperó (no: un runner rechazado, sin esperas, sin plazo o en el tope). Solo se apunta: lo que
+                # se pide no cambia.
+                self.wait_seconds.append(round(self._back_after if resumed else self._clock() - began))
+                self.wait_resumed.append(resumed)
             braking = not resumed
             self.halted = braking
         if loaded:
@@ -663,9 +690,11 @@ class Federacion:
 def para_tanda(scraper, minutos, max_pages, log=print, clock=time.monotonic, sleep=time.sleep, wall=None, cloud=None,
                env=None):
     """La Federacion de una ejecución de una tanda del histórico: plazo de `minutos` desde ahora, tope de
-    `max_pages` peticiones (0 o None, sin tope) y HISTORICO_ESPERAS esperas del freno (esperas_tanda: ninguna
-    por defecto). El intervalo entre peticiones, los sondeos y el tope de cada freno, los del bot
-    (min_interval, brake_*), del mismo entorno: la tanda lee al ritmo del bot, no más deprisa."""
+    `max_pages` peticiones (0 o None, sin tope) y HISTORICO_ESPERAS esperas del freno (esperas_tanda: una por
+    defecto, como el bot; el segundo freno acaba la ejecución). El intervalo entre peticiones, la primera espera,
+    los sondeos y el tope de cada freno, los del bot (min_interval, brake_*), del mismo entorno: la tanda lee al
+    ritmo del bot, no más deprisa. La espera nunca pasa del plazo (Federacion._wait_brake: cada sondeo, con
+    BRAKE_ROOM antes de él), así que lo leído se guarda y se sube dentro del de la ejecución."""
     return Federacion(scraper, deadline=clock() + minutos * 60, interval=min_interval(env), clock=clock, sleep=sleep,
                       pause_seconds=brake_pause_seconds(env), max_pauses=esperas_tanda(env),
                       probe_seconds=brake_probe_seconds(env), cap_seconds=brake_cap_seconds(env), wall=wall, log=log,

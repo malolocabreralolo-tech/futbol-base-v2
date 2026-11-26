@@ -813,20 +813,93 @@ def test_el_resumen_de_una_tanda(tmp_path):
     r = fed.resumen()
     assert r["muertas"] == 1 and r["servidas"] >= 7 and r["esperas"] == 0 and r["frenos"] == 0
     assert r["parada"] is None and r["nube"] == "azure" and r["runner_rechazado"] is False
+    assert r["esperas_s"] == [] and r["esperas_sirvio"] == []
     C.guardar_resumen(tmp_path / "r.json", fed, {"goleadores:2025-2026": {"completo": False, "pendientes": 3, "no_disponible": 0}})
     data = json.loads((tmp_path / "r.json").read_text(encoding="utf-8"))
     assert data["muertas"] == 1 and data["partes"]["goleadores:2025-2026"]["pendientes"] == 3 and "escrito" in data
+    assert data["esperas_s"] == [] and data["esperas_sirvio"] == []
     C.guardar_resumen(None, fed, {})                           # sin ruta, nada (y no lanza)
 
 
 def test_para_tanda():
+    """Desde el 26/11/2026 una ejecución de una tanda espera UN freno, como el bot (ESPERAS_TANDA, 1); con
+    HISTORICO_ESPERAS=0, ninguno. La variable del repositorio sin poner llega vacía: la de siempre. Lo que no se
+    entiende, ninguna: lo prudente es pedir menos."""
     import fetch_fiflp_2425 as F
     fed = C.para_tanda(F, 30, 0, clock=lambda: 100.0, cloud="azure", env={})
-    assert fed.deadline == 1900.0 and fed.max_pages is None and fed.max_pauses == 0
-    assert (fed.interval, fed.cap_seconds) == (C.DEFAULT_INTERVAL, C.BRAKE_CAP)
-    assert C.para_tanda(F, 30, 2000, cloud="azure", env={"HISTORICO_ESPERAS": "1"}).max_pauses == 1
-    assert C.para_tanda(F, 30, 2000, cloud="azure", env={"HISTORICO_ESPERAS": "mucho"}).max_pauses == 0
+    assert fed.deadline == 1900.0 and fed.max_pages is None and fed.max_pauses == C.ESPERAS_TANDA == 1
+    assert (fed.interval, fed.cap_seconds, fed.pause_seconds) == (C.DEFAULT_INTERVAL, C.BRAKE_CAP, C.BRAKE_PAUSE)
+    for valor, esperas in (("0", 0), ("1", 1), ("2", 2), ("", 1), (" ", 1), ("mucho", 0), ("-1", 0)):
+        assert C.para_tanda(F, 30, 2000, cloud="azure", env={"HISTORICO_ESPERAS": valor}).max_pauses == esperas, valor
     assert C.para_tanda(F, 30, 2000, cloud="azure", env={}).max_pages == 2000
+
+
+def _hasta_que_pare(fed, page, urls):
+    """Pide `urls` en orden mientras la federación no pare (Federacion.parada): las que cargaron."""
+    leidas = []
+    for u in urls:
+        if fed.parada is not None:
+            break
+        if fed.goto(page, u):
+            leidas.append(u)
+    return leidas
+
+
+def test_una_tanda_espera_un_freno_y_acaba_en_el_segundo():
+    """Lo medido el 26/11/2026 (la primera ejecución larga del carril en Azure): 150 páginas y el freno. Con el
+    cupo de 150 por IP, el bloqueo de ~5 min y el segundo más largo (escala dentro de la misma IP): la tanda espera
+    el primero (4 min sin pedir nada y un sondeo por minuto), vuelve a leer en cuanto sirve, y el segundo acaba la
+    ejecución, sin esperarlo. El resumen dice cuánto duró la espera y si volvió a servir; lo que se da por leído es
+    solo lo que cargó (la que frenó, en el sondeo)."""
+    f = FederacionFalsa(lambda url: Pagina(), Reloj(), cupo=150, bloqueos=(300, 900))
+    fed, page = f.tanda(300, 2000), f.page()
+    urls = jornadas(600)
+    leidas = _hasta_que_pare(fed, page, urls)
+    assert leidas == urls[:300] and fed.served == 300
+    assert fed.pauses == 1 and fed.resumed == 1 and fed.brakes == 2 and fed.parada == "freno"
+    assert f.reloj.dormido.count(C.BRAKE_PAUSE) == 1
+    r = fed.resumen()
+    assert r["frenos_tras"] == [150, 150] and r["esperas"] == 1 and r["reanudadas"] == 1
+    # La vacía, la otra página (vacía: el freno), 4 min, un sondeo vacío y otro al minuto: a los 300 s sirve.
+    assert r["esperas_s"] == [300] and r["esperas_sirvio"] == [True]
+    assert r["parada"] == "freno" and r["servidas"] == 300
+    assert "      la federación vuelve a servir a los 300 s: se sigue" in f.dicho
+
+
+def test_una_tanda_sin_esperas_acaba_en_el_primer_freno():
+    """HISTORICO_ESPERAS=0: ninguna espera; el primer freno acaba la ejecución (el día, lo decide el carril)."""
+    f = FederacionFalsa(lambda url: Pagina(), Reloj(), cupo=150, bloqueos=(300, 900))
+    fed, page = f.tanda(300, 2000, env={"HISTORICO_ESPERAS": "0"}), f.page()
+    assert _hasta_que_pare(fed, page, jornadas(600)) == jornadas(150)
+    r = fed.resumen()
+    assert r["frenos_tras"] == [150] and r["esperas"] == 0 and r["esperas_s"] == [] and r["esperas_sirvio"] == []
+    assert r["parada"] == "freno" and C.BRAKE_PAUSE not in f.reloj.dormido
+
+
+def test_una_espera_que_no_vuelve_dice_cuanto_espero():
+    """Un bloqueo que no se pasa en el tope de cada freno (20 min): la ejecución acaba, y el resumen lo dice."""
+    f = FederacionFalsa(lambda url: Pagina(), Reloj(), cupo=150, bloqueos=(None,))
+    fed, page = f.tanda(300, 2000), f.page()
+    assert len(_hasta_que_pare(fed, page, jornadas(600))) == 150
+    r = fed.resumen()
+    # Hasta rendirse: el último sondeo cabe en el tope, y cuenta lo que tardan él y la otra página.
+    assert r["esperas_sirvio"] == [False] and C.BRAKE_CAP - C.BRAKE_PROBE < r["esperas_s"][0] <= C.BRAKE_CAP + 15
+    assert r["parada"] == "freno" and r["frenos_tras"] == [150]
+
+
+def test_la_espera_de_una_tanda_no_se_come_el_plazo():
+    """Una tanda que frena sin plazo para la espera y para leer después (BRAKE_ROOM) no la espera: acaba ya, y lo
+    leído se guarda y se sube dentro del plazo de la ejecución (historico.hasta: 20 min antes de una ventana)."""
+    f = FederacionFalsa(lambda url: Pagina(), Reloj(), cupo=150, bloqueos=(300, 900))
+    fed, page = f.tanda(20, 2000), f.page()                   # 150 páginas a 7 s son ~17,5 min
+    assert len(_hasta_que_pare(fed, page, jornadas(600))) == 150
+    assert fed.pauses == 0 and fed.parada == "freno" and C.BRAKE_PAUSE not in f.reloj.dormido
+    assert f.reloj.t <= fed.deadline
+    # Y con plazo, la espera y los sondeos acaban antes del plazo con sitio para leer (nunca después).
+    f = FederacionFalsa(lambda url: Pagina(), Reloj(), cupo=150, bloqueos=(None,))
+    fed, page = f.tanda(30, 2000), f.page()
+    _hasta_que_pare(fed, page, jornadas(600))
+    assert fed.pauses == 1 and f.reloj.t <= fed.deadline - C.BRAKE_ROOM + C.BRAKE_PROBE
 
 
 def test_el_bot_sigue_sin_tope():

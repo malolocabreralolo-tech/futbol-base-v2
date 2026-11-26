@@ -134,9 +134,9 @@ gh run watch -R malolocabreralolo-tech/futbol-base-v2
 git pull && python3 scripts/historico.py estado
 ```
 
-El encargo corre su job (sube `scripts/historico/plan.json`) y en seguida el carril hace su primera ejecución; si no cae en una ventana, baja los goleadores. Las siguientes las lanza el propio carril (tras una ejecución servida o una prueba) o el disparo de cada 3 h. Qué mirar, en este orden:
+El encargo corre su job (sube `scripts/historico/plan.json`) y en seguida el carril hace su primera ejecución; si no cae en una ventana, baja los goleadores. Las siguientes las lanza el propio carril (tras una ejecución servida que no acabó en el freno, o tras una prueba) o el disparo de cada 3 h. Qué mirar, en este orden:
 
-1. En cada ejecución, su nube y sus páginas («Nube del runner» en el registro y la última línea de `historico.py estado`): en Azure, ~500 páginas por hora; en AWS, «runner rechazado» en uno o dos minutos y nada más (no se relanza: lo retoma el disparo siguiente).
+1. En cada ejecución, su nube y sus páginas («Nube del runner» en el registro y la última línea de `historico.py estado`): en Azure, ~150 páginas, el freno, su espera (~5 min) y otro tramo (desde el 26/11/2026: `historico.py estado` lo da tramo a tramo); en AWS, «runner rechazado» en uno o dos minutos y nada más (no se relanza: lo retoma el disparo siguiente).
 2. «2025-26 · goleadores: en la base» con su prueba: de cuánto a cuánto crece la base y cuántos segundos tarda la importación.
 3. La pasada del bot siguiente a la promoción (la lanza el carril), en verde y con los grupos alevín de 2025-26 en «Temporadas anteriores».
 4. Las ejecuciones de actas (páginas servidas, frenadas o no) hasta «2025-26 · actas alevín: en la base».
