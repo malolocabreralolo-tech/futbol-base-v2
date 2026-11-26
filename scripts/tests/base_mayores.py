@@ -707,9 +707,13 @@ def _lo_real_de(path):
 def sin_lo_real(path, islas=False):
     """Quita de la base `path` (una copia) lo_real (con `islas`, también el alevín de islas de la temporada en curso)
     como lo quita la marcha atrás (quitar_categoria.quitar con --apply, con el EN_WEB de antes) y le pasa el final de
-    una pasada con ese EN_WEB: la base en la que el bot nunca las activó. Devuelve cuántos grupos ha quitado."""
+    una pasada con ese EN_WEB: la base en la que el bot nunca las activó. Antes de quitar, también el final de una
+    pasada con el EN_WEB de antes: la base del bot después de E2-D2 trae fichas resueltas con las seis, y una identidad
+    de las nuevas que es la principal de una ficha no se borra con sus partidos (otra fila apunta a ella) ni, con el
+    EN_WEB de antes, al quitar (no vuelve a resolver). Devuelve cuántos grupos ha quitado."""
     import quitar_categoria
     from db import get_connection
+    fin_de_pasada(path, "antes")
     conn = get_connection(path)
     quitados = 0
     try:
