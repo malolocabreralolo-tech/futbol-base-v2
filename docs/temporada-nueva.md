@@ -43,7 +43,8 @@ python3 scripts/fiflp_manifest.py scripts/fiflp_islas_22_raw.json 2026-2027 --co
 python3 scripts/activate_season.py fase.json --fiflp-raw scripts/fiflp_islas_22_raw.json --add          # verifica
 python3 scripts/activate_season.py fase.json --fiflp-raw scripts/fiflp_islas_22_raw.json --add --apply  # escribe y genera
 python3 -m pytest scripts/tests/ -q && node --test scripts/tests/test_*.mjs                            # y la sonda de «otra-…» (abajo)
-git add futbolbase.db data-*.js index.html sw.js && git commit && git push                             # git pull antes, si hace falta
+python3 scripts/piezas.py partir && python3 scripts/piezas.py verificar                                # la base, en sus piezas (docs/almacenamiento.md)
+git add futbolbase.db data-*.js index.html sw.js && git add -A base/ && git commit && git push         # las dos juntas; git pull antes, si hace falta
 gh workflow enable reloj.yml -R malolocabreralolo-tech/futbol-base-v2
 gh workflow enable activar.yml -R malolocabreralolo-tech/futbol-base-v2
 ```
@@ -75,7 +76,7 @@ Un grupo de **eliminatoria dentro de una liga** de Gran Canaria (su nombre, sin 
 
 En GitHub lo hace `activar.yml`, que lanza el bot al acabar cada pasada mientras haya algo nuevo que toque intentar (`source_health.py pendiente`): descarga lo pendiente 20 min, llama a `activar_auto.py`, pasa las suites y sube el resultado. Una descarga a medias sigue en el intento de después de la pasada siguiente (hasta 8: pasadas e intentos se alternan; una fase de 24 grupos tarda unas 3 h en fin de semana y unas 6 h entre semana sin freno); lo que no encaja se reintenta una vez al día. Cómo funciona, qué se ve en «Datos y fuentes» en cada caso y cómo pararlo o lanzarlo a mano: [federacion.md](federacion.md), «La activación automática».
 
-**Si falla, a mano:** el camino manual de arriba sigue valiendo tal cual. Con el bot y la activación automática parados como se explica arriba, `python3 scripts/activar_auto.py --dry-run` dice qué falla y por qué; arreglado el motivo, `python3 scripts/activar_auto.py` en local (con el raw al día tras `git pull`), las suites y la sonda, y el commit de la base, `data-*.js`, `index.html`, `sw.js`, `docs/temporadas/*-auto-*.json` y `data-health.json`. O el camino manual de arriba con `--comps`.
+**Si falla, a mano:** el camino manual de arriba sigue valiendo tal cual. Con el bot y la activación automática parados como se explica arriba, `python3 scripts/activar_auto.py --dry-run` dice qué falla y por qué; arreglado el motivo, `python3 scripts/activar_auto.py` en local (con el raw al día tras `git pull`), las suites y la sonda, y el commit de la base con sus piezas (`partir`, `verificar`, `git add futbolbase.db` y `git add -A base/`: [almacenamiento.md](almacenamiento.md)), `data-*.js`, `index.html`, `sw.js`, `docs/temporadas/*-auto-*.json` y `data-health.json`. O el camino manual de arriba con `--comps`.
 
 `--comps` no es opcional al añadir una fase: `fiflp_manifest.py` pasa `comp_meta` a **todas** las competiciones del raw para ordenarlas, y el raw de la tanda trae también las que ya están activadas y las que aún no tienen convenio de código (un torneo, una copa nueva…). Una sola sin convenio aborta el manifiesto entero («competición sin convenio de código: …»); con `--comps <ids>` solo cuentan las pedidas.
 

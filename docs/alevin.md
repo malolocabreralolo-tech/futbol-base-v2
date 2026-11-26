@@ -75,7 +75,7 @@ Lo que la activación de la Fase Previa dejó mal en la base lo corrige el bot e
 
 ## Activar alevín de Gran Canaria 2026-27
 
-Sin ningún workflow en marcha (`gh run list -R malolocabreralolo-tech/futbol-base-v2 --limit 5`) antes de empujar nada: `futbolbase.db` es binario y un conflicto obliga a repetirlo todo. Mejor con la rama de la web ya en `main` (si no, los datos se publican pero la web no los enseña).
+Sin ningún workflow en marcha (`gh run list -R malolocabreralolo-tech/futbol-base-v2 --limit 5`) antes de empujar nada: `futbolbase.db` y sus piezas (`base/`) son binarios y un conflicto obliga a repetirlo todo; las dos se suben juntas. Mejor con la rama de la web ya en `main` (si no, los datos se publican pero la web no los enseña).
 
 ```bash
 # 1. (opcional) Catálogo al día: ¿hay ya Segunda Fase o eliminatorias de alevín?
@@ -91,7 +91,8 @@ python3 scripts/activate_season.py docs/temporadas/2026-2027-alevin.json --fiflp
 python3 scripts/activate_season.py docs/temporadas/2026-2027-alevin.json --fiflp-raw scripts/fiflp_islas_22al_raw.json --add --apply
 # 5. Pruebas y publicación (sin workflows en marcha)
 python3 -m pytest scripts/tests/ -q && node --test scripts/tests/test_*.mjs
-git add docs/temporadas/2026-2027-alevin.json futbolbase.db data-*.js index.html sw.js
+python3 scripts/piezas.py partir && python3 scripts/piezas.py verificar   # la base, en sus piezas (docs/almacenamiento.md)
+git add docs/temporadas/2026-2027-alevin.json futbolbase.db data-*.js index.html sw.js && git add -A base/
 git commit -m "Alevín de Gran Canaria 2026-27: Fase Previa" && git push
 ```
 

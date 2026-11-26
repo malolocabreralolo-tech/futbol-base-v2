@@ -450,7 +450,7 @@ def test_update_suites_have_ids_for_the_diagnosis():
                           ("Tests Node (bloquean el commit si fallan)", "node")):
         _, step = _update_step(name)
         assert step.get("id") == step_id, name
-        assert step.get("if") == "steps.base.outcome == 'success'", name
+        assert step.get("if") == "steps.piezas.outcome == 'success'", name
 
 
 BASE_SANA = "Base sana (bloquea el commit si falla)"
@@ -485,9 +485,10 @@ def test_update_publishes_the_diagnosis_when_the_source_or_the_tests_fail():
     rojo."""
     steps, step = _update_step(DIAGNOSTICO)
     assert not any(s.get("name") == "Publicar diagnóstico si la fuente falla" for s in steps)
-    assert step["if"] == ("${{ !cancelled() && (steps.scrape.outcome == 'failure' || "
-                          "steps.pytest.outcome == 'failure' || steps.node.outcome == 'failure' || "
-                          "steps.base.outcome == 'failure') }}")
+    assert step["if"] == ("${{ !cancelled() && (steps.montar.outcome == 'failure' || "
+                          "steps.scrape.outcome == 'failure' || steps.pytest.outcome == 'failure' || "
+                          "steps.node.outcome == 'failure' || steps.base.outcome == 'failure' || "
+                          "steps.piezas.outcome == 'failure') }}")
     commit = next(s for s in steps if s.get("name") == "Commit y push si hay cambios")
     assert steps.index(commit) < steps.index(step)
     assert "${{ steps.scrape.outcome }}" in (step.get("env") or {}).values(), "el resultado del scrape, por env"
@@ -500,7 +501,7 @@ def test_update_publishes_the_diagnosis_when_the_source_or_the_tests_fail():
     assert [l.strip() for l in run.strip().splitlines()][-1] == "exit 1"
 
 
-def _run_diagnosis_step(tmp_path, scrape_outcome):
+def _run_diagnosis_step(tmp_path, scrape_outcome, montar_outcome="success", piezas_outcome=None):
     """El guion de verdad del paso de diagnóstico, con bash, en un clon de un repositorio de mentira (con su
     remoto) que tiene un data-health.json publicado y un source_health.py de mentira que hace de `marcar`.
     La pasada deja data-health.json y un data-x.js cambiados sin subir. Devuelve (código de salida, el
@@ -531,7 +532,11 @@ def _run_diagnosis_step(tmp_path, scrape_outcome):
     git("push", "origin", "main", cwd=work)
     (work / "data-health.json").write_text('{"de esta pasada": true}', encoding="utf-8")
     (work / "data-x.js").write_text("de esta pasada", encoding="utf-8")
-    env = {**git_env, **_diagnosis_env(step, scrape_outcome, "success" if scrape_outcome == "success" else "skipped")}
+    ok = scrape_outcome == "success"
+    if piezas_outcome is None:
+        piezas_outcome = "success" if ok else "skipped"
+    env = {**git_env, **_diagnosis_env(step, scrape_outcome, "success" if ok else "skipped",
+                                       montar_outcome=montar_outcome, piezas_outcome=piezas_outcome)}
     done = subprocess.run(["bash", "-e", "-c", step["run"]], cwd=work, env=env, capture_output=True, text=True,
                           timeout=60)
     published = json.loads(git("show", "main:data-health.json", cwd=remote))
@@ -539,9 +544,12 @@ def _run_diagnosis_step(tmp_path, scrape_outcome):
     return done.returncode, published, files, done.stdout + done.stderr
 
 
-def _diagnosis_env(step, scrape_outcome, base_outcome):
+def _diagnosis_env(step, scrape_outcome, base_outcome, montar_outcome="success", piezas_outcome=None):
     """El env: del paso de diagnóstico con lo que GitHub interpolaría en él."""
-    outcomes = {"${{ steps.scrape.outcome }}": scrape_outcome, "${{ steps.base.outcome }}": base_outcome}
+    if piezas_outcome is None:
+        piezas_outcome = "success" if base_outcome == "success" else "skipped"
+    outcomes = {"${{ steps.scrape.outcome }}": scrape_outcome, "${{ steps.base.outcome }}": base_outcome,
+                "${{ steps.montar.outcome }}": montar_outcome, "${{ steps.piezas.outcome }}": piezas_outcome}
     env = {k: outcomes.get(v, v) for k, v in (step.get("env") or {}).items()}
     assert not any("${{" in v for v in env.values()), env
     return env
@@ -719,15 +727,13 @@ def test_update_gates_db_commit_on_published_changes():
     )
 
 
-def _run_commit_step(tmp_path, actas_bot=True, data_changed=False, piezas="failure", cats=None):
+def _run_commit_step(tmp_path, actas_bot=True, data_changed=False, cats=None):
     """El guion de verdad de «Commit y push si hay cambios», con bash, en un clon de un repositorio de mentira
     (con su remoto) con data-x.js, futbolbase.db y data-health.json publicados. La pasada cambia la base (sus
     bytes cambian siempre) y, si `actas_bot`, guarda un original nuevo (scripts/actas_bot_*.jsonl); si
-    `data_changed`, también un dato publicado. `piezas`, el resultado del paso de las piezas (con «success»,
-    la pasada deja también una pieza cambiada en base/). Devuelve (código de salida, ficheros del último commit
-    del remoto, la salida)."""
+    `data_changed`, también un dato publicado. Una pieza de la base (base/) cambia siempre, como la base.
+    Devuelve (código de salida, ficheros del último commit del remoto, la salida)."""
     _, step = _update_step("Commit y push si hay cambios")
-    assert step["env"] == {"PIEZAS": "${{ steps.piezas.outcome }}"}
     tmp_path.mkdir(parents=True)
     git_env = {**os.environ, "GIT_CONFIG_GLOBAL": str(tmp_path / "gitconfig"), "GIT_CONFIG_NOSYSTEM": "1",
                "RUNNER_TEMP": str(tmp_path / "runner")}
@@ -757,7 +763,7 @@ def _run_commit_step(tmp_path, actas_bot=True, data_changed=False, piezas="failu
     if data_changed:
         (work / "data-x.js").write_text("de esta pasada", encoding="utf-8")
     lane = {} if cats is None else {"FIFLP_CATS": cats}            # la del env del job
-    done = subprocess.run(["bash", "-e", "-c", step["run"]], cwd=work, env={**git_env, "PIEZAS": piezas, **lane},
+    done = subprocess.run(["bash", "-e", "-c", step["run"]], cwd=work, env={**git_env, **lane},
                           capture_output=True, text=True, timeout=60)
     files = git("show", "--name-only", "--format=", "main", cwd=remote).split()
     return done.returncode, files, done.stdout + done.stderr
@@ -780,18 +786,12 @@ def test_update_commits_the_bots_acta_originals_always_and_only_in_the_data_comm
     assert files == ["scripts/actas_bot_2026-2027_benjamin.jsonl"], log          # ni la base ni el temporal
     code, files, log = _run_commit_step(tmp_path / "con-datos", data_changed=True)
     assert code == 0, log
-    assert sorted(files) == ["data-x.js", "futbolbase.db", "scripts/actas_bot_2026-2027_benjamin.jsonl"], log
+    assert sorted(files) == ["base/comun.db", "data-x.js", "futbolbase.db",
+                             "scripts/actas_bot_2026-2027_benjamin.jsonl"], log
     code, files, log = _run_commit_step(tmp_path / "sin-originales", actas_bot=False)
     # Nada que subir: el último commit sigue siendo el publicado.
     assert code == 0 and files == ["base/comun.db", "data-health.json", "data-x.js", "futbolbase.db", "index.html",
                                    "sw.js"], log
-    # Con las piezas bien, van con la base; sin datos publicados, ni la una ni las otras.
-    code, files, log = _run_commit_step(tmp_path / "con-piezas", data_changed=True, piezas="success")
-    assert code == 0, log
-    assert sorted(files) == ["base/comun.db", "data-x.js", "futbolbase.db",
-                             "scripts/actas_bot_2026-2027_benjamin.jsonl"], log
-    code, files, log = _run_commit_step(tmp_path / "piezas-sin-datos", piezas="success")
-    assert code == 0 and files == ["scripts/actas_bot_2026-2027_benjamin.jsonl"], log
 
 
 def test_update_also_commits_the_db_when_the_bot_marks_it():
@@ -809,51 +809,101 @@ def test_update_also_commits_the_db_when_the_bot_marks_it():
     assert f'[ -f "$RUNNER_TEMP/{name}" ]' in gate, gate
 
 
-# ------------------------------------------------- las piezas de la base, en sombra (parte D, fase 1)
+# ------------------------------------------------- las piezas de la base (parte D, fase 2: mandan ellas)
 
-PIEZAS = "Piezas de la base (en sombra)"
+MONTAR = "Montar la base"
+PIEZAS = "Partir la base y comprobarla (bloquea el commit si falla)"
+MOTIVO_MONTAR = "no se pudo montar la base desde sus piezas: esta pasada no se ha hecho"
+MOTIVO_PIEZAS = "las piezas de la base no salieron iguales a la base: los datos de esta pasada no se publicaron"
 
 
-def test_las_piezas_van_tras_la_base_sana_y_no_paran_la_pasada():
-    """En update.yml y activar.yml, justo después de «Base sana»: partir y verificar, en ese orden, con
-    continue-on-error (un fallo de las piezas no deja la pasada sin publicar) y un plazo propio (colgado, se
-    comería el del job). Si fallan, base/ vuelve a lo publicado."""
+def _primer_python(steps):
+    return next(i for i, s in enumerate(steps) if "python3 scripts/" in (s.get("run") or ""))
+
+
+def test_montar_va_antes_que_todo_lo_que_lee_la_base():
+    """La base de la pasada sale de sus piezas: «Montar la base» es el primer paso que ejecuta algo de scripts/
+    (en update.yml, justo antes del bot, tras la IP y la nube del runner, que así salen en el log también si no
+    se puede montar; en activar.yml, antes de «Qué hay pendiente», que abre la base; en tests.yml, antes de las
+    suites), y con --contra futbolbase.db: si las dos no son la misma base, no se hace nada con ninguna."""
+    for name, job in (("update.yml", "update"), ("activar.yml", "activar"), ("tests.yml", "pytest")):
+        steps = _steps(_load(name), job)
+        names = [s.get("name") for s in steps]
+        assert MONTAR in names, name
+        i = names.index(MONTAR)
+        assert _primer_python(steps) == i, (name, names)
+        assert steps[i]["run"].strip() == "python3 scripts/piezas.py montar --contra futbolbase.db", name
+        assert not steps[i].get("continue-on-error") and not steps[i].get("if"), name
+        # Con plazo propio: colgado, el job entero se cancelaría y no saldría el diagnóstico.
+        assert 0 < steps[i].get("timeout-minutes", 0) <= 10, name
+        if name != "tests.yml":
+            assert steps[i].get("id") == "montar", name
+    update = [s.get("name") for s in _steps(_load("update.yml"), "update")]
+    assert (update.index("IP pública del runner") + 1 == update.index(MONTAR)
+            == update.index("Actualizar datos desde futbolaspalmas.com y la federación") - 1)
+    activar = [s.get("name") for s in _steps(_load("activar.yml"), "activar")]
+    assert activar.index("Set up Node") + 1 == activar.index(MONTAR) < activar.index("Qué hay pendiente")
+    pytest_job = _steps(_load("tests.yml"), "pytest")
+    setup = next(i for i, s in enumerate(pytest_job) if str(s.get("uses", "")).startswith("actions/setup-python"))
+    assert [s.get("name") for s in pytest_job].index(MONTAR) == setup + 1
+    assert not any("Las piezas son la base" == s.get("name") for s in pytest_job), "lo hace --contra"
+
+
+def test_partir_bloquea():
+    """Partir y verificar, en ese orden y justo tras «Base sana», bloquean: sin continue-on-error ni vuelta atrás
+    de base/ (si fallan no se sube nada). Las suites dependen de ellas; el diagnóstico de update.yml mira también
+    montar y las piezas, y la activación publica su fallo también con las piezas en rojo."""
     for name, job, cond in (("update.yml", "update", "steps.base.outcome == 'success'"),
                             ("activar.yml", "activar",
                              "steps.cambios.outputs.datos == 'true' && steps.base.outcome == 'success'")):
         steps = _steps(_load(name), job)
         names = [s.get("name") for s in steps]
+        assert "Piezas de la base (en sombra)" not in names, name
         step = steps[names.index(PIEZAS)]
         assert names.index(PIEZAS) == names.index(BASE_SANA) + 1, name
-        assert step.get("id") == "piezas" and step.get("continue-on-error") is True, name
+        assert step.get("id") == "piezas" and not step.get("continue-on-error"), name
         assert step.get("if") == cond, name
         assert 0 < step.get("timeout-minutes", 0) <= 10, name
-        run = step["run"]
-        assert "${{" not in run
-        assert run.index("python3 scripts/piezas.py partir") < run.index("python3 scripts/piezas.py verificar"), name
-        assert "git checkout -q HEAD -- base/" in run and "git clean -fdqx -- base/" in run, name
+        assert step["run"].strip() == "python3 scripts/piezas.py partir && python3 scripts/piezas.py verificar", name
+        for suite in ("Tests Python (bloquean el commit si fallan)", "Tests Node (bloquean el commit si fallan)"):
+            assert steps[names.index(suite)]["if"] == "steps.piezas.outcome == 'success'", (name, suite)
+    _, diag = _update_step(DIAGNOSTICO)
+    assert "steps.montar.outcome == 'failure'" in diag["if"] and "steps.piezas.outcome == 'failure'" in diag["if"]
+    assert diag["env"]["MONTAR_OUTCOME"] == "${{ steps.montar.outcome }}"
+    assert diag["env"]["PIEZAS_OUTCOME"] == "${{ steps.piezas.outcome }}"
+    assert "steps.piezas.outcome == 'failure'" in _activar_step("Publicar el fallo si las pruebas fallan")["if"]
 
 
-def test_las_piezas_suben_solo_con_la_base():
-    """«Commit y push si hay cambios»: git add -A base/ dentro de la puerta de la base (en la misma rama del if,
-    después de git add futbolbase.db) y solo con el paso de las piezas en verde. Un fallo al añadirlas no para
-    la subida de lo demás."""
+def test_las_piezas_suben_siempre_con_la_base():
+    """«Commit y push si hay cambios»: git add -A base/ sin condición, justo después de git add futbolbase.db,
+    dentro de la puerta de la base: las dos van juntas o no va ninguna (lo que montar --contra exige a la pasada
+    siguiente). Y en «Subir la activación», con los datos."""
     _, step = _update_step("Commit y push si hay cambios")
-    assert step["env"] == {"PIEZAS": "${{ steps.piezas.outcome }}"}
-    lines = [l.strip() for l in step["run"].splitlines()]
+    assert "env" not in step
+    lines = [l.strip() for l in step["run"].splitlines() if not l.strip().startswith("#")]
     puerta = next(i for i, l in enumerate(lines) if l.startswith("if ") and "git diff --cached --quiet" in l)
     fin = next(i for i in range(puerta, len(lines)) if lines[i] == "fi")
-    db = next(i for i, l in enumerate(lines) if l == "git add futbolbase.db")
-    piezas = [i for i, l in enumerate(lines) if "git add -A base/" in l]
-    assert len(piezas) == 1 and puerta < db < piezas[0] < fin, lines[puerta:fin + 1]
-    assert lines[piezas[0]].startswith('if [ "$PIEZAS" = success ]; then git add -A base/'), lines[piezas[0]]
-    assert not any(l.startswith(("if ", "else", "elif")) for l in lines[db + 1:piezas[0]])
+    db = lines.index("git add futbolbase.db")
+    assert puerta < db < fin and lines[db + 1] == "git add -A base/", lines[puerta:fin + 1]
+    assert sum("base/" in l and "git add" in l for l in lines) == 1
     act = _activar_step("Subir la activación")
-    assert act["env"]["PIEZAS"] == "${{ steps.piezas.outcome }}"
+    assert "PIEZAS" not in act["env"]
     lineas = [l.strip() for l in act["run"].splitlines()]
     dentro = lineas[lineas.index('if [ "$DATOS" = true ]; then') + 1:]
     dentro = dentro[:dentro.index("fi")]
-    assert any(l.startswith('if [ "$PIEZAS" = success ]; then git add -A base/') for l in dentro), dentro
+    assert "git add -A base/" in dentro, dentro
+
+
+def test_diagnostico_si_no_se_puede_montar(tmp_path):
+    """Sin base montada no hay pasada: el diagnóstico (el guion de verdad, en el repositorio de mentira) sube
+    solo data-health.json, el publicado, en rojo con su motivo, y el job acaba en rojo."""
+    code, published, files, log = _run_diagnosis_step(tmp_path / "montar", "skipped", montar_outcome="failure")
+    assert code == 1, log
+    assert files == ["data-health.json"], log
+    assert published == {"publicado": True, "runHealth": {"ok": False, "reasons": [MOTIVO_MONTAR]}}, log
+    code, published, files, log = _run_diagnosis_step(tmp_path / "piezas", "success", piezas_outcome="failure")
+    assert code == 1 and files == ["data-health.json"], log
+    assert published == {"publicado": True, "runHealth": {"ok": False, "reasons": [MOTIVO_PIEZAS]}}, log
 
 
 def _cargar_test_piezas():
@@ -865,12 +915,102 @@ def _cargar_test_piezas():
     return modulo
 
 
+def _simular(steps, fallan=(), inputs=None):
+    """Qué pasos de `steps` correría GitHub y cómo saldrían, con las reglas de los `if` de los pasos: sin una
+    función de estado (success(), always(), cancelled(), failure()) va implícito success(); success() es «ningún
+    paso anterior ha fallado» (un paso con continue-on-error que falla no cuenta). Los pasos de `fallan` (por
+    nombre o id) salen en rojo; los demás que corren, en verde; las salidas de los pasos (outputs) son vacías.
+    Solo las expresiones que usan los workflows de aquí. Devuelve ({nombre: outcome}, el estado del job)."""
+    inputs = {"cats": "", "reintento": "0", **(inputs or {})}
+    outcome, por_id, job_ok = {}, {}, True
+    for st in steps:
+        cond = str(st.get("if", "success()")).strip()
+        if cond.startswith("${{"):
+            cond = cond[3:-2].strip()
+        if not re.search(r"\b(success|always|cancelled|failure)\(\)", cond):
+            cond = f"success() && ({cond})"
+        expr = re.sub(r"steps\.(\w+)\.outcome", lambda m: repr(por_id.get(m.group(1), "")), cond)
+        expr = re.sub(r"steps\.(\w+)\.outputs\.(\w+)", "''", expr)
+        expr = re.sub(r"inputs\.(\w+)", lambda m: repr(inputs[m.group(1)]), expr)
+        expr = (expr.replace("&&", " and ").replace("||", " or ").replace("!cancelled()", "True")
+                .replace("cancelled()", "False").replace("always()", "True").replace("success()", repr(job_ok))
+                .replace("failure()", repr(not job_ok)))
+        expr = re.sub(r"!(?!=)", " not ", expr)
+        corre = eval(expr, {"__builtins__": {}})                          # noqa: S307 (los if de aquí)
+        if not corre:
+            res = "skipped"
+        elif st.get("name") in fallan or (st.get("id") and st["id"] in fallan):
+            res = "failure"
+            job_ok = job_ok and bool(st.get("continue-on-error"))
+        else:
+            res = "success"
+        outcome[st.get("name") or st.get("uses")] = res
+        if st.get("id"):
+            por_id[st["id"]] = res
+    return outcome, "success" if job_ok else "failure"
+
+
+def test_si_falla_lo_nuevo_el_diagnostico_y_el_relanzamiento_corren_igual():
+    """Una pasada rechazada por AWS no se queda sin su informe ni sin relanzar por culpa de montar o de las
+    piezas. Con todo bien, corre todo lo de antes, el commit y «Relanzar si el runner fue rechazado» con el job
+    en verde (relanza si la nota de la pasada lo dice: test_una_pasada_rechazada_se_relanza_hasta_tres_veces). Si
+    no se puede montar: la IP y la nube del runner ya están en el log, ni bot ni commit, el diagnóstico publica
+    el informe en rojo y el relanzamiento corre (con el job en rojo no relanza: la retoma el reloj, como con
+    cualquier fallo que no es del runner). Si fallan las piezas, lo mismo, con la lectura ya hecha. En el carril de
+    las mayores (inputs.cats), igual. Y ni el relanzamiento ni el diagnóstico leen la base (_run_relanzar y
+    _run_diagnosis_step corren sin futbolbase.db)."""
+    steps = _steps(_load("update.yml"), "update")
+    for cats in ("", CATS_MAYORES):
+        bien, job = _simular(steps, inputs={"cats": cats})
+        assert job == "success" and all(v == "success" for k, v in bien.items()
+                                        if k not in (DIAGNOSTICO, LANZAR if cats else None)), bien
+        assert bien[DIAGNOSTICO] == "skipped" and bien[RELANZAR] == "success"
+        sin_montar, job = _simular(steps, fallan={"montar"}, inputs={"cats": cats})
+        assert job == "failure"
+        assert sin_montar["IP pública del runner"] == "success", "la IP y la nube, en el log antes de montar"
+        for paso in ("Actualizar datos desde futbolaspalmas.com y la federación", BASE_SANA, PIEZAS,
+                     "Tests Python (bloquean el commit si fallan)", "Commit y push si hay cambios", LANZAR,
+                     "Pasada en rojo"):
+            assert sin_montar[paso] == "skipped", (cats, paso)
+        assert sin_montar[DIAGNOSTICO] == "success" and sin_montar[RELANZAR] == "success", cats
+        sin_piezas, job = _simular(steps, fallan={"piezas"}, inputs={"cats": cats})
+        assert job == "failure" and sin_piezas["Actualizar datos desde futbolaspalmas.com y la federación"] == "success"
+        for paso in ("Tests Python (bloquean el commit si fallan)", "Tests Node (bloquean el commit si fallan)",
+                     "Commit y push si hay cambios"):
+            assert sin_piezas[paso] == "skipped", (cats, paso)
+        assert sin_piezas[DIAGNOSTICO] == "success" and sin_piezas[RELANZAR] == "success", cats
+    for paso in (DIAGNOSTICO, RELANZAR):
+        run = "\n".join(l for l in next(st for st in steps if st.get("name") == paso)["run"].splitlines()
+                        if not l.strip().startswith("#"))
+        assert "futbolbase.db" not in run and "piezas.py" not in run, paso
+
+
+def test_el_carril_de_las_mayores_monta_y_parte_como_el_bot(tmp_path):
+    """carril-mayores.yml no tiene pasos propios: llama a update.yml, así que hereda «Montar la base», el paso de
+    las piezas y la subida de base/. Ninguno de esos pasos mira las entradas (corren igual con cats), y el commit
+    de una pasada del carril sube la base con sus piezas."""
+    job = _load(CARRIL)["jobs"]["pasada"]
+    assert job["uses"] == "./.github/workflows/update.yml" and "steps" not in job
+    assert "workflow_call" in _triggers(_load("update.yml"))
+    steps = _steps(_load("update.yml"), "update")
+    for paso in (MONTAR, BASE_SANA, PIEZAS, "Commit y push si hay cambios", DIAGNOSTICO):
+        st = next(s for s in steps if s.get("name") == paso)
+        assert "inputs." not in str(st.get("if", "")) and "inputs." not in (st.get("run") or ""), paso
+    mayores, _ = _simular(steps, inputs={"cats": CATS_MAYORES})
+    for paso in (MONTAR, PIEZAS, "Commit y push si hay cambios"):
+        assert mayores[paso] == "success", paso
+    code, files, log = _run_commit_step(tmp_path / "carril", data_changed=True, cats=CATS_MAYORES)
+    assert code == 0 and {"futbolbase.db", "base/comun.db", "data-x.js"} <= set(files), log
+
+
 def test_pasada_en_seco_sube_solo_la_pieza_que_cambia(tmp_path):
-    """Los guiones de verdad de «Base sana», «Piezas de la base (en sombra)» y «Commit y push si hay cambios»,
-    uno tras otro, con piezas.py, base_sana.py y lo que importan copiados, en un clon de un repositorio de
-    mentira con su remoto y una base con el esquema de verdad. Cuatro pasadas: la primera trae base/ entera; la
-    segunda, solo la pieza que cambia; la tercera (nada publicado cambia), ninguna; y la cuarta, cortada a
-    mitad de una pieza, publica la base y no sube piezas, con base/ como estaba."""
+    """Los guiones de verdad de «Montar la base», «Base sana», «Partir la base y comprobarla» y «Commit y push si
+    hay cambios» (y el diagnóstico, cuando GitHub lo lanzaría), con piezas.py, base_sana.py y lo que importan
+    copiados, en un clon de un repositorio de mentira con su remoto, una base con el esquema de verdad y sus
+    piezas ya en git (las de la fase 1). Cada pasada parte de un checkout limpio de main, como en GitHub.
+    1-2: sube la base y solo la pieza que cambia; 3: nada publicado cambia, ni la base ni piezas; 4: cortada a
+    mitad de una pieza, no sube nada más que el diagnóstico; 5: alguien sube a mano solo futbolbase.db, y la
+    pasada no se hace."""
     import shutil
     import sqlite3
     tp = _cargar_test_piezas()
@@ -884,8 +1024,11 @@ def test_pasada_en_seco_sube_solo_la_pieza_que_cambia(tmp_path):
         shutil.copy2(ROOT / "scripts" / name, work / "scripts" / name)
     shutil.copy2(ROOT / ".gitignore", work / ".gitignore")
     tp._base(work / "futbolbase.db")
+    hecho = subprocess.run(["python3", "scripts/piezas.py", "partir"], cwd=work, env=env, capture_output=True,
+                           text=True, timeout=120)
+    assert hecho.returncode == 0, hecho.stdout + hecho.stderr
     git("add", ".", cwd=work)
-    git("commit", "-m", "los guiones y la base", cwd=work)
+    git("commit", "-m", "los guiones, la base y sus piezas", cwd=work)
     git("push", "origin", "main", cwd=work)
 
     def un_gol_mas(temporada):
@@ -898,64 +1041,94 @@ def test_pasada_en_seco_sube_solo_la_pieza_que_cambia(tmp_path):
                      (mid, local))
         conn.close()
 
-    def pasada(datos, corte=None):
-        log = ""
-        resultados = {}
-        for nombre in (BASE_SANA, PIEZAS, "Commit y push si hay cambios"):
-            step = por_nombre[nombre]
-            extra = {}
-            if nombre == PIEZAS and corte:
-                extra["PIEZAS_CORTE_PRUEBA"] = corte
-            if nombre == "Commit y push si hay cambios":
-                assert step["env"] == {"PIEZAS": "${{ steps.piezas.outcome }}"}
-                extra["PIEZAS"] = resultados[PIEZAS]
-            if datos:
-                (work / "data-x.js").write_text(f"pasada {datos}", encoding="utf-8")
-            done = subprocess.run(["bash", "-e", "-c", step["run"]], cwd=work, env={**env, **extra},
-                                  capture_output=True, text=True, timeout=180)
-            log += done.stdout + done.stderr
-            resultados[nombre] = "success" if done.returncode == 0 else "failure"
-            if nombre != PIEZAS:          # el único con continue-on-error
-                assert done.returncode == 0, log
-        return resultados, sorted(git("show", "--name-only", "--format=", "main", cwd=remote).split()), log
+    def correr(nombre, extra=None):
+        done = subprocess.run(["bash", "-e", "-c", por_nombre[nombre]["run"]], cwd=work, env={**env, **(extra or {})},
+                              capture_output=True, text=True, timeout=180)
+        return done.returncode, done.stdout + done.stderr
 
-    # 1. Sin base/ todavía: entran todas las piezas, con la base y lo publicado.
-    un_gol_mas("2024-2025")
-    r, ficheros, log = pasada(1)
-    assert r[PIEZAS] == "success", log
-    assert ficheros == ["base/actas-2024-2025.db", "base/actas-2025-2026.db", "base/comun.db", "base/piezas.json",
-                        "data-x.js", "futbolbase.db"], log
-    # 2. Un gol más en 2025-26: su pieza y el manifiesto, y ninguna otra.
-    un_gol_mas("2025-2026")
-    r, ficheros, log = pasada(2)
-    assert r[PIEZAS] == "success", log
-    assert ficheros == ["base/actas-2025-2026.db", "base/piezas.json", "data-x.js", "futbolbase.db"], log
+    def pasada(lectura, corte=None):
+        """Checkout limpio de main, montar, la «lectura» (lo que haría el bot en la base), y los pasos que GitHub
+        ejecutaría según cómo salgan los anteriores. Devuelve (resultados, ficheros del último commit, log)."""
+        git("fetch", "-q", "origin", cwd=work)
+        git("reset", "-q", "--hard", "origin/main", cwd=work)
+        git("clean", "-fdqx", cwd=work)
+        r, log = {}, ""
+        code, out = correr(MONTAR)
+        r[MONTAR], log = code, log + out
+        if code == 0:
+            lectura()
+            code, out = correr(BASE_SANA)
+            r[BASE_SANA], log = code, log + out
+            assert code == 0, log
+            code, out = correr(PIEZAS, {"PIEZAS_CORTE_PRUEBA": corte} if corte else None)
+            r[PIEZAS], log = code, log + out
+            if code == 0:                  # success(): las suites (aquí no) y el commit
+                code, out = correr("Commit y push si hay cambios", {"RUNNER_TEMP": env["RUNNER_TEMP"]})
+                assert code == 0, log + out
+                log += out
+        if r[MONTAR] or r.get(PIEZAS):      # lo que GitHub lanzaría: el diagnóstico
+            assert "${{" not in por_nombre[DIAGNOSTICO]["run"]
+            de = _diagnosis_env(por_nombre[DIAGNOSTICO], "skipped" if r[MONTAR] else "success",
+                                "skipped" if r[MONTAR] else "success",
+                                montar_outcome="failure" if r[MONTAR] else "success",
+                                piezas_outcome="skipped" if r[MONTAR] else "failure")
+            code, out = correr(DIAGNOSTICO, de)
+            r[DIAGNOSTICO], log = code, log + out
+        return r, sorted(git("show", "--name-only", "--format=", "main", cwd=remote).split()), log
+
+    def lectura(temporada, n):
+        def hacer():
+            un_gol_mas(temporada)
+            (work / "data-x.js").write_text(f"pasada {n}", encoding="utf-8")
+        return hacer
+
+    # 1 y 2: la base, la pieza que cambia y el manifiesto, y ninguna otra pieza.
+    for n, temporada in ((1, "2024-2025"), (2, "2025-2026")):
+        r, ficheros, log = pasada(lectura(temporada, n))
+        assert r[MONTAR] == 0 and r[PIEZAS] == 0, log
+        assert "montada " in log and "piezas iguales a la base: " in log, log
+        assert ficheros == [f"base/actas-{temporada}.db", "base/piezas.json", "data-x.js", "futbolbase.db"], log
     # 3. Cambia la base, pero nada publicado (solo el informe): ni la base ni las piezas.
-    un_gol_mas("2024-2025")
-    (work / "data-health.json").write_text('{"pasada": 3}\n', encoding="utf-8")
-    r, ficheros, log = pasada(None)
-    assert r[PIEZAS] == "success", log
+    def solo_el_informe():
+        un_gol_mas("2024-2025")
+        (work / "data-health.json").write_text('{"pasada": 3}\n', encoding="utf-8")
+    r, ficheros, log = pasada(solo_el_informe)
+    assert r[PIEZAS] == 0 and ficheros == ["data-health.json"], log
+    # 4. Cortada dentro de una pieza: ni datos ni base ni piezas; el diagnóstico, en rojo, y nada más.
+    r, ficheros, log = pasada(lectura("2025-2026", 4), corte="dentro:1")
+    assert r[PIEZAS] != 0 and r[DIAGNOSTICO] == 1, log
     assert ficheros == ["data-health.json"], log
-    # 4. Cortada dentro de una pieza: la pasada publica la base y lo demás, sin piezas, y base/ como en main.
-    un_gol_mas("2025-2026")
-    r, ficheros, log = pasada(4, corte="dentro:1")
-    assert r[PIEZAS] == "failure", log
-    assert ficheros == ["data-x.js", "futbolbase.db"], log
-    estado = subprocess.run(["git", "status", "--porcelain", "--ignored", "--", "base/"], cwd=work, env=env,
-                            capture_output=True, text=True, check=True).stdout
-    assert estado == "", estado
-    assert not list((work / "base").glob("*-journal"))
+    assert json.loads(git("show", "main:data-health.json", cwd=remote))["runHealth"]["reasons"] == [MOTIVO_PIEZAS]
+    assert git("show", "main:data-x.js", cwd=remote) == "pasada 2"
+    # Lo que quedó en main es una base y sus piezas iguales: la pasada siguiente monta.
+    r, ficheros, log = pasada(lectura("2025-2026", 5))
+    assert r[MONTAR] == 0 and r[PIEZAS] == 0, log
+    assert ficheros == ["base/actas-2025-2026.db", "base/piezas.json", "data-x.js", "futbolbase.db"], log
+    # 6. Alguien sube a mano solo futbolbase.db (otro clon): no se monta, la pasada no se hace y lo dice.
+    otro = tmp_path / "repo" / "otro"
+    git("clone", "-q", str(remote), str(otro), cwd=tmp_path)
+    conn = sqlite3.connect(otro / "futbolbase.db")
+    conn.execute("UPDATE teams SET name = name || ' (a mano)' WHERE id = 1")
+    conn.commit()
+    conn.close()
+    git("commit", "-qam", "la base a mano", cwd=otro)
+    git("push", "-q", "origin", "main", cwd=otro)
+    antes = git("rev-parse", "main", cwd=remote)
+    r, ficheros, log = pasada(lambda: pytest.fail("sin base montada no se lee nada"))
+    assert r[MONTAR] == 1 and PIEZAS not in r, log
+    assert "no son iguales" in log, log
+    assert ficheros == ["data-health.json"], log
+    assert git("rev-parse", "main~1", cwd=remote) == antes, "solo el diagnóstico encima de la subida a mano"
+    # (el motivo de la pasada 4 sigue: aquí no hay bot que reescriba runHealth en la 5)
+    assert MOTIVO_MONTAR in json.loads(git("show", "main:data-health.json", cwd=remote))["runHealth"]["reasons"]
 
 
-def test_tests_yml_compara_las_piezas_con_la_base():
-    """En la fase 1, el aviso diario de que la sombra se ha desviado: tras la suite, montar base/ y compararla
-    con futbolbase.db (con la prueba de la base real partida y montada, PIEZAS_REAL); y un cambio solo en base/
-    lanza tests.yml."""
+def test_tests_yml_lanza_las_suites_sobre_la_base_montada():
+    """La suite de tests.yml, sobre la base montada de las piezas (con la prueba de la base real partida y
+    montada, PIEZAS_REAL); y un cambio solo en base/ lanza tests.yml."""
     steps = _steps(_load("tests.yml"), "pytest")
     names = [s.get("name") for s in steps]
-    assert names.index("Las piezas son la base") == names.index("Run Python tests") + 1
-    step = steps[names.index("Las piezas son la base")]
-    assert "python3 scripts/piezas.py comparar --db futbolbase.db --piezas base" in step["run"]
+    assert names.index(MONTAR) < names.index("Run Python tests")
     assert steps[names.index("Run Python tests")]["env"]["PIEZAS_REAL"] == "1"
     trig = _triggers(_load("tests.yml"))
     for event in ("push", "pull_request"):
@@ -1615,10 +1788,12 @@ def test_como_lanzar_y_parar_el_historico_esta_escrito():
 # lo que se le pide.
 
 V2_REPO = "malolocabreralolo-tech/futbol-base-v2"
-ACTIVAR_STEPS = ["Checkout", "Set up Python", "Set up Node", "Qué hay pendiente", "Instalar dependencias de test",
+ACTIVAR_STEPS = ["Checkout", "Set up Python", "Set up Node", "Montar la base", "Qué hay pendiente",
+                 "Instalar dependencias de test",
                  "Instalar Playwright (federación)", "Catálogo de la temporada", "Descargar lo pendiente",
                  "Subir lo descargado", "Activar", "Cambios en la web", "Base sana (bloquea el commit si falla)",
-                 "Piezas de la base (en sombra)", "Tests Python (bloquean el commit si fallan)",
+                 "Partir la base y comprobarla (bloquea el commit si falla)",
+                 "Tests Python (bloquean el commit si fallan)",
                  "Tests Node (bloquean el commit si fallan)", "Subir la activación",
                  "Publicar el fallo si las pruebas fallan", "Activación en rojo"]
 PENDING = "steps.pendientes.outputs.ids != ''"
@@ -1673,11 +1848,12 @@ def test_activar_does_nothing_when_nothing_is_pending():
     ni se activa nada (y lo que viene después depende de que se activara) y el job acaba en verde."""
     _, job = _activar()
     by_name = {s["name"]: s for s in job["steps"]}
-    for name in ACTIVAR_STEPS[4:10]:
+    for name in ACTIVAR_STEPS[5:11]:
         assert PENDING in by_name[name]["if"], name
-    for name in ACTIVAR_STEPS[10:]:
+    for name in ACTIVAR_STEPS[11:]:
         cond = by_name[name]["if"]
-        assert "steps.activar.outcome" in cond or "steps.cambios.outputs.datos" in cond or "steps.pytest.outcome" in cond, name
+        assert ("steps.activar.outcome" in cond or "steps.cambios.outputs.datos" in cond or "steps.pytest.outcome" in cond
+                or "steps.piezas.outcome" in cond), name
 
 
 def test_activar_reads_what_is_pending_and_the_tanda_without_hardcoding_it(tmp_path):
@@ -1810,7 +1986,9 @@ def test_activar_runs_the_suites_only_when_the_web_changed(tmp_path):
     for name, step_id in (("Tests Python (bloquean el commit si fallan)", "pytest"),
                           ("Tests Node (bloquean el commit si fallan)", "node")):
         suite = _activar_step(name)
-        assert suite.get("id") == step_id and suite["if"] == "steps.cambios.outputs.datos == 'true'", name
+        # Tras las piezas (fase 2), que solo se parten si la web cambió.
+        assert suite.get("id") == step_id and suite["if"] == "steps.piezas.outcome == 'success'", name
+        assert "steps.cambios.outputs.datos == 'true'" in _activar_step(PIEZAS)["if"]
         assert not suite.get("continue-on-error")
     assert re.search(r"python3 -m pytest scripts/tests/", _activar_step("Tests Python (bloquean el commit si fallan)")["run"])
     assert "node --test scripts/tests/test_*.mjs" in _activar_step("Tests Node (bloquean el commit si fallan)")["run"]
@@ -1856,19 +2034,16 @@ def test_activar_commits_the_data_only_with_green_suites(tmp_path):
     assert step["if"] == "${{ success() && steps.activar.outcome != 'skipped' }}"
     assert names.index("Tests Node (bloquean el commit si fallan)") < names.index("Subir la activación")
     assert step["env"]["DATOS"] == "${{ steps.cambios.outputs.datos }}"
-    assert step["env"]["PIEZAS"] == "${{ steps.piezas.outcome }}"
-    datos_sin_piezas = ["data-health.json", "data-x.js", "data-y.js", "docs/temporadas/2026-2027-auto-20261114.json",
-                        "futbolbase.db", "index.html", "sw.js"]
-    for datos, piezas, expected in (
-            ("true", "success", sorted(datos_sin_piezas + ["base/actas-2026-2027.db", "base/comun.db"])),
-            ("true", "failure", datos_sin_piezas),
-            ("false", "skipped", ["data-health.json"])):
-        git, remote, work, env = _repo(tmp_path / f"{datos}-{piezas}", PUBLISHED)
+    for datos, expected in (("true", ["base/actas-2026-2027.db", "base/comun.db", "data-health.json", "data-x.js",
+                                      "data-y.js", "docs/temporadas/2026-2027-auto-20261114.json", "futbolbase.db",
+                                      "index.html", "sw.js"]),
+                            ("false", ["data-health.json"])):
+        git, remote, work, env = _repo(tmp_path / datos, PUBLISHED)
         _activation_run(work)
-        done = subprocess.run(["bash", "-e", "-c", step["run"]], cwd=work, env={**env, "DATOS": datos, "PIEZAS": piezas},
+        done = subprocess.run(["bash", "-e", "-c", step["run"]], cwd=work, env={**env, "DATOS": datos},
                               capture_output=True, text=True, timeout=60)
         assert done.returncode == 0, done.stdout + done.stderr
-        assert _last_commit(git, remote) == expected, (datos, piezas)
+        assert _last_commit(git, remote) == expected, datos
     assert "for vez in 1 2 3" in step["run"] and "git pull --rebase --autostash origin main" in step["run"]
     assert "git rebase --abort" in step["run"]
 
@@ -1888,7 +2063,7 @@ def test_when_the_suites_fail_after_activating_only_the_published_report_goes_up
     (activar_auto.py --pruebas-fallaron, con el informe de esta ejecución). El job, en rojo."""
     step = _activar_step("Publicar el fallo si las pruebas fallan")
     assert step["if"] == ("${{ !cancelled() && (steps.pytest.outcome == 'failure' || steps.node.outcome == 'failure' || "
-                          "steps.base.outcome == 'failure') }}")
+                          "steps.base.outcome == 'failure' || steps.piezas.outcome == 'failure') }}")
     git, remote, work, env = _repo(tmp_path / "pruebas", PUBLISHED)
     (work / "scripts" / "activar_auto.py").write_text(FAKE_PRUEBAS, encoding="utf-8")
     git("add", ".", cwd=work)
@@ -1997,10 +2172,11 @@ ENTRADA_REINTENTO = {"description": "Relanzamientos seguidos tras un runner rech
                      "required": False, "default": "0", "type": "string"}
 # Los pasos de update.yml de antes del relanzamiento y su job (sin los pasos), tal cual estaban en 1b4c9246: la huella
 # de su YAML (json.dumps(…, sort_keys=True, ensure_ascii=False), sha256), como PASOS_DEL_RELOJ. Y activar.yml entero,
-# que el relanzamiento no toca. Un cambio en ellos se hace a propósito, y entonces se cambia aquí.
-HUELLA_PASOS_DEL_BOT = "17c396281d0eb3c338e856eba7579853cc51c5b23468c13794ea0d27bccb8573"
+# que el relanzamiento no toca. Un cambio en ellos se hace a propósito, y entonces se cambia aquí: la parte D, fase 2
+# (docs/almacenamiento.md), «Montar la base» y el paso de las piezas que bloquea.
+HUELLA_PASOS_DEL_BOT = "58170308e2eb99aeae552a40ca56591191cc3c54f27e801727dae5b329f1c179"
 HUELLA_JOB_DEL_BOT = "67d027495a3a775d6d3fc58c7e0d434b1916440a200bbae1b45a36add49589c3"
-HUELLA_ACTIVAR = "4e4290d4b3185f03f1b131ad093fa8981a4b22aafde909bea7581f99eafdab56"
+HUELLA_ACTIVAR = "84ff3255fa116a886693ba7118eef6e986dc94ca19a7ba36c2e9fdbf45f2853b"
 
 
 def _huella(cosa):

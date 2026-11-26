@@ -80,6 +80,11 @@ jobs:
       - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
+      # Parte D, fase 2 (docs/almacenamiento.md): las suites, sobre la base montada de sus piezas (base/), que
+      # tiene que ser futbolbase.db (--contra: si no, alguien subió solo una de las dos y aquí sale en rojo).
+      - name: Montar la base
+        timeout-minutes: 5
+        run: python3 scripts/piezas.py montar --contra futbolbase.db
       - uses: actions/setup-node@v5
         with:
           node-version: '22'
@@ -99,16 +104,6 @@ jobs:
         env:
           PIEZAS_REAL: '1'
         run: python -m pytest scripts/tests/ -v
-      # Parte D, fase 1 (docs/almacenamiento.md): el aviso diario de que la sombra se ha desviado. Las piezas que
-      # subió la última pasada (base/), montadas, tienen que ser futbolbase.db fila a fila; si no, rojo aquí,
-      # aunque el bot siga publicando. Hasta que la primera pasada con datos las suba no hay nada que comparar.
-      - name: Las piezas son la base
-        run: |
-          if [ ! -f base/piezas.json ]; then
-            echo "::warning::Todavía no hay piezas en base/: las sube la primera pasada del bot con datos."
-            exit 0
-          fi
-          python3 scripts/piezas.py comparar --db futbolbase.db --piezas base
       # Qué se rehace desde los originales (scripts/reconstruir.py, docs/reconstruccion.md), sobre copias de la
       # base: minutos, por eso aquí aparte; la suite que pasa el bot en cada pasada la salta sin RECONSTRUIR.
       - name: Reconstrucción desde los originales

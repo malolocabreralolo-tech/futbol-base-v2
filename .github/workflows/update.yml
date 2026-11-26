@@ -127,6 +127,17 @@ jobs:
           echo "IP pública del runner: $(curl -s --max-time 5 https://api.ipify.org || echo desconocida)"
           echo "Nube del runner: $(cat /sys/class/dmi/id/sys_vendor 2>/dev/null || echo desconocida)"
 
+      # Parte D, fase 2 (docs/almacenamiento.md): la base de la pasada sale de sus piezas (base/). futbolbase.db
+      # sigue en git, idéntica a ellas (las dos se suben juntas): --contra para la pasada si no lo es, porque
+      # entonces alguien ha subido solo una de las dos y hay que decidir a mano cuál vale. Justo antes del bot, el
+      # primero que la lee, y no antes: si falla, lo de arriba (la IP y la nube del runner) ya está en el log, y
+      # el diagnóstico y «Relanzar si el runner fue rechazado» (abajo) corren igual (no la leen). 5 min de plazo
+      # (hoy, ~11 s con la comparación): colgado, el job se cancelaría y no saldría ni el diagnóstico.
+      - name: Montar la base
+        id: montar
+        timeout-minutes: 5
+        run: python3 scripts/piezas.py montar --contra futbolbase.db
+
       - name: Actualizar datos desde futbolaspalmas.com y la federación
         id: scrape
         continue-on-error: true
@@ -147,22 +158,15 @@ jobs:
         if: steps.scrape.outcome == 'success'
         run: python3 scripts/base_sana.py --salud
 
-      # Parte D, fase 1 (docs/almacenamiento.md): la base, partida en sus piezas (base/) y comprobada en cada
-      # pasada, en sombra: la fuente de verdad sigue siendo futbolbase.db. Si algo falla aquí, la pasada publica
-      # igual y solo no sube las piezas (vuelven a las de main; -x quita también el diario de una pieza cortada,
-      # que al abrirla desharía sobre la de main una transacción de otra). 5 min de plazo (hoy tarda ~15 s;
-      # con todas las actas, ~1,5 min): colgado, se comería el del job y la pasada no publicaría.
-      - name: Piezas de la base (en sombra)
+      # Parte D, fase 2 (docs/almacenamiento.md): la base de esta pasada, partida en sus piezas (base/), y las
+      # piezas vueltas a montar comprobadas contra ella. Mandan las piezas: si no salen iguales, ni suites ni
+      # subida (ni la base ni las piezas), y el diagnóstico lo publica. 5 min de plazo (hoy, ~15 s; con todas las actas,
+      # ~1,5 min).
+      - name: Partir la base y comprobarla (bloquea el commit si falla)
         id: piezas
         if: steps.base.outcome == 'success'
-        continue-on-error: true
         timeout-minutes: 5
-        run: |
-          python3 scripts/piezas.py partir && python3 scripts/piezas.py verificar || {
-            git checkout -q HEAD -- base/ 2>/dev/null || true
-            git clean -fdqx -- base/
-            exit 1
-          }
+        run: python3 scripts/piezas.py partir && python3 scripts/piezas.py verificar
 
       # Los push del bot (GITHUB_TOKEN) NO disparan tests.yml (anti-recursión
       # de GitHub), así que las suites tienen que correr AQUÍ, sobre los datos
@@ -170,18 +174,16 @@ jobs:
       # se publica nada.
       - name: Tests Python (bloquean el commit si fallan)
         id: pytest
-        if: steps.base.outcome == 'success'
+        if: steps.piezas.outcome == 'success'
         run: python3 -m pytest scripts/tests/ -q
 
       - name: Tests Node (bloquean el commit si fallan)
         id: node
-        if: steps.base.outcome == 'success'
+        if: steps.piezas.outcome == 'success'
         run: node --test scripts/tests/test_*.mjs
 
       - name: Commit y push si hay cambios
         if: success() && steps.scrape.outcome == 'success'
-        env:
-          PIEZAS: ${{ steps.piezas.outcome }}
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
@@ -194,9 +196,8 @@ jobs:
           git add 'data-*.js' index.html sw.js
           if ! git diff --cached --quiet || [ -f "$RUNNER_TEMP/base-cambiada" ]; then
             git add futbolbase.db
-            # Sus piezas (base/), con ella y solo si salieron iguales a ella (paso «Piezas de la base»). Si
-            # añadirlas fallara, se suben la base y lo demás sin ellas.
-            if [ "$PIEZAS" = success ]; then git add -A base/ || { git reset -q -- base/; echo "las piezas no se suben en esta pasada"; }; fi
+            # Sus piezas (base/), siempre con ella: la pasada siguiente las monta y exige que sean la misma base.
+            git add -A base/
             # El raw de la app de futbolaspalmas (qué días ya están leídos) va con los datos que ha dado.
             git add 'scripts/fp_app_*_raw.json' 2>/dev/null || true
           fi
@@ -226,23 +227,34 @@ jobs:
             done
           fi
 
-      # Si falló el bot, la base o una de las suites (no si solo falló el push de los datos: un conflicto se
-      # rehace en la pasada siguiente), se publica el diagnóstico, y nada más: solo data-health.json. Hasta la
-      # fase 2B (14/11/2026), con las pruebas en rojo se perdía también el diagnóstico.
+      # Si no se pudo montar la base, o falló el bot, la base, sus piezas o una de las suites (no si solo falló el
+      # push de los datos: un conflicto se rehace en la pasada siguiente), se publica el diagnóstico, y nada más:
+      # solo data-health.json. Hasta la fase 2B (14/11/2026), con las pruebas en rojo se perdía también el
+      # diagnóstico.
       - name: Publicar diagnóstico si la fuente o las pruebas fallan
-        if: ${{ !cancelled() && (steps.scrape.outcome == 'failure' || steps.pytest.outcome == 'failure' || steps.node.outcome == 'failure' || steps.base.outcome == 'failure') }}
+        if: ${{ !cancelled() && (steps.montar.outcome == 'failure' || steps.scrape.outcome == 'failure' || steps.pytest.outcome == 'failure' || steps.node.outcome == 'failure' || steps.base.outcome == 'failure' || steps.piezas.outcome == 'failure') }}
         env:
+          MONTAR_OUTCOME: ${{ steps.montar.outcome }}
           SCRAPE_OUTCOME: ${{ steps.scrape.outcome }}
           BASE_OUTCOME: ${{ steps.base.outcome }}
+          PIEZAS_OUTCOME: ${{ steps.piezas.outcome }}
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
-          if [ "$SCRAPE_OUTCOME" = success ]; then
-            # Fallaron la base o las pruebas: los datos de esta pasada no se publican, y su informe daría por
-            # leído lo que no se publica (como finish(failed=True)): se parte del publicado y se marca en rojo.
+          if [ "$MONTAR_OUTCOME" = failure ]; then
+            # Sin base montada no se ha hecho nada: el informe publicado, en rojo (el log de «Montar la base»
+            # dice por qué: piezas rotas, o futbolbase.db y base/ que no son la misma base).
+            git checkout HEAD -- data-health.json
+            python3 scripts/source_health.py marcar "no se pudo montar la base desde sus piezas: esta pasada no se ha hecho"
+          elif [ "$SCRAPE_OUTCOME" = success ]; then
+            # Fallaron la base, sus piezas o las pruebas: los datos de esta pasada no se publican, y su informe
+            # daría por leído lo que no se publica (como finish(failed=True)): se parte del publicado y se marca
+            # en rojo.
             git checkout HEAD -- data-health.json
             if [ "$BASE_OUTCOME" = failure ]; then
               python3 scripts/source_health.py marcar "la base de datos no pasó la comprobación: los datos de esta pasada no se publicaron"
+            elif [ "$PIEZAS_OUTCOME" = failure ]; then
+              python3 scripts/source_health.py marcar "las piezas de la base no salieron iguales a la base: los datos de esta pasada no se publicaron"
             else
               python3 scripts/source_health.py marcar "las pruebas fallaron: los datos de esta pasada no se publicaron"
             fi

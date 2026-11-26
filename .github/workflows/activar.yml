@@ -49,6 +49,14 @@ jobs:
         with:
           node-version: '22'
 
+      # Parte D, fase 2 (docs/almacenamiento.md), como en update.yml: la base sale de sus piezas (base/), y
+      # futbolbase.db, que sigue en git, tiene que ser la misma (--contra). Antes de «Qué hay pendiente», que la
+      # abre. Si no se puede montar, no se hace nada y el job acaba en rojo (la pasada del bot lo publica).
+      - name: Montar la base
+        id: montar
+        timeout-minutes: 5
+        run: python3 scripts/piezas.py montar --contra futbolbase.db
+
       # Lo pendiente, de data-health.json (sin el freno de 6 h: el bot ya lo miró, y la cadena y a mano lo
       # quieren ya); la tanda, de la temporada en curso de la base (22 en 2026-27), no escrita a fuego.
       - name: Qué hay pendiente
@@ -159,33 +167,26 @@ jobs:
         if: steps.cambios.outputs.datos == 'true'
         run: python3 scripts/base_sana.py --salud
 
-      # Parte D, fase 1 (docs/almacenamiento.md), como en update.yml: la base, partida en sus piezas (base/) y
-      # comprobada en cada activación, en sombra: la fuente de verdad sigue siendo futbolbase.db. Si algo falla
-      # aquí, la activación publica igual y solo no sube las piezas (vuelven a las de main; -x quita también el
-      # diario de una pieza cortada, que al abrirla desharía sobre la de main una transacción de otra). 5 min
-      # de plazo (hoy, ~15 s; con todas las actas, ~1,5 min): colgado, se comería el del job.
-      - name: Piezas de la base (en sombra)
+      # Parte D, fase 2 (docs/almacenamiento.md): la base de esta activación, partida en sus piezas (base/), y las
+      # piezas vueltas a montar comprobadas contra ella. Mandan las piezas: si no salen iguales, ni suites ni
+      # subida (ni la base ni las piezas), y «Publicar el fallo» lo publica. 5 min de plazo (hoy, ~15 s; con todas las actas,
+      # ~1,5 min).
+      - name: Partir la base y comprobarla (bloquea el commit si falla)
         id: piezas
         if: steps.cambios.outputs.datos == 'true' && steps.base.outcome == 'success'
-        continue-on-error: true
         timeout-minutes: 5
-        run: |
-          python3 scripts/piezas.py partir && python3 scripts/piezas.py verificar || {
-            git checkout -q HEAD -- base/ 2>/dev/null || true
-            git clean -fdqx -- base/
-            exit 1
-          }
+        run: python3 scripts/piezas.py partir && python3 scripts/piezas.py verificar
 
       # Como en update.yml: los push con GITHUB_TOKEN no lanzan tests.yml, así que las suites van aquí, sobre
       # la web recién activada y antes del commit.
       - name: Tests Python (bloquean el commit si fallan)
         id: pytest
-        if: steps.cambios.outputs.datos == 'true'
+        if: steps.piezas.outcome == 'success'
         run: python3 -m pytest scripts/tests/ -q
 
       - name: Tests Node (bloquean el commit si fallan)
         id: node
-        if: steps.cambios.outputs.datos == 'true'
+        if: steps.piezas.outcome == 'success'
         run: node --test scripts/tests/test_*.mjs
 
       # Solo con todo en verde (success(): una suite en rojo deja el job en rojo y esto no corre). Con datos, la
@@ -195,15 +196,14 @@ jobs:
         if: ${{ success() && steps.activar.outcome != 'skipped' }}
         env:
           DATOS: ${{ steps.cambios.outputs.datos }}
-          PIEZAS: ${{ steps.piezas.outcome }}
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
           if [ "$DATOS" = true ]; then
             git add 'data-*.js' index.html sw.js futbolbase.db
             git add 'docs/temporadas/*-auto-*.json' 2>/dev/null || true
-            # Las piezas de la base (base/), con ella y solo si salieron iguales a ella, como en update.yml.
-            if [ "$PIEZAS" = success ]; then git add -A base/ || { git reset -q -- base/; echo "las piezas no se suben"; }; fi
+            # Las piezas de la base (base/), siempre con ella, como en update.yml.
+            git add -A base/
           fi
           git add data-health.json
           if git diff --cached --quiet; then
@@ -222,7 +222,7 @@ jobs:
       # intentado como fallido por las pruebas (activar_auto.py --pruebas-fallaron, con el informe de esta
       # ejecución: su tried y su at frenan al bot un día). Solo se sube ese fichero, y el job en rojo.
       - name: Publicar el fallo si las pruebas fallan
-        if: ${{ !cancelled() && (steps.pytest.outcome == 'failure' || steps.node.outcome == 'failure' || steps.base.outcome == 'failure') }}
+        if: ${{ !cancelled() && (steps.pytest.outcome == 'failure' || steps.node.outcome == 'failure' || steps.base.outcome == 'failure' || steps.piezas.outcome == 'failure') }}
         run: |
           git config user.name "GitHub Actions"
           git config user.email "actions@github.com"
