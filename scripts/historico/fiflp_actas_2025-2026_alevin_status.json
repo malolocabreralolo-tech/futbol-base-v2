@@ -1,14 +1,14 @@
 {
  "formato": 2,
  "season": "2025-2026",
- "enumerated": 572,
- "in_raw": 326,
- "fetched": 0,
- "pending": 251,
- "actas_por_leer": 246,
- "jornadas_por_leer": 0,
- "grupos_por_leer": 0,
- "unenumerated_comps": 5,
+ "enumerated": 817,
+ "in_raw": 572,
+ "fetched": 246,
+ "pending": 266,
+ "actas_por_leer": 245,
+ "jornadas_por_leer": 13,
+ "grupos_por_leer": 4,
+ "unenumerated_comps": 4,
  "no_disponible": [],
  "intentos": {},
  "motivos": {},
@@ -43,8 +43,57 @@
    "pendientes": {}
   },
   "54422940": {
-   "grupos": null,
-   "pendientes": {}
+   "grupos": [
+    [
+     "54823254",
+     "GRUPO 1"
+    ],
+    [
+     "54823255",
+     "GRUPO 2"
+    ],
+    [
+     "54823258",
+     "GRUPO 3"
+    ],
+    [
+     "54823259",
+     "GRUPO 4"
+    ],
+    [
+     "54823263",
+     "GRUPO 5"
+    ],
+    [
+     "54823294",
+     "GRUPO 6"
+    ],
+    [
+     "54965000",
+     "DESEMPATE CLASIFICACIÓN COPA CAMPEONES"
+    ]
+   ],
+   "pendientes": {
+    "54823258": [
+     "10",
+     "11",
+     "12",
+     "13",
+     "14",
+     "15",
+     "16",
+     "17",
+     "18",
+     "19",
+     "20",
+     "21",
+     "22"
+    ],
+    "54823259": null,
+    "54823263": null,
+    "54823294": null,
+    "54965000": null
+   }
   },
   "54422941": {
    "grupos": null,
@@ -64,8 +113,8 @@
   }
  },
  "paginas": {
-  "pedidas": 1,
-  "servidas": 0
+  "pedidas": 306,
+  "servidas": 300
  },
- "parada": "runner"
+ "parada": "freno"
 }
