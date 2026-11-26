@@ -660,7 +660,7 @@
         "drySince": "2026-11-26T11:50:43+00:00"
       },
       "run": {
-        "pass": 3,
+        "pass": 4,
         "groups": 17,
         "refreshed": 0,
         "priority": [
@@ -671,9 +671,6 @@
         "resting": [],
         "deferred": [
           "INFUG3",
-          "INFUL2",
-          "INFUL3",
-          "INFUL4",
           "INF1G3",
           "INF1G4",
           "INF1G1",
@@ -685,7 +682,10 @@
           "INFUG4",
           "INFUL1",
           "INFUG1",
-          "INFUG2"
+          "INFUG2",
+          "INFUL3",
+          "INFUL4",
+          "INFUL2"
         ],
         "unserved": [
           "INFPG1"
@@ -854,7 +854,7 @@
     ],
     "attempts": 1
   },
-  "checkedAt": "2026-11-26T11:51:08+00:00",
+  "checkedAt": "2026-11-26T11:58:33+00:00",
   "lastDataChange": "2026-11-26",
   "dataVersion": "20261126c",
   "summary": {
