@@ -1,14 +1,14 @@
 {
  "formato": 2,
  "season": "2025-2026",
- "enumerated": 1725,
- "in_raw": 1581,
- "fetched": 299,
- "pending": 147,
- "actas_por_leer": 144,
- "jornadas_por_leer": 0,
- "grupos_por_leer": 0,
- "unenumerated_comps": 3,
+ "enumerated": 2089,
+ "in_raw": 1725,
+ "fetched": 144,
+ "pending": 373,
+ "actas_por_leer": 364,
+ "jornadas_por_leer": 2,
+ "grupos_por_leer": 5,
+ "unenumerated_comps": 2,
  "no_disponible": [],
  "intentos": {},
  "motivos": {},
@@ -101,8 +101,143 @@
    "pendientes": {}
   },
   "54422881": {
-   "grupos": null,
-   "pendientes": {}
+   "grupos": [
+    [
+     "54686136",
+     "GRUPO 16"
+    ],
+    [
+     "54686435",
+     "GRUPO 32"
+    ],
+    [
+     "54686400",
+     "GRUPO 31"
+    ],
+    [
+     "54686377",
+     "GRUPO 30"
+    ],
+    [
+     "54686357",
+     "GRUPO 29"
+    ],
+    [
+     "54686328",
+     "GRUPO 28"
+    ],
+    [
+     "54686269",
+     "GRUPO 27"
+    ],
+    [
+     "54686217",
+     "GRUPO 26"
+    ],
+    [
+     "54686209",
+     "GRUPO 25"
+    ],
+    [
+     "54686208",
+     "GRUPO 24"
+    ],
+    [
+     "54686202",
+     "GRUPO 23"
+    ],
+    [
+     "54686197",
+     "GRUPO 22"
+    ],
+    [
+     "54686169",
+     "GRUPO 20"
+    ],
+    [
+     "54686163",
+     "GRUPO 19"
+    ],
+    [
+     "54686155",
+     "GRUPO 18"
+    ],
+    [
+     "54686141",
+     "GRUPO 17"
+    ],
+    [
+     "54685899",
+     "GRUPO 1"
+    ],
+    [
+     "54686109",
+     "GRUPO 15"
+    ],
+    [
+     "54686102",
+     "GRUPO 14"
+    ],
+    [
+     "54686099",
+     "GRUPO 13"
+    ],
+    [
+     "54686090",
+     "GRUPO 12"
+    ],
+    [
+     "54686077",
+     "GRUPO 11"
+    ],
+    [
+     "54686054",
+     "GRUPO 10"
+    ],
+    [
+     "54686051",
+     "GRUPO 9"
+    ],
+    [
+     "54686019",
+     "GRUPO 8"
+    ],
+    [
+     "54686013",
+     "GRUPO 7"
+    ],
+    [
+     "54685973",
+     "GRUPO 6"
+    ],
+    [
+     "54685931",
+     "GRUPO 5"
+    ],
+    [
+     "54685916",
+     "GRUPO 4"
+    ],
+    [
+     "54685913",
+     "GRUPO 3"
+    ],
+    [
+     "54685901",
+     "GRUPO 2"
+    ]
+   ],
+   "pendientes": {
+    "54686013": [
+     "4",
+     "5"
+    ],
+    "54685973": null,
+    "54685931": null,
+    "54685916": null,
+    "54685913": null,
+    "54685901": null
+   }
   },
   "54976639": {
    "grupos": null,
