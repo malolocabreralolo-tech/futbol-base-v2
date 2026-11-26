@@ -1,4 +1,4 @@
-const CACHE_NAME = 'futbolbase2-v20261126c';
+const CACHE_NAME = 'futbolbase2-v20261126d';
 const CRESTS_CACHE = 'futbolbase2-escudos-21f9b5f8';
 
 // El service worker de Fútbol Base v2. La línea 1 la sube el bot con cada versión de datos
@@ -15,7 +15,7 @@ const PRECACHE_CACHE = 'futbolbase2-precache';
 
 // >>> precache: lo escribe scripts/precache.py
 const PRECACHE = {
-  "index.html": "3a0b0214",
+  "index.html": "975a949c",
   "dist/acta-c2dfa212.css": "c2dfa212",
   "dist/app-7b470b99.js": "7b470b99",
   "src/config.js": "34193a4f",
@@ -25,27 +25,27 @@ const PRECACHE = {
   "icons/icon-192.png": "efe8a25e",
   "icons/icon-512.png": "498ff532",
   "icons/icon-maskable-512.png": "a3e02b61",
-  "data-benjamin.js": "3d95419d",
-  "data-prebenjamin.js": "a5099abd",
-  "data-history.js": "68ae12b1",
-  "data-goleadores.js": "779739a7",
+  "data-benjamin.js": "a20831de",
+  "data-prebenjamin.js": "e1e82206",
+  "data-history.js": "cded8dc8",
+  "data-goleadores.js": "0c4a2758",
   "data-shields.js": "eaeca19f",
   "data-seasons.js": "7886414a",
   "data-maspalomas-cup-2026.js": "4a43b19c",
-  "data-alevin.js": "29b6b34f",
+  "data-alevin.js": "e2e7c76e",
   "data-season-2025-2026.js": "d21763a9",
-  "data-season-2024-2025.js": "3d667106",
-  "data-season-2023-2024.js": "63592861",
-  "data-season-2022-2023.js": "a0c9c879",
-  "data-season-2021-2022.js": "1bf200f5",
-  "data-season-2020-2021.js": "272dd32b",
-  "data-season-2019-2020.js": "f221526c",
+  "data-season-2024-2025.js": "3880023c",
+  "data-season-2023-2024.js": "ab706092",
+  "data-season-2022-2023.js": "1789efd4",
+  "data-season-2021-2022.js": "632744ee",
+  "data-season-2020-2021.js": "d119b816",
+  "data-season-2019-2020.js": "737a8032",
   "data-season-2018-2019.js": "7e2903e9",
-  "data-season-2017-2018.js": "2b732cc9",
-  "data-season-2016-2017.js": "4f17ba90",
-  "data-season-2015-2016.js": "e45bd97f",
+  "data-season-2017-2018.js": "fb2b4069",
+  "data-season-2016-2017.js": "d9cd4bcd",
+  "data-season-2015-2016.js": "e971baba",
   "data-season-2014-2015.js": "09d9dafd",
-  "data-season-2013-2014.js": "7d0ebaf7",
+  "data-season-2013-2014.js": "7a456470",
   "data-season-2012-2013.js": "f8c88dd3",
 };
 const OPCIONALES = [
