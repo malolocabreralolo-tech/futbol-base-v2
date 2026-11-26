@@ -17,10 +17,10 @@ Un solo sitio decide la categoría, y separa cuatro preguntas a propósito: **co
 |---|---|---|---|
 | `category_of(nombre)` | la categoría de una competición, de la cabecera de un acta o de una liga de la app: `PREBENJAMIN`, `BENJAMIN`, `ALEVIN`, `INFANTIL`, `CADETE`, `JUVENIL` o `None` | las seis | — |
 | `DB_NAME` | clave de la web (`infantil`) → nombre en `categories` (`INFANTIL`) | las seis | — |
-| `ACTIVABLES` | lo que el bot apunta en `newCompetitions` y `activar_auto` activa solo | `("BENJAMIN", "PREBENJAMIN", "ALEVIN")` | el director: D3, D4, D5 |
+| `ACTIVABLES` | lo que el bot apunta en `newCompetitions` y `activar_auto` activa solo | `("BENJAMIN", "PREBENJAMIN", "ALEVIN", "INFANTIL")` (D3, el 26/11/2026; antes, sin `INFANTIL`) | el director: D3, D4, D5 |
 | `ALEVIN_ISLAS` | el alevín de Lanzarote y Fuerteventura cuenta como alevín (si no, `None`) | `False` | el director: D6 |
 | `CARRILES` | qué lee cada carril: `principal` (prebenjamín, benjamín, alevín: el bot de siempre, sin `FIFLP_CATS`) y `mayores` (infantil, cadete, juvenil: `carril-mayores.yml`) | — | — |
-| `EN_WEB` | lo que ven el generador (`vista_web.copia_web`) y el resolvedor de fichas | `("BENJAMIN", "PREBENJAMIN", "ALEVIN")` | el director: E2-D2 (abajo, «En la web») |
+| `EN_WEB` | lo que ven el generador (`vista_web.copia_web`) y el resolvedor de fichas | las seis (E2-D2, el 26/11/2026; antes, `("BENJAMIN", "PREBENJAMIN", "ALEVIN")`) | el director: E2-D2 (abajo, «En la web») |
 | `TANDAS` | el sufijo de la tanda de activación (`scripts/fiflp_islas_<CodTemporada><sufijo>_raw.json`): `""` benjamín y prebenjamín, `al` alevín, `inf`, `cad`, `juv` | — | — |
 
 Y lo que cuelga de ellas:
@@ -216,6 +216,8 @@ Lo que cambia en las fichas con `EN_WEB` de seis, y sus protecciones ([identidad
 ### E2-D2: la web enseña infantil, cadete y juvenil
 
 Con E2-D1 publicado, al menos infantil activado y leído (D3; mejor con D4 y D5 ya dados) y al menos un día entero de pasadas en verde del bot y del carril desde el último paso.
+
+**Dado el 26/11/2026**, el mismo día que D3 y sin esperar ese día entero (decisión del director): con infantil activado entero (17 grupos) y leído una vez por el carril (5 grupos, sus goleadores y 59 actas), la medida sobre la base real dio 232 fichas entre categorías, todas por el mismo identificador (de 297 niños de infantil leídos), 0 por una regla sin identificador, 0 fichas de antes que se parten y 0 edades imposibles; pytest 2443, node 1165 y `prueba_mayores.py --categorias infantil --con-cambios` en verde (128 grupos en la sonda, 0 en otra-…). Desde entonces `season_lazy_keys` declara en `data-seasons.js` cada categoría nueva en cuanto tiene grupos: **D4 y D5 ya son también pasos de web** (cadete y juvenil salen en Explorar con la pasada siguiente a su activación), y sus actas llegan con las pasadas del carril (~60 por pasada), no de golpe.
 
 1. Un commit de dos líneas en `main` (sin nada en marcha), las dos con la misma tupla:
    - `scripts/categorias.py`: `EN_WEB = ("BENJAMIN", "PREBENJAMIN", "ALEVIN", "INFANTIL", "CADETE", "JUVENIL")`;
