@@ -2,6 +2,66 @@
   "version": 1,
   "season": "2026-2027",
   "groups": {
+    "INFPG1": {
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54976908&CodGrupo=55150140",
+      "status": "ok",
+      "message": "2 jornadas leídas: 0 partidos nuevos, 0 actualizados, 0 resultados; 139 goleadores, 11/12 actas",
+      "checkedAt": "2026-11-26T13:50:31+00:00"
+    },
+    "INFPG2": {
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54976908&CodGrupo=55150148",
+      "status": "ok",
+      "message": "11 jornadas leídas: 0 partidos nuevos, 0 actualizados, 0 resultados; 154 goleadores",
+      "checkedAt": "2026-11-26T12:18:21+00:00"
+    },
+    "INFUF2": {
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54976929&CodGrupo=55180173",
+      "status": "ok",
+      "message": "8 jornadas leídas: 0 partidos nuevos, 0 actualizados, 0 resultados; 76 goleadores",
+      "checkedAt": "2026-11-26T12:15:47+00:00"
+    },
+    "INFUF3": {
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54976929&CodGrupo=55180174",
+      "status": "ok",
+      "message": "8 jornadas leídas: 0 partidos nuevos, 0 actualizados, 0 resultados; 77 goleadores",
+      "checkedAt": "2026-11-26T12:17:04+00:00"
+    },
+    "INFUG1": {
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=55184138&CodGrupo=55184282",
+      "status": "ok",
+      "message": "9 jornadas leídas: 0 partidos nuevos, 0 actualizados, 0 resultados; 108 goleadores",
+      "checkedAt": "2026-11-26T14:00:42+00:00"
+    },
+    "INFUG2": {
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=55184138&CodGrupo=55184285",
+      "status": "ok",
+      "message": "9 jornadas leídas: 0 partidos nuevos, 0 actualizados, 0 resultados; 132 goleadores",
+      "checkedAt": "2026-11-26T14:02:06+00:00"
+    },
+    "INFUG3": {
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=55184138&CodGrupo=55184293",
+      "status": "ok",
+      "message": "9 jornadas leídas: 0 partidos nuevos, 0 actualizados, 0 resultados; 100 goleadores",
+      "checkedAt": "2026-11-26T12:14:23+00:00"
+    },
+    "INFUG4": {
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=55184138&CodGrupo=55184307",
+      "status": "ok",
+      "message": "9 jornadas leídas: 0 partidos nuevos, 0 actualizados, 0 resultados; 146 goleadores, 43/43 actas",
+      "checkedAt": "2026-11-26T13:53:07+00:00"
+    },
+    "INFUL1": {
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54976911&CodGrupo=55121518",
+      "status": "ok",
+      "message": "7 jornadas leídas: 0 partidos nuevos, 0 actualizados, 0 resultados; 52 goleadores",
+      "checkedAt": "2026-11-26T13:59:32+00:00"
+    },
+    "INFUL3": {
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54976911&CodGrupo=55121955",
+      "status": "ok",
+      "message": "7 jornadas leídas: 0 partidos nuevos, 0 actualizados, 0 resultados; 61 goleadores",
+      "checkedAt": "2026-11-26T14:03:30+00:00"
+    },
     "A1": {
       "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54977143&CodGrupo=55337618",
       "status": "ok",
@@ -643,66 +703,6 @@
       "status": "ok",
       "message": "2 jornadas leídas: 0 partidos nuevos, 0 actualizados, 0 resultados",
       "checkedAt": "2026-11-26T13:31:27+00:00"
-    },
-    "INFPG1": {
-      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54976908&CodGrupo=55150140",
-      "status": "ok",
-      "message": "2 jornadas leídas: 0 partidos nuevos, 0 actualizados, 0 resultados; 139 goleadores, 11/12 actas",
-      "checkedAt": "2026-11-26T13:50:31+00:00"
-    },
-    "INFPG2": {
-      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54976908&CodGrupo=55150148",
-      "status": "ok",
-      "message": "11 jornadas leídas: 0 partidos nuevos, 0 actualizados, 0 resultados; 154 goleadores",
-      "checkedAt": "2026-11-26T12:18:21+00:00"
-    },
-    "INFUF2": {
-      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54976929&CodGrupo=55180173",
-      "status": "ok",
-      "message": "8 jornadas leídas: 0 partidos nuevos, 0 actualizados, 0 resultados; 76 goleadores",
-      "checkedAt": "2026-11-26T12:15:47+00:00"
-    },
-    "INFUF3": {
-      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54976929&CodGrupo=55180174",
-      "status": "ok",
-      "message": "8 jornadas leídas: 0 partidos nuevos, 0 actualizados, 0 resultados; 77 goleadores",
-      "checkedAt": "2026-11-26T12:17:04+00:00"
-    },
-    "INFUG1": {
-      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=55184138&CodGrupo=55184282",
-      "status": "ok",
-      "message": "9 jornadas leídas: 0 partidos nuevos, 0 actualizados, 0 resultados; 108 goleadores",
-      "checkedAt": "2026-11-26T14:00:42+00:00"
-    },
-    "INFUG2": {
-      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=55184138&CodGrupo=55184285",
-      "status": "ok",
-      "message": "9 jornadas leídas: 0 partidos nuevos, 0 actualizados, 0 resultados; 132 goleadores",
-      "checkedAt": "2026-11-26T14:02:06+00:00"
-    },
-    "INFUG3": {
-      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=55184138&CodGrupo=55184293",
-      "status": "ok",
-      "message": "9 jornadas leídas: 0 partidos nuevos, 0 actualizados, 0 resultados; 100 goleadores",
-      "checkedAt": "2026-11-26T12:14:23+00:00"
-    },
-    "INFUG4": {
-      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=55184138&CodGrupo=55184307",
-      "status": "ok",
-      "message": "9 jornadas leídas: 0 partidos nuevos, 0 actualizados, 0 resultados; 146 goleadores, 43/43 actas",
-      "checkedAt": "2026-11-26T13:53:07+00:00"
-    },
-    "INFUL1": {
-      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54976911&CodGrupo=55121518",
-      "status": "ok",
-      "message": "7 jornadas leídas: 0 partidos nuevos, 0 actualizados, 0 resultados; 52 goleadores",
-      "checkedAt": "2026-11-26T13:59:32+00:00"
-    },
-    "INFUL3": {
-      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54976911&CodGrupo=55121955",
-      "status": "ok",
-      "message": "7 jornadas leídas: 0 partidos nuevos, 0 actualizados, 0 resultados; 61 goleadores",
-      "checkedAt": "2026-11-26T14:03:30+00:00"
     }
   },
   "nextSeason": {
@@ -710,7 +710,8 @@
     "status": "pending"
   },
   "runHealth": {
-    "ok": true
+    "ok": true,
+    "drySince": "2026-11-26T15:16:05+00:00"
   },
   "carriles": {
     "mayores": {
@@ -764,129 +765,6 @@
       }
     }
   },
-  "run": {
-    "pass": 206,
-    "groups": 107,
-    "refreshed": 28,
-    "priority": [
-      "EL2",
-      "ALEL1",
-      "ALB2"
-    ],
-    "fresh": [
-      "PG2",
-      "C1",
-      "FF5",
-      "ALB1",
-      "ALB3",
-      "ALC1",
-      "ALEL2"
-    ],
-    "resting": [
-      "AL1",
-      "AL3",
-      "AL4",
-      "AL5",
-      "AL6",
-      "AL7",
-      "AL8",
-      "AL9",
-      "AL10",
-      "AL12",
-      "AL13",
-      "AL14",
-      "AL15",
-      "AL16",
-      "AL17",
-      "AL18",
-      "AL19",
-      "AL20",
-      "AL21",
-      "AL22",
-      "AL23",
-      "AL25",
-      "AL26",
-      "AL27",
-      "AL28",
-      "AL29",
-      "AL30",
-      "AL32"
-    ],
-    "deferred": [
-      "LZ2",
-      "LZ3",
-      "LZ4",
-      "PLZ2",
-      "LZ5",
-      "FF23",
-      "FF24",
-      "FV11",
-      "FV12",
-      "PLZ1",
-      "FV13",
-      "A2",
-      "AL31",
-      "B1",
-      "B2",
-      "C2",
-      "ALA1",
-      "CGC1",
-      "PFV1",
-      "D1",
-      "D2",
-      "ALA2",
-      "E1",
-      "E2",
-      "EL1",
-      "PFV2",
-      "ALA3",
-      "A1",
-      "FF1",
-      "FF2",
-      "FF3",
-      "ALC2",
-      "FF4",
-      "FF6",
-      "PFV3",
-      "FF7",
-      "ALC3",
-      "FF8",
-      "FF9",
-      "FF10",
-      "ALD1",
-      "FF11",
-      "PG1",
-      "F1"
-    ],
-    "unserved": [],
-    "extrasDeferred": [
-      "ALE1",
-      "ALE2",
-      "ALD2",
-      "ALD3",
-      "ALE3"
-    ],
-    "seconds": 959,
-    "pages": 137,
-    "extras": [
-      "campos",
-      "competiciones",
-      "directorio"
-    ],
-    "calendarShows": {
-      "other": 13
-    },
-    "groupSelects": {
-      "seen": 28,
-      "of": 28
-    },
-    "rawBackfill": {
-      "read": 12,
-      "left": 69
-    },
-    "cloud": "azure",
-    "deadPages": 5
-  },
   "activation": {
     "at": "2026-11-26T11:38:48+00:00",
     "activated": [
@@ -906,7 +784,147 @@
     ],
     "attempts": 1
   },
-  "checkedAt": "2026-11-26T14:06:28+00:00",
+  "run": {
+    "pass": 207,
+    "groups": 107,
+    "refreshed": 0,
+    "priority": [
+      "AL20",
+      "ALB3",
+      "ALEL2",
+      "FF5",
+      "PG2",
+      "ALC1",
+      "C1",
+      "ALB1"
+    ],
+    "fresh": [
+      "EL2",
+      "ALB2",
+      "ALEL1"
+    ],
+    "resting": [
+      "AL1",
+      "AL2",
+      "AL3",
+      "AL4",
+      "AL5",
+      "AL7",
+      "AL8",
+      "AL9",
+      "AL10",
+      "AL12",
+      "AL13",
+      "AL14",
+      "AL15",
+      "AL16",
+      "AL17",
+      "AL18",
+      "AL19",
+      "AL21",
+      "AL22",
+      "AL23",
+      "AL24",
+      "AL25",
+      "AL26",
+      "AL27",
+      "AL28",
+      "AL29",
+      "AL30",
+      "AL32"
+    ],
+    "deferred": [
+      "ALB3",
+      "ALEL2",
+      "FF5",
+      "PG2",
+      "ALC1",
+      "C1",
+      "ALB1",
+      "AL6",
+      "FV14",
+      "ALF1",
+      "PLZ2",
+      "LZ1",
+      "ALF2",
+      "LZ2",
+      "ALE3",
+      "LZ3",
+      "LZ4",
+      "AL11",
+      "LZ5",
+      "AL31",
+      "PLZ1",
+      "FF23",
+      "FF24",
+      "ALA1",
+      "FV11",
+      "ALA2",
+      "FV12",
+      "ALA3",
+      "FV13",
+      "A2",
+      "PFV1",
+      "B1",
+      "B2",
+      "C2",
+      "CGC1",
+      "D1",
+      "PFV2",
+      "D2",
+      "E1",
+      "E2",
+      "EL1",
+      "A1",
+      "FF1",
+      "PFV3",
+      "FF2",
+      "ALC2",
+      "FF3",
+      "FF4",
+      "FF6",
+      "ALC3",
+      "FF7",
+      "PG1",
+      "FF8",
+      "FF9",
+      "ALD1",
+      "FF10",
+      "FF11",
+      "F1",
+      "ALD2",
+      "FF13",
+      "PG3",
+      "FF14",
+      "FF15",
+      "ALD3",
+      "FF16",
+      "FF17",
+      "FF18",
+      "PG4",
+      "FF19",
+      "ALE1",
+      "FF20",
+      "FF21",
+      "FF22",
+      "ALE2",
+      "FF12"
+    ],
+    "unserved": [
+      "AL20"
+    ],
+    "extrasDeferred": [],
+    "seconds": 9,
+    "pages": 2,
+    "blocked": true,
+    "rawBackfill": {
+      "read": 0,
+      "left": 69
+    },
+    "cloud": "aws",
+    "refusedRunner": true
+  },
+  "checkedAt": "2026-11-26T15:16:59+00:00",
   "lastDataChange": "2026-11-26",
   "dataVersion": "20261126e",
   "summary": {
