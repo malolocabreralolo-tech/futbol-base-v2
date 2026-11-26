@@ -49,7 +49,7 @@ ALEVIN_FUERA = ("LANZAROTE", "FUERTEVENTURA")
 ALEVIN_ISLAS = False
 # Lo que el bot apunta en newCompetitions y activar_auto activa solo. Las mayores entran en los pasos
 # D3-D5 del director, una cada vez.
-ACTIVABLES = ("BENJAMIN", "PREBENJAMIN", "ALEVIN", "INFANTIL")
+ACTIVABLES = ("BENJAMIN", "PREBENJAMIN", "ALEVIN", "INFANTIL", "CADETE")
 # Qué lee cada carril. El principal es el bot de siempre, con FIFLP_CATS vacía; el de las mayores,
 # update.yml llamado desde carril-mayores.yml con FIFLP_CATS=infantil,cadete,juvenil.
 CARRILES = {"principal": ("PREBENJAMIN", "BENJAMIN", "ALEVIN"), "mayores": MAYORES}
