@@ -656,28 +656,48 @@
   "carriles": {
     "mayores": {
       "runHealth": {
-        "ok": true
+        "ok": true,
+        "drySince": "2026-11-26T11:50:43+00:00"
+      },
+      "run": {
+        "pass": 3,
+        "groups": 17,
+        "refreshed": 0,
+        "priority": [
+          "INFPG1",
+          "INFUG3"
+        ],
+        "fresh": [],
+        "resting": [],
+        "deferred": [
+          "INFUG3",
+          "INFUL2",
+          "INFUL3",
+          "INFUL4",
+          "INF1G3",
+          "INF1G4",
+          "INF1G1",
+          "INF1G2",
+          "INFUF2",
+          "INFUF3",
+          "INFPG2",
+          "INFUF1",
+          "INFUG4",
+          "INFUL1",
+          "INFUG1",
+          "INFUG2"
+        ],
+        "unserved": [
+          "INFPG1"
+        ],
+        "extrasDeferred": [],
+        "seconds": 9,
+        "pages": 2,
+        "blocked": true,
+        "cloud": "aws",
+        "refusedRunner": true
       }
     }
-  },
-  "activation": {
-    "at": "2026-11-26T11:38:48+00:00",
-    "activated": [
-      {
-        "competition": "54976929",
-        "name": "LIGA INFANTIL DE FUERTEVENTURA 1ª FASE",
-        "codes": [
-          "INFUF1",
-          "INFUF2",
-          "INFUF3"
-        ]
-      }
-    ],
-    "failed": [],
-    "tried": [
-      "54976929"
-    ],
-    "attempts": 1
   },
   "run": {
     "pass": 204,
@@ -815,7 +835,26 @@
     "cloud": "aws",
     "refusedRunner": true
   },
-  "checkedAt": "2026-11-26T11:21:53+00:00",
+  "activation": {
+    "at": "2026-11-26T11:38:48+00:00",
+    "activated": [
+      {
+        "competition": "54976929",
+        "name": "LIGA INFANTIL DE FUERTEVENTURA 1ª FASE",
+        "codes": [
+          "INFUF1",
+          "INFUF2",
+          "INFUF3"
+        ]
+      }
+    ],
+    "failed": [],
+    "tried": [
+      "54976929"
+    ],
+    "attempts": 1
+  },
+  "checkedAt": "2026-11-26T11:51:08+00:00",
   "lastDataChange": "2026-11-26",
   "dataVersion": "20261126c",
   "summary": {
