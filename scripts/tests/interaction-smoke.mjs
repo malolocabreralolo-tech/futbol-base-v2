@@ -976,6 +976,97 @@ async function mayoresWidths() {
   }
 }
 
+// El selector de seis categorías con el teclado, a 320 px (mundo S), en claro y en oscuro: tabulando por él,
+// cada categoría queda entera dentro de la fila, con su anillo de foco (por dentro: la fila recorta lo que sale
+// de ella) y fuera del degradado de los bordes, y la página no se desplaza; y la pista de que hay más, el
+// degradado del borde que tiene más (::before a la izquierda, ::after a la derecha), solo cuando lo hay: con
+// benjamín elegido, a la derecha; al llegar a juvenil (y en Récords con juvenil elegido), a la izquierda. Con
+// las tres de siempre (mundo L), ninguna.
+async function pickerEdges(page, picker) {
+  return page.locator(`#contenido ${picker} .cat-picker`).evaluate((el) => {
+    const shown = (pseudo) => {
+      const cs = getComputedStyle(el, pseudo);
+      return cs.content !== 'none' && cs.visibility === 'visible' && cs.position === 'sticky';
+    };
+    return {
+      left: shown('::before'), right: shown('::after'), fade: parseFloat(getComputedStyle(el, '::before').width),
+      more: { left: el.scrollLeft > 1, right: el.scrollLeft < el.scrollWidth - el.clientWidth - 1 },
+    };
+  });
+}
+
+async function mayoresKeyboard() {
+  const viewport = { width: 320, height: 568 };
+  for (const colorScheme of ['light', 'dark']) {
+    const label = `${nameOf(viewport, colorScheme)}, seis categorías con el teclado`;
+    const context = await newContext(viewport, colorScheme);
+    try {
+      await useWorld(context, 'S');
+      const page = await context.newPage();
+      page.setDefaultTimeout(8000);
+      const errors = [];
+      page.on('pageerror', (error) => errors.push(error.message));
+      for (const [hash, screen, picker, title] of [['#/goleadores?c=benjamin', 'goleadores', '.gol-cats', 'Goleadores'], ['#/records?c=juvenil', 'records', '.rc-cats', 'Récords']]) {
+        const where = `${label}, ${title}`;
+        await page.goto(`${base}${hash}`);
+        await paintedAs(page, screen, { label: where });
+        const first = await pickerEdges(page, picker);
+        assert.deepEqual([first.left, first.right], [first.more.left, first.more.right], `${where}: la pista, solo donde hay más (${JSON.stringify(first)})`);
+        assert.deepEqual(first.more, title === 'Goleadores' ? { left: false, right: true } : { left: true, right: false }, `${where}: al pintar`);
+        const seen = [];
+        for (let i = 0; i < 40 && seen.length < 6; i++) {
+          await page.keyboard.press('Tab');
+          const info = await page.evaluate(() => {
+            const a = document.activeElement;
+            const row = a && a.closest('.cat-picker');
+            if (!row) return null;
+            const box = row.getBoundingClientRect();
+            const r = a.getBoundingClientRect();
+            const cs = getComputedStyle(a);
+            const ring = parseFloat(cs.outlineWidth) + parseFloat(cs.outlineOffset);   // lo que sale del enlace
+            // Fuera del degradado: a su anchura del borde, salvo que sea la primera o la última.
+            const fade = parseFloat(getComputedStyle(row, '::before').width);
+            const links = [...row.querySelectorAll('.segment')];
+            const gapL = a === links[0] ? 0 : fade, gapR = a === links[links.length - 1] ? 0 : fade;
+            return {
+              text: a.textContent, inside: r.left >= box.left + gapL - 0.5 && r.right <= box.right - gapR + 0.5,
+              ring: cs.outlineStyle !== 'none' && ring <= 0, color: cs.outlineColor, current: a.getAttribute('aria-current'),
+              page: document.documentElement.scrollWidth,
+            };
+          });
+          if (!info) { if (seen.length) break; continue; }
+          seen.push(info.text);
+          assert.ok(info.inside, `${where}: «${info.text}», entera dentro de la fila y fuera del degradado al tabular`);
+          assert.ok(info.ring, `${where}: «${info.text}», con su anillo de foco por dentro`);
+          assert.equal(info.page, viewport.width, `${where}: «${info.text}»: la página no se desplaza`);
+          const edges = await pickerEdges(page, picker);
+          assert.deepEqual([edges.left, edges.right], [edges.more.left, edges.more.right], `${where}: «${info.text}»: la pista, solo donde hay más (${JSON.stringify(edges)})`);
+          if (info.text === 'Juvenil') assert.deepEqual(edges.more, { left: true, right: false }, `${where}: en juvenil, más a la izquierda`);
+        }
+        assert.deepEqual(seen, ['Benjamín', 'Prebenjamín', 'Alevín', 'Infantil', 'Cadete', 'Juvenil'], `${where}: las seis, en orden`);
+      }
+      assert.deepEqual(errors, [], `${label}: sin errores de JavaScript`);
+    } finally {
+      await context.close();
+    }
+    // Con las tres de siempre (mundo L): caben, nada que deslizar y ninguna pista.
+    const three = await newContext(viewport, colorScheme);
+    try {
+      await useWorld(three, 'L');
+      const page = await three.newPage();
+      page.setDefaultTimeout(8000);
+      for (const [hash, screen, picker] of [['#/goleadores?c=alevin', 'goleadores', '.gol-cats'], ['#/records?c=benjamin', 'records', '.rc-cats']]) {
+        await page.goto(`${base}${hash}`);
+        await paintedAs(page, screen, { label: `${label}, tres, ${hash}` });
+        const edges = await pickerEdges(page, picker);
+        assert.deepEqual([edges.left, edges.right, edges.more], [false, false, { left: false, right: false }], `${label}, tres, ${hash}: sin pista`);
+      }
+    } finally {
+      await three.close();
+    }
+  }
+}
+
 // Ligas de cadete y la Tabla de CADI1 (la Interinsular) a 320 px (mundo M), en claro y en oscuro: sin
 // desplazamiento horizontal de la página y con la barra en su sitio; Ligas lista las dos ligas de cadete (la
 // Interinsular, de más nivel, antes que la Insular de Gran Canaria) y abre la Interinsular, cuya Tabla dice su categoría y su fase y lleva los seis equipos, sin errores de JavaScript.
@@ -1078,6 +1169,8 @@ try {
   console.log('PASS: 320 y 390px, en claro y en oscuro, alevín (mundo L): el selector de tres categorías de Goleadores y Récords, entero y de 44 px, y Ligas y Explorar sin desplazamiento horizontal');
   await mayoresWidths();
   console.log('PASS: Goleadores a 320 px con seis categorías y Récords a 320 px con seis categorías (mundo S), en claro y en oscuro: sin desplazamiento horizontal de la página, la fila del selector se desliza, los seis nombres enteros y de 44 px, y juvenil marcado y a la vista');
+  await mayoresKeyboard();
+  console.log('PASS: el selector de seis categorías con el teclado a 320 px (mundo S), en claro y en oscuro: al tabular, cada una entera en la fila con su anillo de foco y sin desplazar la página; la pista de que hay más, solo en el borde que la tiene; con tres (mundo L), ninguna');
   await mayoresM();
   console.log('PASS: Ligas de cadete y la Tabla de CADI1 a 320 px (mundo M), en claro y en oscuro: sin desplazamiento horizontal, las dos ligas de cadete, la Interinsular abre su Tabla con sus seis equipos, también en frío');
 } finally {

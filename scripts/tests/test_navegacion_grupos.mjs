@@ -13,7 +13,7 @@ import { fakeBrowser } from './fixtures/rediseno/fake-browser.mjs';
 import { ctxFor, cssRules, datasetsFor, pastSeasonRaw, PORTAL_SEASON } from './fixtures/rediseno/screens.mjs';
 import { screen as tabla } from '../../src/screen-tabla.js';
 import { screen as jornada } from '../../src/screen-jornada.js';
-import { groupStrip, scrollToCurrent } from '../../src/ui.js';
+import { groupStrip, mountCategoryPicker, scrollToCurrent } from '../../src/ui.js';
 import { historyMode, resolveParams, startRouter, tabTargets } from '../../src/router.js';
 import { SCREEN_MAP } from '../../src/screens.js';
 import { parseRoute, routeHref } from '../../src/links.js';
@@ -501,4 +501,56 @@ test('Todos los grupos: el aviso del que descansa en cada grupo (PG2 y PG3, jorn
   assert.equal(pg2.title, 'Grupo 2 · mi grupo');
   assert.deepEqual(notices(pg2.body), ['Sin partido en esta jornada: RC Victoria y Arucas B (descansa o le tocaba contra CD Batán)']);
   assert.equal(notices(blocks(out).find((b) => b.id === 'PG3').body).length, 1);
+});
+
+// El selector de categorías (mountCategoryPicker): una fila falsa de seis enlaces de 80 px en una caja de 290
+// (320 px menos los márgenes), con la elegida en `at`. Al tabular, la fila se desliza lo justo para enseñar la
+// categoría con el foco entera y fuera del degradado del borde (20 px, --picker-fade) si hay más a ese lado; la
+// primera, hasta el principio, y la última, hasta el final. data-more dice dónde hay más.
+function fakePicker({ count = 6, at = 0, width = 290, each = 80 } = {}) {
+  const links = Array.from({ length: count }, (_, k) => ({ offsetLeft: k * each, offsetWidth: each, closest: () => null }));
+  const listeners = {};
+  const attrs = {};
+  const picker = {
+    scrollLeft: 0, scrollWidth: count * each, clientWidth: width, isConnected: true, style: { setProperty() {} },
+    querySelector: (sel) => (sel === '[aria-current]' ? links[at] : null),
+    querySelectorAll: (sel) => (sel === '.segment' ? links : []),
+    addEventListener: (type, fn) => { listeners[type] = fn; },
+    setAttribute: (name, value) => { attrs[name] = value; }, removeAttribute: (name) => { delete attrs[name]; },
+    links, attrs, focus: (k) => listeners.focusin({ target: { closest: () => links[k] } }),
+    scrollTo: (x) => { picker.scrollLeft = x; listeners.scroll(); },
+  };
+  for (const link of links) link.closest = () => link;
+  return picker;
+}
+const whole = (p, k, gap = 0) => p.links[k].offsetLeft >= p.scrollLeft + (k ? gap : 0)
+  && p.links[k].offsetLeft + p.links[k].offsetWidth <= p.scrollLeft + p.clientWidth - (k < p.links.length - 1 ? gap : 0);
+
+test('mountCategoryPicker: al tabular, cada categoría entera y fuera del degradado; data-more, donde hay más', () => {
+  const p = fakePicker();
+  mountCategoryPicker(p);
+  assert.deepEqual([p.scrollLeft, p.attrs['data-more']], [0, 'right'], 'con benjamín elegido, más a la derecha');
+  for (let k = 0; k < 6; k++) {
+    p.focus(k);
+    assert.ok(whole(p, k, 20), `la ${k + 1}.ª, entera y fuera del degradado (scrollLeft ${p.scrollLeft})`);
+    assert.ok(p.scrollLeft >= 0 && p.scrollLeft <= p.scrollWidth - p.clientWidth);
+  }
+  assert.deepEqual([p.scrollLeft, p.attrs['data-more']], [190, 'left'], 'en la última, hasta el final');
+  p.focus(2);
+  assert.equal(p.attrs['data-more'], 'left right');
+  p.focus(0);
+  assert.deepEqual([p.scrollLeft, p.attrs['data-more']], [0, 'right'], 'en la primera, hasta el principio');
+  p.scrollTo(100);
+  assert.equal(p.attrs['data-more'], 'left right', 'al deslizar con el dedo');
+  // Con la elegida al final, la fila empieza en ella, sin pista de más a la derecha.
+  const end = fakePicker({ at: 5 });
+  mountCategoryPicker(end);
+  assert.ok(whole(end, 5));
+  assert.equal(end.attrs['data-more'], 'left');
+  // Con lo que cabe (las tres de siempre), ni se desliza ni hay pista.
+  const three = fakePicker({ count: 3, at: 2, each: 96 });
+  mountCategoryPicker(three);
+  for (const k of [0, 1, 2]) three.focus(k);
+  assert.deepEqual([three.scrollLeft, three.attrs['data-more']], [0, undefined]);
+  mountCategoryPicker(null);
 });

@@ -304,7 +304,8 @@ export function segmented(options, active, hrefFor, { idPrefix = null } = {}) {
  * entero de cada una (CAT_NAMES), la elegida con aria-current, dentro de <nav class="<cls>" aria-label>. Con
  * las tres de siempre se ve igual que antes; con seis, que no caben a 320 px, se desliza la fila y nunca la
  * página (.cat-picker de acta.css: overflow-x: auto, sin barra en el móvil), como la fila de años del
- * ranking, y el mount de la pantalla la lleva a la elegida (scrollToCurrent). `cats`: las que tiene la
+ * ranking, y el mount de la pantalla la lleva a la elegida y la desliza al tabular (mountCategoryPicker). Con
+ * más de las que caben, un degradado en el borde que tiene más (acta.css). `cats`: las que tiene la
  * temporada y la elegida; con una sola, no hay nada que elegir: ''. Ids estables: categoria-<cat>. */
 // Las categorías del selector en la temporada `s` (ctx: model y datasets.seasons), en el orden de CATEGORIES:
 // benjamín, prebenjamín y alevín, siempre, como antes de las nuevas (de alevín no se sabe sin pedirlo si la
@@ -470,6 +471,55 @@ export function scrollToCurrent(strip) {
   } else {
     strip.scrollLeft = Math.min(most, Math.max(0, middle));
   }
+}
+
+/* Para el mount de Goleadores y Récords: el selector de categoría (.cat-picker), a la elegida (scrollToCurrent)
+ * y, cuando el teclado (Tab) llega a una que no se ve entera, deslizado lo justo para enseñarla con su anillo de
+ * foco (Chromium no lo hace solo: con seis a 320 px, de «Cadete» solo asomaba «Ca»). Con scrollLeft, como
+ * scrollToCurrent: la página nunca se mueve. Y la pista de que hay más a un lado (data-more, el degradado de
+ * acta.css), al pintar, al deslizar y si cambia el ancho. Con las tres de siempre caben todas: ni se desliza
+ * ni hay pista. */
+const PICKER_FADE = 20;   // --picker-fade de acta.css
+export function mountCategoryPicker(picker) {
+  if (!picker) return;
+  scrollToCurrent(picker);
+  const current = picker.querySelector('[aria-current]');
+  if (current) revealInStrip(picker, current);
+  markMore(picker);
+  if (typeof picker.addEventListener !== 'function') return;
+  picker.addEventListener('focusin', (event) => {
+    const link = event.target && event.target.closest ? event.target.closest('.segment') : null;
+    if (link) { revealInStrip(picker, link); markMore(picker); }
+  });
+  picker.addEventListener('scroll', () => markMore(picker), { passive: true });
+  if (typeof ResizeObserver === 'function') {
+    // Al girar el móvil cambia lo que cabe. Al quitar la pantalla, la fila se queda sin caja: se deja de mirar.
+    const watch = new ResizeObserver(() => (picker.isConnected ? markMore(picker) : watch.disconnect()));
+    watch.observe(picker);
+  }
+}
+
+// data-more de la fila: «left» si hay más a la izquierda, «right» si a la derecha (con un píxel de holgura, por
+// el redondeo de scrollLeft); sin nada, se quita.
+function markMore(strip) {
+  const most = strip.scrollWidth - strip.clientWidth;
+  const more = [strip.scrollLeft > 1 ? 'left' : '', strip.scrollLeft < most - 1 ? 'right' : ''].filter(Boolean).join(' ');
+  if (typeof strip.setAttribute !== 'function') return;
+  if (more) strip.setAttribute('data-more', more);
+  else strip.removeAttribute('data-more');
+}
+
+// Desliza `strip` lo justo para que `item` quede entero dentro (offsetLeft: la fila es position: relative) y,
+// si hay más a ese lado, fuera del degradado del borde; la primera, hasta el principio, y la última, hasta el
+// final (con lo que scrollToCurrent haya alargado: sin pista de más donde ya no hay nada).
+function revealInStrip(strip, item) {
+  const links = [...strip.querySelectorAll('.segment')];
+  const most = Math.max(0, strip.scrollWidth - strip.clientWidth);
+  const left = item === links[0] ? 0 : Math.max(0, item.offsetLeft - PICKER_FADE);
+  const right = item === links[links.length - 1] ? most
+    : Math.min(most, item.offsetLeft + item.offsetWidth + PICKER_FADE - strip.clientWidth);
+  if (left < strip.scrollLeft) strip.scrollLeft = left;
+  else if (right > strip.scrollLeft) strip.scrollLeft = right;
 }
 
 // ── Buscador, selector de temporada y filas de enlace ──

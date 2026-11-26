@@ -279,6 +279,30 @@ abbr[title] { text-decoration: none; }
   scrollbar-width: none;
 }
 .cat-picker .segment { min-width: max-content; white-space: nowrap; }
+/* La pista de que hay más categorías a un lado: el borde que tiene más se funde con el papel (un degradado de
+ * --paper, encima de lo que pasa por debajo, también de la elegida, rellena de tinta), y solo entonces:
+ * data-more («left», «right» o los dos) lo pone mountCategoryPicker (ui.js) al pintar y al deslizar. Son dos
+ * pseudoelementos pegados a los bordes de la fila (position: sticky) que no ocupan sitio (su margen negativo
+ * descuenta su anchura): con lo que cabe (las tres de siempre), la fila se ve como antes. */
+.cat-picker::before,
+.cat-picker::after {
+  content: '';
+  position: sticky;
+  z-index: 1;
+  flex: none;
+  width: var(--picker-fade);
+  pointer-events: none;
+  visibility: hidden;
+}
+.cat-picker { --picker-fade: 20px; }
+.cat-picker::before { left: 0; margin-right: calc(-1 * var(--picker-fade)); background: linear-gradient(to right, var(--paper), transparent); }
+.cat-picker::after { right: 0; margin-left: calc(-1 * var(--picker-fade)); background: linear-gradient(to left, var(--paper), transparent); }
+.cat-picker[data-more~="left"]::before,
+.cat-picker[data-more~="right"]::after { visibility: visible; }
+/* El anillo de foco, por dentro: la fila (overflow-x: auto) recorta lo que sale de ella, y por fuera solo se
+ * veían sus lados. Sobre la elegida, rellena de tinta, del color de lo escrito sobre la tinta. */
+.cat-picker .segment:focus-visible { outline-offset: -4px; }
+.cat-picker .segment[aria-current]:focus-visible { outline-color: var(--on-ink); }
 @media (hover: hover) and (pointer: fine) {
   .cat-picker { scrollbar-width: thin; }
 }

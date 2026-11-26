@@ -4,7 +4,7 @@
 // (categoryScorers, state.js) con «ver todos». Cada récord enlaza a su partido o a la ficha de su
 // equipo. Una temporada pasada la carga el router antes de pintar: needs no pide nada.
 import { html } from './html.js';
-import { block, box, categoryPicker, cells, crest, decimal, empty, pickerCategories, score, screenHead, scrollToCurrent } from './ui.js';
+import { block, box, categoryPicker, cells, crest, decimal, empty, mountCategoryPicker, pickerCategories, score, screenHead } from './ui.js';
 import { errorBox } from './shell.js';
 import {
   CATEGORIES, CAT_NAMES, CAT_WORDS, playerName, roundOf, seasonLabel, seasonRecords, RECORD_MIN_PJ, RECORD_MIN_SIDE,
@@ -132,9 +132,9 @@ function render(ctx) {
   return html`<section data-screen="records">${head}${picker}<div class="rc-cols"><div class="rc-records">${main}</div><div class="rc-top">${scorersBlock(ctx, c, env)}</div></div></section>`;
 }
 
-// La fila de categorías, a la elegida (con scrollLeft: la página no se mueve).
+// La fila de categorías, a la elegida, y deslizada al tabular (con scrollLeft: la página no se mueve).
 function mount(root) {
-  scrollToCurrent(root && root.querySelector && root.querySelector('.cat-picker'));
+  mountCategoryPicker(root && root.querySelector && root.querySelector('.cat-picker'));
 }
 
 export const screen = {

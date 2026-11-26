@@ -6,7 +6,7 @@
 // nav.update, sin crear entradas ni mover el cursor. Solo hay goleadores de la temporada
 // del portal: las pasadas dicen que no los hay.
 import { html, join } from './html.js';
-import { categoryPicker, countLabel, crest, empty, notice, pickerCategories, screenHead, scrollToCurrent, searchBox } from './ui.js';
+import { categoryPicker, countLabel, crest, empty, mountCategoryPicker, notice, pickerCategories, screenHead, searchBox } from './ui.js';
 import { CATEGORIES, CAT_NAMES, CAT_WORDS, findGroup, playerName, searchKey, seasonLabel } from './model.js';
 import { routeHref, teamHref } from './links.js';
 import { categoryScorers, groupScorers, rankScorers } from './state.js';
@@ -155,8 +155,8 @@ function render(ctx) {
 // Las escuchas van en la sección, que se sustituye en cada pintado.
 function mount(root, ctx, nav) {
   const section = root && root.matches && root.matches('[data-screen="goleadores"]') ? root : root && root.querySelector('[data-screen="goleadores"]');
-  // La fila de categorías, a la elegida (con scrollLeft: la página no se mueve).
-  scrollToCurrent(section && section.querySelector('.cat-picker'));
+  // La fila de categorías, a la elegida, y deslizada al tabular (con scrollLeft: la página no se mueve).
+  mountCategoryPicker(section && section.querySelector('.cat-picker'));
   const box = section && section.querySelector('[data-scorers]');
   if (!box) return;
   const shields = (ctx.datasets && ctx.datasets.shields) || {};
