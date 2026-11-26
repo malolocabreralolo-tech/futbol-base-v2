@@ -231,6 +231,18 @@ class FederacionFalsa:
         kw.setdefault("log", self.dicho.append)
         fed = fiflp_carga.Federacion(RaspadorFalso(), clock=self.reloj.clock, sleep=self.reloj.sleep,
                                      wall=self.reloj.wall, **kw)
+        return self._con_pausa_falsa(fed)
+
+    def tanda(self, minutos, max_pages=None, env=None):
+        """La Federacion de una ejecución de una tanda del histórico, la de verdad (fiflp_carga.para_tanda: su plazo
+        de `minutos`, su tope y sus esperas del freno, las del entorno `env`; sin darlo, {}: las de por defecto)
+        sobre esta federación, con su reloj y su registro."""
+        fed = fiflp_carga.para_tanda(RaspadorFalso(), minutos, max_pages, log=self.dicho.append,
+                                     clock=self.reloj.clock, sleep=self.reloj.sleep, wall=self.reloj.wall,
+                                     cloud=self.nube, env={} if env is None else env)
+        return self._con_pausa_falsa(fed)
+
+    def _con_pausa_falsa(self, fed):
         # La pausa de cortesía de los lectores (Federacion.delay: FIFLP_DELAY, ~1,25 s con time.sleep de verdad),
         # en el reloj de la falsa y sin apuntarla en `dormido`: las pruebas no esperan de verdad, y lo dormido
         # sigue siendo solo lo que decide Federacion (el intervalo, el freno, los reintentos).
