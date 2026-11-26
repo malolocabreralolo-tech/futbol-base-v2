@@ -55,7 +55,7 @@ ACTIVABLES = ("BENJAMIN", "PREBENJAMIN", "ALEVIN", "INFANTIL")
 CARRILES = {"principal": ("PREBENJAMIN", "BENJAMIN", "ALEVIN"), "mayores": MAYORES}
 # Lo que ven el generador y el resolvedor de fichas: lo demás puede estar en la base sin salir en la web
 # hasta su parte (E2).
-EN_WEB = ("BENJAMIN", "PREBENJAMIN", "ALEVIN")
+EN_WEB = ("BENJAMIN", "PREBENJAMIN", "ALEVIN", "INFANTIL", "CADETE", "JUVENIL")
 # El sufijo de la tanda de activación de cada categoría (fiflp_islas_<CodTemporada><sufijo>_raw.json):
 # benjamín y prebenjamín comparten la de siempre.
 TANDAS = {"": ("BENJAMIN", "PREBENJAMIN"), "al": ("ALEVIN",), "inf": ("INFANTIL",), "cad": ("CADETE",),

@@ -170,7 +170,7 @@ def test_lo_que_se_activa_y_lo_que_se_ve_no_cambia():
     web»): las demás fijan el mundo que suponen (conftest.fijar_categorias, categorias_de_antes, fijar_web) y no se
     tocan."""
     assert categorias.ACTIVABLES == ("BENJAMIN", "PREBENJAMIN", "ALEVIN", "INFANTIL")
-    assert categorias.EN_WEB == ("BENJAMIN", "PREBENJAMIN", "ALEVIN")
+    assert categorias.EN_WEB == ("BENJAMIN", "PREBENJAMIN", "ALEVIN", "INFANTIL", "CADETE", "JUVENIL")
     assert categorias.ALEVIN_ISLAS is False
     assert categorias.MAYORES == ("INFANTIL", "CADETE", "JUVENIL")
     assert categorias.DEFAULT_CATEGORIES == ("BENJAMIN", "PREBENJAMIN")
