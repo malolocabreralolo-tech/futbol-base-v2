@@ -35,6 +35,17 @@ esa categoría: en la base en la que nunca se activó, esa huella no estaría. C
 de Fuerteventura) no: su lote es el de alevín, compartido con el de Gran Canaria, y quitar su huella haría que la
 pasada siguiente reimportara entero el alevín de Gran Canaria (docs/categorias-mayores.md dice qué hacer al
 reactivarlo).
+
+Y las fichas: si la categoría está en la web (categorias.EN_WEB, leído al llamar: el alevín de las islas siempre;
+infantil, cadete y juvenil desde el paso E2-D2 de la parte E2), con --apply y ya quitada, las vuelve a resolver
+(migrate_identidad.resolver_fichas) y rehace los enlaces de la liga de escuelas (enlace_mygol.guardar_enlaces), como
+la pasada siguiente sin esa categoría: el resolvedor une fichas de una categoría a otra, y sin esto quedarían
+uniones que solo sostenían sus partidos (y la base no sería la de nunca haberla activado). Entre las dos cosas, quita
+las identidades que solo salían en sus partidos y no se borraron con ellos porque eran la principal de una ficha
+(un cadete con id al que se había unido un benjamín sin id): resueltas otra vez, ya no lo son de nadie. Va después
+del borrado, en su propia transacción: si fallara, el borrado ya está hecho y lo rehace la pasada siguiente, que
+resuelve las fichas desde cero. Fuera de la web no hace falta: sus apariciones no cuentan para ninguna ficha ni
+enlace (y sus identidades no son la principal de ninguna).
 """
 import argparse
 import sqlite3
@@ -45,6 +56,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "scripts"))
 
 import actas_lotes  # noqa: E402
+import categorias  # noqa: E402
 from categorias import MAYORES  # noqa: E402
 import vista_web  # noqa: E402
 
@@ -88,7 +100,9 @@ def grupos(conn, temporada, categoria, isla=None):
 def quitar(conn, temporada, categoria, isla=None, apply=False):
     """Quita (con `apply`) o cuenta (sin él: la transacción se deshace) los grupos de `categoria` (e `isla`) de
     `temporada` y lo que cuelga de ellos. Devuelve {"grupos": [códigos], "partidos": n, "actas": n, "filas":
-    {tabla: filas quitadas}}. Con claves ajenas que quedaran colgando, ValueError y nada cambia."""
+    {tabla: filas quitadas}} y, si con `apply` ha vuelto a resolver las fichas (la categoría está en la web: ver el
+    docstring del módulo), "fichas": lo que devolvió resolver_fichas. Con claves ajenas que quedaran colgando,
+    ValueError y nada cambia."""
     if not conn.execute("SELECT 1 FROM seasons WHERE name=?", (temporada,)).fetchone():
         raise ValueError(f"la temporada {temporada} no está en la base")
     elegidos = grupos(conn, temporada, categoria, isla)
@@ -99,6 +113,11 @@ def quitar(conn, temporada, categoria, isla=None, apply=False):
     marks = ",".join("?" * len(ids))
     out["partidos"], out["actas"] = conn.execute(
         f"SELECT count(*), count(cod_acta) FROM matches WHERE group_id IN ({marks})", ids).fetchone()
+    # Las identidades de sus partidos: las que se queden sin nada tras resolver otra vez las fichas, fuera (abajo).
+    suyas = {p for (p,) in conn.execute(
+        f"""SELECT player_id FROM appearances WHERE match_id IN (SELECT id FROM matches WHERE group_id IN ({marks}))
+            UNION SELECT player_id FROM match_events
+             WHERE match_id IN (SELECT id FROM matches WHERE group_id IN ({marks}))""", ids + ids) if p is not None}
     # Las demás categorías que tienen filas en categories: la de la categoría quitada solo se borra si se queda
     # sin grupos (en ninguna temporada; el alevín de Gran Canaria, nunca).
     conservar = [n for (n,) in conn.execute("SELECT name FROM categories") if (n or "").upper() != categoria]
@@ -128,7 +147,35 @@ def quitar(conn, temporada, categoria, isla=None, apply=False):
         raise
     finally:
         conn.execute("PRAGMA foreign_keys=ON")
+    if apply and categoria in categorias.EN_WEB:
+        out["fichas"] = rehacer_fichas(conn, suyas)
+        if out["fichas"]["sueltas_quitadas"]:
+            out["filas"]["players"] = out["filas"].get("players", 0) + out["fichas"]["sueltas_quitadas"]
     return out
+
+
+def rehacer_fichas(conn, suyas=()):
+    """Lo que hace con las fichas la pasada siguiente: resolver_fichas (desde cero, con lo que queda en la base), y
+    los enlaces de la liga de escuelas, que cuelgan de las fichas. Entre medias, de `suyas` (las identidades de los
+    partidos quitados), las que se han quedado sin aparición ni suceso y ya no son la principal de nadie: las que el
+    borrado dejó porque otra fila apuntaba a ellas (vista_web no borra la principal de una ficha). Devuelve lo de
+    resolver_fichas, con "sueltas_quitadas"."""
+    import enlace_mygol
+    import migrate_identidad
+    hecho = migrate_identidad.resolver_fichas(conn, log=lambda *a: None)
+    sueltas = [(p,) for p in sorted(suyas) if not conn.execute(
+        """SELECT 1 FROM appearances WHERE player_id=:p UNION ALL SELECT 1 FROM match_events WHERE player_id=:p
+           UNION ALL SELECT 1 FROM players WHERE ficha_id=:p LIMIT 1""", {"p": p}).fetchone()]
+    conn.execute("BEGIN")
+    try:
+        conn.executemany("DELETE FROM players WHERE id=?", sueltas)
+        conn.commit()
+    except BaseException:
+        conn.rollback()
+        raise
+    hecho["sueltas_quitadas"] = len(sueltas)
+    enlace_mygol.guardar_enlaces(conn, registro=lambda *a: None)
+    return hecho
 
 
 def main(argv=None):
@@ -154,6 +201,10 @@ def main(argv=None):
           f"sueltos (identidades solo de esos partidos), {filas.get('teams', 0)} equipos y "
           f"{filas.get('team_seasons', 0)} fichas de equipo")
     print("Filas por tabla: " + ", ".join(f"{t} {n}" for t, n in sorted(filas.items())))
+    if "fichas" in hecho:
+        f = hecho["fichas"]
+        print(f"Fichas resueltas otra vez (la categoría está en la web): {f['identidades']} identidades → "
+              f"{f['fichas']} fichas, {f['cambiadas']} filas cambiadas")
     print("Quitado." if args.apply else "Es un ensayo: la base no ha cambiado (con --apply, se quita).")
     return 0
 

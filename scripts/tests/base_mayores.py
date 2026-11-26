@@ -555,21 +555,30 @@ def bases_reales(origen, carpeta):
     """Copias de la base real `origen`, en `carpeta`, tras el final de una pasada con el EN_WEB de antes del paso
     E2-D2 (fin_de_pasada con «antes», valga lo que valga categorias.py): «resuelta», tal cual; «mayores», la misma
     con infantil, cadete y juvenil activados y leídos (poblar); e «islas», la misma con solo el alevín de Lanzarote
-    (poblar con islas). Las usan test_vista_web.test_generador_igual_con_y_sin_mayores (lo que genera la web con una
-    y con otra) y las pruebas de quitar_categoria (test_activacion_categorias.py): una vez por sesión, y las dos
-    últimas a la vez (paralelo.en_paralelo), porque las fichas de la base real tardan ~10 s cada vez y la puerta de
-    pruebas del bot pasa la suite entera en cada pasada. Quien las usa no las cambia: trabaja sobre su propia copia.
-    {'resuelta', 'mayores', 'islas': rutas; 'hecho', 'hecho_islas': lo que devolvió poblar}."""
+    (poblar con islas). Y «mayores_seis»: la de «mayores» (poblar es siempre igual para la misma base) con el final de
+    una pasada con el EN_WEB del paso E2-D2 (las seis): la que dejará el bot cuando la web enseñe las mayores. Con
+    «resuelta» e «islas» no hace falta la de seis: sin grupos de las mayores, las fichas son las mismas con los dos.
+    Las usan test_vista_web.test_generador_igual_con_y_sin_mayores (lo que genera la web con una y con otra), las
+    pruebas de quitar_categoria (test_activacion_categorias.py) y test_fichas_ampliadas.py: una vez por sesión, y
+    las tres últimas a la vez (paralelo.en_paralelo), porque las fichas de la base real tardan ~10 s cada vez y la
+    puerta de pruebas del bot pasa la suite entera en cada pasada. Quien las usa no las cambia: trabaja sobre su
+    propia copia. {'resuelta', 'mayores', 'mayores_seis', 'islas': rutas; 'hecho', 'hecho_islas': lo que devolvió
+    poblar}."""
     import sqlite3
     from paralelo import en_paralelo
     carpeta = Path(carpeta)
     resuelta, mayores, islas = carpeta / "resuelta.db", carpeta / "mayores.db", carpeta / "islas.db"
+    mayores_seis = carpeta / "mayores_seis.db"
     src = sqlite3.connect(f"file:{origen}?mode=ro", uri=True)
     dst = sqlite3.connect(str(resuelta))
     src.backup(dst)
     dst.close()
     src.close()
     fin_de_pasada(resuelta, "antes")
-    hecho, hecho_islas = en_paralelo((leida, (resuelta, mayores, MAYORES, False, "antes")),
-                                     (leida, (resuelta, islas, (), True, "antes")))
-    return {"resuelta": resuelta, "mayores": mayores, "islas": islas, "hecho": hecho, "hecho_islas": hecho_islas}
+    hecho, hecho_islas, hecho_seis = en_paralelo((leida, (resuelta, mayores, MAYORES, False, "antes")),
+                                                 (leida, (resuelta, islas, (), True, "antes")),
+                                                 (leida, (resuelta, mayores_seis, MAYORES, False, "seis")))
+    if hecho_seis != hecho:
+        raise AssertionError("poblar no ha dado lo mismo dos veces sobre la misma base")
+    return {"resuelta": resuelta, "mayores": mayores, "mayores_seis": mayores_seis, "islas": islas, "hecho": hecho,
+            "hecho_islas": hecho_islas}
