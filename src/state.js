@@ -581,6 +581,19 @@ export function alevinData(consts = {}) {
   return lazyData('alevin', consts);
 }
 
+/* El texto de un data-<cat>.js de la temporada del portal → lazyData, con TODAS sus constantes
+ * (LAZY[cat].consts): si falta alguna, Error, que ensureLazy da por fallo de carga (null, sin memorizar), con
+ * su aviso y «Reintentar». Sin conexión y sin su copia, el SW responde con index.html (sin ninguna); un fichero
+ * a medias pierde las últimas, y sin ellas la pantalla diría de menos sin avisar (Goleadores: «Todavía no hay
+ * goleadores»). */
+export function lazyFromText(cat, text) {
+  const { consts: names } = lazyOf(cat);
+  const consts = readConsts(text);
+  const missing = Object.values(names).filter((name) => !Object.hasOwn(consts, name));
+  if (missing.length || !Array.isArray(consts[names.groups])) throw new Error(`${missing.join(', ') || names.groups} not parseable`);
+  return lazyData(cat, consts);
+}
+
 const _lazy = {};
 const _lazyPromise = {};
 export async function ensureLazy(cat) {
@@ -593,10 +606,7 @@ export async function ensureLazy(cat) {
       // Sin fichero (la web de antes de esa categoría), sin ella: nunca un error de carga.
       if (r.status === 404) { _lazy[cat] = lazyData(cat, {}); return _lazy[cat]; }
       if (!r.ok) throw new Error('HTTP ' + r.status);
-      // Sin conexión y sin su copia, el SW responde con index.html: sin la constante de los grupos, es un fallo.
-      const consts = readConsts(await r.text());
-      if (!Array.isArray(consts[entry.consts.groups])) throw new Error(entry.consts.groups + ' not parseable');
-      _lazy[cat] = lazyData(cat, consts);
+      _lazy[cat] = lazyFromText(cat, await r.text());
       return _lazy[cat];
     } catch (e) {
       console.warn(`[state] ${entry.file} failed:`, e.message);

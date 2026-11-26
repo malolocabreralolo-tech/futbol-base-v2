@@ -93,11 +93,33 @@ test('test_ensure_lazy: las siete constantes de data-cadete.js; un vuelo; un 404
   assert.equal(await state.ensureLazy('juvenil'), empty);
   assert.deepEqual(requests, ['./data-juvenil.js?v=20261125a']);
   // Alevín, el de siempre: la misma carga y la misma memoria.
-  files['data-alevin.js'] = 'const ALEVIN=[];\nconst ALEV_STATS={"groups":0,"teams":0};\n';
+  const ALEV = { ALEVIN: [], ALEV_STATS: { groups: 0, teams: 0 }, HISTORY_ALEV: {}, GOL_ALEV: [], ESTADOS_ALEV: {}, EQUIPOS_ALEV: {} };
+  files['data-alevin.js'] = fileOf(ALEV);
   const alevin = await state.ensureLazy('alevin');
   assert.equal(await state.ensureAlevin(), alevin);
-  assert.deepEqual(alevin, state.alevinData({ ALEVIN: [], ALEV_STATS: { groups: 0, teams: 0 } }));
+  assert.deepEqual(alevin, state.alevinData(ALEV));
   assert.throws(() => state.lazyNeeds('senior', PORTAL, {}, PORTAL), TypeError, 'una categoría que no es perezosa');
+}));
+
+// Un data-<cat>.js a medias (la conexión que se corta, un fichero escrito a medias): le falta alguna de sus
+// constantes (LAZY[cat].consts). Es un fallo de carga (null, sin memorizar: «Reintentar» lo vuelve a pedir), no
+// una categoría con menos datos que se pinta sin aviso (Goleadores diría «Todavía no hay goleadores»).
+// También en alevín (lazyFromText, lo que lee ensureLazy).
+test('un data-<cat>.js a medias es un fallo de carga, también en alevín; el completo, después, se carga', quiet(async () => {
+  const inf = Object.fromEntries(Object.entries(CADETE).map(([k, v]) => [k.replace('CADETE', 'INFANTIL').replace(/_CAD$/, '_INF').replace(/^CAD_/, 'INF_'), v]));
+  const whole = fileOf(inf);
+  files['data-infantil.js'] = whole.slice(0, Math.floor(whole.length / 2));
+  assert.equal(await state.ensureLazy('infantil'), null, 'cortado por la mitad');
+  const { CAMPOS_INF, ...sinCampos } = inf;
+  files['data-infantil.js'] = fileOf(sinCampos);
+  assert.equal(await state.ensureLazy('infantil'), null, 'sin CAMPOS_INF, la última');
+  files['data-infantil.js'] = whole;
+  assert.deepEqual((await state.ensureLazy('infantil')).campos, CAMPOS_INF, 'entero, se carga');
+  const ALEV = { ALEVIN: [], ALEV_STATS: { groups: 0, teams: 0 }, HISTORY_ALEV: {}, GOL_ALEV: [], ESTADOS_ALEV: {}, EQUIPOS_ALEV: {} };
+  const { GOL_ALEV, ...sinGoles } = ALEV;
+  assert.throws(() => state.lazyFromText('alevin', fileOf(sinGoles)), /GOL_ALEV/);
+  assert.throws(() => state.lazyFromText('alevin', '<!doctype html><title>sin conexión</title>'), /ALEVIN/);
+  assert.deepEqual(state.lazyFromText('alevin', fileOf(ALEV)), state.alevinData(ALEV));
 }));
 
 test('test_temporada_pasada: loadLazySeasons pide las de la temporada que dice data-seasons.js; un 404 es «sin esa categoría»; devuelve solo los fallos', quiet(async () => {
