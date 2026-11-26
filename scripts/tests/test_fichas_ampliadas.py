@@ -193,6 +193,21 @@ def test_cada_clave_de_hoy_sigue_en_una_ficha_con_todas_sus_filas(webs):
                                 f"benjamín o alevín (se ha juntado con otra ficha de hoy): {ganan_viejas[:20]}")
 
 
+def test_esta_el_caso_de_los_dos_homonimos_que_caben_entre_si(fabricadas):
+    """base_mayores pone dos homónimos de las nuevas que caben por la edad entre sí con el nombre de una ficha de hoy
+    unida por U2 que no cabe con ninguno de los dos (HOMONIMOS): (a) es la que mira que esa ficha no se parte. Sin
+    una ficha así en la base (_homonimo_de_hoy), no se monta."""
+    conn = sqlite3.connect(f"file:{fabricadas['antes']}?mode=ro", uri=True)
+    try:
+        anio = conn.execute("SELECT start_year FROM seasons WHERE is_current = 1").fetchone()[0]
+        hay = base_mayores._homonimo_de_hoy(conn, anio) is not None
+    finally:
+        conn.close()
+    if not hay:
+        pytest.skip("la base no tiene una ficha de hoy unida por U2 que no quepa con un cadete ni con un juvenil")
+    assert fabricadas["hecho"]["homonimos_de_hoy"] == len(base_mayores.HOMONIMOS)
+
+
 # Un niño juega cada temporada en su categoría y, como mucho, también en la de al lado (subir una es habitual:
 # nacimiento._MAS_JOVEN[1]; un alevín que sube a infantil). Dos categorías que no son contiguas (prebenjamín y
 # alevín, benjamín e infantil, alevín y cadete, infantil y juvenil…) en una misma temporada no pueden ser el mismo

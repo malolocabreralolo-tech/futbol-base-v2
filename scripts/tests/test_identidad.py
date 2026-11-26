@@ -1089,7 +1089,7 @@ def test_una_separada_no_se_une_a_nadie_y_sigue_contando_como_otra_ficha():
 
 
 # ── Las categorías nuevas (parte E2): un homónimo de infantil, cadete o juvenil que no cabe por la edad no es una
-# duda (identidad.NIVELES_NUEVOS, _sin_ajenas). Sin esto, en cuanto la web enseñe las mayores, un cadete que se
+# duda (identidad.NIVELES_NUEVOS; resolver, por_edad). Sin esto, en cuanto la web enseñe las mayores, un cadete que se
 # llama como dos prebenjamines del club desharía la ficha de hoy de esos dos. Con un homónimo de las de siempre, la
 # regla es la de antes (une menos): solo cambia lo que entra con las nuevas. ────────────────────────────────────
 INF, CAD = NIVEL["INFANTIL"], NIVEL["CADETE"]
@@ -1143,3 +1143,164 @@ def test_sin_las_categorias_nuevas_el_resolvedor_es_el_de_antes():
     b = ident(2, "ALVAREZ PENA, JOSE", None, v(2026, PRE, "Teror B", n=4))
     alevin = ident(3, "ALVAREZ PENA, JOSE", None, v(2026, ALE, "Teror", n=6))
     assert len(fichas(resolver([a, b, alevin], unir_cortos_en_club=False))) == 3
+
+
+# ── Los de las nuevas que caben entre sí (re-revisión de E2, I1). La regla de arriba, sola, no bastaba: dos
+# homónimos de las nuevas que caben por la edad entre ellos (un cadete con id en un club y sin id en otro, o un cadete
+# y un juvenil) se quedaban en el cubo y, como «duda», seguían deshaciendo uniones de hoy. Ahora cada regla se aplica
+# por separado al grupo de hoy del cubo (las de prebenjamín, benjamín y alevín, y las de las nuevas que caben por la
+# edad con alguna de ellas) y a cada grupo de las demás de las nuevas (las que caben entre sí): por_edad, en
+# identidad.resolver.
+JUV = NIVEL["JUVENIL"]
+N = "ALVAREZ PENA, JOSE"
+
+
+def test_u2_un_cadete_en_dos_fichas_no_deshace_la_candidata_unica():
+    # Un cadete con id en un club y sin id en otro (la federación omite el id a veces): dos fichas que caben entre sí.
+    a = ident(1, N, None, v(2024, PRE, "Arucas", n=10))
+    b = ident(2, N, None, v(2026, PRE, "Teror", n=4))
+    con_id = ident(3, N + "#300009", 300009, v(2026, CAD, "Moya", n=6))
+    sin_id = ident(4, N, None, v(2026, CAD, "Galdar", n=3))
+    r = resolver([a, b, con_id, sin_id], unir_cortos_en_club=False)
+    assert r[1] == (1, None) and r[2] == (1, "nombre")
+    assert r[3][0] != 1 and r[4][0] != 1
+
+
+def test_u2_un_cadete_y_un_juvenil_no_deshacen_la_candidata_unica():
+    a = ident(1, N, None, v(2024, PRE, "Arucas", n=10))
+    b = ident(2, N, None, v(2026, PRE, "Teror", n=4))
+    cadete = ident(3, N, None, v(2026, CAD, "Moya", n=6))
+    juvenil = ident(4, N, None, v(2026, JUV, "Galdar", n=3))
+    r = resolver([a, b, cadete, juvenil], unir_cortos_en_club=False)
+    assert r[1] == (1, None) and r[2] == (1, "nombre")
+    # Entre ellos, la misma regla: los dos de las nuevas son las dos únicas de su grupo, sin id y compatibles.
+    assert r[3] == (3, None) and r[4] == (3, "nombre")
+
+
+def test_u0_de_club_el_mismo_patron_en_cadete_no_deshace_la_de_hoy():
+    # Benjamín con id en «Teror» y sin id en «Teror B» (hoy, una ficha); en cadete, otro con el mismo patrón.
+    a = ident(1, N, 300001, v(2026, BEN, "Teror", n=10))
+    b = ident(2, N, None, v(2026, BEN, "Teror B", n=4))
+    c = ident(3, N + "#300009", 300009, v(2026, CAD, "Teror", n=6))
+    d = ident(4, N, None, v(2026, CAD, "Teror B", n=3))
+    r = resolver([a, b, c, d], unir_cortos_en_club=False)
+    assert r[1] == (1, None) and r[2] == (1, "club")
+    assert r[3] == (3, None) and r[4] == (3, "club")         # y el cadete, igual que el benjamín
+
+
+def test_u1_con_las_nuevas_en_dos_temporadas_seguidas():
+    # Un prebenjamín sin id del club dos temporadas (hoy, U1) y un cadete homónimo sin id del club en las dos.
+    a = ident(1, N, None, v(2025, PRE, "Teror", n=10))
+    b = ident(2, N, None, v(2026, PRE, "Teror B", n=4))
+    c = ident(3, N, None, v(2025, CAD, "Teror", n=6))
+    d = ident(4, N, None, v(2026, CAD, "Teror", n=6))
+    r = resolver([a, b, c, d], unir_cortos_en_club=False)
+    assert r[1] == (1, None) and r[2] == (1, "club")
+    assert r[3] == (3, None) and r[4] == (3, "club")
+
+
+def test_u1_un_cadete_sin_id_y_el_mismo_con_id_al_ano_siguiente_se_unen():
+    a = ident(1, N, None, v(2025, PRE, "Teror", n=10))
+    b = ident(2, N, None, v(2026, PRE, "Teror B", n=4))
+    c = ident(3, N, None, v(2025, CAD, "Teror", n=6))
+    d = ident(4, N + "#300009", 300009, v(2026, CAD, "Teror", n=6))
+    r = resolver([a, b, c, d], unir_cortos_en_club=False)
+    assert r[1] == (1, None) and r[2] == (1, "club")
+    assert r[4] == (4, None) and r[3] == (4, "club")
+
+
+def test_u0_de_cortos_dos_cadetes_asentados_no_son_otras_asentadas():
+    # Los equipos son la misma fila en todas las categorías: dos «LUCAS» asentados en el cadete del mismo nombre.
+    asentada = ident(1, "LUCAS", 300001, v(2026, BEN, "Teror", n=8))
+    suelta = ident(2, "LUCAS#300002", 300002, v(2026, BEN, "Teror", n=1))
+    c1 = ident(3, "LUCAS#300003", 300003, v(2026, CAD, "Teror", n=8))
+    c2 = ident(4, "LUCAS#300004", 300004, v(2026, CAD, "Teror", n=8))
+    r = resolver([asentada, suelta, c1, c2], unir_cortos_en_club=True)
+    assert r[1] == (1, None) and r[2] == (1, "equipo")
+    # Entre ellos, dos asentadas: la duda de siempre.
+    assert r[3] == (3, None) and r[4] == (4, None)
+    # Y uno de un solo uso de cadete va a su única asentada de cadete, no a la de benjamín.
+    c3 = ident(5, "LUCAS#300005", 300005, v(2026, CAD, "Teror", n=1))
+    r = resolver([asentada, suelta, c1, c3], unir_cortos_en_club=True)
+    assert r[2] == (1, "equipo") and r[5] == (3, "equipo")
+
+
+def test_dos_cadetes_homonimos_del_club_son_duda_entre_si():
+    # U0 de club: dos cadetes con id en el club la misma temporada y uno sin id: no se sabe de cuál es.
+    a = ident(1, N, 300001, v(2026, BEN, "Teror", n=10))
+    b = ident(2, N, None, v(2026, BEN, "Teror B", n=4))
+    c = ident(3, N + "#300009", 300009, v(2026, CAD, "Teror", n=6))
+    d = ident(4, N + "#300010", 300010, v(2026, CAD, "Teror C", n=6))
+    e = ident(5, N, None, v(2026, CAD, "Teror B", n=3))
+    r = resolver([a, b, c, d, e], unir_cortos_en_club=False)
+    assert r[2] == (1, "club")
+    assert r[3] == (3, None) and r[4] == (4, None) and r[5] == (5, None)
+
+
+def test_uno_de_las_nuevas_que_si_cabe_con_uno_de_hoy_sigue_siendo_duda():
+    # Un infantil con id del club que cabe por la edad con el alevín (de 2013 a 2016 y de 2015 a 2018): un id de más.
+    # (En «Teror C»: en «Teror», la U0 lo uniría antes al alevín, el id de un solo uso.)
+    a = ident(1, N, 300001, v(2026, ALE, "Teror", n=10))
+    b = ident(2, N, None, v(2026, ALE, "Teror B", n=4))
+    infantil = ident(3, N + "#300009", 300009, v(2026, INF, "Teror C", n=6))
+    assert resolver([a, b], unir_cortos_en_club=False)[2] == (1, "club")
+    r = resolver([a, b, infantil], unir_cortos_en_club=False)
+    assert r[2] == (2, None) and r[3] == (3, None)
+
+
+def test_el_que_cabe_con_uno_de_hoy_y_con_uno_ajeno_no_se_une_a_ninguno():
+    # Un infantil sin id que cabe con el alevín del cubo (de 2015 a 2016) y con un cadete con id del club (de 2013
+    # a 2014), y el cadete, que no cabe con el alevín. El cadete no es un id de más para la unión de hoy (el alevín
+    # con id en «Teror» y sin id en «Teror B»); el infantil puede ser cualquiera de los dos: no va con ninguno.
+    a = ident(1, N, 300001, v(2026, ALE, "Teror", n=10))
+    b = ident(2, N, None, v(2026, ALE, "Teror B", n=4))
+    infantil = ident(3, N, None, v(2026, INF, "Teror C", n=6))
+    cadete = ident(4, N + "#300009", 300009, v(2026, CAD, "Teror", n=6))
+    r = resolver([a, b, infantil, cadete], unir_cortos_en_club=False)
+    assert r[2] == (1, "club")
+    assert r[3] == (3, None) and r[4] == (4, None)
+    # U2, igual: el infantil cabe con el alevín y con el cadete, que no caben entre sí; ninguno se une.
+    ale = ident(1, N, None, v(2026, ALE, "Arucas", n=10))
+    inf = ident(2, N, None, v(2026, INF, "Moya", n=6))
+    cad = ident(3, N, None, v(2026, CAD, "Galdar", n=6))
+    assert len(fichas(resolver([ale, inf, cad], unir_cortos_en_club=False))) == 3
+
+
+def _ajenas_por_edad(n, semilla, desde):
+    """n identidades de cadete y juvenil que no caben por la edad con ninguna de _de_hoy (nacidas como mucho en
+    2012), con los mismos nombres y equipos: homónimos, ids, sin id y temporadas seguidas."""
+    rnd = random.Random(semilla)
+    out = []
+    for k in range(n):
+        nombre = rnd.choice(NOMBRES)
+        nivel = rnd.choice((CAD, JUV))
+        anio = rnd.randint(2021, 2024) if nivel == CAD else rnd.randint(2022, 2026)
+        fiflp = 800000 + desde + k if rnd.random() < 0.5 else None
+        vistas = [v(anio, nivel, rnd.choice(EQUIPOS), n=rnd.randint(1, 12))]
+        if rnd.random() < 0.4 and anio < 2026:
+            vistas.append(v(anio + 1, JUV, rnd.choice(EQUIPOS), n=rnd.randint(1, 12)))
+        norm = f"{nombre}#{fiflp}" if fiflp and rnd.random() < 0.5 else nombre
+        out.append(Identidad(id=desde + k + 1, norm=norm, fiflp_id=fiflp, vistas=tuple(vistas)))
+    return out
+
+
+def _de_hoy(n, semilla):
+    """n identidades de prebenjamín, benjamín y alevín nacidas desde 2013 (como sinteticas, sin las más mayores)."""
+    return [i for i in sinteticas(n, semilla) if all(intervalo(a, nv)[0] >= 2013 for a, nv, *_ in i.vistas)]
+
+
+@pytest.mark.parametrize("cortos", [False, True])
+def test_las_nuevas_que_no_caben_con_ninguna_de_hoy_no_cambian_nada_de_hoy(cortos):
+    # Lo que pide la re-revisión, como propiedad: sean cuantas sean las de las nuevas y quepan o no entre sí, las de
+    # hoy quedan como sin ellas (las mismas fichas, la misma principal y el mismo motivo); y entre ellas, nunca una
+    # ficha imposible ni dos ids de dos fichas con id.
+    for semilla in range(6):
+        hoy = _de_hoy(400, semilla)
+        nuevas = _ajenas_por_edad(250, 100 + semilla, desde=10000)
+        solo_hoy = resolver(hoy, unir_cortos_en_club=cortos)
+        con_nuevas = resolver(hoy + nuevas, unir_cortos_en_club=cortos)
+        assert {k: con_nuevas[k] for k in solo_hoy} == solo_hoy, semilla
+        por_id = {i.id: i for i in nuevas}
+        for p, miembros in fichas(con_nuevas).items():
+            if p in por_id and len(miembros) > 1:
+                assert compatibles(*(por_id[k].vistas for k in miembros)), (semilla, p)

@@ -12,10 +12,13 @@ depende del orden de entrada ni de lo que se resolvió antes), con las reglas de
     U2  sin id y nombre completo, con la única otra ficha de ese nombre          union_por 'nombre'
 
 y ninguna unión entre conjuntos incompatibles (edad imposible o dos clubes a la vez en la misma
-categoría) ni entre dos que salieron en la misma alineación (`juntas`). Ante la duda, dos fichas mejor que una mezclada: cada «Decisión» de docs/identidad.md es la
-lectura de una regla que une menos. Una sola excepción a «la duda»: lo que solo está en el cubo de una regla por sus
-partidos de infantil, cadete o juvenil y no cabe por la edad con nadie de ese cubo no es una duda (no puede ser
-ninguno de ellos), así que no la crea (_sin_ajenas; docs/identidad.md, «Las categorías nuevas»).
+categoría) ni entre dos que salieron en la misma alineación (`juntas`). Ante la duda, dos fichas mejor que una
+mezclada: cada «Decisión» de docs/identidad.md es la lectura de una regla que une menos. Una sola excepción a «la
+duda»: lo que solo está en el cubo de una regla por sus partidos de infantil, cadete o juvenil y no cabe por la edad
+con nada de prebenjamín, benjamín o alevín de ese cubo no puede ser ninguno de ellos, así que no es una duda para
+ellos: cada regla se aplica por separado al grupo de hoy del cubo y a cada grupo de lo demás que cabe entre sí
+(por_edad, dentro de resolver; docs/identidad.md, «Las categorías nuevas no crean dudas imposibles»). Sin vistas de
+esas categorías, el cubo es un solo grupo y todo es como antes.
 
 `clave_publica` y `trozo` tienen su gemelo en JavaScript (la web): la tabla de
 scripts/tests/test_identidad.py (TABLA_CLAVES) fija lo que deben dar los dos.
@@ -37,12 +40,14 @@ NIVEL = {"PREBENJAMIN": 1, "BENJAMIN": 2, "ALEVIN": 3, "INFANTIL": 4, "CADETE": 
 # las apariciones de categorias.EN_WEB (migrate_identidad._vistas).
 _EDAD = {1: (7, 5), 2: (9, 6), 3: (11, 8), 4: (13, 10), 5: (15, 12), 6: (18, 14)}
 # Los niveles de infantil, cadete y juvenil (parte E: la web los enseña desde el paso E2-D2). Un niño de
-# prebenjamín, benjamín o alevín tiene hoy su ficha; cuando entran sus partidos de estas categorías, un homónimo
-# suyo de cadete del mismo club (otro niño, seis años mayor) caería en los cubos de las reglas y, como «duda»,
-# desharía uniones de hoy (U1 de uno a uno, U2 de candidata única, la U0 de club con un id de más). Lo que solo
-# está en un cubo por vistas de estos niveles y no cabe por la edad con nadie del cubo no cuenta (_sin_ajenas).
-# Solo estos niveles: con los de siempre, la regla es la de antes (une menos), y sin vistas de estos niveles el
-# resolvedor da exactamente lo mismo que antes.
+# prebenjamín, benjamín o alevín tiene hoy su ficha; cuando entran los partidos de estas categorías, sus homónimos
+# de cadete del mismo club (otros niños, seis años mayores) caerían en los cubos de las reglas y, como «duda»,
+# desharían uniones de hoy (U1 de uno a uno, U2 de candidata única, la U0 de club con un id de más, la U0 de los
+# cortos con otra asentada). Por eso cada regla se aplica por separado a los grupos del cubo que cabe por la edad
+# (resolver, por_edad): lo de las nuevas que no cabe con nada de hoy va en su propio grupo, sean cuantos sean y
+# quepan o no entre sí. Solo estos niveles: entre los de siempre, la regla es la de antes (un solo grupo, quepan o
+# no entre sí: une menos), y sin vistas de estos niveles el resolvedor recorre los mismos cubos con los mismos
+# miembros que antes: da exactamente lo mismo.
 NIVELES_NUEVOS = frozenset({4, 5, 6})
 UNIONES = ("equipo", "club", "nombre")
 # Lo que dio la medida de los nombres sin coma (scripts/medir_identidad.py, docs/identidad.md): pares de
@@ -312,14 +317,46 @@ def resolver(identidades: list[Identidad], unir_cortos_en_club: bool,
         fa, fb = fichas[raiz(a)], fichas[raiz(b)]
         return max(fa.lo, fb.lo) <= min(fa.hi, fb.hi)
 
-    def sin_ajenas(cubo, frente=None):
-        """El cubo de una regla, {identidad o raíz: está en él por alguna vista de prebenjamín, benjamín o alevín
-        (o de categoría desconocida)}, sin las que solo están en él por vistas de NIVELES_NUEVOS y no caben por la
-        edad con ninguna de `frente` (por defecto, las demás del cubo; en U1, las del otro año). Sin vistas de esos
-        niveles, el mismo cubo."""
-        frente = cubo if frente is None else frente
-        return {k: vieja for k, vieja in cubo.items()
-                if vieja or any(edad_cabe(k, s) for s in frente if raiz(s) != raiz(k))}
+    def cabe_edad(a, b) -> bool:
+        """¿Pueden ser el mismo niño por la edad las identidades o raíces `a` y `b`? (la misma ficha, o dos cuyos
+        intervalos se cruzan)"""
+        return raiz(a) == raiz(b) or edad_cabe(a, b)
+
+    def por_edad(cubo, cabe=cabe_edad):
+        """Los grupos del cubo de una regla en los que se aplica la regla, cada uno por separado: [(miembros,
+        bloqueadas)]. `cubo`: {identidad o raíz: es de hoy}; de hoy es lo que está en el cubo por alguna vista de
+        prebenjamín, benjamín o alevín (o de categoría desconocida), y lo demás es de las nuevas (está solo por
+        vistas de NIVELES_NUEVOS). `cabe(x, y)`: ¿pueden ser el mismo niño? (en U1, solo entre los dos años).
+
+        Sin nada de las nuevas (siempre, con el EN_WEB de hoy), un solo grupo: el cubo entero, en su orden y sin
+        bloqueadas, y la regla hace lo de siempre. Con algo de las nuevas:
+          - el grupo de hoy: todo lo de hoy (quepa o no entre sí, como siempre) y lo de las nuevas que cabe por la edad
+            con algo de hoy (la duda de verdad: un infantil homónimo del alevín del cubo);
+          - un grupo por cada conjunto de lo demás que cabe entre sí (sus componentes por `cabe`): no puede ser nadie
+            de hoy, así que no le estorba a lo de hoy ni lo de hoy le estorba a él, y entre ellos, la regla de siempre
+            (dos cadetes homónimos del club son la duda de siempre);
+          - lo de las nuevas del grupo de hoy que cabe también con algo de un grupo de los demás (un infantil entre el
+            alevín y el cadete) está en los dos y cuenta en los dos, pero no se une en ninguno (bloqueadas): puede ser
+            el de hoy o el otro. Nunca está en el grupo de hoy lo que no cabe con nada de hoy."""
+        miembros = list(cubo)
+        if all(cubo.values()):
+            return [(miembros, frozenset())]
+        hoy = [m for m in miembros if cubo[m]]
+        del_grupo_de_hoy = {m for m in miembros if cubo[m] or any(cabe(m, h) for h in hoy)}
+        demas = [m for m in miembros if m not in del_grupo_de_hoy]
+        dos_grupos = {m for m in del_grupo_de_hoy if not cubo[m] and any(cabe(m, d) for d in demas)}
+        grupos = [([m for m in miembros if m in del_grupo_de_hoy], frozenset(dos_grupos))] if hoy else []
+        while demas:
+            componente, frontera = {demas[0]}, [demas.pop(0)]
+            while frontera:
+                x = frontera.pop()
+                juntos = [y for y in demas if cabe(x, y)]
+                demas = [y for y in demas if y not in juntos]
+                componente.update(juntos)
+                frontera += juntos
+            suyas = frozenset(m for m in dos_grupos if any(cabe(m, c) for c in componente))
+            grupos.append(([m for m in miembros if m in componente or m in suyas], suyas))
+        return grupos
 
     def unir(a, b, regla) -> bool:
         ra, rb = raiz(a), raiz(b)
@@ -345,26 +382,31 @@ def resolver(identidades: list[Identidad], unir_cortos_en_club: bool,
                 cubo = cubos.setdefault((_base(nombre), equipo or "", anio), {})
                 cubo[i.id] = cubo.get(i.id, False) or nivel not in NIVELES_NUEVOS
     for clave in sorted(cubos):
-        miembros = [por_id[k] for k in sin_ajenas(cubos[clave])]
-        if any(fichas[raiz(m.id)].ordinal for m in miembros):
-            miembros = [m for m in miembros if m.fiflp_id is not None]
-        semillas = []
-        # Cada una, a la primera ficha del cubo con la que quepa; si no cabe con ninguna, empieza otra:
-        # así dos fichas que quedan en el mismo cubo no caben juntas, ni ahora ni después.
-        for m in sorted(miembros, key=_orden_principal):
-            if not any(raiz(s) == raiz(m.id) or unir(s, m.id, "equipo") for s in semillas):
-                semillas.append(m.id)
+        for grupo, bloqueadas in por_edad(cubos[clave]):
+            miembros = [por_id[k] for k in grupo]
+            if any(fichas[raiz(m.id)].ordinal for m in miembros):
+                miembros = [m for m in miembros if m.fiflp_id is not None]
+            semillas = []
+            # Cada una, a la primera ficha del cubo con la que quepa; si no cabe con ninguna, empieza otra:
+            # así dos fichas que quedan en el mismo cubo no caben juntas, ni ahora ni después.
+            for m in sorted(miembros, key=_orden_principal):
+                if m.id not in bloqueadas and not any(raiz(s) == raiz(m.id) or unir(s, m.id, "equipo")
+                                                      for s in semillas):
+                    semillas.append(m.id)
 
     # U0 de nombres sin coma: las de una sola aparición van a la única asentada de su cubo (con dos o más
     # asentadas, dos niños con ese nombre de pila en el equipo; con ninguna, nada a lo que ir).
     for clave, (asentadas, sueltas) in sorted(_cubos_cortos(validas).items()):
         _, equipo, anio = clave
-        quedan = sin_ajenas({m.id: any(v[0] == anio and (v[2] or "") == equipo and v[1] not in NIVELES_NUEVOS
-                                       for v in m.vistas) for m in asentadas + sueltas})
-        asentadas, sueltas = [m for m in asentadas if m.id in quedan], [m for m in sueltas if m.id in quedan]
-        if len(asentadas) == 1:
-            for m in sueltas:
-                unir(asentadas[0].id, m.id, "equipo")
+        cubo = {m.id: any(v[0] == anio and (v[2] or "") == equipo and v[1] not in NIVELES_NUEVOS for v in m.vistas)
+                for m in asentadas + sueltas}
+        for grupo, bloqueadas in por_edad(cubo):
+            grupo = set(grupo)
+            suyas = [m for m in asentadas if m.id in grupo]
+            if len(suyas) == 1 and suyas[0].id not in bloqueadas:
+                for m in sueltas:
+                    if m.id in grupo and m.id not in bloqueadas:
+                        unir(suyas[0].id, m.id, "equipo")
 
     # U0 de club: mismo nombre con coma, mismo club y misma temporada en equipos distintos («X» y «X B»).
     # Con dos o más fichas con id en el cubo no se une nada (no se sabe de cuál es la que no lo tiene); una
@@ -381,16 +423,19 @@ def resolver(identidades: list[Identidad], unir_cortos_en_club: bool,
                 cubo[i.id] = cubo.get(i.id, False) or nivel not in NIVELES_NUEVOS
     for clave in sorted(cubos_club):
         cubo = {}
-        for k, vieja in sin_ajenas(cubos_club[clave]).items():
+        for k, vieja in cubos_club[clave].items():
             cubo[raiz(k)] = cubo.get(raiz(k), False) or vieja
-        raices = set(cubo)
-        if len(raices) < 2 or sum(fichas[r].con_id for r in raices) > 1 or any(fichas[r].ordinal for r in raices):
-            continue
-        semillas = []
-        orden = sorted(raices, key=lambda r: min(_orden_principal(por_id[k]) for k in fichas[r].miembros))
-        for m in orden:
-            if not any(raiz(s) == raiz(m) or unir(s, m, "club") for s in semillas):
-                semillas.append(m)
+        for grupo, bloqueadas in por_edad(cubo):
+            raices = set(grupo)
+            if len(raices) < 2 or sum(fichas[r].con_id for r in raices) > 1 or \
+                    any(fichas[r].ordinal for r in raices):
+                continue
+            semillas = []
+            orden = sorted(raices - bloqueadas,
+                           key=lambda r: min(_orden_principal(por_id[k]) for k in fichas[r].miembros))
+            for m in orden:
+                if not any(raiz(s) == raiz(m) or unir(s, m, "club") for s in semillas):
+                    semillas.append(m)
 
     # U1: mismo nombre, mismo club, temporadas seguidas, entre dos fichas que no tienen id las dos (manda
     # el id). Solo de uno a uno: con dos fichas de ese nombre en el club en una de las dos temporadas (con
@@ -408,13 +453,16 @@ def resolver(identidades: list[Identidad], unir_cortos_en_club: bool,
     for base, c, anio in sorted(lados):
         if not (nombre_con_coma(base) or unir_cortos_en_club):
             continue
-        aqui, despues = lados[(base, c, anio)], lados.get((base, c, anio + 1), {})
-        aqui, despues = set(sin_ajenas(aqui, despues)), set(sin_ajenas(despues, aqui))
-        if len(aqui) == 1 and len(despues) == 1:
-            a, b = next(iter(aqui)), next(iter(despues))
-            fa, fb = fichas[a], fichas[b]
-            if a != b and not (fa.con_id and fb.con_id) and not (fa.ordinal or fb.ordinal) and fa.cabe_con(fb):
-                enlaces.append((a, b))
+        # El cubo, los dos años: (0, raíz) este y (1, raíz) el siguiente; la duda es entre los dos años.
+        cubo = {(0, r): vieja for r, vieja in lados[(base, c, anio)].items()}
+        cubo.update(((1, r), vieja) for r, vieja in lados.get((base, c, anio + 1), {}).items())
+        for grupo, bloqueadas in por_edad(cubo, cabe=lambda x, y: x[0] != y[0] and cabe_edad(x[1], y[1])):
+            aqui, despues = [r for lado, r in grupo if lado == 0], [r for lado, r in grupo if lado == 1]
+            if len(aqui) == 1 and len(despues) == 1 and not bloqueadas:
+                a, b = aqui[0], despues[0]
+                fa, fb = fichas[a], fichas[b]
+                if a != b and not (fa.con_id and fb.con_id) and not (fa.ordinal or fb.ordinal) and fa.cabe_con(fb):
+                    enlaces.append((a, b))
     grupo_u1 = {}
 
     def raiz_u1(k):
@@ -437,11 +485,14 @@ def resolver(identidades: list[Identidad], unir_cortos_en_club: bool,
         cubo = por_nombre.setdefault(_base(_nombre(i)), {})
         cubo[raiz(i.id)] = cubo.get(raiz(i.id), False) or any(v[1] not in NIVELES_NUEVOS for v in i.vistas)
     for base in sorted(por_nombre):
-        raices = sorted(sin_ajenas(por_nombre[base]))
-        if len(raices) == 2 and nombre_completo(base):
-            fa, fb = fichas[raices[0]], fichas[raices[1]]
-            if not (fa.ordinal or fb.ordinal) and not (fa.con_id and fb.con_id):
-                unir(raices[0], raices[1], "nombre")
+        if not nombre_completo(base):
+            continue
+        for grupo, bloqueadas in por_edad(por_nombre[base]):
+            raices = sorted(grupo)
+            if len(raices) == 2 and not bloqueadas:
+                fa, fb = fichas[raices[0]], fichas[raices[1]]
+                if not (fa.ordinal or fb.ordinal) and not (fa.con_id and fb.con_id):
+                    unir(raices[0], raices[1], "nombre")
 
     # La principal de cada ficha y, repasando las uniones en orden, la que llevó a cada una hasta ella.
     principal = {}

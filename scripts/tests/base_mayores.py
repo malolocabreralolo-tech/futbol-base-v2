@@ -36,7 +36,10 @@ primer grupo de Gran Canaria de cada categoría, dos equipos llevan además a do
 y la temporada de dos sin id de otra categoría (SIN_ID_DE): en infantil, de dos alevines (el mismo niño, que sube);
 en cadete y juvenil, de dos prebenjamines (otro niño, que se llama igual). Nunca la misma identidad: la de las
 mayores lleva su categoría (migrate_identidad.norm_sin_id), como lo hace el importador; si son la misma ficha lo
-decide el resolvedor por sus edades, cuando la web las enseñe.
+decide el resolvedor por sus edades, cuando la web las enseñe. Y dos homónimos de las nuevas que caben por la edad
+entre sí (un cadete con id y un juvenil sin id) con el nombre de una ficha de hoy de dos identidades unidas por U2
+(candidata única) que no cabe por la edad con ninguno de los dos (HOMONIMOS: la re-revisión de E2, I1; sin el arreglo
+de identidad.resolver, «por_edad», deshacían esa ficha de hoy en cuanto la web enseñara las nuevas).
 
 Los nombres de los niños nuevos son inventados (f"JUGADOR {n:06d}, PRUEBA"); los de los reutilizados no se
 escriben (con id, la fila conserva el suyo) salvo los sin id, que se leen de la copia al vuelo para que sean
@@ -47,7 +50,8 @@ Devuelve {"grupos": [códigos], "partidos": n jugados, "actas": n, "jugadores_re
 "sin_id_reutilizados": n nombres sin id de otra categoría del mismo club y temporada, "sin_id_disponibles": n
 equipos de la liga alevín y la prebenjamín de la temporada con dos sin id (con 0, el caso no se monta),
 "sin_id_en_fila_ajena": n identidades sin id con apariciones en una de las mayores y en otra categoría (tiene que
-ser 0)}.
+ser 0), "homonimos_de_hoy": n de los dos homónimos de HOMONIMOS puestos (2, o 0 si no hay ficha de hoy con la que
+montarlo o no se puebla cadete y juvenil)}.
 """
 import contextlib
 import random
@@ -216,6 +220,32 @@ def _sin_id_de(conn, sid, categoria):
     return out
 
 
+# El caso «dos homónimos de las nuevas que caben entre sí»: en el primer equipo de cadete y en el primero de
+# juvenil, el jugador de este puesto de la plantilla (uno con id nuevo: ni un reutilizado ni un sin id de SIN_ID_DE)
+# se llama como la principal de una ficha de hoy unida por U2 (_homonimo_de_hoy); el de cadete con su id, el de
+# juvenil sin id. Cadete y juvenil de la temporada caben entre sí (los nacidos en Y-15 y Y-14).
+HOMONIMOS = ("CADETE", "JUVENIL")
+HUECO_HOMONIMO = 14
+
+
+def _homonimo_de_hoy(conn, anio):
+    """El nombre de la principal de la primera ficha de hoy (por id) unida por U2 (union_por 'nombre') que no cabe por
+    la edad con un cadete ni con un juvenil de la temporada que empieza `anio` (el intervalo del resolvedor de sus
+    filas de prebenjamín, benjamín y alevín empieza después de Y-12), o None. Se lee de la copia al vuelo y no sale
+    de ella."""
+    from identidad import NIVEL, intervalo
+    for (ficha,) in conn.execute("SELECT DISTINCT ficha_id FROM players WHERE union_por = 'nombre' ORDER BY ficha_id"):
+        vistas = conn.execute(
+            """SELECT DISTINCT s.start_year, upper(c.name) FROM players p JOIN appearances a ON a.player_id = p.id
+                 JOIN matches m ON m.id = a.match_id JOIN groups g ON g.id = m.group_id
+                 JOIN seasons s ON s.id = g.season_id JOIN categories c ON c.id = g.category_id
+                WHERE coalesce(p.ficha_id, p.id) = ? AND upper(c.name) IN ('PREBENJAMIN', 'BENJAMIN', 'ALEVIN')""",
+            (ficha,)).fetchall()
+        if vistas and max(intervalo(y, NIVEL[c])[0] for y, c in vistas) > anio - 12:
+            return conn.execute("SELECT full_name FROM players WHERE id = ?", (ficha,)).fetchone()[0]
+    return None
+
+
 def categoria_natural(anio, nacido):
     """La categoría de las nuevas (infantil, cadete o juvenil) en la que juega la temporada que empieza `anio` quien
     nació en `nacido`, por su ventana natural (nacimiento.VENTANA), o None."""
@@ -298,6 +328,8 @@ class _Fabrica:
         self.ids_base = ids
         self.reutilizados = set()
         self.sin_id_usados = set()
+        self.homonimo = _homonimo_de_hoy(conn, anio)
+        self.homonimos_usados = set()
         # Sobre una base que ya tiene lo de una pasada anterior (la de después, que es la del bot cuando ya ha
         # leído las mayores: prueba_mayores pasa la suite, y esta la vuelve a poblar), todo lo inventado va
         # detrás de lo que ya hay: otros ids de niño, de acta, de competición y de grupo.
@@ -368,6 +400,11 @@ class _Fabrica:
                 for j, nombre in enumerate(nombres):
                     jugadores[JUGADORES_POR_EQUIPO - 1 - j] = {"name": nombre, "fiflp_id": None}
                     self.sin_id_usados.add((categoria, tid, nombre))
+        if self.homonimo and categoria in HOMONIMOS and categoria not in self.homonimos_usados:
+            puesto = jugadores[HUECO_HOMONIMO]
+            jugadores[HUECO_HOMONIMO] = {"name": self.homonimo,
+                                         "fiflp_id": puesto["fiflp_id"] if categoria == "CADETE" else None}
+            self.homonimos_usados.add(categoria)
         self.plantillas[clave] = jugadores
         return jugadores
 
@@ -586,6 +623,7 @@ def poblar(conn, categorias=("INFANTIL", "CADETE", "JUVENIL"), temporada=None, i
     # temporada, ninguno.
     out["sin_id_disponibles"] = fab.sin_id_disponibles
     out["sin_id_en_fila_ajena"] = sin_id_en_fila_ajena(conn)
+    out["homonimos_de_hoy"] = len(fab.homonimos_usados) if len(fab.homonimos_usados) == len(HOMONIMOS) else 0
     return out
 
 
