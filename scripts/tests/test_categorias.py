@@ -168,7 +168,7 @@ def test_lo_que_se_activa_y_lo_que_se_ve_no_cambia():
     (D3-D6). Esta es la ÚNICA prueba que comprueba lo que hay hoy en scripts/categorias.py, y la que cambia en
     cada paso D3-D6, con la misma línea (docs/categorias-mayores.md, «Los pasos del director»): las demás fijan
     el mundo que suponen (conftest.fijar_categorias, categorias_de_antes) y no se tocan."""
-    assert categorias.ACTIVABLES == ("BENJAMIN", "PREBENJAMIN", "ALEVIN")
+    assert categorias.ACTIVABLES == ("BENJAMIN", "PREBENJAMIN", "ALEVIN", "INFANTIL")
     assert categorias.EN_WEB == ("BENJAMIN", "PREBENJAMIN", "ALEVIN")
     assert categorias.ALEVIN_ISLAS is False
     assert categorias.MAYORES == ("INFANTIL", "CADETE", "JUVENIL")
