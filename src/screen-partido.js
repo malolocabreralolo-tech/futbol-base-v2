@@ -461,25 +461,40 @@ export function render(ctx) {
 }
 
 // Cargas perezosas: la cronología (si la temporada la tiene; la de un grupo de infantil, cadete o juvenil, la
-// de su data-matchdetail-<cat>.js, por el prefijo de su código, en todas), las
-// actas del grupo del partido y, si es pasada, la temporada. Los cargadores devuelven null si
-// fallan. La cronología y las actas son opcionales: el bloque que las necesita
+// de su data-matchdetail-<cat>.js en todas), las actas del grupo del partido y, si es pasada, la temporada. Los
+// cargadores devuelven null si fallan. La cronología y las actas son opcionales: el bloque que las necesita
 // pinta la caja de error y el resto se pinta. La temporada es imprescindible:
 // sin ella, la carga rechaza y el router pinta la caja de la pantalla entera.
-export function partidoNeeds(params, datasets, loaders = LOADERS) {
+// El fichero de la cronología sale de la categoría del grupo (group.cat), la misma con la que la lee detailOf:
+// `model`, el del router. Si el grupo todavía no está (su perezosa o su temporada llegan a la vez que esto:
+// `ready`, lo que carga el router), se pide la del prefijo de su código (lazyCatOfCode, como siempre) y, al
+// llegar, la de su categoría si es otro fichero (un grupo de infantil, cadete o juvenil con un código sin INF,
+// CAD ni JUV). Sin `model`, el prefijo.
+export function partidoNeeds(params, datasets, loaders = LOADERS, { model = null, ready = null } = {}) {
   const seasons = datasets.seasons || [];
   const s = (params && params.s) || (seasons.find((x) => x.current) || {}).name;
   if (!s) return [];
   const g = params && params.g;
   if (!datasets.lineups) datasets.lineups = {};
   if (!datasets.seasonRaw) datasets.seasonRaw = {};
-  const own = lazyCatOfCode(g);
-  const loads = [];
-  if (hasOwnMatchDetail(own)) {
-    const detail = datasets.matchDetailLazy || (datasets.matchDetailLazy = {});
-    if (detail[own] == null) loads.push(loaders.ensureMatchDetailLazy(own).then((data) => { detail[own] = data; }));
-  } else if (withDetail(seasons, s)) {
-    loads.push(loaders.ensureMatchDetail().then((data) => { datasets.matchDetail = data; }));
+  const groupOf = () => (model && g ? findGroup(model, s, g) : null);
+  // Qué fichero: el de su categoría (infantil, cadete o juvenil) o el de siempre ('', si la temporada lo tiene).
+  const fileOf = (cat) => (hasOwnMatchDetail(cat) ? cat : '');
+  const detailFrom = (file) => {
+    if (file) {
+      const detail = datasets.matchDetailLazy || (datasets.matchDetailLazy = {});
+      return detail[file] == null ? loaders.ensureMatchDetailLazy(file).then((data) => { detail[file] = data; }) : null;
+    }
+    return withDetail(seasons, s) ? loaders.ensureMatchDetail().then((data) => { datasets.matchDetail = data; }) : null;
+  };
+  const known = groupOf();
+  const first = fileOf(known ? known.cat : lazyCatOfCode(g));
+  const loads = [detailFrom(first)];
+  if (!known && ready) {
+    loads.push(ready.then(() => {
+      const group = groupOf();
+      return group && fileOf(group.cat) !== first ? detailFrom(fileOf(group.cat)) : null;
+    }, () => null));     // si lo de antes no llegó, la pantalla da su caja de error: nada más que pedir
   }
   if (g) loads.push(loaders.ensureLineups(s, g).then((data) => { datasets.lineups[lineupsKey(s, g)] = data; }));
   const listed = seasons.find((x) => x.name === s);
@@ -489,7 +504,7 @@ export function partidoNeeds(params, datasets, loaders = LOADERS) {
       datasets.seasonRaw[s] = raw;
     }));
   }
-  return loads;
+  return loads.filter(Boolean);
 }
 
 // Carga las temporadas anteriores y arma el contenido del panel; nunca lanza. Un fallo de la carga
@@ -592,7 +607,7 @@ export function mount(root, ctx) {
 
 export const screen = {
   id: 'partido',
-  needs: (params, datasets) => partidoNeeds(params, datasets),
+  needs: (params, datasets, options) => partidoNeeds(params, datasets, LOADERS, options),
   render,
   mount,
 };

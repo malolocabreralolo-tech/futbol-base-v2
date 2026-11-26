@@ -697,3 +697,45 @@ test('Partido de cadete: needs pide su data-matchdetail-cadete.js (no el de siem
   assert.match(text(failed), /Goles No se pudieron cargar los datos de la cronología de goles\. Reintentar/);
   assert.match(failed, /<h2 class="block-title">Alineaciones<\/h2>/);
 });
+
+// La cronología se elige por la categoría del grupo (group.cat), como la lee detailOf, y no por el prefijo de su
+// código: un grupo de juvenil con un código sin JUV (XJ1, inventado) pide data-matchdetail-juvenil.js. Si al
+// pedir lo de la pantalla el grupo todavía no está (su perezosa llega a la vez: `ready`, la carga del router),
+// se pide lo del prefijo, como siempre, y, cuando llega, lo de su categoría si es otro fichero.
+test('Partido: la cronología, por la categoría del grupo, también con un código sin prefijo; con la base de hoy, lo de siempre', async () => {
+  const JUV_TEAMS = ['Club Juvenil Uno', 'Club Juvenil Dos'];
+  const XJ = lazyWith('juvenil', [{ id: 'XJ1', phase: 'Segunda GC', fullName: 'LIGA SEGUNDA JUVENIL GRAN CANARIA - GRUPO 1', teams: JUV_TEAMS }]);
+  const calls = [];
+  const loaders = {
+    ensureMatchDetail: async () => { calls.push('cronología'); return {}; },
+    ensureMatchDetailLazy: async (cat) => { calls.push(`cronología ${cat}`); return {}; },
+    ensureLineups: async (s, g) => { calls.push(`actas ${s} ${g}`); return {}; },
+    ensureSeasonData: async () => null,
+  };
+  const seasons = [{ name: '2025-2026', current: true, detail: true, lazy: ['juvenil'] }];
+  // El grupo ya está: su fichero, y solo ese.
+  const known = ctxFor('partido', {}, { today: TODAY, datasets: lazyDatasets({ seasons, lazy: { juvenil: XJ } }) });
+  await Promise.all(partidoNeeds({ s: '2025-2026', g: 'XJ1' }, known.datasets, loaders, { model: known.model }));
+  assert.deepEqual(calls, ['cronología juvenil', 'actas 2025-2026 XJ1']);
+  // Todavía no está (juvenil sin pedir): lo del prefijo y, al llegar juvenil, el suyo.
+  calls.length = 0;
+  const cold = ctxFor('partido', {}, { today: TODAY, datasets: lazyDatasets({ seasons, lazy: { juvenil: undefined } }) });
+  assert.equal(cold.model.group('2025-2026', 'XJ1'), null);
+  const ready = Promise.resolve().then(() => { cold.datasets.lazy.juvenil = XJ; });
+  await Promise.all(partidoNeeds({ s: '2025-2026', g: 'XJ1' }, cold.datasets, loaders, { model: cold.model, ready }));
+  assert.deepEqual(calls, ['cronología', 'actas 2025-2026 XJ1', 'cronología juvenil']);
+  assert.deepEqual(cold.datasets.matchDetailLazy, { juvenil: {} });
+  // Con la base de hoy (PG2, de prebenjamín), lo de siempre, se sepa el grupo o no.
+  for (const options of [{ model: known.model }, { model: cold.model, ready: Promise.resolve() }, {}]) {
+    calls.length = 0;
+    const ds = { seasons: [{ name: '2025-2026', current: true, detail: true }], seasonRaw: {}, lineups: {}, matchDetail: null };
+    await Promise.all(partidoNeeds({ s: '2025-2026', g: 'PG2' }, ds, loaders, options));
+    assert.deepEqual(calls, ['cronología', 'actas 2025-2026 PG2']);
+  }
+  // Si lo que se esperaba no llega (la caja de error de la pantalla), nada más.
+  calls.length = 0;
+  const failed = ctxFor('partido', {}, { today: TODAY, datasets: lazyDatasets({ seasons, lazy: { juvenil: undefined } }) });
+  const broken = Promise.reject(new Error('juvenil'));
+  await Promise.all(partidoNeeds({ s: '2025-2026', g: 'XJ1' }, failed.datasets, loaders, { model: failed.model, ready: broken }));
+  assert.deepEqual(calls, ['cronología', 'actas 2025-2026 XJ1']);
+});

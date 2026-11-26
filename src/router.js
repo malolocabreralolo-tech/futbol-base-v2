@@ -664,10 +664,16 @@ export function startRouter({ screens, root, getContext, window: win, actions = 
       const lazyLoads = fresh.flatMap((w) => loadOne(w.cat, w.season, base.datasets, portalSeason)
         .map((load) => (w.soft ? load.catch((err) => console.warn(`[router] ${w.cat}`, err)) : load)));
       fresh.forEach((w) => tried.add(triedKey(w.cat, w.season)));
+      const seasonLoads = first.pending ? loadSeason(route.params.s, base.datasets, portalSeason) : [];
+      // Lo que el router carga antes de la pantalla, para la que tenga que esperarlo (`ready`: el partido elige
+      // el fichero de su cronología por la categoría de su grupo, que puede llegar con esto). Su fallo lo
+      // atiende Promise.all de abajo; la copia de `ready`, no: se marca atendida para que no avise el navegador.
+      const before = [...seasonLoads, ...lazyLoads];
+      const ready = before.length ? Promise.all(before) : null;
+      if (ready) ready.catch(() => {});
       const needs = [
-        ...(first.pending ? loadSeason(route.params.s, base.datasets, portalSeason) : []),
-        ...lazyLoads,
-        ...((screen.needs && screen.needs(route.params, base.datasets, { portalSeason })) || []),
+        ...before,
+        ...((screen.needs && screen.needs(route.params, base.datasets, { portalSeason, model: base.model, ready })) || []),
       ];
       if (needs.length) {
         paint(skeleton(screen.id));

@@ -371,13 +371,15 @@ test('una pantalla con title(ctx) pone su título en la pestaña; sin él (o nul
   assert.equal(b.doc.title, 'Jugador · Fútbol Base Las Palmas v2');
 });
 
-test('needs recibe la temporada del portal del contexto: ninguna pantalla la lee de config.js (R2-1)', async () => {
+test('needs recibe la temporada del portal del contexto: ninguna pantalla la lee de config.js (R2-1); y el modelo, y lo que carga antes el router (ready)', async () => {
   const b = fakeBrowser('#/tabla?g=PG2');
   const received = [];
   const tabla = { ...screen('tabla'), needs: (params, datasets, options) => { received.push(options); return []; } };
   const router = startRouter({ screens: { tabla }, root: b.root, getContext: context(), window: b.win });
   await router.idle();
-  assert.deepEqual(received, [{ portalSeason: PORTAL }]);
+  assert.equal(received.length, 1);
+  assert.deepEqual([received[0].portalSeason, received[0].ready], [PORTAL, null], 'sin nada que cargar antes, ready: null');
+  assert.equal(typeof received[0].model.season, 'function');
 });
 
 test('token: una respuesta lenta (o un error) nunca pinta sobre la ruta nueva', async () => {
