@@ -342,7 +342,7 @@ def test_a_retired_team_of_an_archived_season_gets_a_portal_name():
 
 # ── Con la lectura del bot (fiflp_carga.Federacion) sobre la federación de mentira ──
 # Una competición 900 con los grupos 11 y 12; la clasificación de cada uno (los datos del raspador falso) y
-# sus goleadores (goleadores_2526_A2.html). Temporada 20 (2024-2025). Como para_tanda: sin esperas del freno.
+# sus goleadores (goleadores_2526_A2.html). Temporada 20 (2024-2025). Sin esperas del freno (HISTORICO_ESPERAS=0), salvo con como_el_carril.
 
 from federacion_falsa import FederacionFalsa, Pagina, Reloj  # noqa: E402
 
@@ -376,12 +376,13 @@ def S(tmp_path, monkeypatch):
     return S
 
 
-def correr(S, f, **kw):
-    """Una ejecución (otra IP: el cupo de la falsa vuelve a empezar) con su Federacion; da (completo, F, partes)."""
+def correr(S, f, como_el_carril=False, **kw):
+    """Una ejecución (otra IP: el cupo de la falsa vuelve a empezar) con su Federacion; da (completo, F, partes).
+    Sin esperas del freno; con `como_el_carril`, la Federacion del carril (para_tanda: una espera por ejecución)."""
     import time
     f.ip_nueva()
     f.pedidas.clear()
-    F = f.fed(deadline=f.reloj.t + 3600, max_pauses=0)
+    F = f.tanda(60) if como_el_carril else f.fed(deadline=f.reloj.t + 3600, max_pauses=0)
     partes = {}
     ok = S.run(f.page(), F, ["20"], time.monotonic() + 600, log=lambda *_: None, partes=partes, **kw)
     return ok, F, partes
@@ -526,6 +527,30 @@ def test_un_corte_en_cualquier_peticion_no_deja_nada_mal_leido(S, tmp_path):
         assert all(e.get("crests", entera[0][key]["crests"]) == entera[0][key]["crests"] for key, e in raw.items()), k
         # Lo pendiente: la competición sin lista de grupos, o los grupos que faltan (los escudos van en su parte).
         assert partes["goleadores:2024-2025"]["pendientes"] == (2 - len(raw) if gpath.exists() else 1), k
+        ok, F, partes = correr(S, FederacionFalsa(sitio_goleadores(), Reloj()))
+        assert ok and (sin_fecha(json.loads(raw_path.read_text())), json.loads(gpath.read_text())) == entera, k
+
+
+def test_con_la_espera_del_carril_un_freno_no_deja_nada_mal_leido(S, tmp_path):
+    """Como la de arriba, con la Federacion del carril (para_tanda, desde el 26/11/2026: espera UN freno por
+    ejecución). El freno tras k páginas, un bloqueo de 5 min y el segundo sin final: la ejecución lo espera, sigue
+    donde frenó y acaba en el segundo. Nada vacío leído ni intentos gastados; lo de los dos tramos, guardado; y una
+    ejecución sin freno después deja lo mismo que una entera."""
+    def sin_fecha(raw):
+        return {k: {c: v for c, v in e.items() if c != "fetched"} for k, e in raw.items()}
+    raw_path = tmp_path / "fiflp_goleadores_2024-2025_raw.json"
+    gpath = tmp_path / "fiflp_goleadores_2024-2025_grupos.json"
+    ok, F, partes = correr(S, FederacionFalsa(sitio_goleadores(), Reloj()))
+    entera, total = (sin_fecha(json.loads(raw_path.read_text())), json.loads(gpath.read_text())), F.pages
+    for k in range(1, total // 2):
+        for p in (raw_path, gpath):
+            p.unlink(missing_ok=True)
+        ok, F, partes = correr(S, FederacionFalsa(sitio_goleadores(), Reloj(), cupo=k, bloqueos=(300, None)),
+                               como_el_carril=True)
+        assert not ok and F.parada == "freno" and F.pauses == 1 and F.resumed == 1, k
+        assert F.resumen()["frenos_tras"] == [k, k] and F.served == 2 * k, k
+        raw = json.loads(raw_path.read_text()) if raw_path.exists() else {}
+        assert all(e["ok"] and "intentos" not in e and e["standings"] and e["scorers"] for e in raw.values()), k
         ok, F, partes = correr(S, FederacionFalsa(sitio_goleadores(), Reloj()))
         assert ok and (sin_fecha(json.loads(raw_path.read_text())), json.loads(gpath.read_text())) == entera, k
 

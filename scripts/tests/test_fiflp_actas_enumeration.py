@@ -324,6 +324,38 @@ def test_un_corte_en_cualquier_peticion_no_deja_nada_mal_leido(tanda):
         assert foto() == entera, k
 
 
+def test_con_la_espera_del_carril_un_freno_no_deja_nada_mal_leido(tanda, tmp_path):
+    """Como la de arriba, con la Federacion del carril (para_tanda: espera UN freno por ejecución, desde el
+    26/11/2026). Para cada cupo k, el freno tras k páginas, un bloqueo de 5 min y el segundo sin final: la tanda
+    espera el primero, sigue leyendo donde frenó y acaba en el segundo. Nada vacío queda leído, ni un intento
+    gastado; lo leído antes y después de la espera está en el raw; el resumen dice la espera y si volvió; y la
+    tanda siguiente, sin freno, deja lo mismo que una entera sin cortes."""
+    def foto():
+        status = tanda.status()
+        return (tanda.index(), tanda.raw(), status["enumeracion"], status["pending"], status["intentos"],
+                status["no_disponible"])
+    f = FederacionFalsa(sitio_actas(), Reloj())
+    tanda.run(f, "--comps", "900")
+    entera, total = foto(), len(f.pedidas)
+    resumen = tmp_path / "resumen.json"
+    for k in range(1, total // 2):
+        for p in tanda.dir.glob("fiflp_actas_*.json"):
+            p.unlink()
+        f = FederacionFalsa(sitio_actas(), Reloj(), cupo=k, bloqueos=(300, None))
+        tanda.run(f, "--comps", "900", "--resumen", str(resumen), como_el_carril=True)
+        status, data = tanda.status(), json.loads(resumen.read_text())
+        assert status["parada"] == "freno" and status["intentos"] == {} and status["no_disponible"] == [], k
+        assert data["esperas"] == 1 and data["esperas_sirvio"] == [True] and data["esperas_s"] == [300], k
+        assert data["frenos_tras"] == [k, k] and data["servidas"] == 2 * k, k
+        assert status["pending"] > 0 and all(a["header"]["home_team"] for a in tanda.raw().values()), k
+        assert set(tanda.raw()) <= set(tanda.index()), k
+        # Lo leído en los dos tramos (sin la de competiciones de preparar, ni las que no son actas) está guardado.
+        actas = {u.split("CodActa=")[1].split("&")[0] for u in f.pedidas if "NFG_CmpPartido" in u}
+        assert set(tanda.raw()) <= actas, k
+        tanda.run(FederacionFalsa(sitio_actas(), Reloj()), "--comps", "900")
+        assert foto() == entera, k
+
+
 def test_las_competiciones_de_la_web_sin_parada_y_con_ella(tanda, monkeypatch):
     """Una temporada que el catálogo no tiene (aquí, 2016-17 con el catálogo vacío): las competiciones, del
     desplegable de la web por la Federacion de la tanda (discover_comps con F). Si la federación no la sirve
@@ -442,9 +474,13 @@ def tanda(tmp_path, monkeypatch):
     monkeypatch.setitem(sys.modules, "playwright", pkg)
     monkeypatch.setitem(sys.modules, "playwright.sync_api", api)
     monkeypatch.setattr(A, "HERE", tmp_path)
-    monkeypatch.setattr(A, "federacion",
-                        lambda minutos, max_paginas: state.f.fed(deadline=state.f.reloj.t + minutos * 60, max_pauses=0,
-                                                                 max_pages=state.kw.get("max_pages", max_paginas or None)))
+    def federacion(minutos, max_paginas):
+        tope = state.kw.get("max_pages", max_paginas or None)
+        if state.kw.get("como_el_carril"):
+            # La de verdad (fiflp_carga.para_tanda), con sus esperas del freno: una por ejecución desde el 26/11/2026.
+            return state.f.tanda(minutos, tope)
+        return state.f.fed(deadline=state.f.reloj.t + minutos * 60, max_pauses=0, max_pages=tope)
+    monkeypatch.setattr(A, "federacion", federacion)
 
     def run(f, *argv, **kw):
         state.f, state.kw, state.launches, state.pages = f, kw, 0, 0

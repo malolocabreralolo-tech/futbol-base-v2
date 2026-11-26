@@ -8,22 +8,25 @@ name: Histórico de la federación (un solo carril)
 # Cada ejecución hace UNA cosa, la que diga «¿Qué toca?»: bajar lo pendiente del encargo (lo barato primero:
 # goleadores, actas de la temporada más reciente y de la liga de más nivel, detalle, calendario y escudos), probar
 # sobre una copia lo ya bajado de una temporada, o nada (sin encargo, parado, en una ventana de partidos, con el
-# tope del día gastado o con el freno de verdad visto hoy). Lo bajado va a scripts/historico/ (la cuarentena, que
+# tope del día gastado o con el día parado por el freno: el que vio el bot en vivo, o uno del carril con menos de 60
+# páginas servidas). Lo bajado va a scripts/historico/ (la cuarentena, que
 # el bot no mira) y solo pasa a scripts/, donde el bot lo importa, lo probado en verde (cuarentena.py promover).
 # El carril nunca sube la base ni lo publicado (futbolbase.db, base/, data-*.js, index.html, sw.js): eso es del
 # bot (update.yml y activar.yml, grupo update-data), y un fallo aquí no lo deja sin publicar.
 #
 # No se intenta saltar ni el freno ni el rechazo a AWS: una ejecución cada vez (concurrencia historico-federacion,
-# sin cancelar), un navegador y 7 s entre peticiones; 2.000 páginas al día para empezar (HISTORICO_PAGINAS_DIA,
-# variable del repositorio: la rampa la sube quien dirige); y una ejecución que cae en un runner que la federación
-# no sirve acaba en uno o dos minutos y NO se relanza (historico.RELANZAR_SI_RUNNER_RECHAZADO = 0, decisión del
-# dueño pendiente): la retoma el disparo siguiente.
+# sin cancelar), un navegador y 7 s entre peticiones; 2.000 páginas al día como mucho (HISTORICO_PAGINAS_DIA,
+# variable del repositorio); el freno (el cupo de la IP, ~150 páginas: lo medido el 26/11/2026) se espera UNA vez
+# por ejecución, como el bot, y el segundo la acaba (HISTORICO_ESPERAS, variable del repositorio: 0, ninguna); una
+# ejecución que acaba en el freno NO se relanza (sería esquivar el bloqueo con la IP de otro runner); y una que cae
+# en un runner que la federación no sirve acaba en uno o dos minutos y tampoco (historico.RELANZAR_SI_RUNNER_RECHAZADO
+# = 0, decisión del dueño pendiente). Las dos, las retoma el disparo siguiente del reloj.
 #
 # El disparo: lo lanza el reloj (reloj.yml, reloj_pasadas.due_historico), un intento cada 3 h desde que empezó la
 # última, fuera de las ventanas y sin nada del histórico, del bot, del carril de las mayores ni de la activación sin
-# acabar. Con la mitad de los runners en AWS, alguno de los ≤ 8 disparos del día cae en Azure, y una sola ejecución
-# en Azure llega al tope; tras una ejecución servida (60 páginas o más) o una prueba, la siguiente se lanza en seguida
-# (paso «Siguiente», sin entradas). Hasta el 25/11/2026 tenía su propio cron ('47 */3 * * *'), y GitHub lo perdía
+# acabar. Con la mitad de los runners en AWS, unos 4 de los ≤ 8 disparos del día caen en Azure, y cada uno lee ~150-300
+# páginas (un cupo, la espera y otro); tras una ejecución servida (60 páginas o más) que no acabó en el freno, o tras
+# una prueba, la siguiente se lanza en seguida (paso «Siguiente», sin entradas). Hasta el 25/11/2026 tenía su propio cron ('47 */3 * * *'), y GitHub lo perdía
 # como el de update.yml: ese día no llegaron ni el de las 18:47 ni el de las 21:47 UTC, y el carril se quedó parado
 # hasta que se lanzó a mano. Sin schedule, GitHub ya no lo desactiva por inactividad (el reloj, sí: sin él, tampoco
 # hay histórico). Para pararlo, -f accion=parar o desactivar este workflow (gh workflow disable historico.yml), no el
@@ -124,9 +127,9 @@ jobs:
     concurrency:
       group: historico-federacion
       cancel-in-progress: false
-    # El tope del día (la rampa: gh variable set HISTORICO_PAGINAS_DIA) y las esperas del freno por ejecución
-    # (ninguna por defecto), en todos los pasos que preguntan a historico.py: «¿Qué toca?», la descarga y su registro
-    # tienen que ver el mismo tope.
+    # El tope del día (gh variable set HISTORICO_PAGINAS_DIA) y las esperas del freno por ejecución (una por defecto,
+    # también con la variable sin poner; 0, ninguna), en todos los pasos que preguntan a historico.py: «¿Qué toca?»,
+    # la descarga y su registro tienen que ver el mismo tope.
     env:
       HISTORICO_PAGINAS_DIA: ${{ vars.HISTORICO_PAGINAS_DIA }}
       HISTORICO_ESPERAS: ${{ vars.HISTORICO_ESPERAS }}
@@ -280,7 +283,7 @@ jobs:
       # Solo lo del carril: la cuarentena (lo bajado, la lista de grupos de los goleadores, plan y estado) y lo
       # promovido a scripts/ (una línea de promovidos.txt cada uno). Rebasa como el bot; un conflicto no se fuerza:
       # aborta en rojo y la ejecución siguiente parte de main. También el día parado por el freno que vio el bot
-      # (sin descargar nada: apuntado), para que la rampa lo vea en dias_frenados.
+      # (sin descargar nada: apuntado), para que se vea en dias_frenados.
       - name: Subir
         id: subir
         if: ${{ always() && (steps.toca.outputs.accion == 'descargar' || steps.toca.outputs.accion == 'probar' || steps.toca.outputs.apuntado == 'true') }}
@@ -320,7 +323,8 @@ jobs:
         run: gh workflow run update.yml --ref main || echo "no se pudo lanzar el bot; lo lanzará el reloj (reloj.yml)"
 
       # Sin entradas (seguir): la ejecución siguiente saca su trabajo de scripts/historico/. Solo tras una prueba o
-      # una descarga que la federación sirvió (historico.relanzar); nunca tras un runner rechazado.
+      # una descarga que la federación sirvió (historico.relanzar); nunca tras una que acabó en el freno ni tras un
+      # runner rechazado.
       - name: Siguiente
         if: ${{ !cancelled() && steps.registrar.outputs.relanzar == 'true' && steps.subir.outcome == 'success' }}
         env:

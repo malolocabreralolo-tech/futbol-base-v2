@@ -505,8 +505,8 @@ def _main(args):
     seasons = [s.strip() for s in args.temporadas.split(",") if s.strip()]
     jornadas = {s.strip() for s in args.jornadas.split(",") if s.strip()}
     import fetch_fiflp_2425
-    # La lectura del bot (la vacía solo es el freno si la federación no sirve otra), sin esperas del freno y
-    # con el tope de la ejecución; la nube, la de la máquina.
+    # La lectura del bot (la vacía solo es el freno si la federación no sirve otra), con una espera del freno
+    # por ejecución (HISTORICO_ESPERAS) y el tope de la ejecución; la nube, la de la máquina.
     F = para_tanda(fetch_fiflp_2425, args.max_minutes, args.max_paginas)
     resumen = args.resumen or None
     partes = {}
