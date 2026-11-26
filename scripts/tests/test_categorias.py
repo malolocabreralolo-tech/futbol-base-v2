@@ -169,7 +169,7 @@ def test_lo_que_se_activa_y_lo_que_se_ve_no_cambia():
     en cada uno de esos pasos, con la misma línea (docs/categorias-mayores.md, «Los pasos del director» y «En la
     web»): las demás fijan el mundo que suponen (conftest.fijar_categorias, categorias_de_antes, fijar_web) y no se
     tocan."""
-    assert categorias.ACTIVABLES == ("BENJAMIN", "PREBENJAMIN", "ALEVIN", "INFANTIL", "CADETE")
+    assert categorias.ACTIVABLES == ("BENJAMIN", "PREBENJAMIN", "ALEVIN", "INFANTIL", "CADETE", "JUVENIL")
     assert categorias.EN_WEB == ("BENJAMIN", "PREBENJAMIN", "ALEVIN", "INFANTIL", "CADETE", "JUVENIL")
     assert categorias.ALEVIN_ISLAS is False
     assert categorias.MAYORES == ("INFANTIL", "CADETE", "JUVENIL")
