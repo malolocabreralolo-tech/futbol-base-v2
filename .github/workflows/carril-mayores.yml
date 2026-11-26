@@ -10,14 +10,26 @@ name: Pasadas de infantil, cadete y juvenil
 # Lo lanza el reloj (reloj.yml, reloj_pasadas.due_carril) entre dos pasadas del bot, fuera de las ventanas de
 # partidos, cada 4 h, solo con la variable del repositorio CARRIL_MAYORES a 1: encenderlo, `gh variable set
 # CARRIL_MAYORES --body 1 -R malolocabreralolo-tech/futbol-base-v2`; apagarlo, `--body 0` (o `gh variable delete`).
-# También a mano (gh workflow run carril-mayores.yml), con lo mismo: mejor sin nada en marcha en update-data.
+# También a mano (gh workflow run carril-mayores.yml), con lo mismo: mejor sin nada en marcha en update-data. Y desde
+# el 26/11/2026 (decisión del dueño), su propia pasada, si cae en un runner que la federación no sirve (AWS): se
+# relanza en seguida, hasta 3 veces seguidas (la entrada reintento; update.yml, «Relanzar si el runner fue rechazado»).
+# Mientras la relanzada está en cola o en marcha, el reloj no lanza otra del carril ni, con CARRIL_MAYORES a 1, del bot.
 #
 # Sin concurrencia propia: la del job de update.yml (grupo update-data, como el bot y activar.yml); con la misma
 # aquí, GitHub lo daría por bloqueo mutuo. Los permisos, los de update.yml (el llamado no puede tener más que el
 # llamante): contents para subir lo leído y actions, que update.yml pide (lanzar activar.yml, que en el carril no
-# corre).
+# corre, y relanzar este workflow tras un runner rechazado, que sí).
 on:
-  workflow_dispatch:          # el reloj y a mano
+  workflow_dispatch:          # el reloj, su propia pasada tras un runner rechazado y a mano
+    inputs:
+      # Los relanzamientos seguidos tras un runner rechazado (update.yml, «Relanzar si el runner fue rechazado»: la
+      # pasada del carril que cae en AWS relanza este workflow con uno más, hasta 3), que pasa tal cual a update.yml.
+      # El reloj lanza sin entradas (0). Texto, como en update.yml (allí, por qué).
+      reintento:
+        description: 'Relanzamientos seguidos tras un runner rechazado (lo pone la propia pasada; a mano, 0)'
+        required: false
+        default: '0'
+        type: string
 
 permissions:
   contents: write
@@ -28,3 +40,4 @@ jobs:
     uses: ./.github/workflows/update.yml
     with:
       cats: infantil,cadete,juvenil
+      reintento: ${{ inputs.reintento }}

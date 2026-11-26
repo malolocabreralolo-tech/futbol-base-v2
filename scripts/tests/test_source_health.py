@@ -455,3 +455,105 @@ def test_dry_since_is_none_without_a_streak_or_with_another_season(portal):
     dry_run(T0)
     source_health.begin("2026-2027")
     assert source_health.dry_since() is None
+
+
+# ── El runner rechazado: update.yml relanza la pasada (decisión del dueño del 26/11/2026) ──
+
+def test_a_refused_runner_pass_always_writes_its_note(portal):
+    """update.yml («Relanzar si el runner fue rechazado») sabe que ESTA pasada cayó en un runner que la federación no
+    sirve por su nota en el data-health.json del espacio de trabajo (source_health.py rechazado, con su número). Una
+    pasada seca más de la misma racha no reescribía el informe (la nota, `run`, es volátil): quedaba la nota de la
+    anterior y la segunda rechazada seguida no se relanzaba (la mañana del 26/11/2026, la siguiente a la 201). Con
+    refusedRunner en la nota de su carril, el informe se escribe siempre; sin él, como siempre."""
+    bot_run(T0, [])
+    first = dry_run(T0 + timedelta(hours=1))
+    # Otra seca de la racha, sin rechazo (un freno desde la primera página en Azure): no se reescribe.
+    source_health.begin("2025-2026")
+    for code, status, message in OK:
+        source_health.record(code, f"https://example.test/{code}", status, message, now=T0 + timedelta(hours=2))
+    source_health.set_run_health([], now=T0 + timedelta(hours=2), dry=True)
+    source_health.note_run({"pass": 202, "refreshed": 0, "cloud": "azure", "pauses": 1, "brakeAfter": [0]})
+    source_health.finish(now=T0 + timedelta(hours=2))
+    assert source_health.REPORT_PATH.read_text() == first
+    # La misma, en un runner rechazado: se escribe, con su nota.
+    source_health.begin("2025-2026")
+    for code, status, message in OK:
+        source_health.record(code, f"https://example.test/{code}", status, message, now=T0 + timedelta(hours=3))
+    source_health.set_run_health([], now=T0 + timedelta(hours=3), dry=True)
+    source_health.note_run({"pass": 203, "refreshed": 0, "cloud": "aws", "refusedRunner": True})
+    source_health.finish(now=T0 + timedelta(hours=3))
+    report = json.loads(source_health.REPORT_PATH.read_text())
+    assert report["run"]["pass"] == 203 and report["run"]["refusedRunner"] is True
+    assert report["runHealth"] == json.loads(first)["runHealth"]          # la racha, la misma
+    assert source_health.main(["rechazado", "203"]) == 0
+
+
+def test_a_refused_note_of_the_other_lane_does_not_force_the_write(portal, monkeypatch):
+    """La nota que cuenta es la del carril de la pasada: en una del carril de las mayores, el `run` del bot de siempre
+    (arrastrado tal cual) no reescribe el informe aunque diga refusedRunner."""
+    source_health.begin("2025-2026")
+    source_health.note_run({"pass": 9, "refusedRunner": True})
+    source_health.finish(now=T0)
+    first = source_health.REPORT_PATH.read_text()
+    monkeypatch.setenv("FIFLP_CATS", "infantil,cadete,juvenil")
+    source_health.begin("2025-2026")
+    source_health.finish(now=T0 + timedelta(hours=1))
+    assert source_health.REPORT_PATH.read_text() == first
+
+
+def refused(capsys, report, number, lane=None, monkeypatch=None):
+    """source_health.py rechazado <número> sobre `report` (None: sin informe), en el carril de `lane` (FIFLP_CATS):
+    (código, salida estándar)."""
+    if lane is not None:
+        monkeypatch.setenv("FIFLP_CATS", lane)
+    if report is None:
+        source_health.REPORT_PATH.unlink(missing_ok=True)
+    else:
+        source_health.REPORT_PATH.write_text(report if isinstance(report, str) else json.dumps(report))
+    capsys.readouterr()
+    code = source_health.main(["rechazado", str(number)])
+    return code, capsys.readouterr().out
+
+
+REFUSED = {"pass": 201, "groups": 107, "refreshed": 0, "seconds": 9, "pages": 2, "blocked": True, "cloud": "aws",
+           "refusedRunner": True}
+
+
+def test_the_refused_order_in_the_main_lane(portal, capsys):
+    """Sale con 0 (e imprime el carril) solo si la nota de la pasada del carril del job es la de ESTA (su número) y
+    dice refusedRunner; con 1 si no o si no se sabe."""
+    assert refused(capsys, {"run": REFUSED}, 201) == (0, "principal\n")
+    assert refused(capsys, {"run": REFUSED}, 202)[0] == 1                 # la nota es de otra pasada
+    leyo = {k: v for k, v in REFUSED.items() if k != "refusedRunner"} | {"refreshed": 30, "cloud": "azure"}
+    assert refused(capsys, {"run": leyo}, 201)[0] == 1                    # leyó
+    frenada = {"pass": 201, "refreshed": 0, "cloud": "azure", "pauses": 1, "brakeAfter": [0], "blocked": True}
+    assert refused(capsys, {"run": frenada}, 201)[0] == 1                 # frenó de verdad, en Azure
+    assert refused(capsys, {"run": {**REFUSED, "refusedRunner": "true"}}, 201)[0] == 1
+    assert refused(capsys, {"run": {**REFUSED, "pass": "201"}}, 201)[0] == 1
+    assert refused(capsys, {"groups": {}}, 201)[0] == 1                   # sin nota (falló antes de la federación)
+    assert refused(capsys, {"run": "x"}, 201)[0] == 1
+    assert refused(capsys, None, 201)[0] == 1                              # sin informe
+    assert refused(capsys, "{roto", 201)[0] == 1
+    assert refused(capsys, {"run": REFUSED}, "")[0] == 1                  # sin número de pasada: no se sabe
+    assert refused(capsys, {"run": REFUSED}, "doscientos uno")[0] == 1
+    # La del carril de las mayores no es la de esta pasada.
+    assert refused(capsys, {"run": leyo, "carriles": {"mayores": {"run": REFUSED}}}, 201)[0] == 1
+
+
+def test_the_refused_order_in_the_lane_of_the_older_categories(portal, capsys, monkeypatch):
+    """En una pasada del carril de las mayores (FIFLP_CATS), la nota es carriles.mayores.run, con el número de
+    carril-mayores.yml; el `run` del bot de siempre no cuenta."""
+    mayores = "infantil,cadete,juvenil"
+    report = {"run": {**REFUSED, "pass": 40}, "carriles": {"mayores": {"runHealth": {"ok": True}, "run": {
+        **REFUSED, "pass": 12}}}}
+    assert refused(capsys, report, 12, mayores, monkeypatch) == (0, "mayores\n")
+    assert refused(capsys, report, 40, mayores, monkeypatch)[0] == 1
+    leyo = {"pass": 12, "refreshed": 9, "cloud": "azure"}
+    assert refused(capsys, {"run": {**REFUSED, "pass": 12}, "carriles": {"mayores": {"run": leyo}}}, 12, mayores,
+                   monkeypatch)[0] == 1
+    assert refused(capsys, {"run": {**REFUSED, "pass": 12}}, 12, mayores, monkeypatch)[0] == 1
+
+
+def test_the_refused_order_needs_its_number():
+    assert source_health.main(["rechazado"]) == 2
+    assert source_health.main(["rechazado", "1", "2"]) == 2

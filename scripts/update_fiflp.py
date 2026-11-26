@@ -265,7 +265,10 @@ def run_number(env=None, now=None):
     siguiente repetía los mismos grupos. El número puede saltarse uno (una ejecución pendiente que la
     concurrency cancela al llegar otra la gasta sin pasar por el bot) o repetirse (relanzar una
     ejecución fallida cambia run_attempt, no el número): plan_groups lleva un margen para lo primero,
-    y lo segundo repite el orden de una pasada que no llegó a hacerse. La franja horaria no sirve de
+    y lo segundo repite el orden de una pasada que no llegó a hacerse. Una pasada que cae en un runner que la
+    federación no sirve se relanza (desde el 26/11/2026: update.yml, «Relanzar si el runner fue rechazado», hasta 3
+    seguidas) con un número nuevo: la rechazada ya gastaba el suyo sin leer su turno, y la relanzada lee el
+    siguiente en vez de esperar a la pasada de 2 h después. La franja horaria no sirve de
     número: las pasadas no caen en franjas fijas (cada 1 o 2 h según la ventana de partidos, con los
     retrasos de GitHub) y las tandas y las ejecuciones a mano caen en la franja de otra pasada."""
     env = os.environ if env is None else env

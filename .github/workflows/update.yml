@@ -5,7 +5,8 @@ name: Actualización automática
 # (reloj.yml, scripts/reloj_pasadas.py) cada 2 h (update_fiflp.PASS_EVERY) y cada hora en las ventanas de
 # partidos (viernes de 18 a 24 y sábado y domingo de 10 a 24, hora de Canarias), nunca con otra sin acabar;
 # también el carril del histórico (historico.yml) al promover lo que probó, las tandas de actas que quedan
-# (actas-federacion.yml) al subir su raw, y a mano; la activación (activar.yml), no. Su cron ('23 */2 * * *'
+# (actas-federacion.yml) al subir su raw, la propia pasada tras caer en un runner rechazado (al final, «Relanzar si
+# el runner fue rechazado») y a mano; la activación (activar.yml), no. Su cron ('23 */2 * * *'
 # desde el 16/10/2026; '0 */6 * * *' antes) casi no llegaba: 5 de 13 en ~26 h, una pasada cada 4-6 h. El reloj es otro workflow, y no un job «¿toca?» aquí,
 # porque cada ejecución de update.yml, aunque no haga nada, sube GITHUB_RUN_NUMBER, del que sale el orden de
 # cada pasada (update_fiflp.run_number): así solo sube en pasadas de verdad.
@@ -20,7 +21,7 @@ name: Actualización automática
 # vale igual para las dos formas de lanzarlo (mismo grupo update-data que activar.yml: una escritura de la base
 # cada vez). Lanzado por el reloj, sin entradas, todo es como antes del carril.
 on:
-  workflow_dispatch:          # el reloj (reloj.yml), el carril del histórico, las tandas de actas y a mano
+  workflow_dispatch:          # el reloj (reloj.yml), el carril del histórico, las tandas de actas, la propia pasada y a mano
     inputs:
       # Solo a mano, para una pasada pequeña (la primera de un repositorio nuevo): el reloj y el histórico no
       # la pasan y, vacía, se lee el carril principal (update_fiflp.update_groups: prebenjamín, benjamín y alevín).
@@ -29,16 +30,32 @@ on:
         required: false
         default: ''
         type: string
-  workflow_call:              # carril-mayores.yml, con cats: infantil,cadete,juvenil
+      # Los relanzamientos seguidos tras un runner rechazado («Relanzar si el runner fue rechazado», al final): lo
+      # pone la propia pasada al relanzarse (uno más); el reloj y los demás lanzan sin él (0). Texto y no number: la
+      # misma entrada viene de carril-mayores.yml, GitHub comprueba el tipo de lo que se pasa a una entrada de
+      # workflow_call, y un número que llegara como texto tumbaría la llamada (la pasada del carril entera); el guion
+      # del paso la comprueba (lo que no es un número no relanza).
+      reintento:
+        description: 'Relanzamientos seguidos tras un runner rechazado (lo pone la propia pasada; a mano, 0)'
+        required: false
+        default: '0'
+        type: string
+  workflow_call:              # carril-mayores.yml, con cats: infantil,cadete,juvenil (y su reintento)
     inputs:
       cats:
         description: 'Categorías a leer, separadas por comas (vacío: prebenjamín, benjamín y alevín)'
         required: false
         default: ''
         type: string
+      reintento:
+        description: 'Relanzamientos seguidos tras un runner rechazado (lo pone la propia pasada; a mano, 0)'
+        required: false
+        default: '0'
+        type: string
 
 # actions: write, desde la fase 2D (14/11/2026), solo para lanzar activar.yml («Lanzar la activación si hay
-# algo nuevo»). Llamado desde carril-mayores.yml, el llamante le da los mismos (no puede pedir más que él).
+# algo nuevo») y, desde el 26/11/2026, para relanzar la pasada tras un runner rechazado («Relanzar si el runner fue
+# rechazado»). Llamado desde carril-mayores.yml, el llamante le da los mismos (no puede pedir más que él).
 permissions:
   contents: write
   actions: write
@@ -271,3 +288,76 @@ jobs:
       - name: Pasada en rojo
         if: success()
         run: python3 scripts/source_health.py veredicto
+
+      # Decisión del dueño del 26/11/2026: si ESTA pasada cayó en un runner que la federación no sirve (AWS, desde el
+      # 13/11/2026: «runner rechazado», fiflp_carga.Federacion.refused_runner; no le pide nada más tras la primera
+      # página vacía y no es un freno), se lanza otra en seguida, hasta 3 seguidas (TOPE): nunca un bucle si un día la
+      # federación no sirve a nadie. El contador es la entrada reintento (la relanzada la recibe con uno más; el
+      # reloj y los demás lanzan sin ella: 0). El último paso, con !cancelled() y continue-on-error: lo demás ya ha
+      # corrido (lo leído, publicado), y un fallo suyo no pone la pasada en rojo.
+      #   - Solo si el job iba bien (PASADA, job.status: un fallo de otra cosa no se arregla relanzando, lo retoma el
+      #     reloj) y si la nota de la pasada de su carril en el data-health.json del espacio de trabajo es la de ESTA
+      #     ejecución y dice refusedRunner (source_health.py rechazado, con GITHUB_RUN_NUMBER, que imprime el carril:
+      #     una nota de otra pasada, o ninguna, es «no se sabe», y no se relanza). Una pasada rechazada siempre escribe
+      #     su nota en el fichero (source_health.finish).
+      #   - El carril de las mayores relanza carril-mayores.yml (su número de pasada es el de él), nunca update.yml;
+      #     una pasada a mano del carril principal con cats no se relanza (sería otra pasada que la que se pidió).
+      #   - La concurrencia: la relanzada queda en cola en update-data tras este job, que está acabando, y GitHub guarda
+      #     UNA sola en espera por grupo (una más nueva cancela la que esperaba). Si esta pasada acaba de lanzar
+      #     activar.yml (el paso de la activación corre con todo en verde y, en el carril principal, con algo pendiente
+      #     del informe de antes: source_health.py pendiente, el mismo fichero), la relanzada la cancelaría (o al
+      #     revés): entonces no se relanza, y la pasada la retoma el reloj, como hasta ahora.
+      #   - El reloj (reloj_pasadas.due): mientras la relanzada está en cola o en marcha no lanza otra pasada (una
+      #     ejecución de update.yml sin acabar; la del carril de las mayores, con CARRIL_MAYORES a 1), y la relanzada es
+      #     «la última pasada» para su cadencia: la siguiente, 1-2 h después de que empiece ella.
+      #   - GITHUB_RUN_NUMBER sube con cada relanzada (en el carril de las mayores, el de carril-mayores.yml), y de él
+      #     sale la rotación del bot (update_fiflp.run_number): es aceptable, porque la rechazada ya gastaba su número
+      #     sin leer su turno (igual que antes de relanzar), y la relanzada lee el turno siguiente en vez de esperar 2 h;
+      #     el turno perdido vuelve al dar la vuelta, como el de cualquier pasada perdida (plan_groups lleva margen
+      #     para números que se saltan).
+      # Si GitHub no deja crear el disparo (un HTTP 500, como el 25/11/2026 en el histórico), otro intento a los 20 s;
+      # si tampoco, el paso en rojo y la pasada en verde: lo retoma el reloj.
+      - name: Relanzar si el runner fue rechazado
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        timeout-minutes: 2
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REINTENTO: ${{ inputs.reintento }}
+          PASADA: ${{ job.status }}
+        run: |
+          TOPE=3
+          if [ "$PASADA" != success ]; then
+            echo "La pasada no acabó bien ($PASADA): no se relanza; la retoma el reloj."
+            exit 0
+          fi
+          if ! CARRIL=$(python3 scripts/source_health.py rechazado "$GITHUB_RUN_NUMBER"); then
+            echo "No se relanza."
+            exit 0
+          fi
+          REINTENTO=${REINTENTO:-0}
+          case "$REINTENTO" in
+            *[!0-9]*) echo "reintento no es un número ($REINTENTO): no se relanza."; exit 0 ;;
+          esac
+          if [ "$REINTENTO" -ge "$TOPE" ]; then
+            echo "Runner rechazado otra vez, tras $REINTENTO relanzamientos seguidos: no se relanza más; la retoma el reloj."
+            exit 0
+          fi
+          SIGUIENTE=$((REINTENTO + 1))
+          if [ "$CARRIL" = mayores ]; then
+            echo "Runner rechazado: se relanza el carril de las mayores (relanzamiento $SIGUIENTE de $TOPE)."
+            gh workflow run carril-mayores.yml -R malolocabreralolo-tech/futbol-base-v2 --ref main -f reintento="$SIGUIENTE" \
+              || { sleep 20; gh workflow run carril-mayores.yml -R malolocabreralolo-tech/futbol-base-v2 --ref main -f reintento="$SIGUIENTE"; }
+            exit 0
+          fi
+          if [ -n "${FIFLP_CATS:-}" ]; then
+            echo "Una pasada a mano con cats ($FIFLP_CATS): no se relanza."
+            exit 0
+          fi
+          if python3 scripts/source_health.py pendiente > /dev/null; then
+            echo "Esta pasada ha lanzado la activación (activar.yml): la relanzada la cancelaría en la cola de update-data. No se relanza; la retoma el reloj."
+            exit 0
+          fi
+          echo "Runner rechazado: se relanza la pasada (relanzamiento $SIGUIENTE de $TOPE)."
+          gh workflow run update.yml -R malolocabreralolo-tech/futbol-base-v2 --ref main -f reintento="$SIGUIENTE" \
+            || { sleep 20; gh workflow run update.yml -R malolocabreralolo-tech/futbol-base-v2 --ref main -f reintento="$SIGUIENTE"; }

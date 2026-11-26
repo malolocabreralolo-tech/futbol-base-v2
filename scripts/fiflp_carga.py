@@ -67,8 +67,10 @@ Por eso (Federacion):
     jobs en AWS, y la federación les sirve vacío desde la primera petición, siempre (183 de 183; en Azure,
     0 de 187), días después y con cualquier IP de AWS: no es un cupo y no se pasa esperando. Si frena antes
     de servir ninguna página en la pasada y el runner no es de Azure (nube(): el fabricante de la
-    máquina), ni la espera ni los sondeos: nada más en esa pasada (`refused_runner`). No se relanza la
-    pasada para que caiga en Azure: sería esquivar el bloqueo (decisión del dueño, pendiente);
+    máquina), ni la espera ni los sondeos: nada más en esa pasada (`refused_runner`). Desde el 26/11/2026
+    (decisión del dueño) una pasada así se relanza en seguida para que caiga en Azure, hasta 3 veces seguidas
+    (update.yml, «Relanzar si el runner fue rechazado»; el histórico, historico.RELANZAR_SI_RUNNER_RECHAZADO): no
+    pide nada más a la federación y no es un freno; tras un freno de verdad no se relanza nunca;
   - lo demás, igual: un freno no es un error (update_fiflp.run_passes), un 503 o un 429 es señal del
     freno sin más (sin preguntar por otra página), una racha de URLs muertas mientras la federación sirve
     otra página no lo es (también cuenta en `dead`), el navegador cerrado tampoco, y ninguna página empieza
@@ -720,9 +722,10 @@ def guardar_resumen(path, fed, partes):
 
 def ultima_linea(F, completo):
     """La última línea del registro de una tanda, la que lee su workflow: «Completo.» (nada pendiente),
-    «Frenada: …» (la federación no sirve: el freno de verdad o un runner rechazado; relanzar en seguida sería
-    pedirle más a una federación que no sirve) o «Incompleto: relanzar para seguir.» (el plazo, el tope, el
-    navegador, o lo pendiente de una página muerta, que gasta un intento por ejecución)."""
+    «Frenada: …» (la federación no sirve: el freno de verdad o un runner rechazado; si se relanza en seguida lo
+    decide el carril, historico.relanzar: tras el freno, nunca; tras un runner rechazado, hasta 3 veces seguidas) o
+    «Incompleto: relanzar para seguir.» (el plazo, el tope, el navegador, o lo pendiente de una página muerta, que
+    gasta un intento por ejecución)."""
     if completo:
         return "Completo."
     if parada_de(F) in ("freno", "runner"):

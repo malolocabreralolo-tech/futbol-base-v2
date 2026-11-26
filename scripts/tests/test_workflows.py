@@ -646,7 +646,7 @@ def test_update_admite_pasada_de_pocas_categorias():
         entrada = trig[event]["inputs"]["cats"]
         assert entrada["required"] is False and entrada["default"] == "", event
         assert entrada["type"] == "string", event
-        assert set(trig[event]["inputs"]) == {"cats"}, event
+        assert set(trig[event]["inputs"]) == {"cats", "reintento"}, event
     assert data["jobs"]["update"]["env"] == {"FIFLP_CATS": "${{ inputs.cats }}"}
     for paso in _steps(data, "update"):
         assert "FIFLP_CATS" not in (paso.get("env") or {}), paso.get("name")
@@ -674,13 +674,14 @@ def test_update_no_abre_issues():
     la web. Las nuevas siguen en newCompetitions de data-health.json, que
     enseña «Datos y fuentes» (update_fiflp.check_competitions)."""
     data = _load("update.yml")
-    # actions: write, solo para lanzar activar.yml (su paso, el único con GH_TOKEN).
+    # actions: write, solo para lanzar activar.yml y relanzar la pasada tras un runner rechazado (sus pasos, los
+    # únicos con GH_TOKEN).
     assert data["permissions"] == {"contents": "write", "actions": "write"}
     assert "permissions" not in data["jobs"]["update"], "los del job sustituirían a los del workflow"
     for step in _steps(data, "update"):
         assert "avisar_competiciones" not in (step.get("run") or ""), step.get("name")
         assert "gh issue" not in (step.get("run") or ""), step.get("name")
-        assert "GH_TOKEN" not in (step.get("env") or {}) or step.get("name") == LANZAR, step.get("name")
+        assert "GH_TOKEN" not in (step.get("env") or {}) or step.get("name") in (LANZAR, RELANZAR), step.get("name")
     assert not (ROOT / "scripts" / "avisar_competiciones.py").exists()
 
 
@@ -1982,6 +1983,167 @@ def test_update_launch_step_runs_for_real(tmp_path):
     assert code != 0 and len(calls) == 1, log                 # en rojo el paso, no la pasada (continue-on-error)
 
 
+# ------------------------------------------ update.yml se relanza tras un runner rechazado
+#
+# Decisión del dueño del 26/11/2026: una pasada que cae en un runner que la federación no sirve (AWS) lanza otra en
+# seguida, con tope (3 seguidas). El contador viaja en la entrada reintento (texto, '0' por defecto: el reloj lanza sin
+# entradas); la pasada del carril de las mayores relanza carril-mayores.yml, que se la pasa a update.yml.
+
+RELANZAR = "Relanzar si el runner fue rechazado"
+# La misma entrada en los tres sitios (update.yml, workflow_dispatch y workflow_call; carril-mayores.yml): texto, y no
+# number (GitHub comprueba el tipo de lo que se pasa a workflow_call: un número que llegara como texto tumbaría la
+# pasada del carril entera); el guion la comprueba.
+ENTRADA_REINTENTO = {"description": "Relanzamientos seguidos tras un runner rechazado (lo pone la propia pasada; a mano, 0)",
+                     "required": False, "default": "0", "type": "string"}
+# Los pasos de update.yml de antes del relanzamiento y su job (sin los pasos), tal cual estaban en 1b4c9246: la huella
+# de su YAML (json.dumps(…, sort_keys=True, ensure_ascii=False), sha256), como PASOS_DEL_RELOJ. Y activar.yml entero,
+# que el relanzamiento no toca. Un cambio en ellos se hace a propósito, y entonces se cambia aquí.
+HUELLA_PASOS_DEL_BOT = "17c396281d0eb3c338e856eba7579853cc51c5b23468c13794ea0d27bccb8573"
+HUELLA_JOB_DEL_BOT = "67d027495a3a775d6d3fc58c7e0d434b1916440a200bbae1b45a36add49589c3"
+HUELLA_ACTIVAR = "4e4290d4b3185f03f1b131ad093fa8981a4b22aafde909bea7581f99eafdab56"
+
+
+def _huella(cosa):
+    import hashlib
+    return hashlib.sha256(json.dumps(cosa, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
+
+
+def test_el_relanzamiento_va_el_ultimo_y_no_toca_lo_demas():
+    """El paso nuevo, el último, con !cancelled() y continue-on-error: un fallo suyo no pone la pasada en rojo ni la
+    deja sin publicar (todo lo demás ya ha corrido). Los demás pasos y el job, como estaban; activar.yml, también."""
+    data = _load("update.yml")
+    job = data["jobs"]["update"]
+    steps = job["steps"]
+    step = steps[-1]
+    assert step["name"] == RELANZAR
+    assert step["if"] == "${{ !cancelled() }}" and step.get("continue-on-error") is True
+    assert "id" not in step and "timeout-minutes" in step and step["timeout-minutes"] <= 5
+    assert _huella(steps[:-1]) == HUELLA_PASOS_DEL_BOT, "los pasos de la pasada han cambiado"
+    assert _huella({k: v for k, v in job.items() if k != "steps"}) == HUELLA_JOB_DEL_BOT
+    assert _huella({str(k): v for k, v in _load("activar.yml").items()}) == HUELLA_ACTIVAR
+    # La entrada, en los dos disparadores, y por env (nunca interpolada en el guion).
+    trig = _triggers(data)
+    for event in ("workflow_dispatch", "workflow_call"):
+        assert trig[event]["inputs"]["reintento"] == ENTRADA_REINTENTO, event
+    assert step["env"] == {"GH_TOKEN": "${{ github.token }}", "REINTENTO": "${{ inputs.reintento }}",
+                           "PASADA": "${{ job.status }}"}
+    run = step["run"]
+    assert "${{" not in run
+    assert 'python3 scripts/source_health.py rechazado "$GITHUB_RUN_NUMBER"' in run
+    assert "TOPE=3" in run
+    for wf in ("update.yml", "carril-mayores.yml"):
+        assert f'gh workflow run {wf} -R {V2_REPO} --ref main -f reintento="$SIGUIENTE"' in run, wf
+
+
+def _run_relanzar(tmp_path, report, number=201, reintento="0", pasada="success", cats=None, gh_exit=0):
+    """El guion de verdad del relanzamiento, con el source_health.py de verdad (copiado con lo que importa: lee el
+    data-health.json de la copia) y un gh y un sleep de mentira. `reintento`, lo que GitHub pone en REINTENTO (None:
+    la entrada vacía); `pasada`, job.status; `cats`, FIFLP_CATS del job. (código, órdenes de gh, salida)."""
+    import shutil
+    steps, step = _update_step(RELANZAR)
+    work = tmp_path / "arbol"
+    (work / "scripts").mkdir(parents=True)
+    for name in ("source_health.py", "portal_config.py", "escritura.py", "categorias.py"):
+        shutil.copy2(ROOT / "scripts" / name, work / "scripts" / name)
+    (work / "data-health.json").write_text(json.dumps(report), encoding="utf-8")
+    bin_dir, calls = tmp_path / "bin", tmp_path / "gh-llamadas"
+    bin_dir.mkdir()
+    (bin_dir / "gh").write_text(f'#!/bin/bash\necho "$*" >> "{calls}"\nexit {gh_exit}\n', encoding="utf-8")
+    (bin_dir / "gh").chmod(0o755)
+    (bin_dir / "sleep").write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")       # sin esperar
+    (bin_dir / "sleep").chmod(0o755)
+    env = {k: v for k, v in os.environ.items() if k not in ("FIFLP_CATS", "GITHUB_RUN_NUMBER")}
+    env.update({"PATH": f"{bin_dir}{os.pathsep}{os.environ.get('PATH', '')}", "GH_TOKEN": "x",
+                "GITHUB_RUN_NUMBER": str(number), "REINTENTO": reintento or "", "PASADA": pasada})
+    if cats is not None:
+        env["FIFLP_CATS"] = cats                                              # la del env del job
+    done = subprocess.run(["bash", "-e", "-c", step["run"]], cwd=work, env=env, capture_output=True, text=True,
+                          timeout=60)
+    return done.returncode, (calls.read_text().splitlines() if calls.exists() else []), done.stdout + done.stderr
+
+
+RECHAZADA = {"pass": 201, "groups": 107, "refreshed": 0, "seconds": 9, "pages": 2, "blocked": True, "cloud": "aws",
+             "refusedRunner": True}
+
+
+def test_una_pasada_rechazada_se_relanza_hasta_tres_veces(tmp_path):
+    """Con la pasada rechazada y reintento 0, 1 y 2, lanza update.yml con 1, 2 y 3; con 3, no (la retoma el reloj).
+    Sin la entrada (vacía), como 0; con algo que no es un número, no se relanza."""
+    report = {"season": "2026-2027", "groups": {}, "run": RECHAZADA, "runHealth": {"ok": True, "drySince": "x"}}
+    for reintento, siguiente in (("0", 1), ("1", 2), ("2", 3), (None, 1)):
+        code, calls, log = _run_relanzar(tmp_path / f"r{reintento}", report, reintento=reintento)
+        assert code == 0 and calls == [f"workflow run update.yml -R {V2_REPO} --ref main -f reintento={siguiente}"], log
+    for reintento in ("3", "4", "x", "-1"):
+        code, calls, log = _run_relanzar(tmp_path / f"no{reintento}", report, reintento=reintento)
+        assert code == 0 and calls == [], (reintento, log)
+    assert "la retoma el reloj" in _run_relanzar(tmp_path / "tope", report, reintento="3")[2]
+
+
+def test_una_pasada_que_no_fue_rechazada_no_se_relanza(tmp_path):
+    """Leyó, frenó de verdad en Azure, falló por otra cosa (el job, en rojo) o la nota es de otra pasada (el informe
+    no se reescribió: no se sabe): no se relanza."""
+    leyo = {**{k: v for k, v in RECHAZADA.items() if k != "refusedRunner"}, "refreshed": 30, "cloud": "azure"}
+    frenada = {"pass": 201, "refreshed": 0, "cloud": "azure", "pauses": 1, "brakeAfter": [0], "blocked": True}
+    for caso, report, number, pasada in (
+            ("leyo", {"run": leyo}, 201, "success"),
+            ("freno", {"run": frenada}, 201, "success"),
+            ("otra-pasada", {"run": RECHAZADA}, 202, "success"),
+            ("sin-nota", {"groups": {}}, 201, "success"),
+            ("job-en-rojo", {"run": RECHAZADA}, 201, "failure")):
+        code, calls, log = _run_relanzar(tmp_path / caso, report, number=number, pasada=pasada)
+        assert code == 0 and calls == [], (caso, log)
+
+
+def test_el_carril_de_las_mayores_relanza_su_workflow(tmp_path):
+    """En una pasada del carril de las mayores (FIFLP_CATS), la nota es la suya (carriles.mayores.run, con el número
+    de carril-mayores.yml) y lo que se relanza es carril-mayores.yml, nunca update.yml (gastaría un número del bot y
+    leería el carril principal). Una pasada a mano del carril principal con cats (unas categorías suyas) no se
+    relanza: sería otra pasada que la que se pidió."""
+    report = {"run": {**RECHAZADA, "pass": 900}, "carriles": {"mayores": {"run": {**RECHAZADA, "pass": 12}}}}
+    code, calls, log = _run_relanzar(tmp_path / "mayores", report, number=12, reintento="1", cats=CATS_MAYORES)
+    assert code == 0 and calls == [f"workflow run carril-mayores.yml -R {V2_REPO} --ref main -f reintento=2"], log
+    code, calls, log = _run_relanzar(tmp_path / "mayores-tope", report, number=12, reintento="3", cats=CATS_MAYORES)
+    assert code == 0 and calls == [], log
+    code, calls, log = _run_relanzar(tmp_path / "mayores-otra", report, number=900, cats=CATS_MAYORES)
+    assert code == 0 and calls == [], log
+    code, calls, log = _run_relanzar(tmp_path / "principal-con-cats", {"run": RECHAZADA}, cats="prebenjamin")
+    assert code == 0 and calls == [], log
+
+
+def test_una_pasada_rechazada_que_lanzo_la_activacion_no_se_relanza(tmp_path):
+    """GitHub guarda UNA ejecución en espera por grupo de concurrencia (update-data): si la pasada rechazada lanzó
+    activar.yml («Lanzar la activación si hay algo nuevo»: puede, con algo pendiente del informe de antes), la relanzada
+    la cancelaría en la cola (o al revés). Se queda la activación, como hasta ahora, y la pasada la retoma el reloj. En
+    el carril de las mayores no se lanza la activación: relanza igual."""
+    nuevo = [{"id": "55400001", "name": "LIGA X", "firstSeen": "2026-11-14"}]
+    code, calls, log = _run_relanzar(tmp_path / "activacion", {"run": RECHAZADA, "newCompetitions": nuevo})
+    assert code == 0 and calls == [], log
+    assert "activación" in log, log
+    report = {"newCompetitions": nuevo, "carriles": {"mayores": {"run": {**RECHAZADA, "pass": 12}}}}
+    code, calls, log = _run_relanzar(tmp_path / "mayores", report, number=12, cats=CATS_MAYORES)
+    assert code == 0 and calls == [f"workflow run carril-mayores.yml -R {V2_REPO} --ref main -f reintento=1"], log
+    # La condición de la activación es la de siempre: solo en el carril principal y con todo en verde.
+    _, lanzar = _update_step(LANZAR)
+    assert lanzar["if"] == "success() && inputs.cats == ''"
+
+
+def test_si_github_no_deja_relanzar_falla_el_paso_y_no_la_pasada(tmp_path):
+    """Un gh que falla dos veces (a los 20 s, otra): el paso, en rojo; la pasada no (continue-on-error: forma del
+    YAML, test_el_relanzamiento_va_el_ultimo_y_no_toca_lo_demas)."""
+    code, calls, log = _run_relanzar(tmp_path, {"run": RECHAZADA}, gh_exit=1)
+    assert code != 0 and calls == [f"workflow run update.yml -R {V2_REPO} --ref main -f reintento=1"] * 2, log
+
+
+def test_el_reloj_y_el_relanzamiento_estan_escritos():
+    """Lo que el relanzamiento supone para el reloj (la relanzada en cola o en marcha para al reloj, y cuenta como la
+    última pasada para su cadencia) y para el número de pasada, escrito en update.yml y en docs/federacion.md."""
+    texto = (WF_DIR / "update.yml").read_text(encoding="utf-8")
+    comentarios = "\n".join(l for l in texto.splitlines() if l.lstrip().startswith("#"))
+    assert "GITHUB_RUN_NUMBER" in comentarios and "reloj_pasadas" in comentarios
+    fed = (ROOT / "docs" / "federacion.md").read_text(encoding="utf-8")
+    assert "Relanzar si el runner fue rechazado" in fed and "-f reintento=" in fed
+
+
 def test_tests_yml_paths_cover_activar():
     trig = _triggers(_load("tests.yml"))
     for event in ("push", "pull_request"):
@@ -2016,7 +2178,8 @@ def _lanzar_carril(steps):
 
 
 def test_carril_mayores_llama_al_bot_con_sus_categorias():
-    """Solo a mano o desde el reloj (workflow_dispatch sin entradas: su único número de pasada es el suyo); un solo
+    """Solo a mano, desde el reloj o desde su propia pasada tras un runner rechazado (workflow_dispatch con una sola
+    entrada, reintento, que pasa tal cual a update.yml; su único número de pasada es el suyo); un solo
     job que llama a update.yml con las categorías del carril de las mayores, sin concurrencia propia (la del job de
     update.yml; las dos iguales serían un bloqueo mutuo), sin runner ni pasos ni secretos (update.yml solo usa el
     GITHUB_TOKEN), y con los mismos permisos que update.yml: el llamado no puede tener más que el llamante."""
@@ -2026,11 +2189,13 @@ def test_carril_mayores_llama_al_bot_con_sus_categorias():
     data = _load(CARRIL)
     assert data["name"] == "Pasadas de infantil, cadete y juvenil"
     trig = _triggers(data)
-    assert set(trig) == {"workflow_dispatch"} and not trig["workflow_dispatch"], "sin entradas ni otro disparador"
+    assert set(trig) == {"workflow_dispatch"}, "ningún otro disparador"
+    assert trig["workflow_dispatch"] == {"inputs": {"reintento": ENTRADA_REINTENTO}}
     assert data["permissions"] == {"contents": "write", "actions": "write"}
     assert data["permissions"] == _load("update.yml")["permissions"]
     assert "concurrency" not in data and list(data["jobs"]) == ["pasada"]
-    assert data["jobs"]["pasada"] == {"uses": "./.github/workflows/update.yml", "with": {"cats": CATS_MAYORES}}
+    assert data["jobs"]["pasada"] == {"uses": "./.github/workflows/update.yml",
+                                      "with": {"cats": CATS_MAYORES, "reintento": "${{ inputs.reintento }}"}}
     cats = categorias.parse_categories(CATS_MAYORES)
     assert categorias.carril_de(cats) == "mayores" and set(cats) == set(categorias.CARRILES["mayores"])
     texto = (WF_DIR / CARRIL).read_text(encoding="utf-8")
@@ -2043,7 +2208,7 @@ def test_update_sirve_igual_lanzado_y_llamado():
     vacía) ni github.workflow."""
     texto = (WF_DIR / "update.yml").read_text(encoding="utf-8")
     assert "github.event" not in texto and "github.workflow" not in texto
-    assert texto.count("inputs.") == 2, "FIFLP_CATS del job y la condición de la activación"
+    assert texto.count("inputs.") == 3, "FIFLP_CATS del job, la condición de la activación y el reintento"
 
 
 def test_el_asunto_del_commit_dice_el_carril(tmp_path):
@@ -2089,7 +2254,9 @@ def test_the_clock_launches_the_lane_only_when_due_and_switched_on():
     assert re.search(r"gh run list [^\n]*--workflow carril-mayores\.yml", lane["run"]) and "update.yml" not in lane["run"]
     launchers = sorted(f.name for f in WF_DIR.glob("*.yml") if "carril-mayores.yml" in "\n".join(
         (s.get("run") or "") for j in _load(f.name)["jobs"].values() for s in j.get("steps", [])))
-    assert launchers == ["reloj.yml"], launchers
+    assert launchers == ["reloj.yml", "update.yml"], launchers
+    relanza = [s for s in _steps(_load("update.yml"), "update") if "carril-mayores.yml" in (s.get("run") or "")]
+    assert [s.get("name") for s in relanza] == [RELANZAR], "en update.yml, solo el relanzamiento"
 
 
 def _gh_por_workflow(tmp_path, listas):

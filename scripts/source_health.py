@@ -353,7 +353,16 @@ def finish(now=None, failed=False):
     before = (_previous or {}).get("groups") or {}
     timed = any(_report["groups"].get(code, {}).get("checkedAt") != (before.get(code) or {}).get("checkedAt")
                 for code in _timed)
-    if not timed and meaningful(_report) == meaningful(_previous or {}) and _is_recent(_previous, now):
+    # Una pasada que cayó en un runner que la federación no sirve (AWS: refusedRunner en la nota de su carril) se
+    # escribe siempre: update.yml («Relanzar si el runner fue rechazado», source_health.py rechazado) lo sabe por
+    # esta nota en el fichero del disco, con su número de pasada. Sin esto, una seca más de la misma racha (la 2.ª
+    # rechazada seguida: el veredicto, igual; la nota, volátil) dejaba la nota de la anterior, y no se relanzaba
+    # (la mañana del 26/11/2026, la pasada siguiente a la 201). Cuesta un commit de data-health.json por pasada
+    # rechazada, como ya lo hacía la primera de cada racha (drySince), y lo publicado dice la verdad: la última
+    # pasada no leyó.
+    run = _lane(_report, _carril(), create=False).get("run")
+    refused = isinstance(run, dict) and run.get("refusedRunner") is True
+    if not timed and not refused and meaningful(_report) == meaningful(_previous or {}) and _is_recent(_previous, now):
         return
     escribir_atomico(REPORT_PATH, json.dumps(_report, ensure_ascii=False, indent=2) + "\n")
 
@@ -420,7 +429,12 @@ def main(argv=None, now=None):
     las dos, las del carril del job (FIFLP_CATS, categorias.carril_actual): con el de mayores, su
     carriles.mayores.runHealth, y nada del bot de siempre;
       pendiente         sale con 0, e imprime sus ids separados por comas, si update.yml tiene que lanzar
-                        activar.yml para las competiciones y grupos nuevos (pending_activation); con 1 si no."""
+                        activar.yml para las competiciones y grupos nuevos (pending_activation); con 1 si no;
+      rechazado N       sale con 0, e imprime el carril («principal» o «mayores»), si la pasada número N
+                        (GITHUB_RUN_NUMBER) cayó en un runner que la federación no sirve: la nota de la pasada del
+                        carril del job (run o carriles.<carril>.run, como veredicto y marcar) es la suya (`pass` N)
+                        y dice refusedRunner. Con 1 si no, o si no se sabe (sin nota, la de otra pasada, sin número):
+                        update.yml («Relanzar si el runner fue rechazado») solo relanza con 0."""
     args = sys.argv[1:] if argv is None else list(argv)
     if args == ["pendiente"]:
         ids = pending_activation(_read_previous(), now)
@@ -428,6 +442,25 @@ def main(argv=None, now=None):
             print(",".join(ids))
             return 0
         return 1
+    if len(args) == 2 and args[0] == "rechazado":
+        carril = _carril()
+        report = _read_previous()
+        run = _lane(report if isinstance(report, dict) else {}, carril, create=False).get("run")
+        if not isinstance(run, dict):
+            print(f"Sin nota de la pasada del carril {carril}: no se sabe si el runner fue rechazado.", file=sys.stderr)
+            return 1
+        number = run.get("pass")
+        if not args[1].isdigit() or isinstance(number, bool) or not isinstance(number, int) or number != int(args[1]):
+            print(f"La nota del carril {carril} es de la pasada {number}, no de la {args[1] or '(sin número)'}: "
+                  "no se sabe si esta cayó en un runner rechazado.", file=sys.stderr)
+            return 1
+        if run.get("refusedRunner") is not True:
+            print(f"La pasada {number} no cayó en un runner rechazado.", file=sys.stderr)
+            return 1
+        print(f"La pasada {number} cayó en un runner que la federación no sirve (nube: {run.get('cloud') or 'otra'}).",
+              file=sys.stderr)
+        print(carril)
+        return 0
     if args == ["veredicto"]:
         health = _lane(_read_previous(), _carril(), create=False).get("runHealth")
         if isinstance(health, dict) and health.get("ok") is False:
@@ -445,7 +478,8 @@ def main(argv=None, now=None):
             lane["runHealth"]["drySince"] = health["drySince"]
         escribir_atomico(REPORT_PATH, json.dumps(report, ensure_ascii=False, indent=2) + "\n")
         return 0
-    print('uso: source_health.py veredicto | marcar "<motivo>" | pendiente', file=sys.stderr)
+    print('uso: source_health.py veredicto | marcar "<motivo>" | pendiente | rechazado <número de pasada>',
+          file=sys.stderr)
     return 2
 
 
