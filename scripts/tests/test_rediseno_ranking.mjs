@@ -91,12 +91,31 @@ test('los años, de más joven a más mayor, con el elegido marcado; las dos vis
   ]);
   assert.match(out, /<nav class="group-strip" aria-label="Año de nacimiento"><div class="group-scroll">/);
   assert.deepEqual(views(out), [['Esta temporada', '#/ranking?y=2018', true], ['Toda su trayectoria', '#/ranking?y=2018&v=h', false]]);
-  // En la vista de toda la trayectoria, los años la conservan.
+  // En la vista de toda la trayectoria, los años la conservan, salvo el que no la tiene (2020: a la de esta
+  // temporada, la única que tiene).
   const h = render({ y: '2017', v: 'h' });
   assert.deepEqual(years(h).map(([y, href, current]) => [y, href, current]), [
-    ['2020', '#/ranking?y=2020&v=h', false], ['2018', '#/ranking?y=2018&v=h', false], ['2017', '#/ranking?y=2017&v=h', true], ['2012', '#/ranking?y=2012&v=h', false],
+    ['2020', '#/ranking?y=2020', false], ['2018', '#/ranking?y=2018&v=h', false], ['2017', '#/ranking?y=2017&v=h', true], ['2012', '#/ranking?y=2012&v=h', false],
   ]);
   assert.deepEqual(views(h), [['Esta temporada', '#/ranking?y=2017', false], ['Toda su trayectoria', '#/ranking?y=2017&v=h', true]]);
+});
+
+// Un año cuya lista de toda la trayectoria está vacía (hoy 2020; con las categorías nuevas, 2008 y 2009: los
+// mayores, con una sola temporada en la web) no la ofrece: ni la pestaña ni su ficha en la fila de años de esa
+// vista. Escrita a mano (v=h), se ve dónde se está, con el vacío y «Ver esta temporada».
+test('un año sin nadie en toda la trayectoria no ofrece esa vista', () => {
+  const t = render({ y: '2020' });
+  assert.deepEqual(views(t), [], 'sin pestañas: solo hay una vista');
+  assert.doesNotMatch(t, /v=h/);
+  assert.deepEqual(rows(t).map((r) => r[1]), ['#/jugador?id=1006']);
+  assert.deepEqual(views(render({})), [], 'sin `y`, 2020 tampoco');
+  const typed = render({ y: '2020', v: 'h' });
+  assert.deepEqual(views(typed), [['Esta temporada', '#/ranking?y=2020', false], ['Toda su trayectoria', '#/ranking?y=2020&v=h', true]]);
+  assert.match(typed, /<a class="more" href="#\/ranking\?y=2020">Ver esta temporada<\/a>/);
+  // Los que la tienen, las dos, también el que no tiene nadie esta temporada (2012: su vacío enlaza a la otra).
+  assert.equal(views(render({ y: '2012' })).length, 2);
+  // Un año que no está en el ranking (la ficha enlaza a cada año posible del niño): como hasta ahora.
+  assert.equal(views(render({ y: '2008' })).length, 2);
 });
 
 test('sin `y`, el año más reciente con entradas en la vista pedida', () => {

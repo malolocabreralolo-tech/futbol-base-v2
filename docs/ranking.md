@@ -195,6 +195,8 @@ que los mayores que admite su categoría esa temporada.
 - Para ordenar: primero el índice y, a igual índice, más goles.
 - Al principio de una temporada, la lista de «esta temporada» tiene poca gente: casi nadie llega todavía a
   los 3 partidos.
+- Un año sin nadie en «toda su trayectoria» (los más pequeños, que solo llevan una temporada, y los que solo
+  tienen partidos de la temporada en curso) no ofrece esa vista: la pantalla enseña solo «esta temporada».
 
 ## De dónde sale el año de nacimiento
 
