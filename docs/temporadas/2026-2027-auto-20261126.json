@@ -1,0 +1,131 @@
+{
+  "season": "2026-2027",
+  "groups": [
+    {
+      "id": "INFPG1",
+      "cat": "infantil",
+      "name": "Grupo 1",
+      "phase": "Preferente GC",
+      "island": "grancanaria",
+      "fullName": "INFANTIL PREFERENTE GC - GRUPO 1",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54976908&CodGrupo=55150140"
+    },
+    {
+      "id": "INFPG2",
+      "cat": "infantil",
+      "name": "Grupo 2",
+      "phase": "Preferente GC",
+      "island": "grancanaria",
+      "fullName": "INFANTIL PREFERENTE GC - GRUPO 2",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54976908&CodGrupo=55150148"
+    },
+    {
+      "id": "INFUL1",
+      "cat": "infantil",
+      "name": "Grupo 1",
+      "phase": "Lanzarote Fase 1",
+      "island": "lanzarote",
+      "fullName": "INFANTIL LANZAROTE FASE 1 - GRUPO 1",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54976911&CodGrupo=55121518"
+    },
+    {
+      "id": "INFUL2",
+      "cat": "infantil",
+      "name": "Grupo 2",
+      "phase": "Lanzarote Fase 1",
+      "island": "lanzarote",
+      "fullName": "INFANTIL LANZAROTE FASE 1 - GRUPO 2",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54976911&CodGrupo=55121834"
+    },
+    {
+      "id": "INFUL3",
+      "cat": "infantil",
+      "name": "Grupo 3",
+      "phase": "Lanzarote Fase 1",
+      "island": "lanzarote",
+      "fullName": "INFANTIL LANZAROTE FASE 1 - GRUPO 3",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54976911&CodGrupo=55121955"
+    },
+    {
+      "id": "INFUL4",
+      "cat": "infantil",
+      "name": "Grupo 4",
+      "phase": "Lanzarote Fase 1",
+      "island": "lanzarote",
+      "fullName": "INFANTIL LANZAROTE FASE 1 - GRUPO 4",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54976911&CodGrupo=55122029"
+    },
+    {
+      "id": "INF1G1",
+      "cat": "infantil",
+      "name": "Grupo 1",
+      "phase": "Primera GC",
+      "island": "grancanaria",
+      "fullName": "INFANTIL PRIMERA GC - GRUPO 1",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54976916&CodGrupo=55182861"
+    },
+    {
+      "id": "INF1G2",
+      "cat": "infantil",
+      "name": "Grupo 2",
+      "phase": "Primera GC",
+      "island": "grancanaria",
+      "fullName": "INFANTIL PRIMERA GC - GRUPO 2",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54976916&CodGrupo=55182913"
+    },
+    {
+      "id": "INF1G3",
+      "cat": "infantil",
+      "name": "Grupo 3",
+      "phase": "Primera GC",
+      "island": "grancanaria",
+      "fullName": "INFANTIL PRIMERA GC - GRUPO 3",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54976916&CodGrupo=55182933"
+    },
+    {
+      "id": "INF1G4",
+      "cat": "infantil",
+      "name": "Grupo 4",
+      "phase": "Primera GC",
+      "island": "grancanaria",
+      "fullName": "INFANTIL PRIMERA GC - GRUPO 4",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54976916&CodGrupo=55182942"
+    },
+    {
+      "id": "INFUG1",
+      "cat": "infantil",
+      "name": "Grupo 1",
+      "phase": "Gran Canaria",
+      "island": "grancanaria",
+      "fullName": "INFANTIL GRAN CANARIA - GRUPO 1",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=55184138&CodGrupo=55184282"
+    },
+    {
+      "id": "INFUG2",
+      "cat": "infantil",
+      "name": "Grupo 2",
+      "phase": "Gran Canaria",
+      "island": "grancanaria",
+      "fullName": "INFANTIL GRAN CANARIA - GRUPO 2",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=55184138&CodGrupo=55184285"
+    },
+    {
+      "id": "INFUG3",
+      "cat": "infantil",
+      "name": "Grupo 3",
+      "phase": "Gran Canaria",
+      "island": "grancanaria",
+      "fullName": "INFANTIL GRAN CANARIA - GRUPO 3",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=55184138&CodGrupo=55184293"
+    },
+    {
+      "id": "INFUG4",
+      "cat": "infantil",
+      "name": "Grupo 4",
+      "phase": "Gran Canaria",
+      "island": "grancanaria",
+      "fullName": "INFANTIL GRAN CANARIA - GRUPO 4",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=55184138&CodGrupo=55184307"
+    }
+  ]
+}
