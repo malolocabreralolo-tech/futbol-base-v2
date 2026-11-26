@@ -741,7 +741,11 @@
     }
   ],
   "runHealth": {
-    "ok": true
+    "ok": false,
+    "reasons": [
+      "las pruebas fallaron: los datos de esta pasada no se publicaron"
+    ],
+    "since": "2026-11-26T21:27:32+00:00"
   },
   "carriles": {
     "mayores": {
