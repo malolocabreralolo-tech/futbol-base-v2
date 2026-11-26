@@ -126,6 +126,33 @@
       "island": "grancanaria",
       "fullName": "INFANTIL GRAN CANARIA - GRUPO 4",
       "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=55184138&CodGrupo=55184307"
+    },
+    {
+      "id": "INFUF1",
+      "cat": "infantil",
+      "name": "Grupo 1",
+      "phase": "Fuerteventura Fase 1",
+      "island": "fuerteventura",
+      "fullName": "INFANTIL FUERTEVENTURA FASE 1 - GRUPO 1",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54976929&CodGrupo=55180168"
+    },
+    {
+      "id": "INFUF2",
+      "cat": "infantil",
+      "name": "Grupo 2",
+      "phase": "Fuerteventura Fase 1",
+      "island": "fuerteventura",
+      "fullName": "INFANTIL FUERTEVENTURA FASE 1 - GRUPO 2",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54976929&CodGrupo=55180173"
+    },
+    {
+      "id": "INFUF3",
+      "cat": "infantil",
+      "name": "Grupo 3",
+      "phase": "Fuerteventura Fase 1",
+      "island": "fuerteventura",
+      "fullName": "INFANTIL FUERTEVENTURA FASE 1 - GRUPO 3",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54976929&CodGrupo=55180174"
     }
   ]
 }

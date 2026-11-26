@@ -649,13 +649,6 @@
     "name": "2027-2028",
     "status": "pending"
   },
-  "newCompetitions": [
-    {
-      "id": "54976929",
-      "name": "LIGA INFANTIL DE FUERTEVENTURA 1ª FASE",
-      "firstSeen": "2026-11-26"
-    }
-  ],
   "runHealth": {
     "ok": true,
     "drySince": "2026-11-26T11:21:28+00:00"
@@ -668,62 +661,23 @@
     }
   },
   "activation": {
-    "at": "2026-11-26T10:43:12+00:00",
+    "at": "2026-11-26T11:38:48+00:00",
     "activated": [
-      {
-        "competition": "54976908",
-        "name": "LIGA INFANTIL PREFERENTE DE GRAN CANARIA",
-        "codes": [
-          "INFPG1",
-          "INFPG2"
-        ]
-      },
-      {
-        "competition": "54976911",
-        "name": "LIGA INFANTIL LANZAROTE FASE 1",
-        "codes": [
-          "INFUL1",
-          "INFUL2",
-          "INFUL3",
-          "INFUL4"
-        ]
-      },
-      {
-        "competition": "54976916",
-        "name": "LIGA PRIMERA INFANTIL DE GRAN CANARIA",
-        "codes": [
-          "INF1G1",
-          "INF1G2",
-          "INF1G3",
-          "INF1G4"
-        ]
-      },
-      {
-        "competition": "55184138",
-        "name": "LIGA INFANTIL GRAN CANARIA",
-        "codes": [
-          "INFUG1",
-          "INFUG2",
-          "INFUG3",
-          "INFUG4"
-        ]
-      }
-    ],
-    "failed": [
       {
         "competition": "54976929",
         "name": "LIGA INFANTIL DE FUERTEVENTURA 1ª FASE",
-        "reason": "la descarga no está completa: falta la lista de grupos de la federación"
+        "codes": [
+          "INFUF1",
+          "INFUF2",
+          "INFUF3"
+        ]
       }
     ],
+    "failed": [],
     "tried": [
-      "54976908",
-      "54976911",
-      "54976916",
-      "54976929",
-      "55184138"
+      "54976929"
     ],
-    "attempts": 2
+    "attempts": 1
   },
   "run": {
     "pass": 204,
