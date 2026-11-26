@@ -369,6 +369,42 @@
       "island": "grancanaria",
       "fullName": "JUVENIL PRIMERA GC - GRUPO 2",
       "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54976886&CodGrupo=55059635"
+    },
+    {
+      "id": "JUV2G1",
+      "cat": "juvenil",
+      "name": "Grupo 1",
+      "phase": "Segunda GC",
+      "island": "grancanaria",
+      "fullName": "JUVENIL SEGUNDA GC - GRUPO 1",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54976889&CodGrupo=55129095"
+    },
+    {
+      "id": "JUV2G2",
+      "cat": "juvenil",
+      "name": "Grupo 2",
+      "phase": "Segunda GC",
+      "island": "grancanaria",
+      "fullName": "JUVENIL SEGUNDA GC - GRUPO 2",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54976889&CodGrupo=55129139"
+    },
+    {
+      "id": "JUV2G3",
+      "cat": "juvenil",
+      "name": "Grupo 3",
+      "phase": "Segunda GC",
+      "island": "grancanaria",
+      "fullName": "JUVENIL SEGUNDA GC - GRUPO 3",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54976889&CodGrupo=55129178"
+    },
+    {
+      "id": "JUV2G4",
+      "cat": "juvenil",
+      "name": "Grupo 4",
+      "phase": "Segunda GC",
+      "island": "grancanaria",
+      "fullName": "JUVENIL SEGUNDA GC - GRUPO 4",
+      "url": "https://www.fiflp.com/pnfg/NPcd/NFG_CmpJornada?cod_primaria=1000120&CodTemporada=22&CodCompeticion=54976889&CodGrupo=55129202"
     }
   ]
 }

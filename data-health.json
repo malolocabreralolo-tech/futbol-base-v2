@@ -733,13 +733,6 @@
     "name": "2027-2028",
     "status": "pending"
   },
-  "newCompetitions": [
-    {
-      "id": "54976889",
-      "name": "LIGA SEGUNDA JUVENIL GRAN CANARIA",
-      "firstSeen": "2026-11-26"
-    }
-  ],
   "runHealth": {
     "ok": true,
     "drySince": "2026-11-26T23:15:52+00:00"
@@ -815,76 +808,22 @@
     }
   },
   "activation": {
-    "at": "2026-11-26T20:31:10+00:00",
+    "at": "2026-11-26T23:32:29+00:00",
     "activated": [
-      {
-        "competition": "54977072",
-        "name": "COPA CADETE INSULAR DE LANZAROTE",
-        "codes": [
-          "CADNLC1",
-          "CADNLC2"
-        ]
-      },
-      {
-        "competition": "55133909",
-        "name": "ELIMINATORIAS COPA CADETE INSULAR DE LANZAROTE",
-        "codes": [
-          "CADNLCE1"
-        ]
-      },
-      {
-        "competition": "54976878",
-        "name": "LIGA JUVENIL INTERINSULAR",
-        "codes": [
-          "JUVI1"
-        ]
-      },
-      {
-        "competition": "54976880",
-        "name": "LIGA JUVENIL PREFERENTE GRAN CANARIA",
-        "codes": [
-          "JUVPG1"
-        ]
-      },
-      {
-        "competition": "54976882",
-        "name": "LIGA JUVENIL PREFERENTE LANZAROTE",
-        "codes": [
-          "JUVPL1"
-        ]
-      },
-      {
-        "competition": "54976884",
-        "name": "LIGA JUVENIL PREFERENTE FUERTEVENTURA",
-        "codes": [
-          "JUVPF1"
-        ]
-      },
-      {
-        "competition": "54976886",
-        "name": "LIGA PRIMERA JUVENIL GRAN CANARIA",
-        "codes": [
-          "JUV1G1",
-          "JUV1G2"
-        ]
-      }
-    ],
-    "failed": [
       {
         "competition": "54976889",
         "name": "LIGA SEGUNDA JUVENIL GRAN CANARIA",
-        "reason": "la descarga no está completa: faltan 3 grupos"
+        "codes": [
+          "JUV2G1",
+          "JUV2G2",
+          "JUV2G3",
+          "JUV2G4"
+        ]
       }
     ],
+    "failed": [],
     "tried": [
-      "54976878",
-      "54976880",
-      "54976882",
-      "54976884",
-      "54976886",
-      "54976889",
-      "54977072",
-      "55133909"
+      "54976889"
     ],
     "attempts": 1
   },
