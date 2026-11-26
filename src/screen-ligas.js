@@ -10,38 +10,43 @@
 // La temporada de la ruta la carga el router, que también deja `c`, `i` y `to` válidos o
 // los quita; la barra marca el destino de `to` (activeTab).
 import { html } from './html.js';
-import { screenHead, block, countLabel, crest, decimal, empty, notice, linkRow, listEs, signed } from './ui.js';
-import { alevinFailedBox, errorBox } from './shell.js';
+import { screenHead, block, countLabel, crest, decimal, empty, notice, linkRow, listEs, pickerCategories, signed } from './ui.js';
+import { errorBox, lazyFailedBox } from './shell.js';
 import {
   CATEGORIES, CAT_NAMES, CAT_WORDS, competitions, compareGroups, groupSummary, seasonLabel,
 } from './model.js';
 import { routeHref, teamHref } from './links.js';
 import { myTeamIn } from './myteam.js';
 
-const ISLAND_NAMES = { grancanaria: 'Gran Canaria', lanzarote: 'Lanzarote', fuerteventura: 'Fuerteventura' };
+const ISLAND_NAMES = { grancanaria: 'Gran Canaria', lanzarote: 'Lanzarote', fuerteventura: 'Fuerteventura', interinsular: 'Interinsular' };
+// «interinsular» no es una isla: las competiciones de varias islas (la División de Honor de juvenil…) son
+// «interinsulares», nunca «de Interinsular».
+const INTERINSULAR = 'interinsular';
 const shieldsOf = ctx => (ctx.datasets && ctx.datasets.shields) || {};
 const seasonOf = ctx => (ctx.params && ctx.params.s) || ctx.portal.season;
 
 /* Lo que enseña la ruta, para render y mount: la temporada, las competiciones (ya filtradas por `c`,
  * `i` y, sin `f`, por `to`), las de la clave `f` y las categorías de las que habla: la `c` o, sin ella,
- * las que tienen competiciones en la temporada (una temporada sin alevín no lo nombra), o todas si no
- * hay ninguna. */
+ * las que tienen competiciones en la temporada (una temporada sin alevín no lo nombra) o, si no hay ninguna,
+ * las de la temporada (pickerCategories: benjamín, prebenjamín y alevín, y las nuevas que tenga), nunca las
+ * seis a ciegas. */
 export function ligasView(ctx) {
   const s = seasonOf(ctx);
   const { c = null, i = null, f = null, to = null } = ctx.params || {};
   const all = competitions(ctx.model, s, { cat: c, island: i });
   const list = f ? [] : all.filter(e => !to || e.kind === 'liga');
   const present = CATEGORIES.filter(cat => list.some(e => e.cat === cat));
-  return { s, c, i, f, to, list, chosen: f ? all.filter(e => e.key === f) : [], cats: c ? [c] : present.length ? present : CATEGORIES };
+  return { s, c, i, f, to, list, chosen: f ? all.filter(e => e.key === f) : [], cats: c ? [c] : present.length ? present : pickerCategories(ctx, s, null) };
 }
 
 // Las competiciones con «Comparar grupos»: 2 grupos de liga o más.
 const comparable = entry => entry.groups.filter(g => g.kind === 'league').length >= 2;
 
-// «Benjamín», «Benjamín y prebenjamín»; «de Gran Canaria» si llega la isla.
+// «Benjamín», «Benjamín y prebenjamín»; «de Gran Canaria» si llega la isla («Juvenil interinsular»).
 function scopeText(cats, island) {
   const names = cats.map((cat, k) => (k ? CAT_WORDS[cat] : CAT_NAMES[cat]));
-  return `${listEs(names)}${island ? ` de ${ISLAND_NAMES[island]}` : ''}`;
+  const where = island === INTERINSULAR ? ' interinsular' : island ? ` de ${ISLAND_NAMES[island]}` : '';
+  return `${listEs(names)}${where}`;
 }
 
 // ── Sin `f`: las competiciones ───────────────────────────────────────────
@@ -50,7 +55,9 @@ function competitionsBlocks(ctx, view) {
   const { s, i, to, list, cats } = view;
   if (!list.length) {
     const what = to ? 'ligas' : 'competiciones';
-    return empty(`No hay ${what} de ${listEs(cats.map(cat => CAT_WORDS[cat]))}${i ? ` en ${ISLAND_NAMES[i]}` : ''} en la temporada ${seasonLabel(s)}.`);
+    const words = listEs(cats.map(cat => CAT_WORDS[cat]));
+    if (i === INTERINSULAR) return empty(`No hay ${what} interinsulares de ${words} en la temporada ${seasonLabel(s)}.`);
+    return empty(`No hay ${what} de ${words}${i ? ` en ${ISLAND_NAMES[i]}` : ''} en la temporada ${seasonLabel(s)}.`);
   }
   return CATEGORIES.map(cat => list.filter(e => e.cat === cat)).filter(entries => entries.length).map((entries) => {
     const total = entries.reduce((n, e) => n + e.groups.length, 0);
@@ -120,8 +127,10 @@ function render(ctx) {
   if (!ctx.model.season(s)) {
     return html`<section data-screen="ligas">${screenHead('Ligas', { back })}${errorBox(`la temporada ${seasonLabel(s)}`)}</section>`;
   }
-  // Sin `c`, sin los datos de alevín (el router no los pudo cargar): las otras categorías, con su aviso.
-  const partial = ctx.alevinFailed ? alevinFailedBox() : '';
+  // Sin `c`, sin los datos de alguna perezosa (el router no los pudo cargar): las otras categorías, con su
+  // aviso, que dice cuál falta.
+  const failed = ctx.lazyFailed || [];
+  const partial = failed.length ? lazyFailedBox(failed, view.cats) : '';
   if (f && chosen.length) {
     const cats = [...new Set(chosen.map(e => e.cat))];
     const head = screenHead(chosen[0].label, { sub: `${scopeText(cats, null)} · ${seasonLabel(s)}`, back });

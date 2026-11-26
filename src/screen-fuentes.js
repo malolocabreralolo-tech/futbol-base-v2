@@ -113,13 +113,33 @@ function activationNote(activation) {
 // con sus motivos y desde cuándo (hora de Canarias; «hoy» si es `today`), en una línea; nada si fue sana,
 // si no hay veredicto o si no se entiende: el aviso solo sale con algún motivo en texto.
 export function runHealthNote(health, today) {
-  const run = health && typeof health === 'object' ? health.runHealth : null;
+  const text = runHealthText(health && typeof health === 'object' ? health.runHealth : null, today);
+  return text ? notice(null, `La ${text}`) : '';
+}
+
+// «última pasada del bot no fue bien (desde hoy, 10:05): <motivos>.» de un veredicto en rojo, o '' (sano, sin
+// motivos en texto o mal formado). Uno para la pasada de siempre y para la de cada carril.
+function runHealthText(run, today) {
   if (!run || typeof run !== 'object' || run.ok !== false || !Array.isArray(run.reasons)) return '';
   const reasons = run.reasons.filter((r) => typeof r === 'string' && r.trim()).map((r) => r.trim());
   if (!reasons.length) return '';
   const since = typeof run.since === 'string' ? canaryDateTime(run.since) : null;
   const when = since ? ` (desde ${since.day === today ? 'hoy' : `el ${dayMonthLong(since.day)}`}, ${since.time})` : '';
-  return notice(null, `La última pasada del bot no fue bien${when}: ${reasons.join('; ')}.`);
+  return `última pasada del bot no fue bien${when}: ${reasons.join('; ')}.`;
+}
+
+// El veredicto del carril de infantil, cadete y juvenil (carriles.mayores.runHealth de data-health: el bot de
+// esas categorías corre aparte, con su propia pasada; source_health), en la línea siguiente a la de la pasada
+// de siempre, con el mismo texto: «Carril de infantil, cadete y juvenil: la última pasada del bot no fue
+// bien…». Nada si no hay carril, si fue sana o si no se entiende.
+const LANES = [['mayores', 'Carril de infantil, cadete y juvenil']];
+export function laneHealthNotes(health, today) {
+  const lanes = health && typeof health === 'object' && health.carriles && typeof health.carriles === 'object' ? health.carriles : {};
+  return LANES.map(([key, label]) => {
+    const lane = lanes[key];
+    const text = runHealthText(lane && typeof lane === 'object' ? lane.runHealth : null, today);
+    return text ? notice(null, `${label}: la ${text}`) : '';
+  });
 }
 
 // La base de datos entera (futbolbase.db, SQLite, la misma de la que salen todas las pantallas) y lo
@@ -175,7 +195,7 @@ function render(ctx) {
   // El tamaño de la base, con las notas de estado: la caja de la base solo está si hay cobertura.
   const base = avisoBase(health);
   const baseNote = base ? notice(null, base) : '';
-  return html`<section data-screen="fuentes">${screenHead(title, { sub: checkedSeason ? `Temporada ${seasonLabel(checkedSeason)}` : null, back: ctx.backHref })}${state}${runHealthNote(health, ctx.today)}${baseNote}${block('Comprobación por grupo', list, { context: summary(rows) || null })}${sourcesNote(rows)}${missing}${newCompetitionsNote(health.newCompetitions)}${newGroupsNote(health.newGroups)}${activationNote(health.activation)}${upcoming}${database}</section>`;
+  return html`<section data-screen="fuentes">${screenHead(title, { sub: checkedSeason ? `Temporada ${seasonLabel(checkedSeason)}` : null, back: ctx.backHref })}${state}${runHealthNote(health, ctx.today)}${laneHealthNotes(health, ctx.today)}${baseNote}${block('Comprobación por grupo', list, { context: summary(rows) || null })}${sourcesNote(rows)}${missing}${newCompetitionsNote(health.newCompetitions)}${newGroupsNote(health.newGroups)}${activationNote(health.activation)}${upcoming}${database}</section>`;
 }
 
 export const screen = {

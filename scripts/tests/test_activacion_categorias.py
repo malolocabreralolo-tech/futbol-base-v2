@@ -261,17 +261,11 @@ def test_un_equipo_de_lanzarote_en_una_interinsular_conserva_su_nombre():
 
 # ── quitar_categoria.py ──────────────────────────────────────────────────────
 
-def _fin_de_pasada(path):
-    """Lo que hace el final de una pasada con la base: las fichas y los enlaces de la liga de escuelas."""
-    import enlace_mygol
-    import migrate_identidad
-    from db import get_connection
-    conn = get_connection(path)
-    try:
-        migrate_identidad.resolver_fichas(conn, log=lambda *a: None)
-        enlace_mygol.guardar_enlaces(conn, registro=lambda *a: None)
-    finally:
-        conn.close()
+def _fin_de_pasada(path, web=None):
+    """Lo que hace el final de una pasada con la base: las fichas y los enlaces de la liga de escuelas (con `web`,
+    con ese EN_WEB: base_mayores.fin_de_pasada)."""
+    import base_mayores
+    base_mayores.fin_de_pasada(path, web)
 
 
 def _poblar(path, **kw):
@@ -313,9 +307,13 @@ def _en_curso(path):
         conn.close()
 
 
-def _quitar(path, *argv, capsys=None):
+def _quitar(path, *argv, capsys=None, web=None):
+    """quitar_categoria.main sobre `path` (con `web`, con ese EN_WEB: quitar vuelve a resolver las fichas si la
+    categoría está en la web)."""
+    import base_mayores
     import quitar_categoria
-    code = quitar_categoria.main(["--db", str(path), "--temporada", _en_curso(path), *argv])
+    with base_mayores.con_en_web(web):
+        code = quitar_categoria.main(["--db", str(path), "--temporada", _en_curso(path), *argv])
     return code, capsys.readouterr().out if capsys else ""
 
 
@@ -332,13 +330,21 @@ def _por_categoria(path):
 _NUEVAS = ("INFANTIL/", "CADETE/", "JUVENIL/", "ALEVIN/lanzarote", "ALEVIN/fuerteventura")
 
 
+@pytest.fixture(scope="module", params=["antes", "seis"])
+def web(request):
+    """El EN_WEB con el que se prueba quitar_categoria: el de antes del paso E2-D2 y el de después (las seis), los
+    dos fijados aquí (no lo que diga categorias.py). Con el de después, el resolvedor une fichas de una categoría a
+    otra, y quitar una tiene que deshacer esas uniones (vuelve a resolver las fichas)."""
+    return request.param
+
+
 @pytest.fixture(scope="module")
-def nunca(bases_reales, tmp_path_factory):
+def nunca(web, bases_reales, tmp_path_factory):
     """La copia de la base real en la que nunca se activaron las categorías nuevas (ni el alevín de islas), tras el
-    final de una pasada. Con la base de hoy, la resuelta de conftest.bases_reales tal cual (no tiene nada de ellas:
-    quitar_categoria no quitaría nada). Con la base de después (la del bot con las mayores ya leídas:
-    prueba_mayores.py), lo que ya hubiera de ellas se quita primero y se pasan las fichas: lo que se compara es lo
-    que añade poblar."""
+    final de una pasada con el EN_WEB `web`. Con la base de hoy, la resuelta de conftest.bases_reales tal cual (no
+    tiene nada de ellas: quitar_categoria no quitaría nada, y sin ellas las fichas son las mismas con los dos
+    EN_WEB). Con la base de después (la del bot con las mayores ya leídas: prueba_mayores.py), lo que ya hubiera de
+    ellas se quita primero y se pasan las fichas: lo que se compara es lo que añade poblar."""
     resuelta = bases_reales["resuelta"]
     if not any(k.startswith(_NUEVAS) for k in _por_categoria(resuelta)):
         return resuelta
@@ -346,29 +352,32 @@ def nunca(bases_reales, tmp_path_factory):
     shutil_copy(resuelta, path)
     for argv in (["--categoria", "INFANTIL"], ["--categoria", "CADETE"], ["--categoria", "JUVENIL"],
                  ["--categoria", "ALEVIN", "--isla", "lanzarote"], ["--categoria", "ALEVIN", "--isla", "fuerteventura"]):
-        assert _quitar(path, *argv, "--apply")[0] == 0
-    _fin_de_pasada(path)
+        assert _quitar(path, *argv, "--apply", web=web)[0] == 0
+    _fin_de_pasada(path, web)
     return path
 
 
 @pytest.fixture(scope="module")
-def mayores_leidas(nunca, bases_reales, tmp_path_factory):
-    """La de nunca con infantil, cadete y juvenil activados y leídos (base_mayores.poblar) y el final de una pasada:
-    (ruta, lo que devolvió poblar). Con la base de hoy, la de conftest.bases_reales (la misma cuenta, ya hecha)."""
+def mayores_leidas(web, nunca, bases_reales, tmp_path_factory):
+    """La de nunca con infantil, cadete y juvenil activados y leídos (base_mayores.poblar) y el final de una pasada
+    con el EN_WEB `web`: (ruta, lo que devolvió poblar). Con la base de hoy, la de conftest.bases_reales (la misma
+    cuenta, ya hecha: «mayores» con el de antes, «mayores_seis» con el de después)."""
     if nunca == bases_reales["resuelta"]:
-        return bases_reales["mayores"], bases_reales["hecho"]
+        return bases_reales["mayores" if web == "antes" else "mayores_seis"], bases_reales["hecho"]
     path = tmp_path_factory.mktemp("mayores") / "mayores.db"
     shutil_copy(nunca, path)
     hecho = _poblar(path)
-    _fin_de_pasada(path)
+    _fin_de_pasada(path, web)
     return path, hecho
 
 
-def test_quitar_categoria(tmp_path, capsys, nunca, mayores_leidas):
+def test_quitar_categoria(tmp_path, capsys, web, nunca, mayores_leidas):
     """Sobre una copia de la base real con las mayores leídas (base_mayores.poblar), el ensayo cuenta lo de infantil
     sin tocar nada; con --apply lo quita y deja benjamín, alevín, cadete y juvenil igual; y quitadas las tres, la
     base es EXACTAMENTE (tabla a tabla, fila a fila: identidades, fichas y enlaces de la liga de escuelas incluidos)
-    la de una copia en la que nunca se activaron. Con una categoría de las de siempre, error sin tocar nada."""
+    la de una copia en la que nunca se activaron, sin pasar por el final de una pasada: quitar deja las fichas
+    como las dejaría ella. Con el EN_WEB de antes del paso E2-D2 y con el de después. Con una categoría de las de
+    siempre, error sin tocar nada."""
     activada = tmp_path / "activada.db"
     shutil_copy(mayores_leidas[0], activada)
     hecho = mayores_leidas[1]
@@ -378,20 +387,22 @@ def test_quitar_categoria(tmp_path, capsys, nunca, mayores_leidas):
     copia = tmp_path / "ensayo.db"
     shutil_copy(activada, copia)
 
-    code, out = _quitar(copia, "--categoria", "INFANTIL", capsys=capsys)
+    code, out = _quitar(copia, "--categoria", "INFANTIL", capsys=capsys, web=web)
     assert code == 0 and "ensayo" in out
     inf = [g for g in hecho["grupos"] if g.startswith("INF")]
     assert f"{len(inf)} grupos" in out and all(g in out for g in inf)
     assert _distinto(copia, activada) == []                         # el ensayo no toca nada
 
-    code, out = _quitar(copia, "--categoria", "INFANTIL", "--apply", capsys=capsys)
+    code, out = _quitar(copia, "--categoria", "INFANTIL", "--apply", capsys=capsys, web=web)
     assert code == 0
+    # Con las mayores en la web, quitar vuelve a resolver las fichas (y lo dice); fuera de ella, no hace falta.
+    assert ("Fichas resueltas otra vez" in out) == (web == "seis")
     despues = _por_categoria(copia)
     assert not any(k.startswith("INFANTIL") for k in despues)
     assert {k: v for k, v in antes.items() if not k.startswith("INFANTIL")} == despues
 
     for cat in ("CADETE", "JUVENIL"):
-        assert _quitar(copia, "--categoria", cat, "--apply")[0] == 0
+        assert _quitar(copia, "--categoria", cat, "--apply", web=web)[0] == 0
     assert _distinto(copia, nunca) == []
 
     intacta = tmp_path / "intacta.db"
@@ -400,7 +411,7 @@ def test_quitar_categoria(tmp_path, capsys, nunca, mayores_leidas):
                  ["--categoria", "ALEVIN", "--apply"], ["--categoria", "ALEVIN", "--isla", "grancanaria", "--apply"],
                  ["--categoria", "SENIOR", "--apply"]):
         with pytest.raises(SystemExit) as exit_:
-            _quitar(activada, *argv)
+            _quitar(activada, *argv, web=web)
         assert exit_.value.code != 0, argv
     assert _distinto(activada, intacta) == []
 
@@ -440,10 +451,10 @@ def test_quitar_una_mayor_borra_la_huella_del_raw_de_actas_de_su_lote():
     assert "fiflp_actas_2026-2027_alevin_raw.json" in quedan()
 
 
-def test_quitar_el_alevin_de_lanzarote(tmp_path, nunca, bases_reales):
+def test_quitar_el_alevin_de_lanzarote(tmp_path, web, nunca, bases_reales):
     """El paso D6 hacia atrás: --categoria ALEVIN --isla lanzarote quita solo el alevín de Lanzarote (el de Gran
-    Canaria se queda) y, tras la pasada siguiente (sus fichas, que sí miraban esos grupos: alevín es de la web), la
-    base es la de nunca."""
+    Canaria se queda) y vuelve a resolver las fichas (que sí miraban esos grupos: alevín es de la web), así que la
+    base es ya la de nunca, sin esperar a la pasada siguiente. Con los dos EN_WEB."""
     activada = tmp_path / "activada.db"
     if nunca == bases_reales["resuelta"]:               # la base de hoy: la de bases_reales (la misma cuenta, ya hecha)
         shutil_copy(bases_reales["islas"], activada)
@@ -451,15 +462,14 @@ def test_quitar_el_alevin_de_lanzarote(tmp_path, nunca, bases_reales):
     else:
         shutil_copy(nunca, activada)
         hecho = _poblar(activada, categorias=(), islas=True)
-        _fin_de_pasada(activada)
+        _fin_de_pasada(activada, web)
     assert hecho["grupos"] and all(g.startswith("ALUL") for g in hecho["grupos"])
     antes = _por_categoria(activada)
     assert "ALEVIN/lanzarote" in antes
-    assert _quitar(activada, "--categoria", "ALEVIN", "--isla", "lanzarote", "--apply")[0] == 0
+    assert _quitar(activada, "--categoria", "ALEVIN", "--isla", "lanzarote", "--apply", web=web)[0] == 0
     quedan = _por_categoria(activada)
     # (Recién empezada una temporada puede no haber aún alevín de Gran Canaria: entonces, tampoco después.)
     assert "ALEVIN/lanzarote" not in quedan and quedan.get("ALEVIN/grancanaria") == antes.get("ALEVIN/grancanaria")
-    _fin_de_pasada(activada)
     assert _distinto(activada, nunca) == []
 
 

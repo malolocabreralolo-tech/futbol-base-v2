@@ -164,10 +164,11 @@ def test_tandas():
 
 
 def test_lo_que_se_activa_y_lo_que_se_ve_no_cambia():
-    """Ninguna tarea de la parte E1 cambia ACTIVABLES, ALEVIN_ISLAS ni EN_WEB: lo hace el director, por pasos
-    (D3-D6). Esta es la ÚNICA prueba que comprueba lo que hay hoy en scripts/categorias.py, y la que cambia en
-    cada paso D3-D6, con la misma línea (docs/categorias-mayores.md, «Los pasos del director»): las demás fijan
-    el mundo que suponen (conftest.fijar_categorias, categorias_de_antes) y no se tocan."""
+    """Ninguna tarea de las partes E1 y E2 cambia ACTIVABLES, ALEVIN_ISLAS ni EN_WEB: lo hace el director, por pasos
+    (D3-D6 y E2-D2). Esta es la ÚNICA prueba que comprueba lo que hay hoy en scripts/categorias.py, y la que cambia
+    en cada uno de esos pasos, con la misma línea (docs/categorias-mayores.md, «Los pasos del director» y «En la
+    web»): las demás fijan el mundo que suponen (conftest.fijar_categorias, categorias_de_antes, fijar_web) y no se
+    tocan."""
     assert categorias.ACTIVABLES == ("BENJAMIN", "PREBENJAMIN", "ALEVIN", "INFANTIL")
     assert categorias.EN_WEB == ("BENJAMIN", "PREBENJAMIN", "ALEVIN")
     assert categorias.ALEVIN_ISLAS is False
@@ -213,15 +214,19 @@ def test_get_or_create_category_ignores_case_and_creates_in_upper_case():
     assert conn.execute("SELECT count(*) FROM categories").fetchone()[0] == 4
 
 
-def test_migration_drops_the_orphan_lower_case_row_and_adds_alevin():
+@pytest.mark.parametrize("en_web", ["antes", "seis"])
+def test_migration_drops_the_orphan_lower_case_row_and_adds_alevin(fijar_web, en_web):
+    # Con el EN_WEB de hoy y con el del paso E2-D2 (las seis): la migración no crea las mayores en ninguno.
+    fijar_web(en_web)
     from migrate_categories import migrate
     conn = _base("BENJAMIN", "PREBENJAMIN", "prebenjamin")
     conn.execute("INSERT INTO groups(season_id,category_id,code) VALUES (1,1,'FF1'),(1,2,'PG1')")
     report = migrate(conn)
     assert sorted(r[0] for r in conn.execute("SELECT name FROM categories")) == ["ALEVIN", "BENJAMIN", "PREBENJAMIN"]
     assert report == {"dropped": ["prebenjamin"], "kept": [], "created": ["ALEVIN"]}
-    # Las categorías nuevas no se crean aquí (la web no las busca): las crea activate_season al activar su
-    # primer grupo. Si la migración las creara, la primera pasada del bot cambiaría la base sin motivo.
+    # Las categorías nuevas no se crean aquí, tampoco cuando la web las enseña: las crea activate_season al activar
+    # su primer grupo. Si la migración las creara, la primera pasada del bot (o la del paso E2-D2) cambiaría la base
+    # sin motivo, y una quitada con quitar_categoria volvería en la pasada siguiente.
     assert not {"INFANTIL", "CADETE", "JUVENIL"} & {r[0] for r in conn.execute("SELECT name FROM categories")}
     # Idempotente: otra pasada no cambia nada.
     before = conn.execute("SELECT id, name FROM categories ORDER BY id").fetchall()

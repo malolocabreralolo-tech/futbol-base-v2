@@ -96,8 +96,11 @@ export function isCupGroup(g) {
   if (id.startsWith('PCC') || id.startsWith('BC')) return true;
   if (id.startsWith('MCP') || id.startsWith('MCB')) return true;
   const phase = ((g && g.phase) || '').toLowerCase();
+  // Y las fases de ascenso de infantil, cadete y juvenil («Fase de Ascenso a Interinsular»; las
+  // «Eliminatorias de Ascenso a …» ya empiezan por «eliminatorias»): copas, como _is_league_group de
+  // scripts/generate_js.py (decisión 3 de la parte E).
   return phase.includes('copa') || phase.includes('campeon') || phase.includes('maspalomas')
-    || /^(?:semi)?final\b|^torneo\b|^clausura\b|^eliminatorias\b/.test(phase);
+    || /^(?:semi)?final\b|^torneo\b|^clausura\b|^eliminatorias\b|^fase de ascenso\b/.test(phase);
 }
 
 /* Friendly label for a knockout round. Prefers the explicit round name in the
@@ -267,6 +270,25 @@ export async function ensureMatchDetail() {
   })();
   return _matchDetailPromise;
 }
+
+/* La cronología de goles de infantil, cadete y juvenil: data-matchdetail-<cat>.js, const MATCH_DETAIL_<S>
+ * (generate_js.generate_matchdetail_lazy_js, con la forma de MATCH_DETAIL), aparte para que sus actas de
+ * fútbol 11 no hagan crecer data-matchdetail.js para todos. Se pide al abrir un partido de esa categoría
+ * (partidoNeeds). Como ensureMatchDetail: un vuelo por categoría, el texto leído con readConsts (nunca el
+ * global) y null si falla, sin memorizarlo, para reintentar; el partido se pinta sin la cronología. */
+const MATCH_DETAIL_CATS = { infantil: 'INF', cadete: 'CAD', juvenil: 'JUV' };
+const _matchDetailLazy = {};
+const _matchDetailLazyPromise = {};
+export function ensureMatchDetailLazy(cat) {
+  if (!Object.hasOwn(MATCH_DETAIL_CATS, cat)) return Promise.resolve(null);
+  return lazyConst(_matchDetailLazy, _matchDetailLazyPromise, cat, {
+    file: `data-matchdetail-${cat}.js`, name: `MATCH_DETAIL_${MATCH_DETAIL_CATS[cat]}`,
+    // Siempre se publica (vacío si no hay nada): un 404 es la web de antes de la categoría, sin cronología.
+    missing: () => ({}), valid: (value) => isObject(value),
+  });
+}
+// Las categorías con data-matchdetail-<cat>.js propio (las demás, en data-matchdetail.js).
+export const hasOwnMatchDetail = (cat) => Object.hasOwn(MATCH_DETAIL_CATS, cat);
 
 // Season data cache — loaded lazily per historical season.
 const _seasonCache = {};
@@ -469,13 +491,15 @@ export function ensureRankingYear(year) {
 }
 
 /* ──────────────────────────────────────────────────────────────────────
- * Alevín. Nunca va en la carga inicial (la portada tiene que abrir en 3 s):
- * data-alevin.js, la temporada
- * del portal, y data-season-<S>-alevin.js, cada temporada pasada que tenga
- * alevín, se piden cuando una pantalla los necesita (needsAlevin de
- * router.js). Como ensureLineups: un vuelo por fichero, el texto leído por
- * expresión regular (nunca el global), un 404 es «sin alevín» (y se
- * memoriza) y un fallo da null sin memorizarse, para reintentar.
+ * Las categorías perezosas: alevín, infantil, cadete y juvenil. Nunca van en
+ * la carga inicial (la portada tiene que abrir en 3 s): data-<cat>.js, la
+ * temporada del portal, y data-season-<S>-<cat>.js, cada temporada pasada que
+ * tenga esa categoría, se piden cuando una pantalla los necesita (needsLazy de
+ * router.js). Un fichero por categoría (generate_js.LAZY): una familia que
+ * sigue a un niño de infantil no baja cadete ni juvenil. Como ensureLineups:
+ * un vuelo por fichero, el texto leído por expresión regular (nunca el
+ * global), un 404 es «sin esa categoría» (y se memoriza) y un fallo da null
+ * sin memorizarse, para reintentar.
  * ────────────────────────────────────────────────────────────────────── */
 
 // Las constantes de nivel superior de un data-*.js, { NOMBRE: valor }: una por línea, «const
@@ -491,104 +515,211 @@ function readConsts(text) {
 
 const objectOr = (value, fallback) => (value && typeof value === 'object' && !Array.isArray(value) ? value : fallback);
 
-/* El alevín de la temporada del portal con los nombres del registro de datos (datasets.alevin) a
- * partir de las seis constantes de data-alevin.js: { groups: ALEVIN, stats: ALEV_STATS, history:
- * HISTORY_ALEV, gol: GOL_ALEV, estados: ESTADOS_ALEV, equipos: EQUIPOS_ALEV }. Sin ellas (un 404,
- * o el fichero vacío de una temporada sin alevín), todo vacío. */
-export function alevinData(consts = {}) {
+/* El registro de las perezosas, en el orden de LAZY_CATS de model.js (state.js no importa de model.js:
+ * model.js importa de aquí): su fichero de la temporada del portal, el nombre de sus constantes (las de
+ * generate_js.LAZY: las de alevín, las de siempre) con el del registro de datos, y su nombre en una frase
+ * para la caja de error («No se pudieron cargar los datos de alevín»). Infantil, cadete y juvenil traen
+ * además sus campos (CAMPOS_<S>: los que no están en el CAMPOS de data-history.js). */
+const lazyEntry = (cat, groups, suffix, word, campos) => ({
+  file: `data-${cat}.js`, word,
+  consts: {
+    groups, stats: `${suffix}_STATS`, history: `HISTORY_${suffix}`, gol: `GOL_${suffix}`, estados: `ESTADOS_${suffix}`,
+    equipos: `EQUIPOS_${suffix}`, ...(campos ? { campos: `CAMPOS_${suffix}` } : {}),
+  },
+});
+export const LAZY = {
+  alevin: lazyEntry('alevin', 'ALEVIN', 'ALEV', 'alevín', false),
+  infantil: lazyEntry('infantil', 'INFANTIL', 'INF', 'infantil', true),
+  cadete: lazyEntry('cadete', 'CADETE', 'CAD', 'cadete', true),
+  juvenil: lazyEntry('juvenil', 'JUVENIL', 'JUV', 'juvenil', true),
+};
+const lazyOf = (cat) => {
+  if (!Object.hasOwn(LAZY, cat)) throw new TypeError(`categoría perezosa desconocida: ${cat}`);
+  return LAZY[cat];
+};
+
+// La categoría perezosa de un código de grupo por su prefijo (scripts/convenio.py: INF, CAD y JUV; los de
+// alevín, AL…), o null si el código no la dice (los de benjamín y prebenjamín, o uno escrito a mano).
+const LAZY_PREFIXES = [['INF', 'infantil'], ['CAD', 'cadete'], ['JUV', 'juvenil'], ['AL', 'alevin']];
+export function lazyCatOfCode(id) {
+  const code = String(id || '').toUpperCase();
+  const hit = LAZY_PREFIXES.find(([prefix]) => code.startsWith(prefix));
+  return hit ? hit[1] : null;
+}
+
+/* Las perezosas que tiene la temporada `name`, según su entrada de SEASONS (data-seasons.js, `lazy`: solo
+ * sale cuando alguna no es alevín; generate_js.season_lazy_keys), en el orden de LAZY: alevín siempre (la web
+ * lo pide como antes de las nuevas: un 404 es «sin alevín») y las que diga. Lo que la web pide cuando no sabe
+ * qué categoría busca (Explorar y Ligas sin `c`, un grupo cuyo código no la dice, la Trayectoria, las
+ * temporadas anteriores de un partido): así no pide a ciegas las cuatro de cada temporada (decenas de 404), y
+ * con la base de hoy pide lo mismo que antes. Lo que la ruta nombra (`c=cadete`, un grupo CAD…) se pide igual. */
+export function lazyCatsOf(seasons, name) {
+  const entry = (Array.isArray(seasons) ? seasons : []).find((s) => s && s.name === name);
+  const declared = entry && Array.isArray(entry.lazy) ? entry.lazy : [];
+  return Object.keys(LAZY).filter((cat) => cat === 'alevin' || declared.includes(cat));
+}
+
+/* Una categoría perezosa de la temporada del portal con los nombres del registro de datos
+ * (datasets.lazy[cat]) a partir de las constantes de su data-<cat>.js (`consts`, por defecto las de
+ * LAZY[cat]): { groups, stats, history, gol, estados, equipos } y, en infantil, cadete y juvenil, campos.
+ * Sin ellas (un 404, o el fichero vacío de una temporada sin esa categoría), todo vacío. */
+export function lazyData(cat, consts = {}, names = lazyOf(cat).consts) {
   return {
-    groups: Array.isArray(consts.ALEVIN) ? consts.ALEVIN : [],
-    stats: objectOr(consts.ALEV_STATS, null),
-    history: objectOr(consts.HISTORY_ALEV, {}),
-    gol: Array.isArray(consts.GOL_ALEV) ? consts.GOL_ALEV : [],
-    estados: objectOr(consts.ESTADOS_ALEV, {}),
-    equipos: objectOr(consts.EQUIPOS_ALEV, {}),
+    groups: Array.isArray(consts[names.groups]) ? consts[names.groups] : [],
+    stats: objectOr(consts[names.stats], null),
+    history: objectOr(consts[names.history], {}),
+    gol: Array.isArray(consts[names.gol]) ? consts[names.gol] : [],
+    estados: objectOr(consts[names.estados], {}),
+    equipos: objectOr(consts[names.equipos], {}),
+    ...(names.campos ? { campos: objectOr(consts[names.campos], {}) } : {}),
   };
 }
 
-let _alevin = null;
-let _alevinPromise = null;
-export async function ensureAlevin() {
-  if (_alevin) return _alevin;
-  if (_alevinPromise) return _alevinPromise;
-  _alevinPromise = (async () => {
-    try {
-      const r = await fetchData('data-alevin.js');
-      // Sin fichero (la web de antes de alevín), sin alevín: nunca un error de carga.
-      if (r.status === 404) { _alevin = alevinData({}); return _alevin; }
-      if (!r.ok) throw new Error('HTTP ' + r.status);
-      // Sin conexión y sin su copia, el SW responde con index.html: sin ALEVIN, es un fallo.
-      const consts = readConsts(await r.text());
-      if (!Array.isArray(consts.ALEVIN)) throw new Error('ALEVIN not parseable');
-      _alevin = alevinData(consts);
-      return _alevin;
-    } catch (e) {
-      console.warn('[state] ensureAlevin failed:', e.message);
-      return null;                 // error sentinel (never cached)
-    } finally {
-      _alevinPromise = null;       // allow retry after failure
-    }
-  })();
-  return _alevinPromise;
+/* El alevín de la temporada del portal (lazyData de alevín): { groups: ALEVIN, stats: ALEV_STATS,
+ * history: HISTORY_ALEV, gol: GOL_ALEV, estados: ESTADOS_ALEV, equipos: EQUIPOS_ALEV }. */
+export function alevinData(consts = {}) {
+  return lazyData('alevin', consts);
 }
 
-const _seasonAlevin = {};
-const _seasonAlevinPromise = {};
-export async function ensureSeasonAlevin(season) {
-  if (!season) return null;
-  if (_seasonAlevin[season] !== undefined) return _seasonAlevin[season];
-  if (_seasonAlevinPromise[season]) return _seasonAlevinPromise[season];
-  _seasonAlevinPromise[season] = (async () => {
-    const name = 'SEASON_' + _seasonSuffix(season) + '_ALEVIN';
+/* El texto de un data-<cat>.js de la temporada del portal → lazyData, con TODAS sus constantes
+ * (LAZY[cat].consts): si falta alguna, Error, que ensureLazy da por fallo de carga (null, sin memorizar), con
+ * su aviso y «Reintentar». Sin conexión y sin su copia, el SW responde con index.html (sin ninguna); un fichero
+ * a medias pierde las últimas, y sin ellas la pantalla diría de menos sin avisar (Goleadores: «Todavía no hay
+ * goleadores»). */
+export function lazyFromText(cat, text) {
+  const { consts: names } = lazyOf(cat);
+  const consts = readConsts(text);
+  const missing = Object.values(names).filter((name) => !Object.hasOwn(consts, name));
+  if (missing.length || !Array.isArray(consts[names.groups])) throw new Error(`${missing.join(', ') || names.groups} not parseable`);
+  return lazyData(cat, consts);
+}
+
+const _lazy = {};
+const _lazyPromise = {};
+export async function ensureLazy(cat) {
+  const entry = lazyOf(cat);
+  if (_lazy[cat]) return _lazy[cat];
+  if (_lazyPromise[cat]) return _lazyPromise[cat];
+  _lazyPromise[cat] = (async () => {
     try {
-      const r = await fetchData(`data-season-${season}-alevin.js`);
-      // Solo existe si la temporada tuvo alevín: un 404 es esa temporada sin alevín.
-      if (r.status === 404) { _seasonAlevin[season] = {}; return _seasonAlevin[season]; }
+      const r = await fetchData(entry.file);
+      // Sin fichero (la web de antes de esa categoría), sin ella: nunca un error de carga.
+      if (r.status === 404) { _lazy[cat] = lazyData(cat, {}); return _lazy[cat]; }
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      _lazy[cat] = lazyFromText(cat, await r.text());
+      return _lazy[cat];
+    } catch (e) {
+      console.warn(`[state] ${entry.file} failed:`, e.message);
+      return null;                 // error sentinel (never cached)
+    } finally {
+      delete _lazyPromise[cat];    // allow retry after failure
+    }
+  })();
+  return _lazyPromise[cat];
+}
+
+const _seasonLazy = {};
+const _seasonLazyPromise = {};
+export async function ensureSeasonLazy(cat, season) {
+  const entry = lazyOf(cat);
+  if (!season) return null;
+  const key = `${cat}|${season}`;
+  if (_seasonLazy[key] !== undefined) return _seasonLazy[key];
+  if (_seasonLazyPromise[key]) return _seasonLazyPromise[key];
+  _seasonLazyPromise[key] = (async () => {
+    const name = 'SEASON_' + _seasonSuffix(season) + '_' + entry.consts.groups;
+    const file = `data-season-${season}-${cat}.js`;
+    try {
+      const r = await fetchData(file);
+      // Solo existe si la temporada tuvo esa categoría: un 404 es esa temporada sin ella.
+      if (r.status === 404) { _seasonLazy[key] = {}; return _seasonLazy[key]; }
       if (!r.ok) throw new Error('HTTP ' + r.status);
       const value = readConsts(await r.text())[name];
       if (!value || typeof value !== 'object') throw new Error(name + ' not parseable');
-      _seasonAlevin[season] = value;
+      _seasonLazy[key] = value;
       return value;
     } catch (e) {
-      console.warn('[state] ensureSeasonAlevin failed:', season, e.message);
+      console.warn(`[state] ${file} failed:`, e.message);
       return null;
     } finally {
-      delete _seasonAlevinPromise[season];
+      delete _seasonLazyPromise[key];
     }
   })();
-  return _seasonAlevinPromise[season];
+  return _seasonLazyPromise[key];
 }
 
-/* La carga del alevín de la temporada `name` que pide el router (loadAlevin de startRouter), como
- * seasonNeeds: [] si ya se pidió (datasets.alevin en la del portal, datasets.seasonAlevin[name] en una
- * pasada); si no, una promesa que lo guarda allí, o que rechaza con Error('alevín…') para la caja «No
- * se pudieron cargar los datos de alevín» (o para el aviso de Explorar y Ligas). `ensure` y
- * `ensureSeason`, los cargadores (las pruebas pasan otros). */
-export function alevinNeeds(name, datasets, portalSeason, { ensure = ensureAlevin, ensureSeason = ensureSeasonAlevin } = {}) {
-  if (!portalSeason) throw new TypeError('alevinNeeds: falta la temporada del portal');
+// Las de alevín de antes, que siguen usando pruebas y pantallas.
+export const ensureAlevin = () => ensureLazy('alevin');
+export const ensureSeasonAlevin = (season) => ensureSeasonLazy('alevin', season);
+
+const seasonText = (name) => String(name).replace(/^(\d{4})-\d{2}(\d{2})$/, '$1/$2');
+
+/* La carga de la categoría perezosa `cat` de la temporada `name` que pide el router (loadLazy de
+ * startRouter), como seasonNeeds: [] si ya se pidió (datasets.lazy[cat] en la del portal,
+ * datasets.seasonLazy[cat][name] en una pasada); si no, una promesa que la guarda allí, o que rechaza con
+ * Error('<categoría>…') para la caja «No se pudieron cargar los datos de <categoría>» (o para el aviso de
+ * Explorar y Ligas). `loaders`: { ensure(cat), ensureSeason(cat, season) } (las pruebas pasan otros). */
+export function lazyNeeds(cat, name, datasets, portalSeason, { ensure = ensureLazy, ensureSeason = ensureSeasonLazy } = {}) {
+  const { word } = lazyOf(cat);
+  if (!portalSeason) throw new TypeError('lazyNeeds: falta la temporada del portal');
   if (name === portalSeason) {
-    if (datasets.alevin !== undefined) return [];
-    return [ensure().then((data) => {
-      if (!data) throw new Error('alevín');
-      datasets.alevin = data;
+    if (datasets.lazy && datasets.lazy[cat] !== undefined) return [];
+    return [ensure(cat).then((data) => {
+      if (!data) throw new Error(word);
+      (datasets.lazy ||= {})[cat] = data;
     })];
   }
-  if (!name || (datasets.seasonAlevin && Object.hasOwn(datasets.seasonAlevin, name))) return [];
-  return [ensureSeason(name).then((raw) => {
-    if (!raw) throw new Error(`alevín de la temporada ${String(name).replace(/^(\d{4})-\d{2}(\d{2})$/, '$1/$2')}`);
-    (datasets.seasonAlevin ||= {})[name] = raw;
+  const past = datasets.seasonLazy && datasets.seasonLazy[cat];
+  if (!name || (past && Object.hasOwn(past, name))) return [];
+  return [ensureSeason(cat, name).then((raw) => {
+    if (!raw) throw new Error(`${word} de la temporada ${seasonText(name)}`);
+    ((datasets.seasonLazy ||= {})[cat] ||= {})[name] = raw;
   })];
 }
 
-// Carga el alevín que falte de las temporadas `names` (alevinNeeds: data-alevin.js en la del portal y
-// data-season-<S>-alevin.js en una pasada, donde un 404 es «sin alevín» y cuenta como cargado) y
-// devuelve las que no llegaron, en el orden de `names` ([] si están todas): un fallo no se memoriza y
-// la llamada siguiente las vuelve a pedir. Como loadSeasons, para el cara a cara de un partido de
-// alevín y la Trayectoria, que sin él dirían de menos. `loaders`, los de alevinNeeds.
-export async function loadAlevinSeasons(datasets, names, portalSeason, loaders = {}) {
-  const done = await Promise.all(names.map((name) => Promise.all(alevinNeeds(name, datasets, portalSeason, loaders))
+// alevinNeeds de antes: lazyNeeds de alevín, con los cargadores de antes ({ ensure(), ensureSeason(season) }).
+export function alevinNeeds(name, datasets, portalSeason, { ensure = ensureAlevin, ensureSeason = ensureSeasonAlevin } = {}) {
+  if (!portalSeason) throw new TypeError('alevinNeeds: falta la temporada del portal');
+  return lazyNeeds('alevin', name, datasets, portalSeason, { ensure: () => ensure(), ensureSeason: (_cat, season) => ensureSeason(season) });
+}
+
+// Carga lo que falte de las categorías perezosas `cats` de las temporadas `names` (lazyNeeds:
+// data-<cat>.js en la del portal y data-season-<S>-<cat>.js en una pasada, donde un 404 es «sin esa
+// categoría» y cuenta como cargado) y devuelve las que no llegaron, [{ cat, season }] en el orden de
+// `names` y, en cada una, de `cats` ([] si están todas): un fallo no se memoriza y la llamada siguiente
+// las vuelve a pedir. Como loadSeasons, para el cara a cara de un partido y la Trayectoria, que sin ellas
+// dirían de menos. Solo las que la temporada tiene (lazyCatsOf de datasets.seasons): las demás quedan
+// «sin esa categoría», como un 404, sin pedirlas. `loaders`, los de lazyNeeds.
+export async function loadLazySeasons(datasets, names, portalSeason, cats = Object.keys(LAZY), loaders = {}) {
+  const has = (cat, season) => lazyCatsOf(datasets.seasons, season).includes(cat);
+  for (const season of names) {
+    for (const cat of cats.filter((c) => !has(c, season))) {
+      if (season === portalSeason) { if (!datasets.lazy || datasets.lazy[cat] === undefined) (datasets.lazy ||= {})[cat] = lazyData(cat, {}); }
+      else if (!Object.hasOwn((datasets.seasonLazy || {})[cat] || {}, season)) ((datasets.seasonLazy ||= {})[cat] ||= {})[season] = {};
+    }
+  }
+  const pairs = names.flatMap((season) => cats.filter((cat) => has(cat, season)).map((cat) => ({ cat, season })));
+  const done = await Promise.all(pairs.map(({ cat, season }) => Promise.all(lazyNeeds(cat, season, datasets, portalSeason, loaders))
     .then(() => true, () => false)));
-  return names.filter((_, i) => !done[i]);
+  return pairs.filter((_, i) => !done[i]);
+}
+
+// Los cargadores de lazyNeeds ({ ensure(cat), ensureSeason(cat, season) }) con los de alevín de antes
+// ({ ensure(), ensureSeason(season) }, los de alevinNeeds) para alevín y `others` para las demás (las pruebas
+// pasan los suyos; sin ellos, los de siempre).
+export function lazyLoaders(alevin = {}, others = {}) {
+  const { ensure = ensureLazy, ensureSeason = ensureSeasonLazy } = others;
+  return {
+    ensure: (cat) => (cat === 'alevin' && alevin.ensure ? alevin.ensure() : ensure(cat)),
+    ensureSeason: (cat, season) => (cat === 'alevin' && alevin.ensureSeason ? alevin.ensureSeason(season) : ensureSeason(cat, season)),
+  };
+}
+
+// loadAlevinSeasons de antes: las temporadas (no los pares) cuyo alevín no llegó. `loaders`, los de alevinNeeds.
+export async function loadAlevinSeasons(datasets, names, portalSeason, { ensure = ensureAlevin, ensureSeason = ensureSeasonAlevin } = {}) {
+  const failed = await loadLazySeasons(datasets, names, portalSeason, ['alevin'],
+    { ensure: () => ensure(), ensureSeason: (_cat, season) => ensureSeason(season) });
+  return failed.map(({ season }) => season);
 }
 
 // data-health.json: la comprobación de las fuentes, parseada, o null si no

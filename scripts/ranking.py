@@ -164,13 +164,19 @@ def letra_segunda_fase(fase: str | None) -> str | None:
     return m.group(1).upper() if m else None
 
 
-def fase_que_cuenta(fase: str | None, mejor: str | None) -> str | None:
+def fase_que_cuenta(fase: str | None, mejor: str | None, *, por_liga: bool = False) -> str | None:
     """La fase con la que se mide el nivel de una fila: la suya si tiene nivel propio (tiene_nivel); si no,
     «Segunda Fase <mejor>», la mejor letra de Segunda Fase de su equipo esa temporada (la que le puso la
     federación), si la tiene; y si tampoco, la suya. Los goles de la Primera Fase o de las eliminatorias de
     un equipo que acabó en la A valen como de la A. En infantil, cadete y juvenil `mejor` es una fase entera
-    (más de un carácter: la de la liga de su equipo esa temporada, que calcula E2), y se usa tal cual: la
-    «Copa Insular Lanzarote» de un equipo de la Insular cuenta como «Insular Lanzarote»."""
+    (más de un carácter: la de la mejor liga de su equipo esa temporada, generate_js._rival_y_puesto), y se
+    usa tal cual: la «Copa Insular Lanzarote» de un equipo de la Insular cuenta como «Insular Lanzarote».
+    En ellas (por_liga: las que cuentan con su liga, generate_js._cuenta_su_liga) la Copa de Campeones es una
+    copa más, no la de los mejores equipos de una sola liga como en benjamín: cuenta con la mejor liga de su
+    equipo y, sin ella (una liga sin nivel propio, como la Primera), sin nivel (None: 1), como las demás
+    copas; nunca con su 1,25 fijo, que valdría más que la liga del equipo."""
+    if por_liga and fase and _CAMPEONES.match(_normalizar(fase)):
+        return mejor
     if tiene_nivel(fase) or not mejor:
         return fase
     if len(mejor) > 1:

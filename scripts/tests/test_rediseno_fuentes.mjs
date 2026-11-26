@@ -240,3 +240,19 @@ test('registro y CSS: la ruta pinta Fuentes; solo clases que existen y filas de 
   assert.match(rules.filter((r) => r.media === null && r.selector === '.fu-row').map((r) => r.body).join(';'), /min-height:\s*44px/);
   assert.equal(text(render()).includes('undefined'), false);
 });
+
+test('test_fuentes_carril: el veredicto del carril de infantil, cadete y juvenil (carriles.mayores.runHealth), en una línea bajo el de la pasada', () => {
+  const lane = { ok: false, reasons: ['fallaron 3 de 12 grupos leídos: CADNG1'], since: '2026-11-14T10:05:00+00:00' };
+  const said = 'Carril de infantil, cadete y juvenil: la última pasada del bot no fue bien (desde el 14 de noviembre, 10:05): fallaron 3 de 12 grupos leídos: CADNG1.';
+  const out = render(edited((h) => { h.carriles = { mayores: { runHealth: lane } }; }));
+  assert.match(out, new RegExp(`</dl></div></section><p class="notice">${said.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}</p><section class="block">`));
+  // Con el veredicto de la pasada de siempre en rojo, el del carril justo debajo.
+  const both = render(edited((h) => { h.runHealth = { ok: false, reasons: ['interrumpida'] }; h.carriles = { mayores: { runHealth: lane } }; }));
+  assert.match(both, /<p class="notice">La última pasada del bot no fue bien: interrumpida\.<\/p><p class="notice">Carril de infantil, cadete y juvenil: la última pasada del bot no fue bien/);
+  // Sin carriles, sano o mal formado: ninguna línea, y sin romper.
+  for (const carriles of [undefined, null, {}, { mayores: null }, { mayores: { runHealth: { ok: true } } }, { mayores: { runHealth: { ok: false, reasons: [] } } }, 'x']) {
+    const quiet = render(edited((h) => { if (carriles === undefined) delete h.carriles; else h.carriles = carriles; }));
+    assert.doesNotMatch(quiet, /Carril de/, JSON.stringify(carriles));
+    assert.match(quiet, /Comprobación por grupo/);
+  }
+});

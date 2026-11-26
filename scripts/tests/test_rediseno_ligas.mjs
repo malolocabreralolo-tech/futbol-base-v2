@@ -5,7 +5,7 @@
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
 import { archive } from './fixtures/rediseno/simulate.mjs';
-import { ctxFor, datasetsFor, cssRules, PORTAL_SEASON } from './fixtures/rediseno/screens.mjs';
+import { ctxFor, datasetsFor, cssRules, lazyWith, PORTAL_SEASON } from './fixtures/rediseno/screens.mjs';
 import { fakeBrowser } from './fixtures/rediseno/fake-browser.mjs';
 import { screen, compareView, ligasView } from '../../src/screen-ligas.js';
 import { SCREEN_MAP } from '../../src/screens.js';
@@ -229,4 +229,48 @@ test('registro: Ligas es la pantalla de #/ligas; y el CSS: solo clases que exist
     render({ f: 'copa-campeones' }, {}, { champions: true }), render({ c: 'benjamin', f: 'zz' }), s(compareView(ctx, ligasView(ctx).chosen[0]))].join('');
   const used = new Set(html.match(/class="[^"]+"/g).flatMap((m) => m.slice(7, -1).split(/\s+/)));
   assert.deepEqual([...used].filter((c) => !rules.classes.has(c)), []);
+});
+
+// ── Infantil, cadete y juvenil (parte E2, tarea 4) ───────────────────────
+
+test('test_ligas_interinsular: juvenil con la División de Honor (interinsular) y las preferentes de Gran Canaria y Lanzarote', async () => {
+  const JUV = lazyWith('juvenil', [
+    { id: 'JUVPL1', phase: 'Preferente Lanzarote', island: 'lanzarote', fullName: 'LIGA JUVENIL PREFERENTE DE LANZAROTE - GRUPO 1', teams: ['Club Lz Uno', 'Club Lz Dos'] },
+    { id: 'JUVH1', phase: 'División de Honor', island: 'interinsular', fullName: 'LIGA DIVISION DE HONOR JUVENIL - GRUPO 1', teams: ['Club Dh Uno', 'Club Dh Dos'] },
+    { id: 'JUVPG1', phase: 'Preferente GC', fullName: 'LIGA JUVENIL PREFERENTE DE GRAN CANARIA - GRUPO 1', teams: ['Club Gc Uno', 'Club Gc Dos'] },
+  ]);
+  const data = { lazy: { juvenil: JUV } };
+  // Las tres, con su nombre (la División de Honor, sin «de Interinsular»): primero el nivel de la liga (la
+  // División de Honor, interinsular, la primera) y, a igual nivel, Gran Canaria y Lanzarote (ISLAND_ORDER).
+  const all = render({ c: 'juvenil' }, {}, data);
+  assert.deepEqual(rows(all), [
+    [`#/ligas?s=${PORTAL_SEASON}&c=juvenil&f=interinsular-division-de-honor`, 'División de Honor 1 grupo'],
+    [`#/ligas?s=${PORTAL_SEASON}&c=juvenil&f=preferente`, 'Preferente 1 grupo'],
+    [`#/ligas?s=${PORTAL_SEASON}&c=juvenil&f=lanzarote-preferente`, 'Preferente de Lanzarote 1 grupo'],
+  ]);
+  assert.doesNotMatch(all, /de Interinsular/);
+  assert.deepEqual(ligasView(ctxWith({ c: 'juvenil' }, {}, data)).list.map((e) => e.groups[0].island), ['interinsular', 'grancanaria', 'lanzarote']);
+  // El filtro de isla con «interinsular» («Otras ligas» de un grupo de la División de Honor): solo la suya.
+  const only = render({ c: 'juvenil', i: 'interinsular', to: 'tabla' }, {}, data);
+  assert.deepEqual(rows(only).map(([, label]) => label), ['División de Honor 1 grupo']);
+  assert.equal(head(only), '‹ Ligas Juvenil interinsular · 2025/26');
+  assert.match(render({ c: 'cadete', i: 'interinsular', to: 'tabla' }, {}, data), /<p class="empty">No hay ligas interinsulares de cadete en la temporada 2025\/26\.<\/p>/);
+  // El router deja pasar `i=interinsular` (y sigue quitando una isla que no existe).
+  const b = fakeBrowser('#/ligas?c=juvenil&i=interinsular');
+  const router = startRouter({ screens: SCREEN_MAP, root: b.root, getContext: () => ctxFor('', {}, { datasets: datasetsFor(data) }), window: b.win });
+  await router.idle();
+  assert.equal(b.hash(), '#/ligas?c=juvenil&i=interinsular');
+  b.click({ href: '#/ligas?c=juvenil&i=tenerife' });
+  await router.idle();
+  assert.equal(b.hash(), '#/ligas?c=juvenil');
+});
+
+// Sin competiciones (una isla sin grupos), el texto nombra las categorías de la temporada, no las seis: con la
+// base de hoy, «benjamín, prebenjamín y alevín», como antes de las nuevas; con cadete, también cadete.
+test('Ligas vacía nombra las categorías de la temporada, no las seis', () => {
+  assert.match(render({ i: 'interinsular' }), /<p class="empty">No hay competiciones interinsulares de benjamín, prebenjamín y alevín en la temporada 2025\/26\.<\/p>/);
+  const CAD = lazyWith('cadete', [{ id: 'CADNG1', phase: 'Insular GC', fullName: 'LIGA CADETE INSULAR GRAN CANARIA - GRUPO 1', teams: ['Club Cadete Uno', 'Club Cadete Dos'] }]);
+  assert.match(render({ i: 'interinsular' }, {}, { lazy: { cadete: CAD } }),
+    /<p class="empty">No hay competiciones interinsulares de benjamín, prebenjamín, alevín y cadete en la temporada 2025\/26\.<\/p>/);
+  assert.match(head(render({ i: 'interinsular' })), /^‹ Ligas Benjamín, prebenjamín y alevín interinsular · 2025\/26$/);
 });

@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 """prueba_mayores.py — La suite entera sobre la base «de después»: la que dejará el bot cuando el director haya
-activado y leído infantil, cadete y juvenil (pasos D3-D5 de la parte E1).
+activado y leído infantil, cadete y juvenil (pasos D3-D5 de la parte E1) y, con --con-cambios y el paso ya escrito
+en el árbol de trabajo, la de cada paso del director: también E2-D2 (EN_WEB con las seis), en el que las fichas y los
+data-*.js del árbol temporal salen con la web ampliada (docs/categorias-mayores.md, «En la web»).
 
 Por qué. La puerta de pruebas del bot (update.yml, «Tests Python» y «Tests Node») corre DESPUÉS de sus pasos de
 importación, sobre la base que acaba de escribir: una prueba «sobre la base real» que vale con la base de hoy y
@@ -19,7 +21,9 @@ pasó el 25/11 con otra base de después. Esto fabrica esa base sobre una copia 
      migrate_identidad.resolver_fichas, los enlaces de la liga de escuelas y generate_js.main();
   4. allí, python3 -m pytest scripts/tests/ y node --test scripts/tests/test_*.mjs.
 
-Imprime el tamaño de la base antes y después, los segundos de cada paso y «verde» o «rojo» con lo que falló;
+Imprime lo que dice scripts/categorias.py en el árbol temporal (ACTIVABLES, ALEVIN_ISLAS y EN_WEB: con
+--con-cambios, los del paso escrito), el tamaño de la base antes y después, los segundos de cada paso y «verde» o
+«rojo» con lo que falló;
 sale con 0 solo en verde. Borra el árbol temporal salvo con --conservar. Nunca toca el árbol de trabajo (ni su
 base, ni sus data-*.js) ni pide nada a ninguna web.
 """
@@ -68,6 +72,7 @@ def paso_interno(categorias, islas):
     sys.path.insert(0, str(raiz / "scripts"))
     sys.path.insert(1, str(raiz / "scripts" / "tests"))
     import base_mayores
+    import categorias as C
     from categorias import parse_categories
     from db import get_connection
     cats = parse_categories(categorias)
@@ -111,7 +116,9 @@ def paso_interno(categorias, islas):
             sys.stdout = stdout
     t_generar = time.monotonic() - t2
     print(json.dumps({**hecho, "segundos": {"poblar": round(t_poblar, 1), "fichas": round(t_fichas, 1),
-                                            "copia_web": round(t_copia, 2), "generar": round(t_generar, 1)}}))
+                                            "copia_web": round(t_copia, 2), "generar": round(t_generar, 1)},
+                      "categorias": {"ACTIVABLES": list(C.ACTIVABLES), "ALEVIN_ISLAS": C.ALEVIN_ISLAS,
+                                     "EN_WEB": list(C.EN_WEB)}}))
 
 
 def _fallos(texto):
@@ -167,6 +174,9 @@ def main(argv=None):
             return 1
         hecho = json.loads(r.stdout.strip().splitlines()[-1])
         mb_despues = _mb(arbol / "futbolbase.db")
+        cats = hecho["categorias"]
+        print(f"En el árbol temporal, scripts/categorias.py: ACTIVABLES {', '.join(cats['ACTIVABLES'])}; ALEVIN_ISLAS "
+              f"{cats['ALEVIN_ISLAS']}; EN_WEB {', '.join(cats['EN_WEB'])}")
         print(f"Base de después: {len(hecho['grupos'])} grupos ({', '.join(hecho['grupos'])}), {hecho['partidos']} "
               f"partidos jugados, {hecho['actas']} actas, {hecho['jugadores_reutilizados']} niños de la base con su "
               f"id, {hecho['sin_id_reutilizados']} sin id con el mismo nombre y club (en la fila de otra categoría: "

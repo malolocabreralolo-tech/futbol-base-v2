@@ -4,7 +4,8 @@
 // congelados y `today` inyectado; y la temporada pasada la carga el router.
 import { test } from 'node:test';
 import { strict as assert } from 'node:assert';
-import { ctxFor, datasetsFor, cssRules, PORTAL_SEASON, DEFAULT_TEAM } from './fixtures/rediseno/screens.mjs';
+import { ctxFor, datasetsFor, cssRules, lazyWith, PORTAL_SEASON, DEFAULT_TEAM } from './fixtures/rediseno/screens.mjs';
+import { categoryPicker } from '../../src/ui.js';
 import { goleadores, archive, nextSeasonRaw } from './fixtures/rediseno/simulate.mjs';
 import { fakeBrowser, memoryStorage } from './fixtures/rediseno/fake-browser.mjs';
 import { escape } from '../../src/html.js';
@@ -114,7 +115,7 @@ test('la temporada actual: cabecera, selector de categoría (la de mi equipo), t
   const out = render({});
   assert.match(out, /^<section data-screen="records"><header class="screen-head"><a class="back" href="#\/explorar" data-action="back" aria-label="Volver">‹<\/a><div class="screen-head-text"><h1>Récords<\/h1><p class="screen-sub">Temporada 2025\/26<\/p><\/div><a class="screen-action" href="#\/temporadas">Otra temporada<\/a><\/header>/);
   assert.equal((out.match(/<h1[ >]/g) || []).length, 1);
-  assert.match(out, /<nav class="rc-cats" aria-label="Categoría"><div class="segmented"><a class="segment" id="categoria-benjamin" href="#\/records\?s=2025-2026&amp;c=benjamin">Benjamín<\/a><a class="segment" id="categoria-prebenjamin" href="#\/records\?s=2025-2026&amp;c=prebenjamin" aria-current="true">Prebenjamín<\/a><a class="segment" id="categoria-alevin" href="#\/records\?s=2025-2026&amp;c=alevin">Alevín<\/a><\/div><\/nav>/);
+  assert.match(out, /<nav class="rc-cats" aria-label="Categoría"><div class="segmented cat-picker"><a class="segment" id="categoria-benjamin" href="#\/records\?s=2025-2026&amp;c=benjamin">Benjamín<\/a><a class="segment" id="categoria-prebenjamin" href="#\/records\?s=2025-2026&amp;c=prebenjamin" aria-current="true">Prebenjamín<\/a><a class="segment" id="categoria-alevin" href="#\/records\?s=2025-2026&amp;c=alevin">Alevín<\/a><\/div><\/nav>/);
   assert.match(out, /<h2 class="block-title">Totales<\/h2><p class="block-context">partidos de liga con resultado<\/p><\/div><div class="box"><dl class="cells cells-3"><div class="cell"><dt class="cell-label">Partidos<\/dt><dd class="cell-value">406<\/dd><\/div><div class="cell"><dt class="cell-label">Goles<\/dt><dd class="cell-value">3\.253<\/dd><\/div><div class="cell"><dt class="cell-label">Por partido<\/dt><dd class="cell-value">8,01<\/dd><\/div><\/dl><\/div>/);
   const r = seasonRecords(seasonOf(PORTAL_SEASON), 'prebenjamin');
   assert.deepEqual(rowsOf(blockOf(out, 'Partidos')), [
@@ -281,4 +282,36 @@ test('CSS: solo clases que existen, filas de 44 px, y en escritorio los goleador
   assert.ok(!rules.some((r) => r.media === null && r.selector === '.rc-cols' && /display:\s*grid/.test(r.body)), 'en móvil, una columna');
   const mismo = ctx({});
   assert.equal(String(screen.render(mismo)), String(screen.render(mismo)), 'mismo ctx, mismo HTML');
+});
+
+// ── El selector de categoría para seis (parte E2, tarea 5) ───────────────
+
+test('test_selector_de_categorias: Goleadores y Récords, con las seis cuando la temporada las tiene; en una pasada, las que tiene', () => {
+  const six = {
+    infantil: lazyWith('infantil', [{ id: 'INFPG1', phase: 'Preferente GC', teams: ['Club Infantil Uno', 'Club Infantil Dos'] }]),
+    cadete: lazyWith('cadete', [{ id: 'CADNG1', phase: 'Insular GC', teams: ['Club Cadete Uno', 'Club Cadete Dos'] }]),
+    juvenil: lazyWith('juvenil', [{ id: 'JUV2G1', phase: 'Segunda GC', teams: ['Club Juvenil Uno', 'Club Juvenil Dos'] }]),
+  };
+  const links = (out, screenName) => [...out.matchAll(new RegExp(`<a class="segment" id="categoria-(\\w+)" href="#/${screenName}\\?s=([\\d-]+)&amp;c=\\1"( aria-current="true")?>([^<]+)</a>`, 'g'))]
+    .map((m) => `${m[1]}${m[3] ? '*' : ''} ${m[4]}`);
+  for (const [name, scr] of [['records', screen], ['goleadores', SCREEN_MAP.goleadores]]) {
+    const draw = (params, extra = {}) => String(scr.render(ctxFor(name, { s: PORTAL_SEASON, ...params }, { datasets: data(extra) })));
+    // La del portal con las seis: seis enlaces, en el orden de CATEGORIES, con el nombre entero.
+    const all = draw({ c: 'juvenil' }, { lazy: six });
+    assert.deepEqual(links(all, name), ['benjamin Benjamín', 'prebenjamin Prebenjamín', 'alevin Alevín', 'infantil Infantil', 'cadete Cadete', 'juvenil* Juvenil'], name);
+    assert.match(all, /<div class="segmented cat-picker">/, `${name}: el selector que se desliza`);
+    // Goleadores de una pasada sin goleadores archivados (las fixtures) no pinta selector: lo de las pasadas, en Récords.
+    if (name === 'goleadores') continue;
+    // Una pasada sin las nuevas: las tres de siempre (alevín también, como hoy); con la elegida en la dirección, también.
+    assert.deepEqual(links(draw({ s: '2024-2025', c: 'benjamin' }), name).map((l) => l.split(' ')[0]), ['benjamin*', 'prebenjamin', 'alevin'], name);
+    assert.deepEqual(links(draw({ s: '2024-2025', c: 'cadete' }), name).map((l) => l.split(' ')[0]), ['benjamin', 'prebenjamin', 'alevin', 'cadete*'], name);
+    // La que dice data-seasons.js de esa temporada sale aunque su fichero no se haya pedido.
+    const seasons = [{ name: PORTAL_SEASON, current: true }, { name: '2024-2025', current: false, lazy: ['alevin', 'juvenil'] }, { name: '2023-2024', current: false }];
+    assert.deepEqual(links(draw({ s: '2024-2025', c: 'benjamin' }, { seasons }), name).map((l) => l.split(' ')[0]), ['benjamin*', 'prebenjamin', 'alevin', 'juvenil'], name);
+  }
+  // Con una sola, ningún selector; con dos, sí.
+  const href = (c) => `#/records?c=${c}`;
+  assert.equal(String(categoryPicker(['benjamin'], 'benjamin', href)), '');
+  assert.equal(String(categoryPicker(['benjamin', 'juvenil'], 'juvenil', href, { label: 'Categoría', cls: 'rc-cats' })),
+    '<nav class="rc-cats" aria-label="Categoría"><div class="segmented cat-picker"><a class="segment" id="categoria-benjamin" href="#/records?c=benjamin">Benjamín</a><a class="segment" id="categoria-juvenil" href="#/records?c=juvenil" aria-current="true">Juvenil</a></div></nav>');
 });

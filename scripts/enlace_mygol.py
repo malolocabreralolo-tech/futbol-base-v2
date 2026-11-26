@@ -6,7 +6,10 @@ nuevo cada año) se enlaza con una ficha solo si:
   1. su nombre es completo: «APELLIDO APELLIDO, NOMBRE» (identidad.nombre_completo);
   2. esa temporada no hay en MyGol otro niño con el mismo nombre en un club que no tenga nada que ver con el
      suyo (si lo hay, son dos niños y no se sabe cuál es cuál: no se enlaza ninguno de los de ese nombre);
-  3. hay UNA sola ficha con ese nombre exacto en alguna de sus identidades (la principal o una unida);
+  3. hay UNA sola ficha con ese nombre exacto en alguna de sus identidades (la principal o una unida); una
+     ficha que solo ha jugado en infantil, cadete o juvenil y cuya edad no cuadra con la del niño (regla 4) no
+     cuenta: es otro niño que se llama igual, y no es una duda (sin esto, un cadete homónimo de un niño de
+     escuela le quitaría su enlace en cuanto la web enseñe las categorías nuevas, el paso E2-D2);
   4. la edad cuadra: algún año de nacimiento de la ficha (estimado solo con la federación) cabe en la
      ventana de la categoría de escuela de esa temporada, con un año de margen por el lado joven;
   5. y, ya con todos, a ninguna ficha le llegan dos niños de la misma temporada en clubes sin nada en común
@@ -29,6 +32,7 @@ from dataclasses import dataclass
 from typing import Iterable
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from categorias import MAYORES  # noqa: E402
 from identidad import nombre_completo  # noqa: E402
 from nacimiento import VENTANA  # noqa: E402
 
@@ -53,6 +57,7 @@ class Ficha:
     id: int                     # el players.id de su principal
     nombres: frozenset[str]     # el nombre normalizado (sin sufijo '#…') de cada una de sus identidades
     anios: tuple[int, ...]      # su año de nacimiento estimado solo con la federación; () si no se sabe
+    solo_nuevas: bool = False   # solo ha jugado en infantil, cadete o juvenil (ver la regla 3)
 
 
 def edad_compatible(anios: tuple[int, ...], temporada: int, categoria: str | None) -> bool:
@@ -80,8 +85,10 @@ def enlazar(ninos: Iterable[Nino], fichas: Iterable[Ficha]) -> dict[int, int]:
     # Las fichas de cada nombre (un nombre en dos identidades de la misma ficha cuenta una vez).
     por_nombre: dict[str, set[int]] = {}
     anios: dict[int, tuple[int, ...]] = {}
+    solo_nuevas: dict[int, bool] = {}
     for f in fichas:
         anios[f.id] = f.anios
+        solo_nuevas[f.id] = f.solo_nuevas
         for nombre in f.nombres:
             por_nombre.setdefault(nombre, set()).add(f.id)
     # 2: los nombres que esa temporada son de dos niños.
@@ -94,7 +101,8 @@ def enlazar(ninos: Iterable[Nino], fichas: Iterable[Ficha]) -> dict[int, int]:
         candidatos[n] = None
         if not nombre_completo(n.norm) or (n.temporada, n.norm) in dos_ninos:
             continue
-        unica = por_nombre.get(n.norm, set())
+        unica = {fid for fid in por_nombre.get(n.norm, set())
+                 if not (solo_nuevas[fid] and not edad_compatible(anios[fid], n.temporada, n.categoria))}
         if len(unica) != 1:
             continue                    # 3: ninguna ficha, o dos (la duda)
         (fid,) = unica
@@ -212,8 +220,11 @@ def fichas_de(conn) -> list[Ficha]:
             continue
         suyas = partidos.setdefault(principal, {})
         suyas[(anio, categoria)] = suyas.get((anio, categoria), 0) + pj
+    # Las que solo han jugado en las categorías nuevas (regla 3): sin ellas en la web, ninguna.
+    nuevas = {c.lower() for c in MAYORES}
     return [Ficha(id=p, nombres=frozenset(ns),
-                  anios=estimar((y, c, n) for (y, c), n in partidos.get(p, {}).items()))
+                  anios=estimar((y, c, n) for (y, c), n in partidos.get(p, {}).items()),
+                  solo_nuevas=bool(partidos.get(p)) and all(c in nuevas for _, c in partidos[p]))
             for p, ns in sorted(nombres.items())]
 
 

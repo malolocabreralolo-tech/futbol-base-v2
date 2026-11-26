@@ -25,7 +25,7 @@ Nombre normalizado: sin tildes, en mayúsculas y con espacios simples (`identida
 
 **Club de un equipo** (`identidad.club`): el nombre sin la letra de filial. Es la regla de `baseKey` de `src/myteam.js` (la clave con la que la web agrupa los equipos de un club) sobre la normalización C1 que ya existe en Python (`generate_js.normalize_for_teams_mapping`, gemela de `normalizeForTeamsMapping`): quita las siglas (`UD`, `CD`, `CF`…, más `RC`, `US`, `CDA`, `CEF`) y la última palabra si es una letra de la A a la E. No usa escudos ni los alias de `TEAM_ALIASES`, como `baseKey`: dos grafías del mismo club que solo une el escudo cuentan como dos clubes (une menos).
 
-**Edad** (`identidad.intervalo`): quien juega la temporada que empieza el año `Y` nació en prebenjamín `[Y-7, Y-5]`, en benjamín `[Y-9, Y-6]`, en alevín `[Y-11, Y-8]`, en infantil `[Y-13, Y-10]`, en cadete `[Y-15, Y-12]` y en juvenil `[Y-18, Y-14]` (desde benjamín, la ventana natural de `nacimiento.VENTANA` y dos años más por abajo: quien juega con los mayores). Las fichas solo miran las categorías que enseña la web (`categorias.EN_WEB`): las apariciones, los sucesos y los pares «juntas» de infantil, cadete y juvenil están en la base desde que su carril los lee, pero no unen, no separan ni cambian el intervalo, la clave o el año de ninguna ficha hasta que la web los enseñe (parte E2). Una identidad que solo sale en ellas queda suelta (`ficha_id` y `union_por` a `NULL`); la de un niño de benjamín al que la federación da el mismo id en cadete es la misma fila, y su ficha, la de sus vistas de benjamín. Los enlaces con la liga de escuelas (`enlace_mygol.fichas_de`) miran lo mismo.
+**Edad** (`identidad.intervalo`): quien juega la temporada que empieza el año `Y` nació en prebenjamín `[Y-7, Y-5]`, en benjamín `[Y-9, Y-6]`, en alevín `[Y-11, Y-8]`, en infantil `[Y-13, Y-10]`, en cadete `[Y-15, Y-12]` y en juvenil `[Y-18, Y-14]` (desde benjamín, la ventana natural de `nacimiento.VENTANA` y dos años más por abajo: quien juega con los mayores). Las fichas solo miran las categorías que enseña la web (`categorias.EN_WEB`): las apariciones, los sucesos y los pares «juntas» de infantil, cadete y juvenil están en la base desde que su carril los lee, pero no unen, no separan ni cambian el intervalo, la clave o el año de ninguna ficha hasta que la web los enseñe (el paso E2-D2; abajo, «Lo medido al ampliar EN_WEB»). Una identidad que solo sale en ellas queda suelta (`ficha_id` y `union_por` a `NULL`); la de un niño de benjamín al que la federación da el mismo id en cadete es la misma fila, y su ficha, la de sus vistas de benjamín. Los enlaces con la liga de escuelas (`enlace_mygol.fichas_de`) miran lo mismo.
 
 **Compatibles**: un conjunto de identidades lo es si (a) los intervalos de edad de todas sus apariciones se cruzan y (b) no hay solape imposible: en una misma temporada y categoría, dos clubes distintos con rangos de fechas de partidos que se cruzan. Prebenjamín tres temporadas seguidas cabe; cuatro, no.
 
@@ -43,6 +43,8 @@ Nombre normalizado: sin tildes, en mayúsculas y con espacios simples (`identida
 **U0 de club** (ronda de arreglo 3; va después de las dos U0 de equipo y antes de U1): cubo de fichas, tal como las dejaron las U0 de equipo, con el mismo nombre con coma, el mismo club (`club(equipo)`, no vacío) y la misma temporada. Si en el cubo hay como mucho una ficha con identificador, se unen todas (las sin identificador entre sí y con la que lo tiene), cada una a la primera del cubo con la que cabe (la que sería principal primero), como en U0; la que no cabe con ninguna se queda fuera. Con dos o más con identificador, nada (manda el id, y no se sabe de cuál es la que no lo tiene). Los nombres sin coma no entran (dos «DANIEL» en dos categorías de un club son probablemente dos niños), y una ficha con ordinal bloquea su cubo. El caso que la trajo: un niño sin identificador en prebenjamín de un club dos temporadas, con un partido con identificador en el benjamín B del club la segunda y el mismo identificador en otro club la tercera, salía en tres fichas (U0 no unía «X» y «X B»; U1 veía dos fichas en el club esa temporada); ahora la U0 de club une las dos de la segunda temporada y U1 la primera con ellas: una ficha, con la principal del identificador. Detrás de `identidad.U0_CLUB_COMPLETOS` y `U0_CLUB_UN_APELLIDO` (la medida de abajo).
 
 Nada más une. Lo imposible por edad no se une nunca (tampoco en U0). Dos identidades que salen en el mismo partido con el mismo equipo (`migrate_identidad.pares_juntas`, solo las del mismo nombre: las demás no las une ninguna regla) son dos niños: dos fichas con una de cada una no se unen por ninguna regla, ni directa ni a través de otra (`resolver(…, juntas=pares)`; el caso que lo trajo: U0 unía dos identificadores del mismo nombre, equipo y temporada que jugaron el mismo partido).
+
+**Las categorías nuevas no crean dudas imposibles** (`identidad.NIVELES_NUEVOS`; desde el paso E2-D2, cuando la web enseña infantil, cadete y juvenil). Las reglas que «ante la duda» no unen cuentan cuántas fichas hay en su cubo: U0 (las que tienen ordinal en el equipo y la temporada; de los nombres sin coma, las asentadas), la U0 de club (las que tienen identificador), U1 (uno a uno) y U2 (candidata única). Como el club es la misma fila de `teams` en todas las categorías, un cadete que se llama como dos prebenjamines del club caería en sus cubos y desharía su ficha de hoy, aunque por la edad no pueda ser ninguno de ellos (seis años o más). Por eso, en cada cubo, una ficha que **solo está en él por sus vistas de infantil, cadete o juvenil** y **no cabe por la edad con ninguna otra del cubo** (en U1, con ninguna del otro año) no cuenta: no es una duda (`_sin_ajenas`). Solo esas: un homónimo de prebenjamín, benjamín o alevín que tampoco cabe sigue siendo la duda de siempre (une menos, como antes), y una de las nuevas que sí cabe con alguna, también. Sin vistas de las categorías nuevas el resultado es el de antes, identidad a identidad (comprobado sobre la base real el 26/11/2026: 19.962 identidades, 0 distintas). Lo mismo en el enlace con la liga de escuelas ([mygol.md](mygol.md), regla 3): una ficha que solo ha jugado en las nuevas y cuya edad no cuadra con la del niño de escuela no le quita el enlace.
 
 **Principal**: la identidad con identificador que más apariciones tiene (a igualdad, el `fiflp_id` menor); si ninguna lo tiene, la de la temporada más antigua (a igualdad, la de más apariciones y luego el `id` menor). `union_por` de cada identidad es la regla de la unión que la juntó con la principal: si dos sin identificador de clubes distintos se unieron por U2 a la ficha de una con identificador, llevan `nombre`; si una sin identificador va a la del mismo club la temporada anterior o la siguiente, `club`.
 
@@ -99,6 +101,34 @@ U0 de club (mismo nombre, club y temporada, equipos distintos):
 ```
 
 **Resultado: la U0 de club, activa para completos (99,4 %) y de un apellido (100 %).**
+
+## Lo medido al ampliar EN_WEB
+
+`python3 scripts/medir_identidad.py --entre-categorias --db <copia>` (solo lee: resuelve en memoria con el `EN_WEB` de antes y con el de las seis) es la medida del paso E2-D2 ([categorias-mayores.md](categorias-mayores.md), «En la web»): cuántas fichas une el resolvedor entre una categoría de antes y una nueva, por regla, cuántas fichas de antes se parten o se juntan, cuántos pares de fichas del mismo nombre y club (una de antes y una solo de las nuevas) no se unen por la edad o por otra cosa, y los segundos. El paso se para si las unidas entre categorías por una regla sin identificador pasan del 2 % de las fichas, o si alguna ficha de antes se parte. Cuenta también, con cada `EN_WEB`, las fichas con una edad imposible, con dos ids o más y con dos categorías no contiguas en una temporada: la vigilancia de los datos reales de las nuevas, que la puerta de pruebas no mira (`test_fichas_ampliadas.py` solo comprueba lo fabricado por `base_mayores`); no bloquea nada.
+
+Medido el 26/11/2026 sobre la base de después de `scripts/tests/base_mayores.py` (la base real con 13 grupos inventados de infantil, cadete y juvenil, 258 actas, 612 niños de la base con su id en la categoría de su edad y 12 sin id con el nombre, el club y la temporada de un alevín o un prebenjamín sin id); **los números de verdad se medirán con las categorías activadas y leídas**:
+
+```
+  identidades con el EN_WEB de antes: 19962
+  identidades con el de después: 21186
+  fichas con el EN_WEB de antes: 15112
+  fichas con el de después: 16333
+  segundos de las vistas y el resolvedor, antes: 5.5 + 2.2
+  segundos de las vistas y el resolvedor, después: 5.6 + 2.4
+  fichas entre categorías: 615
+    por el mismo identificador (la misma fila): 612
+    por U0 (mismo nombre, equipo y temporada): 3
+    por U0 de club o U1 (mismo club): 0
+    por U2 (candidata única): 0
+    por una regla sin identificador: 3
+  fichas de antes que se parten: 0
+  fichas de después que juntan dos de antes: 0
+  pares del mismo nombre y club que no se unen por la edad: 9
+  pares del mismo nombre y club que no se unen por otra cosa: 0
+  fichas unidas entre categorías por una regla sin identificador: 0.02 % de las fichas
+```
+
+Las 3 por U0 son infantiles sin id que se llaman como un alevín sin id de su club y temporada (el cuarto no cabe: su ficha de alevín ya es de otra edad); los 9 pares que no se unen por la edad, los cadetes y juveniles sin id con el nombre de un prebenjamín del club. Con el resolvedor de antes de «Las categorías nuevas no crean dudas imposibles», la misma base partía 5 fichas de hoy (11 claves publicadas llevaban a una ficha con menos filas): las de dos prebenjamines unidos por U1 o U2 a los que un cadete homónimo del club deshacía la unión. El resolvedor sigue tardando lo mismo (unos 2 s; con las vistas, unos 8 s).
 
 ## El año de nacimiento
 

@@ -392,8 +392,8 @@ test('CSS: el único desplazamiento horizontal es el del cuadro, con ajuste; en 
   const bodyOf = (sel, media = (m) => m === null) => rules.filter((r) => media(r.media) && r.selector === sel).map((r) => r.body).join(';');
   // La página no se desplaza en horizontal: solo lo hacen, dentro de su caja, el cuadro y las
   // fichas de la tira de grupos (Tabla y Jornada).
-  assert.deepEqual(rules.filter((r) => /overflow(-x)?:\s*(auto|scroll)/.test(r.body)).map((r) => r.selector), ['.group-scroll', '.bracket'],
-    'la página no se desplaza en horizontal: solo el cuadro y la tira de grupos (spec §8)');
+  assert.deepEqual(rules.filter((r) => /overflow(-x)?:\s*(auto|scroll)/.test(r.body)).map((r) => r.selector), ['.cat-picker', '.group-scroll', '.bracket'],
+    'la página no se desplaza en horizontal: solo el cuadro, la tira de grupos y el selector de categoría (spec §8)');
   assert.match(bodyOf('.bracket'), /scroll-snap-type:\s*x mandatory/);
   assert.match(bodyOf('.bracket-round'), /flex:\s*0 0 100%/);
   assert.match(bodyOf('.bracket-round'), /scroll-snap-align:\s*start/);

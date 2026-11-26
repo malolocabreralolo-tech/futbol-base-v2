@@ -73,3 +73,32 @@ test('los grupos de eliminatoria de una liga (EL, PEL, ALEL; fase «Eliminatoria
   const root = tree({ benjamin: [grupo('FF1', 'Primera Fase GC'), grupo('EL1', 'Eliminatorias')], alevin: [grupo('ALEL1', 'Eliminatorias')] });
   assert.deepEqual((await sonda(root)).otras, []);
 });
+
+// Infantil, cadete y juvenil (parte E2): sus data-<cat>.js perezosos también. Con EN_WEB ampliado, una fase
+// nueva de una de ellas tiene que parar la activación automática como la de benjamín. Son opcionales: un árbol
+// sin ellos (los de antes de E2) se mira igual.
+function treeConMayores(base, mayores) {
+  const root = tree(base);
+  for (const [cat, groups] of Object.entries(mayores))
+    writeFileSync(path.join(root, `data-${cat}.js`), `const ${cat.toUpperCase()}=${JSON.stringify(groups)};\n`);
+  return root;
+}
+
+test('un grupo de cadete en una fase que el modelo no conoce: la sonda lo cuenta y sale con 1', async () => {
+  const root = treeConMayores({ benjamin: [grupo('FF1', 'Primera Fase GC')] }, {
+    infantil: [grupo('INFPG1', 'Preferente GC')], cadete: [grupo('CADI1', 'Interinsular', 'interinsular'), grupo('CADZZ1', 'Fase Rara Inventada')],
+    juvenil: [grupo('JUVH1', 'División de Honor', 'interinsular')],
+  });
+  const out = spawnSync(process.execPath, [SCRIPT, root], { encoding: 'utf8' });
+  assert.equal(out.status, 1, out.stderr);
+  assert.match(out.stdout, /cadete CADZZ1 Fase Rara Inventada → otra-/);
+  assert.match(out.stdout, /2026-2027: 5 grupos, 1 en otra-…/);
+  const { otras, total } = await sonda(root);
+  assert.equal(total, 5);
+  assert.deepEqual(otras.map((g) => [g.cat, g.id]), [['cadete', 'CADZZ1']]);
+  // Con las fases del convenio, ninguna: sale con 0.
+  const bien = treeConMayores({ benjamin: [grupo('FF1', 'Primera Fase GC')] }, { cadete: [grupo('CADI1', 'Interinsular', 'interinsular')] });
+  const ok = spawnSync(process.execPath, [SCRIPT, bien], { encoding: 'utf8' });
+  assert.equal(ok.status, 0, ok.stderr);
+  assert.match(ok.stdout, /2026-2027: 2 grupos, 0 en otra-…/);
+});

@@ -330,21 +330,51 @@ def test_island_ids_are_the_ones_the_frontend_knows(conn):
     grupos —incluidos los 23 de la Primera Fase de la temporada en curso— no
     aparecían en la sección POR ISLA.
 
-    Lo que pinta la web son las categorías de categorias.EN_WEB (lo demás no sale de vista_web.copia_web): en
-    ellas, solo las tres islas. Las categorías nuevas (infantil, cadete, juvenil, que el bot ya puede tener en la
-    base antes de E2) admiten además «interinsular», la del convenio para las ligas de varias islas
-    (activate_season.isla_admitida); la web la aprenderá en su parte (E2).
+    Benjamín, prebenjamín y alevín, solo las tres islas. Las categorías nuevas (infantil, cadete,
+    juvenil) admiten además «interinsular», la del convenio para las ligas de varias islas
+    (activate_season.isla_admitida), estén o no en categorias.EN_WEB: la web la entiende desde E2
+    (ISLAND_NAMES de src/model.js), y la puerta del bot no puede pararse el día que se amplíe EN_WEB.
     """
-    from categorias import EN_WEB, MAYORES
+    malas = _islas_que_la_web_no_conoce(conn)
+    assert not malas, f"islas que el frontend no conoce: {sorted(malas)}"
+
+
+def _islas_que_la_web_no_conoce(conn):
+    """[(categoría, isla)] de los grupos cuya isla no admite la web para su categoría."""
+    from categorias import MAYORES
     validas = {"grancanaria", "lanzarote", "fuerteventura"}
     malas = []
     for island, categoria in conn.execute(
             """SELECT DISTINCT g.island, upper(coalesce(c.name, '')) FROM groups g
                LEFT JOIN categories c ON c.id = g.category_id WHERE g.island IS NOT NULL AND g.island != ''"""):
-        admitidas = validas | ({"interinsular"} if categoria in MAYORES and categoria not in EN_WEB else set())
+        admitidas = validas | ({"interinsular"} if categoria in MAYORES else set())
         if island not in admitidas:
             malas.append((categoria, island))
-    assert not malas, f"islas que el frontend no conoce: {sorted(malas)}"
+    return malas
+
+
+@pytest.mark.parametrize("en_web", [("BENJAMIN", "PREBENJAMIN", "ALEVIN"),
+                                    ("BENJAMIN", "PREBENJAMIN", "ALEVIN", "INFANTIL", "CADETE", "JUVENIL")])
+def test_interinsular_solo_en_las_mayores(monkeypatch, en_web):
+    """Base inventada: «interinsular» vale en infantil, cadete y juvenil con el EN_WEB de hoy y con el ampliado;
+    en benjamín, prebenjamín y alevín no vale nunca, como tampoco una isla mal escrita."""
+    import categorias
+    monkeypatch.setattr(categorias, "EN_WEB", en_web)
+    con = sqlite3.connect(":memory:")
+    con.executescript("""
+      CREATE TABLE categories(id INTEGER PRIMARY KEY, name TEXT);
+      CREATE TABLE groups(id INTEGER PRIMARY KEY, category_id INTEGER, island TEXT);
+      INSERT INTO categories VALUES (1,'BENJAMIN'),(2,'PREBENJAMIN'),(3,'ALEVIN'),(4,'INFANTIL'),(5,'CADETE'),
+                                    (6,'JUVENIL');
+      INSERT INTO groups(category_id, island) VALUES (1,'grancanaria'),(3,'lanzarote'),(4,'interinsular'),
+                                                     (5,'interinsular'),(6,'interinsular'),(6,'fuerteventura');
+    """)
+    assert _islas_que_la_web_no_conoce(con) == []
+    con.executescript("""INSERT INTO groups(category_id, island) VALUES (1,'interinsular'),(2,'interinsular'),
+                                                                        (3,'interinsular'),(5,'gran_canaria')""")
+    assert sorted(_islas_que_la_web_no_conoce(con)) == [
+        ("ALEVIN", "interinsular"), ("BENJAMIN", "interinsular"), ("CADETE", "gran_canaria"),
+        ("PREBENJAMIN", "interinsular")]
 
 
 def _lineup_keys(texto):

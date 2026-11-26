@@ -162,10 +162,7 @@ def test_check_missing_shields_reads_alevin(tmp_path, monkeypatch, capsys):
     generate(monkeypatch, db, root)
     (root / "data-shields.js").write_text('const SHIELDS={"Arucas":"a.png","Moya":"m.png"};\n', encoding="utf-8")
     for name, value in (("ROOT", str(root)), ("SHIELDS_PATH", str(root / "data-shields.js")),
-                        ("SEASONS_PATH", str(root / "data-seasons.js")),
-                        ("BENJAMIN_PATH", str(root / "data-benjamin.js")),
-                        ("PREBENJAMIN_PATH", str(root / "data-prebenjamin.js")),
-                        ("ALEVIN_PATH", str(root / "data-alevin.js"))):
+                        ("SEASONS_PATH", str(root / "data-seasons.js"))):
         monkeypatch.setattr(C, name, value)
     C.main()
     out = capsys.readouterr().out

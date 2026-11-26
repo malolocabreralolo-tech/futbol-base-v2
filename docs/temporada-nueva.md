@@ -157,18 +157,18 @@ Después de activar, fija la línea base de desvío de marcadores para que la te
 python3 scripts/score_deviation.py --write-baseline
 ```
 
-Comprueba también, a mano, que ninguna fase de la temporada nueva cae en «otra-…», la clave que da `competitionKey` (`src/model.js`) a una fase que no reconoce. Ninguna prueba lo detecta, y a propósito: `phases.json` y `phases-archivo.json` (las de las temporadas archivadas, 2017-18 a 2020-21, que también deben dar «0 en otra-…»; se comprueban con la misma sonda sobre su `data-season-<S>.js`) están congeladas, y una fase nueva de la fuente no debe bloquear al bot. Pero una fase sin clasificar recibe de `PHASE_LEVEL` (`src/model.js`, el que usa `src/myteam.js`) el nivel de la Primera Fase, así que una «Tercera Fase» nunca provocaría un cambio de fase. La sonda mira las tres categorías, alevín incluido (es `node scripts/sonda_fases.mjs`, que sale con 1 nombrando cada grupo en «otra-…»; el fragmento de abajo es lo mismo):
+Comprueba también, a mano, que ninguna fase de la temporada nueva cae en «otra-…», la clave que da `competitionKey` (`src/model.js`) a una fase que no reconoce. Ninguna prueba lo detecta, y a propósito: `phases.json` y `phases-archivo.json` (las de las temporadas archivadas, 2017-18 a 2020-21, que también deben dar «0 en otra-…»; se comprueban con la misma sonda sobre su `data-season-<S>.js`) están congeladas, y una fase nueva de la fuente no debe bloquear al bot. Pero una fase sin clasificar recibe de `PHASE_LEVEL` (`src/model.js`, el que usa `src/myteam.js`) el nivel de la Primera Fase, así que una «Tercera Fase» nunca provocaría un cambio de fase. La sonda mira las seis categorías: benjamín, prebenjamín y alevín y, si están sus ficheros, infantil, cadete y juvenil (`data-infantil.js`, `data-cadete.js` y `data-juvenil.js`, que con `EN_WEB` ampliado llevan sus grupos). Es `node scripts/sonda_fases.mjs`, que sale con 1 nombrando cada grupo en «otra-…»; el fragmento de abajo es lo mismo:
 
 ```bash
 node --input-type=module -e "
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import vm from 'node:vm';
 import { PORTAL } from './src/config.js';
 import { buildSeason } from './src/model.js';
 const data = vm.createContext({});
-for (const file of ['data-benjamin.js', 'data-prebenjamin.js', 'data-alevin.js', 'data-history.js'])
-  vm.runInContext(readFileSync(file, 'utf8').replace(/^const /gm, 'var '), data);
-const season = buildSeason({ name: PORTAL.season, current: true, benjamin: data.BENJAMIN, prebenjamin: data.PREBENJAMIN, alevin: data.ALEVIN, history: data.HISTORY });
+for (const file of ['data-benjamin.js', 'data-prebenjamin.js', 'data-alevin.js', 'data-history.js', 'data-infantil.js', 'data-cadete.js', 'data-juvenil.js'])
+  if (existsSync(file)) vm.runInContext(readFileSync(file, 'utf8').replace(/^const /gm, 'var '), data);
+const season = buildSeason({ name: PORTAL.season, current: true, benjamin: data.BENJAMIN, prebenjamin: data.PREBENJAMIN, alevin: data.ALEVIN, infantil: data.INFANTIL, cadete: data.CADETE, juvenil: data.JUVENIL, history: data.HISTORY });
 const otras = season.groups.filter(group => /(^|-)otra-/.test(group.compKey));
 for (const group of otras) console.log(group.cat, group.id, group.phase, '→', group.compKey);
 console.log(season.name + ':', season.groups.length, 'grupos,', otras.length, 'en otra-…');

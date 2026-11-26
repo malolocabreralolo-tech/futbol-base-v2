@@ -9,7 +9,10 @@ siguiente solo baja lo que ha cambiado.
 Obligatorios (sin uno de ellos el SW no se instala): index.html; la hoja, el paquete y lo que se queda fuera
 de él (dist/origen.json, que escribe scripts/codigo.py); manifest.json; la fuente; los cuatro iconos; y los
 data-*.js de las etiquetas <script defer> de index.html. Opcionales (si fallan, se bajan al usarse):
-data-alevin.js y los data-season-AAAA-AAAA.js del árbol, de la temporada más nueva a la más vieja.
+data-alevin.js y los data-season-AAAA-AAAA.js del árbol, de la temporada más nueva a la más vieja. Nunca los
+de infantil, cadete y juvenil (data-infantil.js, data-matchdetail-<clave>.js, data-season-<S>-<clave>.js: parte
+E2), ni obligatorios ni opcionales: cada uno pesa ~0,5 MB al acabar la temporada, y una familia que sigue a un
+niño de benjamín no tiene por qué instalarlos; se bajan al usarse.
 
 Lo escribe generate_js.main() en cada pasada del bot, activate_season.apply_manifest al activar una
 temporada y scripts/publicar.py al publicar; nadie lo toca a mano. Un árbol sin las marcas en sw.js o sin

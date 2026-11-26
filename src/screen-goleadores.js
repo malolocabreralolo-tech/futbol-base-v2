@@ -6,7 +6,7 @@
 // nav.update, sin crear entradas ni mover el cursor. Solo hay goleadores de la temporada
 // del portal: las pasadas dicen que no los hay.
 import { html, join } from './html.js';
-import { countLabel, crest, empty, notice, screenHead, searchBox, segmented } from './ui.js';
+import { categoryPicker, countLabel, crest, empty, mountCategoryPicker, notice, pickerCategories, screenHead, searchBox } from './ui.js';
 import { CATEGORIES, CAT_NAMES, CAT_WORDS, findGroup, playerName, searchKey, seasonLabel } from './model.js';
 import { routeHref, teamHref } from './links.js';
 import { categoryScorers, groupScorers, rankScorers } from './state.js';
@@ -21,7 +21,6 @@ import { defaultCategory } from './myteam.js';
 export const PAGE_ROWS = 200;
 export const SEARCH_FIRST = 30;
 export const SEARCH_ROWS = 100;
-const CATS = CATEGORIES.map((value) => ({ value, label: CAT_NAMES[value] }));
 const BODY_ID = 'goleadores-filas';
 
 // Las palabras de una búsqueda, con la normalización del buscador de Explorar (searchKey de model.js:
@@ -127,7 +126,8 @@ function render(ctx) {
   // Una temporada pasada sin goleadores archivados (las archivadas los traen desde 2019/20; la
   // federación no publicó los de 2017/18 ni 2018/19): sin ninguna categoría, el aviso de la temporada; si
   // solo le falta la elegida (alevín, que no estaba en la web), el selector sigue para volver a las otras.
-  const cats = group ? '' : html`<nav class="gol-cats" aria-label="Categoría">${segmented(CATS, cat, (value) => routeHref('goleadores', { s, c: value }), { idPrefix: 'categoria' })}</nav>`;
+  // El selector, con las categorías de la temporada (pickerCategories: con seis, se desliza la fila).
+  const cats = group ? '' : categoryPicker(pickerCategories(ctx, s, cat), cat, (value) => routeHref('goleadores', { s, c: value }), { cls: 'gol-cats' });
   if (past && !ctx.model.scorers(s, cat).length) {
     if (!CATEGORIES.some((c) => ctx.model.scorers(s, c).length)) return screenHtml(empty(`No hay goleadores de la temporada ${seasonLabel(s)} en esta web.`));
     return screenHtml(html`${cats}${empty(`No hay goleadores de ${CAT_WORDS[cat]} de la temporada ${seasonLabel(s)} en esta web.`)}`);
@@ -155,6 +155,8 @@ function render(ctx) {
 // Las escuchas van en la sección, que se sustituye en cada pintado.
 function mount(root, ctx, nav) {
   const section = root && root.matches && root.matches('[data-screen="goleadores"]') ? root : root && root.querySelector('[data-screen="goleadores"]');
+  // La fila de categorías, a la elegida, y deslizada al tabular (con scrollLeft: la página no se mueve).
+  mountCategoryPicker(section && section.querySelector('.cat-picker'));
   const box = section && section.querySelector('[data-scorers]');
   if (!box) return;
   const shields = (ctx.datasets && ctx.datasets.shields) || {};

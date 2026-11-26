@@ -716,7 +716,8 @@ class TestPointsOrder:
         from scripts.generate_js import _is_league_group
         seen = 0
         for name, const in (("data-benjamin.js", "BENJAMIN"), ("data-prebenjamin.js", "PREBENJAMIN"),
-                            ("data-alevin.js", "ALEVIN")):
+                            ("data-alevin.js", "ALEVIN"), ("data-infantil.js", "INFANTIL"),
+                            ("data-cadete.js", "CADETE"), ("data-juvenil.js", "JUVENIL")):
             path = os.path.join(ROOT, name)
             if not os.path.exists(path):
                 continue
@@ -1246,10 +1247,13 @@ class TestGeneratorOutputs:
         generate_js.main()
         written = sorted(p.name for p in site.glob("data-*"))
         assert [name for name in written if _RETIRED.match(name)] == [], "el generador escribe datos retirados"
-        # data-alevin.js, siempre, aunque la base no tenga alevín (docs/alevin.md §4).
+        # Las perezosas, siempre, aunque la base no las tenga (docs/alevin.md §4); y la cronología de
+        # infantil, cadete y juvenil, cada una en el suyo (generate_js.LAZY).
         assert written == [
-            "data-alevin.js", "data-benjamin.js", "data-goleadores.js", "data-history.js",
-            "data-lineups-2024-2025-PG2.js", "data-lineups-2025-2026-A1.js", "data-matchdetail.js",
+            "data-alevin.js", "data-benjamin.js", "data-cadete.js", "data-goleadores.js", "data-history.js",
+            "data-infantil.js", "data-juvenil.js",
+            "data-lineups-2024-2025-PG2.js", "data-lineups-2025-2026-A1.js", "data-matchdetail-cadete.js",
+            "data-matchdetail-infantil.js", "data-matchdetail-juvenil.js", "data-matchdetail.js",
             "data-prebenjamin.js", "data-season-2024-2025.js", "data-seasons.js",
         ]
         # Otra pasada con la misma base: ni un byte distinto, y sin subir la versión ni el pie.

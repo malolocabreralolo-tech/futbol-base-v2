@@ -35,15 +35,21 @@ import { start, startContext } from '../../src/app.js';
 // El alevín de la temporada del portal de las fixtures (2025-26, el 24/09/2026: terminado).
 const ALEV = alevinRaw({ season: PORTAL_SEASON, today: '2026-09-24' });
 const loaded = () => alevinData(ALEV);
-// El registro de datos con el alevín sin pedir (lo de app.js) o ya cargado.
-const pending = (extra = {}) => ({ ...datasetsFor(), alevin: undefined, seasonAlevin: {}, ...extra });
-const withAlevin = (extra = {}) => ({ ...datasetsFor(), alevin: loaded(), seasonAlevin: {}, ...extra });
+// El registro de datos con el alevín sin pedir (lo de app.js) o ya cargado, en lazy.alevin, y el de las
+// temporadas pasadas (`seasonAlevin`) en seasonLazy.alevin; infantil, cadete y juvenil, ya pedidos y vacíos.
+const registry = (alevin, { seasonAlevin = {}, ...extra } = {}) => {
+  const base = datasetsFor();
+  return { ...base, lazy: { ...base.lazy, alevin }, seasonLazy: { ...base.seasonLazy, alevin: seasonAlevin }, ...extra };
+};
+const pending = (extra) => registry(undefined, extra);
+const withAlevin = (extra) => registry(loaded(), extra);
+const waitsAlevin = (season, soft = false) => [{ cat: 'alevin', season, soft }];
 const MESAS_AL1 = { name: 'Las Mesas Hu.', season: PORTAL_SEASON, cat: 'alevin', groupId: 'AL1' };
 
 // ── model.js ─────────────────────────────────────────────────────────────
 
-test('CATEGORIES y sus nombres: alevín al final, sin cambiar el orden ni los nombres de las otras dos', () => {
-  assert.deepEqual(CATEGORIES, ['benjamin', 'prebenjamin', 'alevin']);
+test('CATEGORIES y sus nombres: alevín detrás de las dos de siempre (y las de la parte E detrás), sin cambiar el orden ni los nombres de las otras dos', () => {
+  assert.deepEqual(CATEGORIES, ['benjamin', 'prebenjamin', 'alevin', 'infantil', 'cadete', 'juvenil']);
   assert.equal(CAT_NAMES.alevin, 'Alevín');
   assert.equal(CAT_WORDS.alevin, 'alevín');
   assert.equal(CAT_SHORT.alevin, 'alev.');
@@ -56,7 +62,7 @@ test('la categoría de un grupo sin `cat` sale de su fullName, también alevín 
   assert.equal(competitionKey(raw, '2026-2027').cat, 'alevin');
   assert.equal(groupLabel({ ...raw, fullName: 'PREBENJAMIN PRIMERA FASE GC - GRUPO 3', phase: 'Gran Canaria' }), 'Prebenjamín, Grupo 3 de Gran Canaria');
   assert.equal(groupLabel({ ...raw, fullName: 'BENJAMIN PRIMERA FASE GC - GRUPO 3' }), 'Benjamín, Primera Fase, Grupo 3');
-  assert.equal(groupLabel({ ...raw, fullName: '', cat: 'cadete' }), 'Primera Fase, Grupo 3', 'una categoría que no es de la app');
+  assert.equal(groupLabel({ ...raw, fullName: '', cat: 'senior' }), 'Primera Fase, Grupo 3', 'una categoría que no es de la app');
 });
 
 test('la Copa de Campeones alevín es la Copa de Campeones (con la letra de su fase, como la de benjamín de 2024-25)', () => {
@@ -109,7 +115,7 @@ test('createModel: la temporada del portal se reconstruye cuando llega el aleví
   const index = model.clubIndex();
   assert.equal(before.groups.some((g) => g.cat === 'alevin'), false);
   assert.deepEqual(model.scorers(PORTAL_SEASON, 'alevin'), []);
-  datasets.alevin = loaded();
+  datasets.lazy.alevin = loaded();
   const after = model.season(PORTAL_SEASON);
   assert.notEqual(after, before);
   assert.equal(model.season(PORTAL_SEASON), after, 'ya construida, la misma');
@@ -122,7 +128,7 @@ test('createModel: la temporada del portal se reconstruye cuando llega el aleví
   assert.deepEqual(after.groups.filter((g) => g.cat !== 'alevin').map((g) => g.id), before.groups.map((g) => g.id));
   assert.notEqual(model.clubIndex(), index, 'el índice de clubes se rehace con los equipos de alevín');
   assert.equal(model.clubIndex(), model.clubIndex());
-  assert.equal(model.scorers(PORTAL_SEASON, 'alevin'), datasets.alevin.gol);
+  assert.equal(model.scorers(PORTAL_SEASON, 'alevin'), datasets.lazy.alevin.gol);
 });
 
 test('createModel: estados y equipaciones de alevín (ESTADOS_ALEV y EQUIPOS_ALEV), y la temporada pasada con su data-season-<S>-alevin.js', () => {
@@ -138,7 +144,7 @@ test('createModel: estados y equipaciones de alevín (ESTADOS_ALEV y EQUIPOS_ALE
   datasets.seasonRaw['2024-2025'] = archive('2024-2025');
   const plain = model.season('2024-2025');
   assert.equal(plain.groups.some((g) => g.cat === 'alevin'), false);
-  datasets.seasonAlevin['2024-2025'] = pastAlevinRaw('2024-2025');
+  datasets.seasonLazy.alevin['2024-2025'] = pastAlevinRaw('2024-2025');
   const full = model.season('2024-2025');
   assert.notEqual(full, plain);
   assert.deepEqual(full.groups.filter((g) => g.cat === 'alevin').map((g) => `${g.id} ${g.kind}`), ['ALA1 league', 'ALF1 league', 'ALEL1 cup-bracket']);
@@ -146,7 +152,7 @@ test('createModel: estados y equipaciones de alevín (ESTADOS_ALEV y EQUIPOS_ALE
   assert.deepEqual(model.scorers('2024-2025', 'benjamin'), []);
   // Un 404 (sin alevín esa temporada) es un objeto vacío: nada de alevín.
   datasets.seasonRaw['2023-2024'] = archive('2023-2024');
-  datasets.seasonAlevin['2023-2024'] = {};
+  datasets.seasonLazy.alevin['2023-2024'] = {};
   assert.equal(model.season('2023-2024').groups.some((g) => g.cat === 'alevin'), false);
 });
 
@@ -211,13 +217,13 @@ test('alevinNeeds: [] si ya está; si no, la carga que lo deja en el registro, o
   const datasets = pending();
   const [load] = alevinNeeds(PORTAL_SEASON, datasets, PORTAL_SEASON, { ensure: async () => loaded() });
   await load;
-  assert.deepEqual(datasets.alevin, loaded());
+  assert.deepEqual(datasets.lazy.alevin, loaded());
   const failing = pending();
   await assert.rejects(alevinNeeds(PORTAL_SEASON, failing, PORTAL_SEASON, { ensure: async () => null })[0], { message: 'alevín' });
-  assert.equal(failing.alevin, undefined, 'un fallo no se guarda');
+  assert.equal(failing.lazy.alevin, undefined, 'un fallo no se guarda');
   const past = pending();
   await alevinNeeds('2024-2025', past, PORTAL_SEASON, { ensureSeason: async () => ({}) })[0];
-  assert.deepEqual(past.seasonAlevin, { '2024-2025': {} });
+  assert.deepEqual(past.seasonLazy.alevin, { '2024-2025': {} });
   await assert.rejects(alevinNeeds('2024-2025', pending(), PORTAL_SEASON, { ensureSeason: async () => null })[0],
     { message: 'alevín de la temporada 2024/25' });
 });
@@ -230,17 +236,17 @@ const target = (res) => (res.redirect ? [routeHref(res.redirect.screen, res.redi
 test('`c=alevin` vale en Ligas, Goleadores y Récords; otra categoría se quita', () => {
   for (const screen of ['ligas', 'goleadores', 'records']) {
     assert.deepEqual(resolve(`#/${screen}?c=alevin`, { datasets: withAlevin() }), { params: { c: 'alevin', s: PORTAL_SEASON } }, screen);
-    assert.deepEqual(target(resolve(`#/${screen}?c=cadete`, { datasets: withAlevin() })), [`#/${screen}`, null], screen);
+    assert.deepEqual(target(resolve(`#/${screen}?c=senior`, { datasets: withAlevin() })), [`#/${screen}`, null], screen);
   }
 });
 
 test('un grupo que no está: con el alevín sin pedir, pendiente de alevín; con él, el grupo o, si tampoco está, «No encontramos el grupo»', () => {
   for (const screen of ['tabla', 'jornada', 'copa', 'goleadores']) {
-    assert.deepEqual(resolve(`#/${screen}?g=AL1`, { datasets: pending() }), { params: { g: 'AL1', s: PORTAL_SEASON }, alevin: PORTAL_SEASON }, screen);
+    assert.deepEqual(resolve(`#/${screen}?g=AL1`, { datasets: pending() }), { params: { g: 'AL1', s: PORTAL_SEASON }, lazy: waitsAlevin(PORTAL_SEASON) }, screen);
   }
   assert.deepEqual(resolve('#/equipo?g=AL1&t=Las%20Mesas%20Hu.', { datasets: pending() }),
-    { params: { g: 'AL1', t: 'Las Mesas Hu.', s: PORTAL_SEASON }, alevin: PORTAL_SEASON });
-  assert.deepEqual(resolve('#/partido?g=AL1&r=Jornada%201&h=Las%20Mesas%20Hu.&a=Maspalomas', { datasets: pending() }).alevin, PORTAL_SEASON);
+    { params: { g: 'AL1', t: 'Las Mesas Hu.', s: PORTAL_SEASON }, lazy: waitsAlevin(PORTAL_SEASON) });
+  assert.deepEqual(resolve('#/partido?g=AL1&r=Jornada%201&h=Las%20Mesas%20Hu.&a=Maspalomas', { datasets: pending() }).lazy, waitsAlevin(PORTAL_SEASON));
   assert.deepEqual(resolve('#/tabla?g=AL1', { datasets: withAlevin() }), { params: { g: 'AL1', s: PORTAL_SEASON } });
   assert.deepEqual(target(resolve('#/tabla?g=AL9', { datasets: withAlevin() })),
     ['#/ligas?c=prebenjamin&to=tabla', 'No encontramos el grupo AL9 en la temporada 2025/26']);
@@ -248,14 +254,14 @@ test('un grupo que no está: con el alevín sin pedir, pendiente de alevín; con
   assert.deepEqual(resolve('#/tabla?g=PG3', { datasets: pending() }), { params: { g: 'PG3', s: PORTAL_SEASON } });
   // Temporada pasada cargada sin su alevín: pendiente del de esa temporada.
   const past = pending({ seasonRaw: { '2024-2025': archive('2024-2025') } });
-  assert.deepEqual(resolve('#/tabla?s=2024-2025&g=ALA1', { datasets: past }), { params: { s: '2024-2025', g: 'ALA1' }, alevin: '2024-2025' });
+  assert.deepEqual(resolve('#/tabla?s=2024-2025&g=ALA1', { datasets: past }), { params: { s: '2024-2025', g: 'ALA1' }, lazy: waitsAlevin('2024-2025') });
 });
 
 test('Jornada y Tabla sin grupo con mi equipo alevín (o de otra temporada): esperan al alevín antes de resolverlo', () => {
-  assert.deepEqual(resolve('#/tabla', { datasets: pending(), myTeam: MESAS_AL1 }), { params: { s: PORTAL_SEASON }, alevin: PORTAL_SEASON });
+  assert.deepEqual(resolve('#/tabla', { datasets: pending(), myTeam: MESAS_AL1 }), { params: { s: PORTAL_SEASON }, lazy: waitsAlevin(PORTAL_SEASON) });
   assert.deepEqual(resolve('#/jornada', { datasets: withAlevin(), myTeam: MESAS_AL1 }), { params: { s: PORTAL_SEASON, g: 'AL1' } });
   const lastYear = { name: 'Las Mesas Hu.', season: '2024-2025', cat: 'prebenjamin', groupId: 'PGC2' };
-  assert.deepEqual(resolve('#/jornada', { datasets: pending(), myTeam: lastYear }).alevin, PORTAL_SEASON);
+  assert.deepEqual(resolve('#/jornada', { datasets: pending(), myTeam: lastYear }).lazy, waitsAlevin(PORTAL_SEASON, true));
   assert.deepEqual(resolve('#/jornada', { datasets: pending() }), { params: { s: PORTAL_SEASON, g: 'PG2' } }, 'mi equipo de prebenjamín, sin esperar');
 });
 
@@ -382,15 +388,15 @@ test('Ligas de alevín de una temporada pasada: la Segunda Fase A antes que la F
 test('store.js: mi equipo alevín se guarda en la v2; la v1 (la app anterior) sigue con dos categorías', () => {
   const storage = memoryStorage(new Map([[STORE_KEY, JSON.stringify({ myTeam: MESAS_AL1, recent: [] })]]));
   assert.deepEqual(loadStore(storage, { defaultTeam: DEFAULT_TEAM, portalSeason: PORTAL_SEASON }).myTeam, MESAS_AL1);
-  const cadete = memoryStorage(new Map([[STORE_KEY, JSON.stringify({ myTeam: { ...MESAS_AL1, cat: 'cadete' }, recent: [] })]]));
-  assert.equal(loadStore(cadete, { defaultTeam: DEFAULT_TEAM, portalSeason: PORTAL_SEASON }).myTeam.cat, 'prebenjamin');
+  const senior = memoryStorage(new Map([[STORE_KEY, JSON.stringify({ myTeam: { ...MESAS_AL1, cat: 'senior' }, recent: [] })]]));
+  assert.equal(loadStore(senior, { defaultTeam: DEFAULT_TEAM, portalSeason: PORTAL_SEASON }).myTeam.cat, 'prebenjamin');
   assert.equal(migrateV1({ teams: [{ name: 'X', cat: 'alevin', groupId: 'AL1' }], selected: 'alevin|AL1|x' }), null);
 });
 
 test('myteam.js: la categoría por defecto, el cambio de temporada a alevín y la trayectoria con alevín', () => {
   assert.equal(defaultCategory({ status: 'ok', cat: 'alevin' }, DEFAULT_TEAM), 'alevin');
   assert.equal(defaultCategory({ status: 'absent' }, { cat: 'alevin' }), 'alevin');
-  assert.equal(defaultCategory({ status: 'ok', cat: 'cadete' }, { cat: 'cadete' }), 'benjamin', 'el respaldo sigue siendo benjamín');
+  assert.equal(defaultCategory({ status: 'ok', cat: 'senior' }, { cat: 'senior' }), 'benjamin', 'el respaldo sigue siendo benjamín');
   // Cambio de temporada (paso 1): Guayarmina, de benjamín el año anterior, juega en benjamín (A1) y en
   // alevín (AL1). Sin alevín, A1 en silencio; con él, la pregunta, con el paso natural a alevín: por eso
   // el router espera al alevín en un cambio de temporada (opción (a) de critic.md).
@@ -462,7 +468,7 @@ test('start(): Tabla de AL1 en frío, Explorar con alevín y mi equipo alevín q
 
 test('startContext: el registro de las pruebas, con el alevín ya cargado (vacío) salvo que se pida otra cosa', () => {
   const ctx = startContext({ storage: memoryStorage(), portal: { season: PORTAL_SEASON, defaultTeam: DEFAULT_TEAM }, datasets: datasetsFor(), today: '2026-09-24' });
-  assert.deepEqual(ctx.datasets.alevin, alevinData({}));
+  assert.deepEqual(ctx.datasets.lazy.alevin, alevinData({}));
 });
 
 // ── Casos límite de alevín ─────────────────────────────
@@ -570,7 +576,7 @@ test('mi equipo de otra temporada que no es de alevín: espera al alevín, pero 
   const lastYear = { name: 'UD Valleseco', season: '2024-2025', cat: 'benjamin', groupId: 'P1' };
   const ctx = ctxFor('', {}, { datasets: pending(), myTeam: lastYear });
   assert.deepEqual(needsAlevin({ screen: '', params: {} }, ctx), { season: PORTAL_SEASON, soft: true });
-  assert.deepEqual(resolve('#/tabla', { datasets: pending(), myTeam: lastYear }), { params: { s: PORTAL_SEASON }, alevin: PORTAL_SEASON, soft: true });
+  assert.deepEqual(resolve('#/tabla', { datasets: pending(), myTeam: lastYear }), { params: { s: PORTAL_SEASON }, lazy: waitsAlevin(PORTAL_SEASON, true) });
   for (const hash of ['#/', '#/jornada', '#/tabla']) {
     const { b, router, log } = routerWith(hash, { fails: 1, myTeam: lastYear });
     await router.idle();

@@ -250,11 +250,12 @@ export function buildGroup(raw, { season, cat, current = false, history = null }
   return group;
 }
 
-/* Temporada de la FIFLP (ligas y copas de las tres categorías). `history` (HISTORY) solo alimenta la
+/* Temporada de la FIFLP (ligas y copas de las seis categorías). `history` (HISTORY) solo alimenta la
  * temporada actual: los códigos se repiten entre temporadas (BCA1 existe en 2024-25 y en 2025-26), pero nunca
- * entre las categorías de una temporada (los de alevín llevan el prefijo AL), así que una sola tabla de
- * jornadas sirve para las tres. */
-export function buildSeason({ name, current = false, benjamin = [], prebenjamin = [], alevin = [], history = null } = {}) {
+ * entre las categorías de una temporada (los de alevín llevan el prefijo AL; los de infantil, cadete y juvenil,
+ * INF, CAD y JUV: scripts/convenio.py), así que una sola tabla de jornadas sirve para todas. Cada categoría
+ * perezosa (LAZY_CATS), con la forma de benjamín: una lista de grupos por su clave. */
+export function buildSeason({ name, current = false, benjamin = [], prebenjamin = [], history = null, ...lazy } = {}) {
   const opts = cat => ({ season: name, cat, current: !!current, history: current ? history : null });
   return {
     name,
@@ -262,21 +263,21 @@ export function buildSeason({ name, current = false, benjamin = [], prebenjamin 
     groups: [
       ...(benjamin || []).map(raw => buildGroup(raw, opts('benjamin'))),
       ...(prebenjamin || []).map(raw => buildGroup(raw, opts('prebenjamin'))),
-      ...(alevin || []).map(raw => buildGroup(raw, opts('alevin'))),
+      ...LAZY_CATS.flatMap(cat => (lazy[cat] || []).map(raw => buildGroup(raw, opts(cat)))),
     ],
   };
 }
 
 /* Torneos (Maspalomas): capa aparte del Season memorizado. Nunca toman
  * HISTORY: la fase de grupos va en línea y los cuadros en `jornadas`. */
-export function buildCups({ season, benjamin = [], prebenjamin = [], alevin = [] } = {}) {
+export function buildCups({ season, benjamin = [], prebenjamin = [], ...lazy } = {}) {
   const opts = cat => ({ season, cat, current: false, history: null });
   return {
     season,
     groups: [
       ...(benjamin || []).map(raw => buildGroup(raw, opts('benjamin'))),
       ...(prebenjamin || []).map(raw => buildGroup(raw, opts('prebenjamin'))),
-      ...(alevin || []).map(raw => buildGroup(raw, opts('alevin'))),
+      ...LAZY_CATS.flatMap(cat => (lazy[cat] || []).map(raw => buildGroup(raw, opts(cat)))),
     ],
   };
 }
@@ -284,10 +285,14 @@ export function buildCups({ season, benjamin = [], prebenjamin = [], alevin = []
 /* ── Competición y etiqueta de grupo ──────────────────────────────────────
  *
  * competitionKey(raw, season) → { cat, island, division, phase, cup, key, label }
- *   division: 'preferente' | 'primera' | 'unica' | null
+ *   division: 'preferente' | 'primera' | 'unica' | null, y en infantil, cadete y juvenil también
+ *             'division-de-honor' | 'autonomica' | 'interinsular' | 'territorial' | 'segunda' |
+ *             'insular-b' | 'insular'
  *   phase:    'primera-fase' | 'segunda-fase' | 'segunda-a'…'segunda-z' |
- *             'fase-1' | 'fase-2' | 'superliga' | 'oro' | 'plata' | 'bronce' | null
- *   cup:      'campeones' | 'eliminatorias' | 'insular' | 'final' | 'torneo' | 'maspalomas' | null
+ *             'fase-1' | 'fase-2' | 'superliga' | 'oro' | 'plata' | 'bronce' | null,
+ *             y con subgrupo ('fase-2-c')
+ *   cup:      'campeones' | 'eliminatorias' | 'insular' | 'final' | 'torneo' | 'maspalomas' |
+ *             'ascenso' | null
  *   key:      clave de la competición para #/ligas?f= (única en su temporada
  *             y categoría; sin categoría ni temporada, que van en c y s)
  *   label:    nombre legible de la competición, sin categoría ni grupo
@@ -299,15 +304,32 @@ export function buildCups({ season, benjamin = [], prebenjamin = [], alevin = []
  * fase. Por eso docs/temporada-nueva.md pide comprobar a mano, tras activar
  * una temporada, que ninguna fase cae en 'otra-…'. */
 
-const ISLAND_NAMES = { grancanaria: 'Gran Canaria', lanzarote: 'Lanzarote', fuerteventura: 'Fuerteventura' };
+// «interinsular»: las competiciones de varias islas de infantil, cadete y juvenil (División de Honor,
+// Autonómica, Interinsular, Territorial y las de Lanzarote-Fuerteventura: scripts/convenio.py). Su nombre ya
+// lo dice: islandSuffix no le añade «de Interinsular».
+const ISLAND_NAMES = { grancanaria: 'Gran Canaria', lanzarote: 'Lanzarote', fuerteventura: 'Fuerteventura', interinsular: 'Interinsular' };
 // Las categorías de la app en su orden y sus nombres, una sola vez: el de títulos y etiquetas
 // («Benjamín»), el de dentro de una frase («benjamín») y el corto de «Vistos hace poco» («benj.»). Los
-// usan el modelo y las pantallas. Alevín (solo Gran Canaria, fútbol 7) va al final: así no cambia ningún
-// orden ni ningún respaldo de las otras dos.
-export const CATEGORIES = ['benjamin', 'prebenjamin', 'alevin'];
-export const CAT_NAMES = { benjamin: 'Benjamín', prebenjamin: 'Prebenjamín', alevin: 'Alevín' };
-export const CAT_WORDS = { benjamin: 'benjamín', prebenjamin: 'prebenjamín', alevin: 'alevín' };
-export const CAT_SHORT = { benjamin: 'benj.', prebenjamin: 'preb.', alevin: 'alev.' };
+// usan el modelo y las pantallas. Alevín (solo Gran Canaria, fútbol 7) va detrás de las dos de siempre, e
+// infantil, cadete y juvenil (parte E), detrás de alevín, de menor a mayor: así no cambia ningún orden ni
+// ningún respaldo de las de antes.
+export const CATEGORIES = ['benjamin', 'prebenjamin', 'alevin', 'infantil', 'cadete', 'juvenil'];
+export const CAT_NAMES = { benjamin: 'Benjamín', prebenjamin: 'Prebenjamín', alevin: 'Alevín', infantil: 'Infantil', cadete: 'Cadete', juvenil: 'Juvenil' };
+export const CAT_WORDS = { benjamin: 'benjamín', prebenjamin: 'prebenjamín', alevin: 'alevín', infantil: 'infantil', cadete: 'cadete', juvenil: 'juvenil' };
+export const CAT_SHORT = { benjamin: 'benj.', prebenjamin: 'preb.', alevin: 'alev.', infantil: 'inf.', cadete: 'cad.', juvenil: 'juv.' };
+// Las categorías perezosas: cada una en su fichero (data-<cat>.js en la temporada en curso,
+// data-season-<S>-<cat>.js en las pasadas; generate_js.LAZY), que la web pide cuando hace falta y nunca va
+// en la carga inicial.
+export const LAZY_CATS = ['alevin', 'infantil', 'cadete', 'juvenil'];
+// Los niveles de infantil, cadete y juvenil (scripts/convenio.py, NIVELES) con su nombre, para la tabla.
+const LEVEL_NAMES = {
+  'division de honor': 'División de Honor', autonomica: 'Autonómica', interinsular: 'Interinsular',
+  territorial: 'Territorial', preferente: 'Preferente', primera: 'Primera', segunda: 'Segunda',
+  'insular b': 'Insular B', insular: 'Insular',
+};
+const STAGE_NAMES = { 1: 'Fase 1', 2: 'Fase 2', oro: 'Fase Oro', plata: 'Fase Plata' };
+const STAGE_KEYS = { 1: 'fase-1', 2: 'fase-2', oro: 'oro', plata: 'plata' };
+const COPA_KINDS = { cabildo: 'Cabildo', delegacion: 'Delegación' };
 const upperFirst = s => s.charAt(0).toUpperCase() + s.slice(1);
 const foldText = s => String(s ?? '').normalize('NFD').replace(/\p{M}/gu, '')
   .toLowerCase().replace(/\s+/g, ' ').trim();
@@ -340,12 +362,25 @@ const PHASE_TABLE = [
   [/^(?:semi)?final\b/, (m, raw) => ({ cup: 'final', cupKey: `final-${slugOf(raw.phase)}`, name: String(raw.phase).trim() })],
   // Torneos de cierre y de clausura de temporada («Torneo Cierre Prebenjamín», «Clausura Benjamín»).
   [/^(?:torneo|clausura)\b/, (m, raw) => ({ cup: 'torneo', cupKey: `torneo-${slugOf(raw.phase)}`, name: String(raw.phase).trim() })],
+  // Las eliminatorias con apellido de infantil, cadete y juvenil (scripts/convenio.py): «Eliminatorias de
+  // Ascenso a Interinsular Lanzarote», «Eliminatorias Copa Insular GC» y las de una liga («Eliminatorias
+  // Preferente GC», sus grupos …EL). Cada una, su competición: en una temporada puede haber dos.
+  [/^eliminatorias (.+)$/, (m, raw) => ({
+    cup: 'eliminatorias', cupKey: `eliminatorias-${slugOf(m[1])}`, name: String(raw.phase).trim(),
+  })],
   // «Eliminatorias» de benjamín (EL1…), prebenjamín (PEL1…) y alevín (ALEL1…), las que reparten los
   // puestos de la fase siguiente: una copa, como isCupGroup.
   [/^eliminatorias\b/, () => ({ cup: 'eliminatorias', cupKey: 'eliminatorias', name: 'Eliminatorias' })],
   // «Copa Cabildo Preferente Lanzarote» y «Copa Cabildo Primera Lanzarote» (2023-24)
   [/^copa cabildo (preferente|primera)\b/, m => ({
     cup: 'insular', cupKey: 'copa-cabildo', division: m[1], name: `Copa Cabildo ${upperFirst(m[1])}`,
+  })],
+  // Las copas con nivel de infantil, cadete y juvenil: «Copa Insular GC», «Copa Cabildo Insular B
+  // Lanzarote», «Copa Preferente Lanzarote», «Copa Territorial»… Una por nivel (en Lanzarote hay a la vez
+  // la Copa Insular y la Copa Preferente) y la de Cabildo o Delegación aparte de la que no lo es.
+  [/^copa (cabildo |delegacion )?(division de honor|autonomica|interinsular|territorial|preferente|primera|segunda|insular b|insular)\b/, m => ({
+    cup: 'insular', cupKey: `copa-${m[1] ? `${m[1].trim()}-` : ''}${slugOf(m[2])}`, division: slugOf(m[2]),
+    name: ['Copa', m[1] ? COPA_KINDS[m[1].trim()] : null, LEVEL_NAMES[m[2]]].filter(Boolean).join(' '),
   })],
   // «Copa Delegación Fuerteventura» (2022-23)
   [/^copa delegacion\b/, () => ({ cup: 'insular', cupKey: 'copa-delegacion', name: 'Copa Delegación' })],
@@ -366,6 +401,19 @@ const PHASE_TABLE = [
       ? { division: 'primera', name: 'Primera' }
       : { phase: 'primera-fase', name: 'Primera Fase' };
   }],
+  // Las fases de ascenso de infantil, cadete y juvenil («Fase de Ascenso a Interinsular», «… a Preferente
+  // GC»): copas, cada una con su destino.
+  [/^fase de ascenso a (.+)$/, (m, raw) => ({ cup: 'ascenso', cupKey: `ascenso-${slugOf(m[1])}`, name: String(raw.phase).trim() })],
+  // Las ligas de infantil, cadete y juvenil por su nivel (scripts/convenio.py): «División de Honor»,
+  // «Interinsular», «Insular B Lanzarote», «Insular GC Fase 1», «División de Honor Fase 2 C» (subgrupo C de
+  // la segunda fase)… La isla del nombre no entra: ya es la del grupo.
+  [/^(division de honor|autonomica|interinsular|territorial|segunda|insular b|insular)\b(?: (?:gc|lanzarote|fuerteventura|lanzarote-fuerteventura))?(?: fase (1|2|oro|plata))?(?: ([a-z]))?$/, m => ({
+    division: slugOf(m[1]),
+    phase: [m[2] ? STAGE_KEYS[m[2]] : null, m[3] || null].filter(Boolean).join('-') || null,
+    name: [LEVEL_NAMES[m[1]], m[2] ? STAGE_NAMES[m[2]] : null, m[3] ? m[3].toUpperCase() : null].filter(Boolean).join(' '),
+  })],
+  // «Preferente GC Fase Oro» y «… Fase Plata» (infantil de Gran Canaria): la Preferente, en dos.
+  [/^preferente\b.* fase (oro|plata)$/, m => ({ division: 'preferente', phase: m[1], name: `Preferente ${STAGE_NAMES[m[1]]}` })],
   // «Fase 1 Fuerteventura» (2023-24, 2024-25), «Fuerteventura Fase 1» (2025-26), «Fase 2 Fuerteventura»
   [/\bfase ([12])\b/, m => ({ phase: `fase-${m[1]}`, name: `Fase ${m[1]}` })],
   // «Preferente GC» (2021-22, 2022-23) y «Preferente Lanzarote»
@@ -386,13 +434,14 @@ const PHASE_TABLE = [
 
 /* La categoría del grupo: `cat` si es una de la app, y si no, la de fullName
  * (los grupos crudos de data-*.js no la llevan, ni las filas de las fichas de
- * jugador): «PREBENJAMIN…» antes que «BENJAMIN…», que es parte de su nombre. */
+ * jugador): «PREBENJAMIN…» antes que «BENJAMIN…», que es parte de su nombre;
+ * alevín, infantil («INFANTILL» incluido), cadete y juvenil, entre las dos. */
 function catOfGroup(raw) {
   const c = foldText(raw && raw.cat);
   if (CATEGORIES.includes(c)) return c;
   const full = foldText(raw && raw.fullName);
   if (full.includes('prebenjamin')) return 'prebenjamin';
-  if (full.includes('alevin')) return 'alevin';
+  for (const cat of LAZY_CATS) if (full.includes(cat)) return cat;
   return full.includes('benjamin') ? 'benjamin' : null;
 }
 
@@ -413,7 +462,7 @@ function classifyPhase(raw, season) {
  * nunca si el texto ya la nombra («Copa Fuerteventura»). */
 function islandSuffix(c, qualifier, textSoFar) {
   const isla = ISLAND_NAMES[c.island];
-  if (!isla || textSoFar.includes(isla)) return '';
+  if (!isla || c.island === 'interinsular' || textSoFar.includes(isla)) return '';
   return c.island !== 'grancanaria' || !qualifier ? ` de ${isla}` : '';
 }
 
@@ -977,14 +1026,16 @@ export function timelineFor(match, matchDetail, lineups) {
 
 /* ── Registro de datos y modelo ───────────────────────────────────────────
  *
- * datasets = { ...readGlobals(), seasonRaw: {}, matchDetail: null, lineups: {}, health: undefined,
- * alevin: undefined, seasonAlevin: {} }: los globales inmediatos y lo que traen los cargadores
- * perezosos de state.js (health: undefined sin pedir y null si falló). El modelo los lee al pedirlos,
- * así que una temporada pasada aparece en cuanto se guarda en seasonRaw. El alevín va aparte, porque
- * nunca está en la carga inicial: el de la temporada del portal en `alevin`
- * (alevinData de state.js: { groups, stats, history, gol, estados, equipos }; undefined sin pedir) y el
- * de cada temporada pasada en seasonAlevin[S] (el SEASON_<S>_ALEVIN de data-season-<S>-alevin.js, o {}
- * si esa temporada no tiene); la temporada se reconstruye en cuanto llega. */
+ * datasets = { ...readGlobals(), seasonRaw: {}, matchDetail: null, matchDetailLazy: {}, lineups: {}, health: undefined,
+ * lazy: { alevin: undefined, infantil: undefined, cadete: undefined, juvenil: undefined },
+ * seasonLazy: { alevin: {}, infantil: {}, cadete: {}, juvenil: {} } }: los globales inmediatos y lo que
+ * traen los cargadores perezosos de state.js (health: undefined sin pedir y null si falló). El modelo
+ * los lee al pedirlos, así que una temporada pasada aparece en cuanto se guarda en seasonRaw. Las
+ * categorías perezosas (LAZY_CATS) van aparte, porque nunca están en la carga inicial: la de la
+ * temporada del portal en lazy[cat] (lazyData de state.js: { groups, stats, history, gol, estados,
+ * equipos, campos? }; undefined sin pedir) y la de cada temporada pasada en seasonLazy[cat][S] (el
+ * SEASON_<S>_<CAT> de data-season-<S>-<cat>.js, o {} si esa temporada no la tiene); la temporada se
+ * reconstruye en cuanto llega. */
 
 // La Maspalomas Cup es de 2025/26 y lo sigue siendo después de activar 2026/27.
 const CUPS_SEASON = '2025-2026';
@@ -1009,39 +1060,43 @@ export function createModel(datasets, { portalSeason, buildClubIndex = null } = 
   // El data-season-<S>.js ya cargado de una temporada pasada, o null.
   const seasonRawOf = season => (SEASON_RE.test(String(season)) && data.seasonRaw && Object.hasOwn(data.seasonRaw, season)
     ? data.seasonRaw[season] || null : null);
-  // El alevín de una temporada: el de data-alevin.js (alevinData) en la del portal y el
-  // SEASON_<S>_ALEVIN en una pasada; null mientras no se ha pedido.
-  const alevinOf = (season) => {
-    const value = season === portalSeason ? data.alevin
-      : (data.seasonAlevin && SEASON_RE.test(String(season)) && Object.hasOwn(data.seasonAlevin, season) ? data.seasonAlevin[season] : null);
+  // Una categoría perezosa (LAZY_CATS) de una temporada: la de su data-<cat>.js (lazyData de state.js) en
+  // la del portal y su SEASON_<S>_<CAT> en una pasada; null mientras no se ha pedido.
+  const lazyOf = (cat, season) => {
+    const past = data.seasonLazy && data.seasonLazy[cat];
+    const value = season === portalSeason ? (data.lazy || {})[cat]
+      : (past && SEASON_RE.test(String(season)) && Object.hasOwn(past, season) ? past[season] : null);
     return value && typeof value === 'object' ? value : null;
   };
-  // Cada Season memorizada va con el alevín con el que se construyó: si llega otro (o el primero), se
-  // reconstruye: si no, alevín no saldría hasta recargar la página.
+  const lazyAll = season => LAZY_CATS.map(cat => lazyOf(cat, season));
+  // Cada Season memorizada va con las perezosas con las que se construyó: si llega otra (o la primera), se
+  // reconstruye: si no, no saldría hasta recargar la página.
   const seasons = new Map();
   let cups = null;
   let index = null;
   let indexCollections = null;
   const camposMemo = new Map();
   const model = {
-    // Season memorizada. La del portal, de benjamin, prebenjamin e history, más alevin.groups con su
-    // alevin.history; una pasada, de seasonRaw[name] (lo que devuelve ensureSeasonData) más el `alevin`
-    // de seasonAlevin[name], o null mientras no esté cargada.
+    // Season memorizada. La del portal, de benjamin, prebenjamin e history, más los grupos de cada
+    // perezosa con su history; una pasada, de seasonRaw[name] (lo que devuelve ensureSeasonData) más lo
+    // de cada perezosa de seasonLazy[cat][name] (su clave, la de la categoría), o null mientras no esté
+    // cargada.
     season(name) {
-      const alevin = alevinOf(name);
+      const lazy = lazyAll(name);
       const memo = seasons.get(name);
-      if (memo && memo.alevin === alevin) return memo.season;
+      if (memo && memo.lazy.every((value, i) => value === lazy[i])) return memo.season;
       let built = null;
       if (name === portalSeason) {
-        const history = alevin && alevin.history ? { ...(data.history || {}), ...alevin.history } : data.history;
-        built = buildSeason({ name, current: true, benjamin: data.benjamin, prebenjamin: data.prebenjamin,
-          alevin: alevin ? alevin.groups : [], history });
+        const extra = lazy.filter(value => value && value.history);
+        const history = extra.length ? Object.assign({}, data.history || {}, ...extra.map(value => value.history)) : data.history;
+        built = buildSeason({ name, current: true, benjamin: data.benjamin, prebenjamin: data.prebenjamin, history,
+          ...Object.fromEntries(LAZY_CATS.map((cat, i) => [cat, lazy[i] ? lazy[i].groups : []])) });
       } else if (SEASON_RE.test(String(name)) && data.seasonRaw && Object.hasOwn(data.seasonRaw, name) && data.seasonRaw[name]) {
         const raw = data.seasonRaw[name];
         built = buildSeason({ name, current: false, benjamin: raw.benjamin, prebenjamin: raw.prebenjamin,
-          alevin: alevin ? alevin.alevin : [] });
+          ...Object.fromEntries(LAZY_CATS.map((cat, i) => [cat, lazy[i] ? lazy[i][cat] : []])) });
       }
-      if (built) seasons.set(name, { season: built, alevin });
+      if (built) seasons.set(name, { season: built, lazy });
       return built;
     },
     group(season, id) {
@@ -1056,7 +1111,7 @@ export function createModel(datasets, { portalSeason, buildClubIndex = null } = 
       return cups;
     },
     // Índice de clubes sobre los nombres de las temporadas cargadas y los torneos,
-    // con los escudos. Se rehace cuando se carga otra temporada, llegan los torneos o llega el alevín
+    // con los escudos. Se rehace cuando se carga otra temporada, llegan los torneos o llega una perezosa
     // de una temporada ya construida (que la reconstruye): cada colección se compara por identidad.
     clubIndex() {
       const loaded = [portalSeason, ...Object.keys(data.seasonRaw || {}).filter(name => name !== portalSeason).sort()];
@@ -1072,54 +1127,55 @@ export function createModel(datasets, { portalSeason, buildClubIndex = null } = 
     },
     // Ficha de un equipo en una temporada: { shirt, shorts, socks, venue, surface, kit } (directorio de la
     // federación y app de futbolaspalmas: EQUIPOS en la del portal, `equipos` de su data-season-<S>.js en
-    // una pasada, y los de alevín, EQUIPOS_ALEV o el `equipos` de su data-season-<S>-alevin.js), o null.
-    // `cat`, la categoría del grupo: un homónimo (Las Mesas Hu. en prebenjamín y en alevín) lleva la
-    // ficha de la suya y, si esa no la trae, la de la otra.
+    // una pasada, y los de cada perezosa, EQUIPOS_<S> o el `equipos` de su data-season-<S>-<cat>.js), o
+    // null. `cat`, la categoría del grupo: un homónimo (Las Mesas Hu. en prebenjamín y en alevín; el club
+    // de benjamín y de juvenil) lleva la ficha de la suya y, si esa no la trae, la de las otras.
     teamInfo(season, team, cat = null) {
       const main = season === portalSeason ? data.equipos : (seasonRawOf(season) || {}).equipos;
-      const alevin = (alevinOf(season) || {}).equipos;
-      const row = (cat === 'alevin' ? [alevin, main] : [main, alevin])
-        .map(map => (map && typeof map === 'object' && Object.hasOwn(map, team) ? map[team] : null)).find(Array.isArray);
+      const lazy = LAZY_CATS.map(c => [c, (lazyOf(c, season) || {}).equipos]);
+      const own = lazy.find(([c]) => c === cat);
+      const maps = own ? [own[1], main, ...lazy.filter(([c]) => c !== cat).map(([, m]) => m)] : [main, ...lazy.map(([, m]) => m)];
+      const row = maps.map(map => (map && typeof map === 'object' && Object.hasOwn(map, team) ? map[team] : null)).find(Array.isArray);
       if (!Array.isArray(row)) return null;
       const [shirt, shorts, socks, venue, surface, kit] = row;
       return { shirt: shirt || null, shorts: shorts || null, socks: socks || null, venue: venue || null,
         surface: surface || null, kit: kit || null };
     },
     // Los campos de una temporada ({campo: [dirección, localidad, superficie, tipo(, lat, lon)]}): CAMPOS
-    // en la del portal (ya de toda la temporada, alevín incluido) y `campos` de su data-season-<S>.js en
-    // una pasada, con los que añada su data-season-<S>-alevin.js; null si no hay. La unión se memoriza
-    // por los dos mapas: el mismo objeto mientras no cambien.
+    // en la del portal (los de benjamín, prebenjamín y alevín) con los CAMPOS_<S> de infantil, cadete y
+    // juvenil, y `campos` de su data-season-<S>.js en una pasada con los de sus data-season-<S>-<cat>.js;
+    // null si no hay. La unión se memoriza por los mapas: el mismo objeto mientras no cambien.
     campos(season) {
       const own = season === portalSeason ? data.campos : (seasonRawOf(season) || {}).campos;
       const map = own && typeof own === 'object' ? own : null;
-      const extra = season === portalSeason ? null : (alevinOf(season) || {}).campos;
-      if (!extra || typeof extra !== 'object') return map;
+      const extras = LAZY_CATS.map(cat => (lazyOf(cat, season) || {}).campos).filter(extra => extra && typeof extra === 'object');
+      if (!extras.length) return map;
       const memo = camposMemo.get(season);
-      if (memo && memo.map === map && memo.extra === extra) return memo.merged;
-      const merged = { ...extra, ...(map || {}) };
-      camposMemo.set(season, { map, extra, merged });
+      if (memo && memo.map === map && memo.extras.length === extras.length && memo.extras.every((e, i) => e === extras[i])) return memo.merged;
+      const merged = Object.assign({}, ...extras, map || {});
+      camposMemo.set(season, { map, extras, merged });
       return merged;
     },
     // Lo que la app de futbolaspalmas dice de un partido de la temporada del portal que el marcador no
     // dice: { state: 'aplazado' | 'suspendido' | 'retirado' | 'anulado' | null, note, start } o null. De
-    // ESTADOS o, en un grupo de alevín, de ESTADOS_ALEV (los códigos no se repiten entre categorías).
+    // ESTADOS o, en un grupo de una perezosa, de su ESTADOS_<S> (los códigos no se repiten entre categorías).
     matchStatus(match) {
       if (!match || match.season !== portalSeason) return null;
-      const alevin = alevinOf(portalSeason);
-      const states = [data.estados, alevin && alevin.estados]
+      const states = [data.estados, ...lazyAll(portalSeason).map(lazy => lazy && lazy.estados)]
         .find(map => map && typeof map === 'object' && Object.hasOwn(map, match.groupId));
       if (!states) return null;
       const round = states[match.groupId][match.roundKey] || {};
       const row = round[`${match.home}|${match.away}`];
       return Array.isArray(row) ? { state: row[0] || null, note: row[1] || null, start: row[2] || null } : null;
     },
-    // Goleadores (GOL_BENJ, GOL_PREBENJ o GOL_ALEV: [{ id, g, s: [[jugador, equipo, goles, partidos]] }]),
-    // los que recibe teamScorers. De una temporada pasada, los de su data-season-<S>.js (`gol`) o, en
-    // alevín, los de su data-season-<S>-alevin.js, si los trae; si no, o sin cargar, [].
+    // Goleadores (GOL_BENJ, GOL_PREBENJ o el GOL_<S> de una perezosa: [{ id, g, s: [[jugador, equipo,
+    // goles, partidos]] }]), los que recibe teamScorers. De una temporada pasada, los de su
+    // data-season-<S>.js (`gol`) o, en una perezosa, los de su data-season-<S>-<cat>.js, si los trae; si
+    // no, o sin cargar, [].
     scorers(season, cat) {
-      if (cat === 'alevin') {
-        const alevin = alevinOf(season);
-        const gol = !alevin ? null : season === portalSeason ? alevin.gol : (alevin.gol || {}).alevin;
+      if (LAZY_CATS.includes(cat)) {
+        const lazy = lazyOf(cat, season);
+        const gol = !lazy ? null : season === portalSeason ? lazy.gol : (lazy.gol || {})[cat];
         return Array.isArray(gol) ? gol : [];
       }
       if (season !== portalSeason) {
@@ -1349,13 +1405,19 @@ export function anyCards(lineups) {
 // Las fases de la Segunda Fase, sin letra y con cada letra en su orden ('segunda-a'…'segunda-z'): las
 // que salen de la regla de PHASE_TABLE, la F de 2026-27 incluida.
 const SECOND_PHASES = ['segunda-fase', ...[...'abcdefghijklmnopqrstuvwxyz'].map(letter => `segunda-${letter}`)];
+// La fase de ascenso (cup 'ascenso': la juega el equipo al acabar su liga, que la tiene como su fase más
+// alta, como la Segunda Fase) y la Fase 2 con subgrupo de infantil, cadete y juvenil ('fase-2-c', como
+// 'fase-2') también son 2.
 const PHASE_LEVEL = {
   ...Object.fromEntries(SECOND_PHASES.map(phase => [phase, 2])),
-  'fase-2': 2, oro: 2, plata: 2, bronce: 2, superliga: 2,
+  'fase-2': 2, oro: 2, plata: 2, bronce: 2, superliga: 2, ascenso: 2,
 };
+const levelOf = ({ phase, cup }) => (phase
+  ? PHASE_LEVEL[phase] ?? PHASE_LEVEL[phase.replace(/-[a-z]$/, '')]
+  : PHASE_LEVEL[cup]) ?? 1;
 const levels = new WeakMap();
 export function phaseLevel(group) {
-  if (!levels.has(group)) levels.set(group, PHASE_LEVEL[competitionKey(group, group.season).phase] ?? 1);
+  if (!levels.has(group)) levels.set(group, levelOf(competitionKey(group, group.season)));
   return levels.get(group);
 }
 
@@ -1366,15 +1428,28 @@ export function topPhase(entries) {
   return entries.filter(entry => phaseLevel(entry.group) === top);
 }
 
-const ISLAND_ORDER = ['grancanaria', 'lanzarote', 'fuerteventura'];
+const ISLAND_ORDER = ['grancanaria', 'lanzarote', 'fuerteventura', 'interinsular'];
 // Dentro de un nivel y una isla: la división, la fase y la copa, de la primera a la última de la
 // temporada (la Liga Oro antes que la Plata; la Preferente antes que la Primera). La fuente ordena los
 // grupos por su código (FB, FO, FP), y ese orden no sirve.
-const DIVISION_ORDER = ['preferente', 'primera', 'unica'];
+// Los niveles de infantil, cadete y juvenil, del más alto al más bajo (scripts/convenio.py), alrededor de
+// los de siempre, que no cambian de orden entre sí.
+const DIVISION_ORDER = ['division-de-honor', 'autonomica', 'interinsular', 'territorial', 'preferente', 'primera',
+  'segunda', 'insular', 'insular-b', 'unica'];
 const PHASE_ORDER = [...SECOND_PHASES, 'fase-2', 'superliga', 'oro', 'plata', 'bronce', 'primera-fase', 'fase-1', null];
 // Las Eliminatorias, que reparten los puestos de la fase siguiente, antes que las copas de final de temporada.
-const CUP_ORDER = [null, 'eliminatorias', 'campeones', 'insular', 'final', 'torneo', 'maspalomas'];
+// Las fases de ascenso, al acabar la liga, antes que ellas.
+const CUP_ORDER = [null, 'ascenso', 'eliminatorias', 'campeones', 'insular', 'final', 'torneo', 'maspalomas'];
 const rankOf = (list, value) => (list.includes(value) ? list.indexOf(value) : list.length);
+// En infantil, cadete y juvenil hay muchas divisiones y varias islas por división: el nivel de la liga manda
+// sobre la isla y sobre la fase (si no, la Insular de Gran Canaria saldría antes que la Interinsular, y la
+// Segunda antes que la División de Honor). El nivel es el de DIVISION_ORDER y, dentro de una división, la
+// Fase Oro antes y la Fase Plata después (los niveles de scripts/ranking.py: Oro 1,30, Preferente 1,25 y
+// Plata 1,15). Benjamín, prebenjamín y alevín siguen con su clave de siempre. Las copas de las nuevas (copas,
+// ascensos, eliminatorias y finales, detrás de las ligas), en cambio, por isla y después por división, como las
+// ligas de benjamín: cada isla tiene las suyas, y así las de Lanzarote no se cuelan entre las de Gran Canaria.
+const LEVEL_FIRST_CATS = ['infantil', 'cadete', 'juvenil'];
+const leagueTier = ck => rankOf(DIVISION_ORDER, ck.division) * 3 + (ck.phase === 'oro' ? 0 : ck.phase === 'plata' ? 2 : 1);
 // Orden de nombres sin tildes ni mayúsculas, el mismo en todos los motores (sin datos de idioma).
 function byName(a, b) {
   const x = foldText(a), y = foldText(b);
@@ -1510,7 +1585,9 @@ export function searchTeams(model, season, query) {
  *   no, 'liga'.
  * - Orden: benjamín y prebenjamín; en cada una, las ligas y después las copas; dentro, la fase más
  *   alta primero, después Gran Canaria, Lanzarote y Fuerteventura, y después la división, la fase y la
- *   copa (PHASE_ORDER…) y el nombre.
+ *   copa (PHASE_ORDER…) y el nombre. En infantil, cadete y juvenil, las ligas por el nivel de la liga
+ *   (leagueTier: División de Honor… Insular B), después la isla y después la fase; sus copas, por la isla
+ *   y después por el nivel de la liga y la fase.
  * - Los grupos, en orden natural de su nombre («Grupo 2» antes que «Grupo 10»).
  * - cat e island filtran; sin ellos, todas. Una temporada sin cargar da []. */
 export function competitions(model, season, { cat = null, island = null } = {}) {
@@ -1527,8 +1604,14 @@ export function competitions(model, season, { cat = null, island = null } = {}) 
     }
     entries.get(id).groups.push(group);
   }
-  const rank = e => [rankOf(CATEGORIES, e.cat), e.kind === 'liga' ? 0 : 1, -e.level, rankOf(ISLAND_ORDER, e.ck.island),
-    rankOf(DIVISION_ORDER, e.ck.division), rankOf(PHASE_ORDER, e.ck.phase), rankOf(CUP_ORDER, e.ck.cup)];
+  const rank = e => (LEVEL_FIRST_CATS.includes(e.cat)
+    ? (e.kind === 'liga'
+      ? [rankOf(CATEGORIES, e.cat), 0, leagueTier(e.ck), rankOf(ISLAND_ORDER, e.ck.island), -e.level,
+        rankOf(PHASE_ORDER, e.ck.phase), rankOf(CUP_ORDER, e.ck.cup)]
+      : [rankOf(CATEGORIES, e.cat), 1, rankOf(ISLAND_ORDER, e.ck.island), leagueTier(e.ck), -e.level,
+        rankOf(PHASE_ORDER, e.ck.phase), rankOf(CUP_ORDER, e.ck.cup)])
+    : [rankOf(CATEGORIES, e.cat), e.kind === 'liga' ? 0 : 1, -e.level, rankOf(ISLAND_ORDER, e.ck.island),
+      rankOf(DIVISION_ORDER, e.ck.division), rankOf(PHASE_ORDER, e.ck.phase), rankOf(CUP_ORDER, e.ck.cup)]);
   return [...entries.values()]
     .sort((a, b) => {
       const x = rank(a), y = rank(b);

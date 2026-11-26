@@ -4,7 +4,7 @@
 // (categoryScorers, state.js) con «ver todos». Cada récord enlaza a su partido o a la ficha de su
 // equipo. Una temporada pasada la carga el router antes de pintar: needs no pide nada.
 import { html } from './html.js';
-import { block, box, cells, crest, decimal, empty, score, screenHead, segmented } from './ui.js';
+import { block, box, categoryPicker, cells, crest, decimal, empty, mountCategoryPicker, pickerCategories, score, screenHead } from './ui.js';
 import { errorBox } from './shell.js';
 import {
   CATEGORIES, CAT_NAMES, CAT_WORDS, playerName, roundOf, seasonLabel, seasonRecords, RECORD_MIN_PJ, RECORD_MIN_SIDE,
@@ -13,7 +13,6 @@ import { matchHref, routeHref, teamHref, weekdayDate } from './links.js';
 import { categoryScorers, rankScorers } from './state.js';
 import { defaultCategory } from './myteam.js';
 
-const CATS = CATEGORIES.map((value) => ({ value, label: CAT_NAMES[value] }));
 export const TOP_SCORERS = 30;
 const TOP_RANK = 3;
 
@@ -83,12 +82,13 @@ function render(ctx) {
   const s = params.s || ctx.portal.season;
   // `c` por defecto: la de Goleadores (defaultCategory, myteam.js), la categoría de mi
   // equipo resuelto o, si no la hay (E o X), la del equipo por defecto.
-  const c = CATS.some((cat) => cat.value === params.c) ? params.c : defaultCategory(ctx.resolution, ctx.portal.defaultTeam);
+  const c = CATEGORIES.includes(params.c) ? params.c : defaultCategory(ctx.resolution, ctx.portal.defaultTeam);
   const head = screenHead('Récords', { sub: `Temporada ${seasonLabel(s)}`, back: ctx.backHref, action: { href: routeHref('temporadas'), label: 'Otra temporada' } });
   const season = model.season(s);
   // Sin la temporada (el router la carga antes de pintar): la caja de error, nunca otra temporada.
   if (!season) return html`<section data-screen="records">${head}${errorBox(`la temporada ${seasonLabel(s)}`)}</section>`;
-  const picker = html`<nav class="rc-cats" aria-label="Categoría">${segmented(CATS, c, (value) => routeHref('records', { s, c: value }), { idPrefix: 'categoria' })}</nav>`;
+  // El selector, con las categorías de la temporada (pickerCategories: con seis, se desliza la fila).
+  const picker = categoryPicker(pickerCategories(ctx, s, c), c, (value) => routeHref('records', { s, c: value }), { cls: 'rc-cats' });
   const records = seasonRecords(season, c);
   const group = (id) => season.groups.find((g) => g.id === id) || null;
   const env = {
@@ -132,8 +132,14 @@ function render(ctx) {
   return html`<section data-screen="records">${head}${picker}<div class="rc-cols"><div class="rc-records">${main}</div><div class="rc-top">${scorersBlock(ctx, c, env)}</div></div></section>`;
 }
 
+// La fila de categorías, a la elegida, y deslizada al tabular (con scrollLeft: la página no se mueve).
+function mount(root) {
+  mountCategoryPicker(root && root.querySelector && root.querySelector('.cat-picker'));
+}
+
 export const screen = {
   id: 'records',
   needs: () => [],
   render,
+  mount,
 };

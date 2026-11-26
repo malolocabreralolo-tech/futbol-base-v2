@@ -118,7 +118,8 @@ Sale del nombre de la fase del grupo.
 | Todo lo demás (Primera Fase, «Primera GC», ligas de isla, copas, fases de ascenso…) | 1,00 |
 
 Los niveles de las categorías nuevas van por cómo **empieza** la fase (la «Fase de Ascenso a División de
-Honor» no es la División de Honor: vale 1,00). Infantil, cadete y juvenil entran en el ranking cuando la web
+Honor» no es la División de Honor: no tiene nivel propio y cuenta como la liga de su equipo, más abajo).
+Infantil, cadete y juvenil entran en el ranking cuando la web
 los enseña (parte E2); hasta entonces sus actas están en la base, pero el generador no las ve
 (`scripts/vista_web.py`).
 
@@ -134,9 +135,16 @@ valen como de la A (1,30), y los de uno que está en la F, como de la F (0,90). 
 ese grupo (en su clasificación o en su calendario), aunque aún no haya jugado. Un equipo que no está en
 ninguna Segunda Fase con letra se queda con el nivel de su grupo (1,00). Los grupos con nivel propio
 (Segunda Fase con letra, Preferente, Copa de Campeones y los niveles de infantil, cadete y juvenil de la
-tabla) valen lo suyo. En las categorías nuevas, un grupo sin nivel propio (una copa) cuenta como la liga de
-su equipo esa temporada (`ranking.fase_que_cuenta` con la fase entera: la «Copa Insular Lanzarote» de un
-equipo de la Insular vale como la «Insular Lanzarote»; lo calcula E2).
+tabla) valen lo suyo.
+
+En infantil, cadete y juvenil (y en el alevín de Lanzarote y Fuerteventura, cuando entre) no hay Segunda Fase
+con letra: un grupo sin nivel propio (una copa, una fase de ascenso, una eliminatoria, una final) cuenta como
+**la mejor liga de su equipo esa temporada** en esa categoría, la de más nivel de la tabla de arriba entre
+las ligas con nivel propio en las que está (`generate_js._rival_y_puesto` y `ranking.fase_que_cuenta` con la
+fase entera). Así, los goles de la «Copa Insular Lanzarote» de un equipo de la Interinsular valen como de la
+Interinsular (1,35), y los de la «Copa Insular GC» de uno de la Insular GC, como de la Insular (0,90). Un
+equipo sin ninguna liga con nivel propio (de «Primera GC», que vale 1,00) se queda con el de su grupo. El
+benjamín de Lanzarote y Fuerteventura sigue como siempre: su copa vale 1,00.
 
 Y se multiplica por **el nivel de la isla** del grupo:
 
@@ -187,6 +195,8 @@ que los mayores que admite su categoría esa temporada.
 - Para ordenar: primero el índice y, a igual índice, más goles.
 - Al principio de una temporada, la lista de «esta temporada» tiene poca gente: casi nadie llega todavía a
   los 3 partidos.
+- Un año sin nadie en «toda su trayectoria» (los más pequeños, que solo llevan una temporada, y los que solo
+  tienen partidos de la temporada en curso) no ofrece esa vista: la pantalla enseña solo «esta temporada».
 
 ## De dónde sale el año de nacimiento
 

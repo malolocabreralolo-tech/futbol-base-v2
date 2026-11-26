@@ -226,3 +226,26 @@ test('portada: cada candidato de la pregunta (estado E) es un botón de al menos
   assert.match(decl('.choice-name'), /color:\s*var\(--ink\)/);
   assert.match(decl('.choice-text'), /min-width:\s*0/);
 });
+
+test('test_selector_de_categorias: .cat-picker se desliza él (overflow-x: auto, sin barra en el móvil) y sus enlaces no parten el nombre; la página nunca', () => {
+  const decl = (sel, media = null) => RULES.filter((r) => r.media === media && r.selector.split(/\s*,\s*/).includes(sel)).map((r) => r.body).join(';');
+  assert.match(decl('.cat-picker'), /overflow-x:\s*auto/);
+  assert.match(decl('.cat-picker'), /scrollbar-width:\s*none/);
+  assert.match(decl('.cat-picker'), /position:\s*relative/, 'la referencia de offsetLeft (scrollToCurrent)');
+  assert.match(decl('.cat-picker .segment'), /white-space:\s*nowrap/);
+  assert.match(decl('.cat-picker .segment'), /min-width:\s*max-content/, 'nunca más estrecho que su nombre');
+  for (const sel of ['html', 'body', '.page', 'main', '#contenido']) assert.doesNotMatch(decl(sel), /overflow-x:\s*(auto|scroll)/, sel);
+  // La pista de que hay más: dos degradados de papel pegados a los bordes (sticky), que no ocupan sitio y solo se
+  // ven con data-more; y el anillo de foco, por dentro (la fila recorta lo que sale de ella).
+  assert.match(decl('.cat-picker::before'), /position:\s*sticky/);
+  assert.match(decl('.cat-picker::before'), /visibility:\s*hidden/);
+  assert.match(decl('.cat-picker::before'), /left:\s*0/);
+  assert.match(decl('.cat-picker::before'), /margin-right:\s*calc\(-1 \* var\(--picker-fade\)\)/);
+  assert.match(decl('.cat-picker::before'), /linear-gradient\(to right, var\(--paper\), transparent\)/);
+  assert.match(decl('.cat-picker::after'), /right:\s*0/);
+  assert.match(decl('.cat-picker::after'), /margin-left:\s*calc\(-1 \* var\(--picker-fade\)\)/);
+  assert.match(decl('.cat-picker[data-more~="left"]::before'), /visibility:\s*visible/);
+  assert.match(decl('.cat-picker[data-more~="right"]::after'), /visibility:\s*visible/);
+  assert.match(decl('.cat-picker .segment:focus-visible'), /outline-offset:\s*-4px/);
+  assert.match(decl('.cat-picker .segment[aria-current]:focus-visible'), /outline-color:\s*var\(--on-ink\)/);
+});

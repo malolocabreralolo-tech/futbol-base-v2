@@ -8,7 +8,7 @@
 // mount al escribir.
 import { html } from './html.js';
 import { screenHead, block, countLabel, crest, empty, notice, searchBox, seasonPicker, linkRow, listEs } from './ui.js';
-import { alevinFailedBox, errorBox } from './shell.js';
+import { errorBox, lazyFailedBox } from './shell.js';
 import {
   CATEGORIES, CAT_NAMES, CAT_SHORT, bornText, competitionKey, competitions, findGroup, groupSummary, playerName,
   playerSearchPrefix, searchKey, searchPlayers, searchTeams, seasonLabel,
@@ -222,8 +222,10 @@ function render(ctx) {
   // error con «Reintentar», nunca otra temporada.
   if (!ctx.model.season(s)) return html`<section data-screen="explorar">${head}${errorBox(`la temporada ${seasonLabel(s)}`)}</section>`;
   const { list, status } = searchView(ctx, ctx.params.q);
-  // Sin los datos de alevín (el router no los pudo cargar): lo demás, con su aviso y «Reintentar».
-  const partial = ctx.alevinFailed ? alevinFailedBox() : '';
+  // Sin los datos de alguna perezosa (el router no los pudo cargar): lo demás, con su aviso, que dice cuál
+  // falta, y «Reintentar».
+  const failed = ctx.lazyFailed || [];
+  const partial = failed.length ? lazyFailedBox(failed, [...new Set(competitions(ctx.model, s).map(e => e.cat))]) : '';
   return html`<section data-screen="explorar">${head}${partial}${searchBox({ id: 'buscar', value: ctx.params.q || '', label: 'Buscar un equipo o un jugador' })}<p class="vh" role="status" id="buscar-estado">${status}</p><div class="search-results" id="resultados" data-results>${list}</div>${recentBlock(ctx)}${leaguesBlock(ctx, s)}${cupsBlock(ctx, s)}${moreBlock(ctx, s)}</section>`;
 }
 

@@ -11,7 +11,7 @@ import { fakeBrowser } from './fixtures/rediseno/fake-browser.mjs';
 import { html } from '../../src/html.js';
 import { buildSeason, buildCups } from '../../src/model.js';
 import { buildClubIndex } from '../../src/myteam.js';
-import { alevinData } from '../../src/state.js';
+import { lazyEmpty } from './fixtures/rediseno/screens.mjs';
 import { startRouter } from '../../src/router.js';
 import { renderHeader } from '../../src/shell.js';
 
@@ -124,7 +124,7 @@ const context = () => ({
   myTeam: { name: 'Las Mesas Hu.', season: PORTAL, cat: 'prebenjamin', groupId: 'PG2' },
   today: '2026-09-23',
   health: null,
-  datasets: { seasons: [{ name: PORTAL, current: true }], seasonRaw: {}, alevin: alevinData({}), seasonAlevin: {} },
+  datasets: { seasons: [{ name: PORTAL, current: true }], seasonRaw: {}, ...lazyEmpty() },
 });
 const screen = (id) => ({ id, render: () => html`<section data-screen="${id}"><h1>${id}</h1></section>` });
 

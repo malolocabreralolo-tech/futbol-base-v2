@@ -14,7 +14,7 @@ import { SCREENS, parseRoute, routeHref } from '../../src/links.js';
 import * as routerModule from '../../src/router.js';
 import { resolveParams, historyMode, parentOf, activeTab, startRouter } from '../../src/router.js';
 import { SCREEN_MAP } from '../../src/screens.js';
-import { alevinData } from '../../src/state.js';
+import { lazyEmpty } from './fixtures/rediseno/screens.mjs';
 
 const PORTAL = '2025-2026';
 const raw = fixture('current-2025-2026');
@@ -44,13 +44,13 @@ function model(loaded = []) {
     clubIndex: () => INDEX,
   };
 }
-function context({ resolution = OK, loaded = [] } = {}) {
+function context({ resolution = OK, loaded = [], seasons = SEASONS } = {}) {
   return () => ({
     portal: { season: PORTAL, defaultTeam: { cat: 'prebenjamin', groupId: 'PG2', name: 'Las Mesas Hu.' } },
     model: model(loaded), resolution, myTeam: MY_TEAM, today: '2026-09-23', health: null,
     // El alevín ya pedido y vacío (contrato común de alevín): estas pruebas no lo esperan; las de
     // alevín están en test_rediseno_alevin.mjs.
-    datasets: { seasons: SEASONS, seasonRaw: {}, alevin: alevinData({}), seasonAlevin: { '2024-2025': {} } },
+    datasets: { seasons, seasonRaw: {}, ...lazyEmpty(['2024-2025']) },
   });
 }
 const resolve = (hash, options) => resolveParams(parseRoute(hash), context(options)());
@@ -141,6 +141,27 @@ test('Explorar, Ligas, Copa, Goleadores y Récords: la temporada por defecto y s
   assert.deepEqual(resolve('#/copa?g=MCPK1'), { params: { g: 'MCPK1', s: PORTAL } });
   assert.deepEqual(resolve('#/goleadores?s=2024-2025&c=prebenjamin', { loaded: ['2024-2025'] }), { params: { s: '2024-2025', c: 'prebenjamin' } });
   assert.deepEqual(resolve('#/records?c=benjamin'), { params: { c: 'benjamin', s: PORTAL } });
+});
+
+// Infantil, cadete y juvenil, y la isla «interinsular» (solo de ellas), escritos a mano en una temporada que no
+// las tiene (ni las dice su entrada de data-seasons.js ni están sus grupos): se quitan sin aviso, como antes de
+// las nuevas (un valor cerrado que no existe). Con ellas, se quedan.
+test('una categoría nueva o «interinsular» en una temporada sin ellas se quitan, como antes; con ellas, se quedan', () => {
+  for (const [hash, to] of [['#/ligas?c=cadete', '#/ligas'], ['#/goleadores?c=juvenil', '#/goleadores'], ['#/records?c=infantil', '#/records'],
+    ['#/ligas?i=interinsular', '#/ligas'], ['#/ligas?c=benjamin&i=interinsular', '#/ligas?c=benjamin'],
+    ['#/ligas?s=2024-2025&c=cadete&to=tabla', '#/ligas?s=2024-2025&to=tabla'], ['#/ligas?c=juvenil&i=interinsular', '#/ligas']]) {
+    assert.deepEqual(target(resolve(hash)), [to, null], hash);
+  }
+  // La temporada del portal con cadete (su `lazy`): cadete y la isla interinsular valen; juvenil, no.
+  const withCadete = [{ name: PORTAL, current: true, lazy: ['alevin', 'cadete'] }, { name: '2024-2025', current: false }];
+  const res = (hash) => resolveParams(parseRoute(hash), context({ seasons: withCadete })());
+  assert.deepEqual(res('#/ligas?c=cadete'), { params: { c: 'cadete', s: PORTAL } });
+  assert.deepEqual(res('#/ligas?i=interinsular'), { params: { i: 'interinsular', s: PORTAL } });
+  assert.deepEqual(res('#/records?c=cadete'), { params: { c: 'cadete', s: PORTAL } });
+  assert.deepEqual(target(res('#/goleadores?c=juvenil')), ['#/goleadores', null]);
+  assert.deepEqual(target(res('#/ligas?s=2024-2025&c=cadete')), ['#/ligas?s=2024-2025', null], 'la pasada no la tiene');
+  // Las de siempre, como siempre.
+  assert.deepEqual(resolve('#/ligas?c=alevin&i=lanzarote'), { params: { c: 'alevin', i: 'lanzarote', s: PORTAL } });
 });
 
 test('Partido: vale si findMatch lo encuentra (su ronda, o el único h–a del grupo); si no, a su jornada con aviso', () => {
@@ -350,13 +371,15 @@ test('una pantalla con title(ctx) pone su título en la pestaña; sin él (o nul
   assert.equal(b.doc.title, 'Jugador · Fútbol Base Las Palmas v2');
 });
 
-test('needs recibe la temporada del portal del contexto: ninguna pantalla la lee de config.js (R2-1)', async () => {
+test('needs recibe la temporada del portal del contexto: ninguna pantalla la lee de config.js (R2-1); y el modelo, y lo que carga antes el router (ready)', async () => {
   const b = fakeBrowser('#/tabla?g=PG2');
   const received = [];
   const tabla = { ...screen('tabla'), needs: (params, datasets, options) => { received.push(options); return []; } };
   const router = startRouter({ screens: { tabla }, root: b.root, getContext: context(), window: b.win });
   await router.idle();
-  assert.deepEqual(received, [{ portalSeason: PORTAL }]);
+  assert.equal(received.length, 1);
+  assert.deepEqual([received[0].portalSeason, received[0].ready], [PORTAL, null], 'sin nada que cargar antes, ready: null');
+  assert.equal(typeof received[0].model.season, 'function');
 });
 
 test('token: una respuesta lenta (o un error) nunca pinta sobre la ruta nueva', async () => {
@@ -922,12 +945,12 @@ test('esa temporada la carga el router y la ruta se pinta, o se redirige ya carg
 });
 
 test('un `c` que no es una categoría de la app (benjamín, prebenjamín o alevín) se quita, sin aviso; en Ligas, también una isla o un `to` que no existen (decisión 3 de B3)', async () => {
-  assert.deepEqual(target(resolve('#/records?c=cadete')), ['#/records', null]);
+  assert.deepEqual(target(resolve('#/records?c=senior')), ['#/records', null]);
   assert.deepEqual(target(resolve('#/goleadores?c=Benjamin&g=PG2&q=ana')), ['#/goleadores?g=PG2&q=ana', null]);
   // Todos a la vez, antes de cargar la temporada (no la necesitan).
-  assert.deepEqual(target(resolve('#/ligas?s=2024-2025&c=cadete&i=tenerife&to=partido')), ['#/ligas?s=2024-2025', null]);
+  assert.deepEqual(target(resolve('#/ligas?s=2024-2025&c=senior&i=tenerife&to=partido')), ['#/ligas?s=2024-2025', null]);
   assert.deepEqual(resolve('#/ligas?c=prebenjamin&i=lanzarote&to=jornada'), { params: { c: 'prebenjamin', i: 'lanzarote', to: 'jornada', s: PORTAL } });
-  const b = fakeBrowser('#/records?c=cadete');
+  const b = fakeBrowser('#/records?c=senior');
   const router = startRouter({ screens: allScreens(), root: b.root, getContext: context(), window: b.win });
   await router.idle();
   assert.deepEqual(b.entries(), ['#/records']);

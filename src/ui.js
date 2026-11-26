@@ -2,8 +2,8 @@
 // devuelven Html: no leen globales ni tocan el DOM al importarse. Las clases
 // que emiten están definidas en acta.css.
 import { html, Html } from './html.js';
-import { groupSummary, matchState, penaltyWinner, seasonLabel, teamShort } from './model.js';
-import { shieldFile } from './state.js';
+import { CATEGORIES, CAT_NAMES, groupSummary, matchState, penaltyWinner, seasonLabel, teamShort } from './model.js';
+import { lazyCatsOf, shieldFile } from './state.js';
 
 // ── Escudo y monograma ──────────────────────────────────────────────────
 
@@ -300,6 +300,33 @@ export function segmented(options, active, hrefFor, { idPrefix = null } = {}) {
     : html`<a class="segment"${id(value)} href="${hrefFor(value)}">${label}</a>`))}</div>`;
 }
 
+/* El selector de categoría de Goleadores y Récords: el segmentado de siempre, una fila de enlaces con el nombre
+ * entero de cada una (CAT_NAMES), la elegida con aria-current, dentro de <nav class="<cls>" aria-label>. Con
+ * las tres de siempre se ve igual que antes; con seis, que no caben a 320 px, se desliza la fila y nunca la
+ * página (.cat-picker de acta.css: overflow-x: auto, sin barra en el móvil), como la fila de años del
+ * ranking, y el mount de la pantalla la lleva a la elegida y la desliza al tabular (mountCategoryPicker). Con
+ * más de las que caben, un degradado en el borde que tiene más (acta.css). `cats`: las que tiene la
+ * temporada y la elegida; con una sola, no hay nada que elegir: ''. Ids estables: categoria-<cat>. */
+// Las categorías del selector en la temporada `s` (ctx: model y datasets.seasons), en el orden de CATEGORIES:
+// benjamín, prebenjamín y alevín, siempre, como antes de las nuevas (de alevín no se sabe sin pedirlo si la
+// temporada lo tiene: entonces, «No hay goleadores de alevín»); infantil, cadete y juvenil, solo si la
+// temporada los tiene (los dice su entrada de data-seasons.js o ya están sus grupos), y la elegida, siempre.
+const SINCE_E = ['infantil', 'cadete', 'juvenil'];
+export function pickerCategories(ctx, s, chosen) {
+  const declared = lazyCatsOf(ctx.datasets && ctx.datasets.seasons, s);
+  const season = ctx.model && ctx.model.season(s);
+  const groups = (season && season.groups) || [];
+  return CATEGORIES.filter((cat) => !SINCE_E.includes(cat) || cat === chosen || declared.includes(cat) || groups.some((g) => g.cat === cat));
+}
+
+export function categoryPicker(cats, current, hrefFor, { label = 'Categoría', cls = '' } = {}) {
+  if (cats.length < 2) return '';
+  const links = cats.map((cat) => (cat === current
+    ? html`<a class="segment" id="categoria-${cat}" href="${hrefFor(cat)}" aria-current="true">${CAT_NAMES[cat] || cat}</a>`
+    : html`<a class="segment" id="categoria-${cat}" href="${hrefFor(cat)}">${CAT_NAMES[cat] || cat}</a>`));
+  return html`<nav${cls ? html` class="${cls}"` : ''} aria-label="${label}"><div class="segmented cat-picker">${links}</div></nav>`;
+}
+
 export function notice(term, text) {
   return html`<p class="notice">${term ? html`<b>${term}</b> ` : ''}${text}</p>`;
 }
@@ -413,7 +440,8 @@ export function groupStrip({ label, groups, currentId = null, mineId = null, hre
   return html`<nav class="group-strip" aria-label="Grupos de ${label}">${first}<div class="group-scroll">${chips}</div></nav>`;
 }
 
-// Para el mount de Tabla y Jornada: desliza la tira (.group-scroll) hasta su ficha con aria-current o,
+// Para el mount de Tabla y Jornada (y del selector de categoría de Goleadores y Récords, .cat-picker, con sus
+// enlaces de paradas): desliza la tira (.group-scroll) hasta su ficha con aria-current o,
 // sin ella («Todos»), hasta la de mi grupo, con scrollLeft: la página nunca se mueve (scrollIntoView la
 // movería). Lo más cerca del medio que se pueda, pero siempre con una ficha entera a la izquierda, donde
 // empieza la primera (su relleno): el corte, la pista de que se desliza, solo a la derecha; una ficha
@@ -426,7 +454,9 @@ export function scrollToCurrent(strip) {
   const width = strip.clientWidth;
   const most = Math.max(0, strip.scrollWidth - width);
   const middle = current.offsetLeft - (width - current.offsetWidth) / 2;
-  const chips = [...strip.querySelectorAll('.group-chip')];
+  // Las paradas: las fichas de la tira o los enlaces del selector de categoría (.cat-picker).
+  const found = [...strip.querySelectorAll('.group-chip')];
+  const chips = found.length ? found : [...strip.querySelectorAll('.segment')];
   const pad = chips.length ? chips[0].offsetLeft : 0;
   const shows = (x) => x >= 0 && current.offsetLeft >= x && current.offsetLeft + current.offsetWidth <= x + width;
   const stops = most > 0 ? chips.map((chip) => chip.offsetLeft - pad).filter(shows) : [];
@@ -441,6 +471,55 @@ export function scrollToCurrent(strip) {
   } else {
     strip.scrollLeft = Math.min(most, Math.max(0, middle));
   }
+}
+
+/* Para el mount de Goleadores y Récords: el selector de categoría (.cat-picker), a la elegida (scrollToCurrent)
+ * y, cuando el teclado (Tab) llega a una que no se ve entera, deslizado lo justo para enseñarla con su anillo de
+ * foco (Chromium no lo hace solo: con seis a 320 px, de «Cadete» solo asomaba «Ca»). Con scrollLeft, como
+ * scrollToCurrent: la página nunca se mueve. Y la pista de que hay más a un lado (data-more, el degradado de
+ * acta.css), al pintar, al deslizar y si cambia el ancho. Con las tres de siempre caben todas: ni se desliza
+ * ni hay pista. */
+const PICKER_FADE = 20;   // --picker-fade de acta.css
+export function mountCategoryPicker(picker) {
+  if (!picker) return;
+  scrollToCurrent(picker);
+  const current = picker.querySelector('[aria-current]');
+  if (current) revealInStrip(picker, current);
+  markMore(picker);
+  if (typeof picker.addEventListener !== 'function') return;
+  picker.addEventListener('focusin', (event) => {
+    const link = event.target && event.target.closest ? event.target.closest('.segment') : null;
+    if (link) { revealInStrip(picker, link); markMore(picker); }
+  });
+  picker.addEventListener('scroll', () => markMore(picker), { passive: true });
+  if (typeof ResizeObserver === 'function') {
+    // Al girar el móvil cambia lo que cabe. Al quitar la pantalla, la fila se queda sin caja: se deja de mirar.
+    const watch = new ResizeObserver(() => (picker.isConnected ? markMore(picker) : watch.disconnect()));
+    watch.observe(picker);
+  }
+}
+
+// data-more de la fila: «left» si hay más a la izquierda, «right» si a la derecha (con un píxel de holgura, por
+// el redondeo de scrollLeft); sin nada, se quita.
+function markMore(strip) {
+  const most = strip.scrollWidth - strip.clientWidth;
+  const more = [strip.scrollLeft > 1 ? 'left' : '', strip.scrollLeft < most - 1 ? 'right' : ''].filter(Boolean).join(' ');
+  if (typeof strip.setAttribute !== 'function') return;
+  if (more) strip.setAttribute('data-more', more);
+  else strip.removeAttribute('data-more');
+}
+
+// Desliza `strip` lo justo para que `item` quede entero dentro (offsetLeft: la fila es position: relative) y,
+// si hay más a ese lado, fuera del degradado del borde; la primera, hasta el principio, y la última, hasta el
+// final (con lo que scrollToCurrent haya alargado: sin pista de más donde ya no hay nada).
+function revealInStrip(strip, item) {
+  const links = [...strip.querySelectorAll('.segment')];
+  const most = Math.max(0, strip.scrollWidth - strip.clientWidth);
+  const left = item === links[0] ? 0 : Math.max(0, item.offsetLeft - PICKER_FADE);
+  const right = item === links[links.length - 1] ? most
+    : Math.min(most, item.offsetLeft + item.offsetWidth + PICKER_FADE - strip.clientWidth);
+  if (left < strip.scrollLeft) strip.scrollLeft = left;
+  else if (right > strip.scrollLeft) strip.scrollLeft = right;
 }
 
 // ── Buscador, selector de temporada y filas de enlace ──

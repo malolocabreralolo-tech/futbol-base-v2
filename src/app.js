@@ -6,7 +6,7 @@
 // primer pintado (el de la pantalla o el de la caja de error), escucha al SW para ponerse al día sola.
 import { PORTAL } from './config.js';
 import { readGlobals, healthNeeds, dataVersion } from './state.js';
-import { createModel, seasonLabel } from './model.js';
+import { LAZY_CATS, createModel, seasonLabel } from './model.js';
 import { buildClubIndex, resolveMyTeam, myTeamToSave } from './myteam.js';
 import { loadStore, saveStore, safeStorage, addRecent, clearStore, importFromV1 } from './store.js';
 import { loadFollowed, saveFollowed, toggleFollowed } from './followed.js';
@@ -50,10 +50,15 @@ export function start(doc, win, config = PORTAL, { now = () => new Date() } = {}
   // Registro de datos: los globales inmediatos y lo que traen los cargadores perezosos. health es
   // undefined mientras data-health.json no se ha pedido y null si falló; healthAt, la hora de la última
   // respuesta: la de la red se vuelve a pedir pasados 10 minutos y la copia del SW, pasados 30 s y sin
-  // esperarla (healthNeeds). El alevín, también perezoso y
-  // nunca en REQUIRED: alevin, undefined hasta que el router lo pide
-  // (data-alevin.js), y seasonAlevin, el de cada temporada pasada (data-season-<S>-alevin.js).
-  const datasets = { ...readGlobals(), seasonRaw: {}, matchDetail: null, lineups: {}, health: undefined, alevin: undefined, seasonAlevin: {} };
+  // esperarla (healthNeeds). Las categorías perezosas (alevín, infantil, cadete y juvenil: LAZY_CATS),
+  // nunca en REQUIRED: lazy[cat], undefined hasta que el router la pide (data-<cat>.js), y
+  // seasonLazy[cat], la de cada temporada pasada (data-season-<S>-<cat>.js). matchDetailLazy[cat], la
+  // cronología de infantil, cadete y juvenil (data-matchdetail-<cat>.js), al abrir uno de sus partidos.
+  const datasets = {
+    ...readGlobals(), seasonRaw: {}, matchDetail: null, matchDetailLazy: {}, lineups: {}, health: undefined,
+    lazy: Object.fromEntries(LAZY_CATS.map((cat) => [cat, undefined])),
+    seasonLazy: Object.fromEntries(LAZY_CATS.map((cat) => [cat, {}])),
+  };
   // La fecha del literal oculto «Última actualización» de index.html, por si falta data-health.
   const legacyDate = doc.getElementById('legacyUpdated')?.textContent.match(/\d{2}\/\d{2}\/\d{4}/)?.[0] || null;
 

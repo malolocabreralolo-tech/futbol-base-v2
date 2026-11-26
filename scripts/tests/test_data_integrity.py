@@ -46,29 +46,40 @@ def _load_per_season_js(name):
     return json.loads(m.group(1))
 
 
-# Las categorías de cada fichero de temporada: benjamín y prebenjamín en data-season-<S>.js y alevín,
-# si la temporada lo tiene, en data-season-<S>-alevin.js (docs/alevin.md §5).
+# Las categorías de cada fichero de temporada: benjamín y prebenjamín en data-season-<S>.js y cada
+# categoría perezosa (alevín, infantil, cadete y juvenil), si la temporada la tiene, en
+# data-season-<S>-<clave>.js (docs/alevin.md §5).
 SEASON_CATS = ("benjamin", "prebenjamin")
+LAZY_CATS = ("alevin", "infantil", "cadete", "juvenil")
 
 
-def _load_alevin_season_js(name):
-    """SEASON_<S>_ALEVIN de data-season-<S>-alevin.js, o None si la temporada no tiene alevín."""
-    p = os.path.join(ROOT, f"data-season-{name}-alevin.js")
+def _load_lazy_season_js(name, cat):
+    """SEASON_<S>_<CAT> de data-season-<S>-<cat>.js, o None si la temporada no tiene esa categoría."""
+    p = os.path.join(ROOT, f"data-season-{name}-{cat}.js")
     if not os.path.exists(p):
         return None
     with open(p) as f:
         text = f.read()
-    m = re.match(r"const SEASON_\d{4}_\d{4}_ALEVIN=(.+);", text)
-    assert m, f"data-season-{name}-alevin.js doesn't match expected pattern"
+    m = re.match(rf"const SEASON_\d{{4}}_\d{{4}}_{cat.upper()}=(.+);", text)
+    assert m, f"data-season-{name}-{cat}.js doesn't match expected pattern"
     return json.loads(m.group(1))
 
 
 def _season_groups(name):
-    """[(categoría, grupo)] de una temporada pasada, de sus dos ficheros."""
+    """[(categoría, grupo)] de una temporada pasada, de todos sus ficheros."""
     per_season = _load_per_season_js(name) or {}
-    alevin = _load_alevin_season_js(name) or {}
-    return ([(cat, g) for cat in SEASON_CATS for g in per_season.get(cat, [])]
-            + [("alevin", g) for g in alevin.get("alevin", [])])
+    out = [(cat, g) for cat in SEASON_CATS for g in per_season.get(cat, [])]
+    for cat in LAZY_CATS:
+        out += [(cat, g) for g in (_load_lazy_season_js(name, cat) or {}).get(cat, [])]
+    return out
+
+
+def _en_web():
+    """Las categorías de la base que enseña la web (categorias.EN_WEB): lo demás puede estar en la base (las
+    temporadas pasadas de infantil antes de su paso) sin salir en ningún fichero."""
+    sys.path.insert(0, os.path.join(ROOT, "scripts"))
+    import categorias
+    return tuple(categorias.EN_WEB)
 
 
 # ─── DB consistency ──────────────────────────────────────────────────────────
@@ -222,10 +233,12 @@ class TestGeneratedFiles:
             ).fetchone()
             if not season_row:
                 pytest.fail(f"Season {name} in JS but not in DB")
+            cats = _en_web()
             db_codes = sorted(
                 r[0] for r in c.execute(
-                    "SELECT code FROM groups WHERE season_id=?", (season_row[0],)
-                )
+                    f"""SELECT g.code FROM groups g JOIN categories c ON c.id = g.category_id
+                        WHERE g.season_id=? AND UPPER(c.name) IN ({','.join('?' * len(cats))})""",
+                    (season_row[0], *cats))
             )
             # Alevín, del data-season-<S>-alevin.js: si no, el verano en que 2026-27 pase al archivo con
             # sus grupos alevín, esta prueba fallaría y el bot dejaría de publicar.
@@ -233,7 +246,8 @@ class TestGeneratedFiles:
             assert db_codes == js_codes, (
                 f"{name}: DB={db_codes} != per-season-js={js_codes}"
             )
-            assert "alevin" not in per_season, f"data-season-{name}.js no puede llevar alevín"
+            for cat in LAZY_CATS:
+                assert cat not in per_season, f"data-season-{name}.js no puede llevar {cat}"
 
     def test_standings_canonical_format(self):
         """All standings rows must be lists of length 10 in canonical order
@@ -247,7 +261,7 @@ class TestGeneratedFiles:
             if per_season is None:
                 continue
             groups = _season_groups(entry["name"])
-            for cat in SEASON_CATS + ("alevin",):
+            for cat in SEASON_CATS + LAZY_CATS:
                 for g in [g for c, g in groups if c == cat]:
                     for row in g.get("standings", []):
                         assert isinstance(row, list), (
@@ -311,8 +325,9 @@ class TestHistoricalMatchRows:
                 f"data-season-{entry['name']}.js lleva U+2028/U+2029")
 
     def test_time_and_venue_counts_match_db(self):
-        """Cada temporada publica todas las horas y campos que tiene la base."""
+        """Cada temporada publica todas las horas y campos que tiene la base (de las categorías de la web)."""
         c = _conn()
+        cats = _en_web()
         published = {}
         for season, _gid, _j, row in _historical_match_rows():
             t, v = published.get(season, (0, 0))
@@ -331,8 +346,8 @@ class TestHistoricalMatchRows:
                    JOIN teams h ON h.id = m.home_team_id
                    JOIN teams a ON a.id = m.away_team_id
                    WHERE se.name = ?
-                     AND UPPER(c.name) IN ('BENJAMIN', 'PREBENJAMIN', 'ALEVIN')""",
-                (season,)).fetchone()
+                     AND UPPER(c.name) IN ({})""".format(",".join("?" * len(cats))),
+                (season, *cats)).fetchone()
             assert got == tuple(expected), (
                 f"{season}: publicado (hora, campo)={got}, en la base={tuple(expected)}")
 

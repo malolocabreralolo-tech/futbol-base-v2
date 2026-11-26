@@ -54,13 +54,19 @@ function locate(ctx) {
 
 const titleOf = (year) => (year ? `Los mejores de ${year}` : 'Los mejores de cada año');
 
+// Un año de data-ranking.js cuya lista de toda la trayectoria está vacía (los pequeños, con una sola
+// temporada; con las categorías nuevas, también los mayores) no ofrece esa vista: ni su pestaña ni, en la
+// fila de años de esa vista, su ficha, que lleva a la de esta temporada, la que tiene.
+const withoutH = (entry) => Boolean(entry) && entry.h === 0;
+
 // La fila de años: las fichas de la tira de grupos de Tabla (se desliza dentro de su caja, nunca la
 // página; en escritorio, en filas), con id estable: al cambiar de año, el foco vuelve a la pulsada.
 function yearStrip(years, year, v) {
   if (!years.length) return '';
+  const href = (e) => hrefFor(e.year, withoutH(e) ? 't' : v);
   const chips = years.map(e => (e.year === year
-    ? html`<a class="group-chip" id="anio-${e.year}" href="${hrefFor(e.year, v)}" aria-current="true">${e.year}</a>`
-    : html`<a class="group-chip" id="anio-${e.year}" href="${hrefFor(e.year, v)}">${e.year}</a>`));
+    ? html`<a class="group-chip" id="anio-${e.year}" href="${href(e)}" aria-current="true">${e.year}</a>`
+    : html`<a class="group-chip" id="anio-${e.year}" href="${href(e)}">${e.year}</a>`));
   return html`<nav class="group-strip" aria-label="Año de nacimiento"><div class="group-scroll">${chips}</div></nav>`;
 }
 
@@ -99,7 +105,11 @@ function render(ctx) {
   const head = screenHead(titleOf(year), { back: ctx.backHref, sub: v === 't' ? 'Esta temporada' : 'Toda su trayectoria' });
   // Sin data-ranking.js (null: falló; undefined: no llegó a pedirse), la caja de error con «Reintentar».
   if (!ranking) return wrap(html`${head}${errorBox('este ranking')}`);
-  const controls = html`${yearStrip(years, year, v)}${segmented(VIEWS, v, (value) => hrefFor(year, value), { idPrefix: 'vista' })}`;
+  // Las pestañas, sin la de toda la trayectoria si el año no la tiene (salvo que sea la elegida, escrita a mano:
+  // se ve dónde se está); con una sola, ninguna.
+  const offered = VIEWS.filter(view => view.value !== 'h' || v === 'h' || !withoutH(years.find(e => e.year === year)));
+  const tabs = offered.length > 1 ? segmented(offered, v, (value) => hrefFor(year, value), { idPrefix: 'vista' }) : '';
+  const controls = html`${yearStrip(years, year, v)}${tabs}`;
   const how = html`<details class="rank-how"><summary>Cómo se calcula</summary><p>${HOW}</p></details>`;
   if (known && !data) return wrap(html`${head}${controls}${errorBox('este ranking')}`);
   const list = data && Array.isArray(data[v]) ? data[v] : [];

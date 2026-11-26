@@ -3,14 +3,14 @@
 // temporada en cifras» (team-view.js) que abre su tabla en la Tabla (screen-tabla.js). Puro salvo los
 // mount y fillSquad; nada toca el DOM al importarse.
 import { html, join } from './html.js';
-import { block, box, countLabel, empty, notice, score } from './ui.js';
+import { block, box, countLabel, empty, listEs, notice, score } from './ui.js';
 import {
-  anyCards, playerMatches, playerName, roleLabel, seasonLabel, teamFixtures, teamShort, teamSquad, teamStaff,
+  CAT_WORDS, LAZY_CATS, anyCards, playerMatches, playerName, roleLabel, seasonLabel, teamFixtures, teamShort, teamSquad, teamStaff,
 } from './model.js';
 import { teamTrajectory } from './myteam.js';
 import { matchHref, playerHref, routeHref, weekdayDate } from './links.js';
 import { errorBox, retryBlock } from './shell.js';
-import { ensureLineups, ensureSeasonData, lineupsKey, loadAlevinSeasons, loadSeasons } from './state.js';
+import { ensureLineups, ensureSeasonData, lazyLoaders, lineupsKey, loadLazySeasons, loadSeasons } from './state.js';
 
 const TRAJECTORY_ID = 'trayectoria';
 export const SQUAD_ID = 'plantilla';
@@ -112,22 +112,27 @@ export function trajectoryList(rows) {
   return join(seasons.map(season => html`<h3 class="traj-season">${seasonLabel(season)}</h3><div class="box">${rows.filter(r => r.season === season).map(r => html`<a class="traj-row" href="${routeHref('tabla', { s: r.season, g: r.group.id })}"><span class="traj-team">${r.name}</span><span class="traj-group">${r.group.label}</span><span class="traj-pos">${r.pos != null ? `${r.pos}.º de ${r.group.standings.length}` : '—'}</span><span class="traj-pts">${r.pts != null ? countLabel(r.pts, 'punto', 'puntos') : ''}</span></a>`)}</div>`));
 }
 
-// El aviso de una trayectoria sin el alevín de alguna temporada pasada (`failed`), con el «Reintentar»
-// del panel: sin la alerta de la caja de error, porque lo demás sí se pinta.
-function alevinMissingBox(failed) {
-  const what = failed.length === 1 ? `de la temporada ${seasonLabel(failed[0])}` : `de ${failed.length} temporadas`;
-  return html`<div class="box partial-box" role="status"><p class="partial-text">No se pudieron cargar los datos de alevín ${what}: la trayectoria sale sin ellos.</p><div class="buttons"><button class="button" type="button" data-action="retry">Reintentar</button></div></div>`;
+// El aviso de una trayectoria sin alguna perezosa de alguna temporada (`failed`: [{ cat, season }]), con el
+// «Reintentar» del panel: sin la alerta de la caja de error, porque lo demás sí se pinta. Nombra las que
+// faltan: «No se pudieron cargar los datos de alevín y cadete de 2 temporadas».
+function lazyMissingBox(failed) {
+  const cats = LAZY_CATS.filter(cat => failed.some(f => f.cat === cat)).map(cat => CAT_WORDS[cat]);
+  const seasons = [...new Set(failed.map(f => f.season))];
+  const what = seasons.length === 1 ? `de la temporada ${seasonLabel(seasons[0])}` : `de ${seasons.length} temporadas`;
+  return html`<div class="box partial-box" role="status"><p class="partial-text">No se pudieron cargar los datos de ${listEs(cats)} ${what}: la trayectoria sale sin ellos.</p><div class="buttons"><button class="button" type="button" data-action="retry">Reintentar</button></div></div>`;
 }
 
 // Carga el archivo que falte (loadSeasons, de state.js) y arma el panel; nunca lanza. Un fallo de la
 // carga o de un dato mal formado es la caja de error del propio panel, con su «Reintentar», como las
 // temporadas anteriores de Partido. Pura salvo la carga: se prueba sin navegador.
-// El alevín de todas, para que lo que sale no dependa de lo que se visitó
-// antes: el de la temporada del portal (data-alevin.js, que el SW guarda al instalarse), como una
-// temporada más; y el de cada pasada (data-season-<S>-alevin.js, que solo existe si la tuvo: un 404 es
-// «sin alevín» y se memoriza). Esos no se guardan hasta usarse, así que sin conexión no llegan: la
-// trayectoria sale sin ellos, con un aviso y «Reintentar». `alevinLoaders`, los de alevinNeeds.
-export async function trajectoryContent(ctx, name, load = ensureSeasonData, alevinLoaders = {}) {
+// Las perezosas de todas, para que lo que sale no dependa de lo que se visitó antes: las de la temporada del
+// portal (data-<cat>.js; el de alevín, el SW lo guarda al instalarse), como una temporada más; y las de cada
+// pasada (data-season-<S>-<cat>.js, que solo existe si la tuvo: un 404 es «sin ella» y se memoriza). De cada
+// temporada, solo las que dice data-seasons.js (alevín siempre, como antes de las nuevas; loadLazySeasons):
+// nunca las cuatro a ciegas. Esos no se guardan hasta usarse, así que sin conexión no llegan: la trayectoria
+// sale sin ellos, con un aviso que dice cuáles y «Reintentar». Sin el alevín del portal, como siempre, la caja
+// de error del panel. `alevinLoaders`, los de alevinNeeds; `loaders`, los de lazyNeeds (las pruebas pasan otros).
+export async function trajectoryContent(ctx, name, load = ensureSeasonData, alevinLoaders = {}, loaders = {}) {
   try {
     // Las de SEASONS y la del portal, que siempre está: de la más reciente a la más antigua.
     const names = [...new Set([ctx.portal.season, ...(ctx.datasets.seasons || []).map(s => s.name)])]
@@ -135,11 +140,11 @@ export async function trajectoryContent(ctx, name, load = ensureSeasonData, alev
     const past = names.filter(n => n !== ctx.portal.season);
     const [loaded, failed] = await Promise.all([
       loadSeasons(ctx.datasets, past, load),
-      loadAlevinSeasons(ctx.datasets, names, ctx.portal.season, alevinLoaders),
+      loadLazySeasons(ctx.datasets, names, ctx.portal.season, LAZY_CATS, lazyLoaders(alevinLoaders, loaders)),
     ]);
-    if (!loaded || failed.includes(ctx.portal.season)) return errorBox('la trayectoria');
+    if (!loaded || failed.some(f => f.cat === 'alevin' && f.season === ctx.portal.season)) return errorBox('la trayectoria');
     const list = trajectoryList(teamTrajectory(ctx.model, name, ctx.model.clubIndex(), names));
-    return failed.length ? html`${alevinMissingBox(failed)}${list}` : list;
+    return failed.length ? html`${lazyMissingBox(failed)}${list}` : list;
   } catch (err) {
     console.error('[equipo] trayectoria', err);
     return errorBox('la trayectoria');

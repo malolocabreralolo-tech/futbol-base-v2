@@ -553,3 +553,31 @@ test('«Reintentar» de la Plantilla: lo atiende la ficha, vuelve a pedir las ac
     globalThis.fetch = saved;
   }
 });
+
+// ── Infantil, cadete y juvenil (parte E2, tarea 4) ───────────────────────
+
+test('la trayectoria con las categorías nuevas: pide solo las que data-seasons.js dice de cada temporada y avisa de las que no llegan, con su nombre', async () => {
+  // 2024-25 tuvo cadete (su entrada de SEASONS lo dice); 2023-24, como las de hoy, nada más que alevín.
+  const seasons = [{ name: '2025-2026', current: true }, { name: '2024-2025', current: false, lazy: ['cadete'] }, { name: '2023-2024', current: false }];
+  const content = async (serve) => {
+    const asked = [];
+    const datasets = datasetsFor({ seasons, seasonRaw: { '2024-2025': archive('2024-2025'), '2023-2024': archive('2023-2024') },
+      seasonLazy: { alevin: {}, cadete: {} } });
+    const ctx = ctxFor('equipo', LAS_MESAS, { today: '2026-09-23', datasets });
+    const out = s(await trajectoryContent(ctx, 'Las Mesas Hu.', async () => null, {}, {
+      ensureSeason: async (cat, name) => { asked.push(`${cat} ${name}`); return serve(cat, name); },
+    }));
+    return { out, asked: asked.sort() };
+  };
+  const cadete = { name: '2024-2025', cadete: [{ id: 'CADNG1', name: 'Grupo 1', phase: 'Insular GC', island: 'grancanaria', standings: [[1, 'Las Mesas Hu.', 3, 1, 1, 0, 0, 2, 0, 2]], jornadas: {} }] };
+  const full = await content((cat) => (cat === 'cadete' ? cadete : {}));
+  assert.deepEqual(full.asked, ['alevin 2023-2024', 'alevin 2024-2025', 'cadete 2024-2025'], 'ni infantil ni juvenil, ni el cadete de 2023-24');
+  assert.match(full.out, /<a class="traj-row" href="#\/tabla\?s=2024-2025&amp;g=CADNG1"><span class="traj-team">Las Mesas Hu\.<\/span><span class="traj-group">Cadete, Insular, Grupo 1<\/span>/);
+  assert.doesNotMatch(full.out, /partial-box|error-box/);
+  // El cadete de 2024-25 no llega: la trayectoria sin él, con un aviso que nombra cadete y «Reintentar».
+  const missing = await content((cat) => (cat === 'cadete' ? null : {}));
+  assert.match(missing.out, /^<div class="box partial-box" role="status"><p class="partial-text">No se pudieron cargar los datos de cadete de la temporada 2024\/25: la trayectoria sale sin ellos\.<\/p><div class="buttons"><button class="button" type="button" data-action="retry">Reintentar<\/button><\/div><\/div>/);
+  // Alevín y cadete de dos temporadas.
+  const two = await content((cat, name) => (cat === 'cadete' || name === '2023-2024' ? null : {}));
+  assert.match(two.out, /No se pudieron cargar los datos de alevín y cadete de 2 temporadas: la trayectoria sale sin ellos\./);
+});

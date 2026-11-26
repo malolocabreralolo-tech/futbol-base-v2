@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { fixture } from './fixtures/rediseno/load.mjs';
 import { currentAt, nextSeasonRaw, teamNames } from './fixtures/rediseno/simulate.mjs';
 import { buildSeason, buildCups, matchState, retiredTeams } from '../../src/model.js';
-import { TEAM_ALIASES, baseKey, buildClubIndex, sameClub, resolveMyTeam, summerCups, updatedMyTeam } from '../../src/myteam.js';
+import { TEAM_ALIASES, baseKey, buildClubIndex, defaultCategory, sameClub, resolveMyTeam, seasonChangeCats, summerCups, updatedMyTeam } from '../../src/myteam.js';
 
 const shields = fixture('shields');
 const season = raw => buildSeason({ name: raw.season, current: true, ...raw });
@@ -417,4 +417,27 @@ test('decisión 16: un filial retirado en la fase guardada no hace esperar: el e
   const res = resolveMyTeam(ff5, built, index, TODAY);
   assert.deepEqual(summary(res), { status: 'ok', group: '2025-2026|A2', name: 'Las Mesas Hu.', cat: 'benjamin' });
   assert.deepEqual(updatedMyTeam(ff5, res), { ...ff5, groupId: 'A2' });
+});
+
+// ── Infantil, cadete y juvenil (parte E2, tarea 4) ───────────────────────
+
+test('Mi equipo con las categorías nuevas: defaultCategory de uno de cadete es cadete; el paso 1 busca solo en las que espera la portada', () => {
+  assert.equal(defaultCategory({ status: 'ok', cat: 'cadete' }, { cat: 'prebenjamin' }), 'cadete');
+  assert.equal(defaultCategory({ status: 'ok', cat: 'juvenil' }, null), 'juvenil');
+  // Las de un cambio de temporada: la suya y las de la carga inicial; alevín, si es de una de ellas (la
+  // portada lo espera, soft); nunca otra perezosa.
+  assert.deepEqual(seasonChangeCats('benjamin'), ['benjamin', 'prebenjamin', 'alevin']);
+  assert.deepEqual(seasonChangeCats('prebenjamin'), ['prebenjamin', 'benjamin', 'alevin']);
+  assert.deepEqual(seasonChangeCats('alevin'), ['alevin', 'benjamin', 'prebenjamin']);
+  assert.deepEqual(seasonChangeCats('cadete'), ['cadete', 'benjamin', 'prebenjamin']);
+  // Las Mesas Hu. de PG2 (2025-26) en 2026-27, con un equipo de juvenil del mismo nombre (la misma fila de
+  // teams): el de prebenjamín, sin preguntar, cargue la página juvenil o no.
+  const raw = nextSeasonRaw({ benjamin: ['A1'], prebenjamin: ['PG2'] });
+  const row = (pos, team, pts) => [pos, team, pts, 1, pts / 3, 0, 1 - pts / 3, pts ? 2 : 0, pts ? 0 : 2, pts ? 2 : -2];
+  const juvenil = [{ id: 'JUV2G1', name: 'Grupo 1', fullName: 'LIGA SEGUNDA JUVENIL GRAN CANARIA - GRUPO 1', phase: 'Segunda GC',
+    island: 'grancanaria', jornada: 'Jornada 1', standings: [row(1, 'Las Mesas Hu.', 3), row(2, 'Club Juvenil Dos', 0)] }];
+  const history = { ...raw.history, JUV2G1: { 'Jornada 1': [['2026-10-03', 'Las Mesas Hu.', 'Club Juvenil Dos', null, null, null, '10:00', null]] } };
+  const both = season({ ...raw, juvenil, history });
+  assert.deepEqual(summary(resolveMyTeam(LAS_MESAS_PG2, both, buildClubIndex(teamNames(both), shields), '2026-10-01')),
+    { status: 'ok', group: '2026-2027|PG2', name: 'Las Mesas Hu.', cat: 'prebenjamin' });
 });

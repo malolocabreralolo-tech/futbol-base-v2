@@ -10,7 +10,34 @@ import { startContext } from '../../../../src/app.js';
 import { routeHref } from '../../../../src/links.js';
 import { activeTab, parentOf } from '../../../../src/router.js';
 import { STORE_KEY } from '../../../../src/store.js';
-import { alevinData } from '../../../../src/state.js';
+import { LAZY, alevinData, lazyData } from '../../../../src/state.js';
+import { LAZY_CATS } from '../../../../src/model.js';
+
+// Las categorías perezosas ya pedidas y vacías (data-<cat>.js sin grupos y un 404 en cada
+// data-season-<S>-<cat>.js de `past`): el registro de app.js para las pruebas que no esperan a ninguna.
+export function lazyEmpty(past = []) {
+  return {
+    lazy: Object.fromEntries(LAZY_CATS.map((cat) => [cat, lazyData(cat, {})])),
+    seasonLazy: Object.fromEntries(LAZY_CATS.map((cat) => [cat, Object.fromEntries(past.map((name) => [name, {}]))])),
+  };
+}
+
+/* Una perezosa de la temporada del portal ya pedida, con grupos inventados: lazyData(cat, …) con sus grupos
+ * crudos (la forma de BENJAMIN: el primero de `teams`, líder) y su HISTORY (una jornada: el primero contra el
+ * segundo, el tercero contra el cuarto…, ya jugada). groups: [{ id, phase, island?, fullName?, name?, teams }].
+ * Para infantil, cadete y juvenil, que las fixtures congeladas no traen. */
+export function lazyWith(cat, groups, { day = '2025-10-11' } = {}) {
+  const names = LAZY[cat].consts;
+  const raws = groups.map(({ id, phase, island = 'grancanaria', fullName = '', name = 'Grupo 1', teams }) => ({
+    id, name, fullName, phase, island, url: null, jornada: 'Jornada 1', standingsKind: 'source', matches: [],
+    standings: teams.map((team, i) => [i + 1, team, i % 2 ? 0 : 3, 1, i % 2 ? 0 : 1, 0, i % 2 ? 1 : 0, i % 2 ? 0 : 2, i % 2 ? 2 : 0, i % 2 ? -2 : 2]),
+  }));
+  const history = Object.fromEntries(groups.map(({ id, teams }) => [id, {
+    'Jornada 1': teams.filter((_, i) => i % 2 === 0).map((home, k) => [day, home, teams[2 * k + 1], 2, 0, null, '10:00', null])
+      .filter((row) => row[2]),
+  }]));
+  return lazyData(cat, { [names.groups]: raws, [names.stats]: { groups: raws.length, teams: 0 }, [names.history]: history });
+}
 
 export const PORTAL_SEASON = '2025-2026';
 export const MY_TEAM = { name: 'Las Mesas Hu.', season: PORTAL_SEASON, cat: 'prebenjamin', groupId: 'PG2' };
@@ -27,13 +54,16 @@ export const DEFAULT_TEAM = { cat: 'prebenjamin', groupId: 'PG2', name: 'Las Mes
 // - lineups: las actas ya cargadas, { [season]: lineupsFor(season) };
 // - seasons: SEASONS. Por defecto, 2025-26 (actual), 2024-25 y las de seasonRaw, de la más reciente
 //   a la más antigua: se anuncian las temporadas que se sirven;
-// - alevin y seasonAlevin: el alevín ya pedido (contrato común de alevín). Por defecto, el de la
-//   temporada actual y el de cada temporada anunciada, vacíos (data-alevin.js sin grupos y un 404 en
-//   cada data-season-<S>-alevin.js): las pruebas que no son de alevín no lo esperan. Las de alevín pasan
-//   `alevin: undefined` (sin pedir, lo de app.js) o los datos de alevinData.
+// - alevin y seasonAlevin: el alevín ya pedido (contrato común de alevín), en el registro de las
+//   perezosas (lazy.alevin y seasonLazy.alevin). Por defecto, el de la temporada actual y el de cada
+//   temporada anunciada, vacíos (data-alevin.js sin grupos y un 404 en cada data-season-<S>-alevin.js),
+//   como infantil, cadete y juvenil: las pruebas que no son de una perezosa no la esperan. Las de alevín
+//   ponen lazy.alevin a undefined (sin pedir, lo de app.js) o pasan los datos de alevinData;
+// - lazy y seasonLazy: otras perezosas ya pedidas ({ infantil: lazyData('infantil', …) }), sobre las vacías.
 export function datasetsFor({
   current = fixture('current-2025-2026'), golBenj = [], golPrebenj = [], seasonRaw = {},
   champions = false, cupsExtra = false, lineups = {}, seasons = null, alevin = alevinData({}), seasonAlevin = null,
+  lazy = {}, seasonLazy = {},
 } = {}) {
   const cups = cupsRaw({ extra: cupsExtra });
   const names = [...new Set([PORTAL_SEASON, '2024-2025', ...Object.keys(seasonRaw)])].sort().reverse();
@@ -41,9 +71,15 @@ export function datasetsFor({
   return datasetsFrom(champions ? withChampions(current) : current, {
     golBenj, golPrebenj, seasonRaw, lineups, health: fixture('health'),
     cupBenjamin: cups.benjamin, cupPrebenjamin: cups.prebenjamin,
-    seasons: announced, alevin,
-    seasonAlevin: seasonAlevin || Object.fromEntries(announced.filter(s => !s.current).map(s => [s.name, {}])),
+    seasons: announced,
+    ...mergeLazy(lazyEmpty(announced.filter(s => !s.current).map(s => s.name)),
+      { lazy: { alevin, ...lazy }, seasonLazy: { ...(seasonAlevin ? { alevin: seasonAlevin } : {}), ...seasonLazy } }),
   });
+}
+
+// El registro de las perezosas `base` con lo de `extra` encima, categoría a categoría.
+function mergeLazy(base, extra) {
+  return { lazy: { ...base.lazy, ...extra.lazy }, seasonLazy: { ...base.seasonLazy, ...extra.seasonLazy } };
 }
 
 // La temporada 2024-25 congelada con la forma de SEASON_2024_2025 (que trae `name`).

@@ -614,3 +614,114 @@ def test_base_real_con_escuela(tmp_path):
     print(f"\n  base real con escuela: {len(con_e)} fichas con «e»; {antes_fed} con escuela antes de su primera "
           f"temporada federada; {de_dos_a_uno} pasan de dos años a uno; {otros} cambian de otra forma; "
           f"_datos_fichas {t_antes:.2f} s → {t_despues:.2f} s; data-jugadores {bytes_mas:+,} B")
+
+
+# ------------------------------------------------------------------ infantil, cadete y juvenil (parte E2)
+
+# Dos temporadas (2019-20 y la de ahora, 2026-27), las seis categorías y, en 2026-27, las ligas y las copas de
+# cadete del convenio (scripts/convenio.py), una liga de Lanzarote con su copa en benjamín (como hoy) y lo mismo
+# en alevín de Lanzarote (el alevín de islas, cuando entre). Códigos y nombres inventados.
+SEED_E = """
+INSERT INTO seasons(id, name, start_year, end_year, is_current) VALUES
+  (1, '2019-2020', 2019, 2020, 0), (2, '2026-2027', 2026, 2027, 1);
+INSERT INTO categories(id, name) VALUES (1, 'PREBENJAMIN'), (2, 'BENJAMIN'), (4, 'ALEVIN'), (5, 'INFANTIL'),
+  (6, 'CADETE'), (7, 'JUVENIL');
+INSERT INTO groups(id, season_id, category_id, code, name, phase, island) VALUES
+  (10, 2, 6, 'CADI1', 'Grupo 1', 'Interinsular', 'interinsular'),
+  (11, 2, 6, 'CADULC1', 'Grupo 1', 'Copa Insular Lanzarote', 'lanzarote'),
+  (12, 2, 6, 'CADNG1', 'Grupo 1', 'Insular GC', 'grancanaria'),
+  (13, 2, 6, 'CADNGC1', 'Grupo 1', 'Copa Insular GC', 'grancanaria'),
+  (14, 1, 2, 'BG1', 'Grupo 1', 'Primera Fase GC', 'grancanaria'),
+  (15, 2, 2, 'BPL1', 'Grupo 1', 'Preferente Lanzarote', 'lanzarote'),
+  (16, 2, 2, 'BCPL1', 'Grupo 1', 'Copa Cabildo Preferente Lanzarote', 'lanzarote'),
+  (17, 2, 4, 'ALPL1', 'Grupo 1', 'Preferente Lanzarote', 'lanzarote'),
+  (18, 2, 4, 'ALCPL1', 'Grupo 1', 'Copa Cabildo Preferente Lanzarote', 'lanzarote');
+INSERT INTO teams(id, name) VALUES (1, 'Atletico Uno'), (2, 'Deportivo Dos'), (3, 'Rival Tres'), (4, 'Union Cuatro'),
+  (5, 'Club Cinco');
+"""
+_ANIO_E = {gid: (2019 if gid == 14 else 2026) for gid in range(10, 19)}
+
+# (id, nombre, fiflp_id, [(grupo, equipo, partidos, goles), ...]), como en base(): cada aparición, un partido
+# de su equipo contra Rival Tres.
+EN_INTERINSULAR = (21, "LOPEZ VEGA, JUAN", 2001, [(10, 1, 12, 10), (11, 1, 2, 3)])
+EN_INSULAR = (22, "RUIZ SOSA, PABLO", 2002, [(12, 2, 12, 10), (13, 2, 2, 3)])
+DE_BENJAMIN_A_CADETE = (23, "DIAZ GIL, MARIO", 2003, [(14, 1, 8, 5), (12, 2, 8, 2)])
+BENJAMIN_LANZAROTE = (24, "SOSA LEON, HUGO", 2004, [(15, 4, 6, 3), (16, 4, 2, 1)])
+ALEVIN_LANZAROTE = (25, "VEGA CRUZ, IVAN", 2005, [(17, 5, 6, 3), (18, 5, 2, 1)])
+
+
+def base_e(*jugadores):
+    conn = sqlite3.connect(":memory:")
+    conn.executescript(SCHEMA)
+    migrate_actas(conn, log=quiet)
+    asegurar_esquema(conn)
+    conn.executescript(SEED_E)
+    siguiente = {}
+    for pid, nombre, fid, filas in jugadores:
+        conn.execute("INSERT INTO players(id, full_name, norm_name, fiflp_id) VALUES (?, ?, ?, ?)",
+                     (pid, nombre, nombre, fid))
+        for gid, team, pj, goles in filas:
+            for i in range(pj):
+                j = siguiente.get(gid, 1)
+                siguiente[gid] = j + 1
+                dia = f"{j:02d}-10-{_ANIO_E[gid]}" if j <= 28 else f"{j - 28:02d}-11-{_ANIO_E[gid]}"
+                mid = gid * 1000 + j
+                conn.execute("INSERT INTO matches(id, group_id, jornada, date, home_team_id, away_team_id) "
+                             "VALUES (?, ?, ?, ?, ?, 3)", (mid, gid, f"Jornada {j}", dia, team))
+                conn.execute("INSERT INTO appearances(match_id, team_id, player_id, dorsal, role, goals, ord) "
+                             "VALUES (?, ?, ?, 7, 'starter', ?, 0)", (mid, team, pid, goles if i == 0 else 0))
+    conn.commit()
+    asegurar_esquema(conn)
+    return conn
+
+
+@pytest.fixture
+def seis(monkeypatch):
+    """categorias.EN_WEB con las seis (la tarea 8): la copia de la web (vista_web) las deja."""
+    import categorias
+    import vista_web
+    monkeypatch.setattr(categorias, "EN_WEB", tuple(categorias.DB_NAME.values()))
+    return lambda conn: vista_web.copia_web(conn)
+
+
+def test_ranking_de_cadete(seis):
+    import ranking as R
+    conn = seis(base_e(EN_INTERINSULAR, EN_INSULAR, BENJAMIN_LANZAROTE, ALEVIN_LANZAROTE))
+    datos = G._datos_fichas(conn)
+    # La copa de Lanzarote de un equipo de la Interinsular cuenta como la Interinsular (1,35); la suya, lo suyo.
+    assert _fila_ranking(datos, 21, "CADI1")[2] == "Interinsular"
+    copa = _fila_ranking(datos, 21, "CADULC1")
+    assert copa[2] == "Interinsular" and R.nivel_fase(copa[2]) == 1.35 and copa[7] == "lanzarote"
+    # La de Gran Canaria de un equipo de la Insular, como la Insular GC (0,90).
+    copa = _fila_ranking(datos, 22, "CADNGC1")
+    assert copa[2] == "Insular GC" and R.nivel_fase(copa[2]) == 0.90
+    # El alevín de islas también; el benjamín de Lanzarote, como hoy: su copa se queda con la suya (1).
+    assert _fila_ranking(datos, 25, "ALCPL1")[2] == "Preferente Lanzarote"
+    assert _fila_ranking(datos, 24, "BCPL1")[2] == "Copa Cabildo Preferente Lanzarote"
+    # Los mismos goles en los mismos partidos: delante el de la liga más difícil, en los dos años posibles.
+    files = G.ranking_files(conn, datos)
+    for anio in (2011, 2012):
+        r = ranking(files, anio)
+        assert [e[0] for e in r["t"]] == ["2001", "2002"]
+        assert [e[3] for e in r["t"]] == ["cadete", "cadete"] and r["t"][0][7] > r["t"][1][7]
+        assert r["t"][0][4:7] == r["t"][1][4:7] == [14, 14, 13]
+
+
+def test_ficha_de_benjamin_a_cadete(seis):
+    conn = seis(base_e(DE_BENJAMIN_A_CADETE))
+    files = G.jugadores_files(conn)
+    p = fichas(files)
+    assert list(p) == ["2003"]
+    mario = p["2003"]
+    assert [(c[0], c[1]) for c in mario["c"]] == [("2019-2020", "BG1"), ("2026-2027", "CADNG1")]
+    shard = _const(files[f"data-jugadores-{trozo('2003', 64)}.js"], f"JUGADORES_{trozo('2003', 64)}")
+    assert {shard["g"][f"{c[0]}/{c[1]}"][0] for c in mario["c"]} == {"benjamin", "cadete"}
+    # Benjamín en 2019-20 (2010 o 2011) y cadete en 2026-27 (2011 o 2012): 2011.
+    assert mario["y"] == [2011] and "yc" not in mario
+    assert _const(G.buscar_files(conn)["data-buscar-ma.js"], "BUSCAR_MA")[0][4] == [2011]
+    # Con la EN_WEB de hoy la web no ve el cadete: la ficha, solo con benjamín.
+    import categorias
+    import vista_web
+    hoy = vista_web.copia_web(base_e(DE_BENJAMIN_A_CADETE), ("BENJAMIN", "PREBENJAMIN", "ALEVIN"))
+    assert [c[1] for c in fichas(G.jugadores_files(hoy))["2003"]["c"]] == ["BG1"]
+    assert categorias.EN_WEB != ("BENJAMIN", "PREBENJAMIN", "ALEVIN")       # el parche de `seis` sigue puesto
