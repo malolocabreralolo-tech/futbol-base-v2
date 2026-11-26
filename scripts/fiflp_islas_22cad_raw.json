@@ -19238,5 +19238,761 @@
         ]
       }
     ]
+  },
+  {
+    "competition_id": "54977072",
+    "competition_name": "COPA CADETE INSULAR DE LANZAROTE",
+    "cat": "cadete",
+    "island": "lanzarote",
+    "phase": "COPA CADETE INSULAR DE LANZAROTE",
+    "group_id": "55093516",
+    "group_name": "GRUPO 1",
+    "standings": [
+      {
+        "pos": 1,
+        "team": "LOMO, C.D. \"C\"",
+        "pts": 9,
+        "j": 4,
+        "g": 3,
+        "e": 0,
+        "p": 1,
+        "gf": 17,
+        "gc": 6,
+        "df": 11,
+        "form": "GPGG"
+      },
+      {
+        "pos": 2,
+        "team": "SAN BARTOLOME, C.F. \"B\"",
+        "pts": 9,
+        "j": 4,
+        "g": 3,
+        "e": 0,
+        "p": 1,
+        "gf": 8,
+        "gc": 4,
+        "df": 4,
+        "form": "PGGG"
+      },
+      {
+        "pos": 3,
+        "team": "SPORTING TIAS, C.F. \"B\"",
+        "pts": 6,
+        "j": 4,
+        "g": 2,
+        "e": 0,
+        "p": 2,
+        "gf": 11,
+        "gc": 6,
+        "df": 5,
+        "form": "GGPP"
+      },
+      {
+        "pos": 4,
+        "team": "INTERNACIONAL PH \"B\"",
+        "pts": 6,
+        "j": 4,
+        "g": 2,
+        "e": 0,
+        "p": 2,
+        "gf": 7,
+        "gc": 8,
+        "df": -1,
+        "form": "PGGP"
+      },
+      {
+        "pos": 5,
+        "team": "TITE, C.D.",
+        "pts": 0,
+        "j": 4,
+        "g": 0,
+        "e": 0,
+        "p": 4,
+        "gf": 3,
+        "gc": 22,
+        "df": -19,
+        "form": "PPPP"
+      }
+    ],
+    "jornadas": [
+      {
+        "num": "1",
+        "date": "20-09-2026",
+        "matches": [
+          {
+            "home": "TITE, C.D.",
+            "away": "SPORTING TIAS, C.F. \"B\"",
+            "hs": 1,
+            "as": 6,
+            "fiflp_acta": 277083,
+            "date": "19-09-2026",
+            "time": "11:00",
+            "venue": "MUNICIPAL ARGANA",
+            "referee": ""
+          },
+          {
+            "home": "LOMO, C.D. \"C\"",
+            "away": "SAN BARTOLOME, C.F. \"B\"",
+            "hs": 3,
+            "as": 2,
+            "fiflp_acta": 277082,
+            "date": "19-09-2026",
+            "time": "13:10",
+            "venue": "CIUDAD DEPORTIVA LANZAROTE",
+            "referee": ""
+          },
+          {
+            "home": "INTERNACIONAL PH \"B\"",
+            "away": "TEGUISE, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "2",
+        "date": "27-09-2026",
+        "matches": [
+          {
+            "home": "TEGUISE, C.D.",
+            "away": "TITE, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          },
+          {
+            "home": "SPORTING TIAS, C.F. \"B\"",
+            "away": "LOMO, C.D. \"C\"",
+            "hs": 3,
+            "as": 1,
+            "fiflp_acta": 277086,
+            "date": "26-09-2026",
+            "time": "18:00",
+            "venue": "MUNICIPAL FCO BERMUDEZ HERNANDEZ PANCHO",
+            "referee": ""
+          },
+          {
+            "home": "SAN BARTOLOME, C.F. \"B\"",
+            "away": "INTERNACIONAL PH \"B\"",
+            "hs": 3,
+            "as": 0,
+            "fiflp_acta": 277085,
+            "date": "26-09-2026",
+            "time": "19:30",
+            "venue": "PEDRO ESPINOSA DE LEON \"COLON\"",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "3",
+        "date": "04-10-2026",
+        "matches": [
+          {
+            "home": "LOMO, C.D. \"C\"",
+            "away": "TEGUISE, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          },
+          {
+            "home": "INTERNACIONAL PH \"B\"",
+            "away": "TITE, C.D.",
+            "hs": 3,
+            "as": 1,
+            "fiflp_acta": 277090,
+            "date": "03-10-2026",
+            "time": "16:00",
+            "venue": "MUNICIPAL DE PLAYA HONDA",
+            "referee": ""
+          },
+          {
+            "home": "SAN BARTOLOME, C.F. \"B\"",
+            "away": "SPORTING TIAS, C.F. \"B\"",
+            "hs": 1,
+            "as": 0,
+            "fiflp_acta": 277088,
+            "date": "03-10-2026",
+            "time": "19:30",
+            "venue": "PEDRO ESPINOSA DE LEON \"COLON\"",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "4",
+        "date": "11-10-2026",
+        "matches": [
+          {
+            "home": "TEGUISE, C.D.",
+            "away": "SAN BARTOLOME, C.F. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          },
+          {
+            "home": "TITE, C.D.",
+            "away": "LOMO, C.D. \"C\"",
+            "hs": 0,
+            "as": 11,
+            "fiflp_acta": 277093,
+            "date": "07-10-2026",
+            "time": "19:00",
+            "venue": "MUNICIPAL ARGANA",
+            "referee": ""
+          },
+          {
+            "home": "INTERNACIONAL PH \"B\"",
+            "away": "SPORTING TIAS, C.F. \"B\"",
+            "hs": 3,
+            "as": 2,
+            "fiflp_acta": 277091,
+            "date": "10-10-2026",
+            "time": "18:00",
+            "venue": "MUNICIPAL DE PLAYA HONDA",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "5",
+        "date": "18-10-2026",
+        "matches": [
+          {
+            "home": "SPORTING TIAS, C.F. \"B\"",
+            "away": "TEGUISE, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          },
+          {
+            "home": "LOMO, C.D. \"C\"",
+            "away": "INTERNACIONAL PH \"B\"",
+            "hs": 2,
+            "as": 1,
+            "fiflp_acta": 277096,
+            "date": "17-10-2026",
+            "time": "12:30",
+            "venue": "CIUDAD DEPORTIVA LANZAROTE",
+            "referee": ""
+          },
+          {
+            "home": "SAN BARTOLOME, C.F. \"B\"",
+            "away": "TITE, C.D.",
+            "hs": 2,
+            "as": 1,
+            "fiflp_acta": 277095,
+            "date": "17-10-2026",
+            "time": "19:30",
+            "venue": "PEDRO ESPINOSA DE LEON \"COLON\"",
+            "referee": ""
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "competition_id": "54977072",
+    "competition_name": "COPA CADETE INSULAR DE LANZAROTE",
+    "cat": "cadete",
+    "island": "lanzarote",
+    "phase": "COPA CADETE INSULAR DE LANZAROTE",
+    "group_id": "55098683",
+    "group_name": "GRUPO 2",
+    "standings": [
+      {
+        "pos": 1,
+        "team": "HARIA C.F.",
+        "pts": 15,
+        "j": 6,
+        "g": 5,
+        "e": 0,
+        "p": 1,
+        "gf": 21,
+        "gc": 6,
+        "df": 15,
+        "form": "GPGGG"
+      },
+      {
+        "pos": 2,
+        "team": "TAHICHE, C.D. \"B\"",
+        "pts": 15,
+        "j": 6,
+        "g": 5,
+        "e": 0,
+        "p": 1,
+        "gf": 21,
+        "gc": 11,
+        "df": 10,
+        "form": "GGGPG"
+      },
+      {
+        "pos": 3,
+        "team": "ORIENTACION MARITIMA, C.D. \"D\"",
+        "pts": 10,
+        "j": 6,
+        "g": 3,
+        "e": 1,
+        "p": 2,
+        "gf": 21,
+        "gc": 14,
+        "df": 7,
+        "form": "GEPGP"
+      },
+      {
+        "pos": 4,
+        "team": "UNION SUR YAIZA, C.D. \"B\"",
+        "pts": 8,
+        "j": 6,
+        "g": 2,
+        "e": 2,
+        "p": 2,
+        "gf": 9,
+        "gc": 13,
+        "df": -4,
+        "form": "PEGEG"
+      },
+      {
+        "pos": 5,
+        "team": "PUERTO DEL CARMEN, F.C.",
+        "pts": 5,
+        "j": 6,
+        "g": 1,
+        "e": 2,
+        "p": 3,
+        "gf": 12,
+        "gc": 15,
+        "df": -3,
+        "form": "EPEGP"
+      },
+      {
+        "pos": 6,
+        "team": "LOMO, C.D. \"B\"",
+        "pts": 5,
+        "j": 6,
+        "g": 1,
+        "e": 2,
+        "p": 3,
+        "gf": 13,
+        "gc": 19,
+        "df": -6,
+        "form": "EEGPP"
+      },
+      {
+        "pos": 7,
+        "team": "ARRECIFE, C.D.",
+        "pts": 1,
+        "j": 6,
+        "g": 0,
+        "e": 1,
+        "p": 5,
+        "gf": 6,
+        "gc": 25,
+        "df": -19,
+        "form": "EPPPP"
+      }
+    ],
+    "jornadas": [
+      {
+        "num": "1",
+        "date": "20-09-2026",
+        "matches": [
+          {
+            "home": "TAHICHE, C.D. \"B\"",
+            "away": "UNION SUR YAIZA, C.D. \"B\"",
+            "hs": 5,
+            "as": 0,
+            "fiflp_acta": 274834,
+            "date": "16-09-2026",
+            "time": "19:15",
+            "venue": "MUNICIPAL DE TAHICHE",
+            "referee": ""
+          },
+          {
+            "home": "ORIENTACION MARITIMA, C.D. \"D\"",
+            "away": "PUERTO DEL CARMEN, F.C.",
+            "hs": 3,
+            "as": 1,
+            "fiflp_acta": 274833,
+            "date": "18-09-2026",
+            "time": "17:00",
+            "venue": "AGAPITO REYES VIERA",
+            "referee": ""
+          },
+          {
+            "home": "LOMO, C.D. \"B\"",
+            "away": "HARIA C.F.",
+            "hs": 1,
+            "as": 3,
+            "fiflp_acta": 274832,
+            "date": "19-09-2026",
+            "time": "10:30",
+            "venue": "AGAPITO REYES VIERA",
+            "referee": ""
+          },
+          {
+            "home": "Descansa",
+            "away": "ARRECIFE, C.D.",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "2",
+        "date": "23-09-2026",
+        "matches": [
+          {
+            "home": "PUERTO DEL CARMEN, F.C.",
+            "away": "LOMO, C.D. \"B\"",
+            "hs": 4,
+            "as": 4,
+            "fiflp_acta": 274837,
+            "date": "22-09-2026",
+            "time": "18:00",
+            "venue": "MUNICIPAL MANUEL ARROCHA GARCIA",
+            "referee": ""
+          },
+          {
+            "home": "ARRECIFE, C.D.",
+            "away": "TAHICHE, C.D. \"B\"",
+            "hs": 1,
+            "as": 4,
+            "fiflp_acta": 274839,
+            "date": "23-09-2026",
+            "time": "18:00",
+            "venue": "AGAPITO REYES VIERA",
+            "referee": ""
+          },
+          {
+            "home": "HARIA C.F.",
+            "away": "Descansa",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          },
+          {
+            "home": "UNION SUR YAIZA, C.D. \"B\"",
+            "away": "ORIENTACION MARITIMA, C.D. \"D\"",
+            "hs": 1,
+            "as": 6,
+            "fiflp_acta": 274838,
+            "date": "23-09-2026",
+            "time": "20:30",
+            "venue": "MUNICIPAL DE YAIZA",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "3",
+        "date": "27-09-2026",
+        "matches": [
+          {
+            "home": "HARIA C.F.",
+            "away": "PUERTO DEL CARMEN, F.C.",
+            "hs": 3,
+            "as": 0,
+            "fiflp_acta": 274840,
+            "date": "25-09-2026",
+            "time": "18:00",
+            "venue": "LADISLAO RODRIGUEZ BONILLA",
+            "referee": ""
+          },
+          {
+            "home": "LOMO, C.D. \"B\"",
+            "away": "UNION SUR YAIZA, C.D. \"B\"",
+            "hs": 0,
+            "as": 0,
+            "fiflp_acta": 274841,
+            "date": "26-09-2026",
+            "time": "12:30",
+            "venue": "CIUDAD DEPORTIVA LANZAROTE",
+            "referee": ""
+          },
+          {
+            "home": "ORIENTACION MARITIMA, C.D. \"D\"",
+            "away": "ARRECIFE, C.D.",
+            "hs": 3,
+            "as": 3,
+            "fiflp_acta": 274842,
+            "date": "26-09-2026",
+            "time": "16:00",
+            "venue": "AGAPITO REYES VIERA",
+            "referee": ""
+          },
+          {
+            "home": "Descansa",
+            "away": "TAHICHE, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "4",
+        "date": "04-10-2026",
+        "matches": [
+          {
+            "home": "ARRECIFE, C.D.",
+            "away": "LOMO, C.D. \"B\"",
+            "hs": 1,
+            "as": 2,
+            "fiflp_acta": 274846,
+            "date": "30-09-2026",
+            "time": "19:00",
+            "venue": "AGAPITO REYES VIERA",
+            "referee": ""
+          },
+          {
+            "home": "TAHICHE, C.D. \"B\"",
+            "away": "ORIENTACION MARITIMA, C.D. \"D\"",
+            "hs": 3,
+            "as": 2,
+            "fiflp_acta": 274847,
+            "date": "30-09-2026",
+            "time": "19:15",
+            "venue": "MUNICIPAL DE TAHICHE",
+            "referee": ""
+          },
+          {
+            "home": "UNION SUR YAIZA, C.D. \"B\"",
+            "away": "HARIA C.F.",
+            "hs": 2,
+            "as": 0,
+            "fiflp_acta": 274845,
+            "date": "02-10-2026",
+            "time": "20:30",
+            "venue": "MUNICIPAL DE YAIZA",
+            "referee": ""
+          },
+          {
+            "home": "PUERTO DEL CARMEN, F.C.",
+            "away": "Descansa",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "5",
+        "date": "11-10-2026",
+        "matches": [
+          {
+            "home": "HARIA C.F.",
+            "away": "ARRECIFE, C.D.",
+            "hs": 8,
+            "as": 0,
+            "fiflp_acta": 274849,
+            "date": "08-10-2026",
+            "time": "19:00",
+            "venue": "LADISLAO RODRIGUEZ BONILLA",
+            "referee": ""
+          },
+          {
+            "home": "LOMO, C.D. \"B\"",
+            "away": "TAHICHE, C.D. \"B\"",
+            "hs": 3,
+            "as": 4,
+            "fiflp_acta": 274850,
+            "date": "10-10-2026",
+            "time": "13:15",
+            "venue": "CIUDAD DEPORTIVA LANZAROTE",
+            "referee": ""
+          },
+          {
+            "home": "PUERTO DEL CARMEN, F.C.",
+            "away": "UNION SUR YAIZA, C.D. \"B\"",
+            "hs": 2,
+            "as": 2,
+            "fiflp_acta": 274848,
+            "date": "10-10-2026",
+            "time": "18:00",
+            "venue": "MUNICIPAL MANUEL ARROCHA GARCIA",
+            "referee": ""
+          },
+          {
+            "home": "Descansa",
+            "away": "ORIENTACION MARITIMA, C.D. \"D\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "6",
+        "date": "14-10-2026",
+        "matches": [
+          {
+            "home": "ORIENTACION MARITIMA, C.D. \"D\"",
+            "away": "LOMO, C.D. \"B\"",
+            "hs": 7,
+            "as": 3,
+            "fiflp_acta": 274855,
+            "date": "13-10-2026",
+            "time": "17:00",
+            "venue": "AGAPITO REYES VIERA",
+            "referee": ""
+          },
+          {
+            "home": "ARRECIFE, C.D.",
+            "away": "PUERTO DEL CARMEN, F.C.",
+            "hs": 1,
+            "as": 4,
+            "fiflp_acta": 274853,
+            "date": "13-10-2026",
+            "time": "19:00",
+            "venue": "AGAPITO REYES VIERA",
+            "referee": ""
+          },
+          {
+            "home": "Descansa",
+            "away": "UNION SUR YAIZA, C.D. \"B\"",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          },
+          {
+            "home": "TAHICHE, C.D. \"B\"",
+            "away": "HARIA C.F.",
+            "hs": 3,
+            "as": 4,
+            "fiflp_acta": 274854,
+            "date": "14-10-2026",
+            "time": "19:15",
+            "venue": "MUNICIPAL DE TAHICHE",
+            "referee": ""
+          }
+        ]
+      },
+      {
+        "num": "7",
+        "date": "18-10-2026",
+        "matches": [
+          {
+            "home": "HARIA C.F.",
+            "away": "ORIENTACION MARITIMA, C.D. \"D\"",
+            "hs": 3,
+            "as": 0,
+            "fiflp_acta": 274858,
+            "date": "16-10-2026",
+            "time": "18:00",
+            "venue": "LADISLAO RODRIGUEZ BONILLA",
+            "referee": ""
+          },
+          {
+            "home": "UNION SUR YAIZA, C.D. \"B\"",
+            "away": "ARRECIFE, C.D.",
+            "hs": 4,
+            "as": 0,
+            "fiflp_acta": 274856,
+            "date": "16-10-2026",
+            "time": "20:30",
+            "venue": "MUNICIPAL DE YAIZA",
+            "referee": ""
+          },
+          {
+            "home": "LOMO, C.D. \"B\"",
+            "away": "Descansa",
+            "hs": null,
+            "as": null,
+            "fiflp_acta": null,
+            "date": "",
+            "time": "",
+            "venue": "",
+            "referee": ""
+          },
+          {
+            "home": "PUERTO DEL CARMEN, F.C.",
+            "away": "TAHICHE, C.D. \"B\"",
+            "hs": 1,
+            "as": 2,
+            "fiflp_acta": 274857,
+            "date": "17-10-2026",
+            "time": "19:00",
+            "venue": "MUNICIPAL MANUEL ARROCHA GARCIA",
+            "referee": ""
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "competition_id": "55133909",
+    "competition_name": "ELIMINATORIAS COPA CADETE INSULAR DE LANZAROTE",
+    "cat": "cadete",
+    "island": "lanzarote",
+    "phase": "ELIMINATORIAS COPA CADETE INSULAR DE LANZAROTE",
+    "group_id": "55301300",
+    "group_name": "FINAL",
+    "standings": [],
+    "jornadas": [
+      {
+        "num": "25-10-2026 ( Final )",
+        "date": "",
+        "matches": [
+          {
+            "home": "(Clasificado) HARIA C.F.",
+            "away": "LOMO, C.D. \"C\"",
+            "hs": 4,
+            "as": 0,
+            "fiflp_acta": 293240,
+            "date": "25-10-2026",
+            "time": "10:00",
+            "venue": "MUNICIPAL FCO BERMUDEZ HERNANDEZ PANCHO",
+            "referee": ""
+          }
+        ]
+      }
+    ]
   }
 ]
