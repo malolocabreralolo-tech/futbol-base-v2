@@ -1445,7 +1445,9 @@ const rankOf = (list, value) => (list.includes(value) ? list.indexOf(value) : li
 // sobre la isla y sobre la fase (si no, la Insular de Gran Canaria saldría antes que la Interinsular, y la
 // Segunda antes que la División de Honor). El nivel es el de DIVISION_ORDER y, dentro de una división, la
 // Fase Oro antes y la Fase Plata después (los niveles de scripts/ranking.py: Oro 1,30, Preferente 1,25 y
-// Plata 1,15). Benjamín, prebenjamín y alevín siguen con su clave de siempre.
+// Plata 1,15). Benjamín, prebenjamín y alevín siguen con su clave de siempre. Las copas de las nuevas (copas,
+// ascensos, eliminatorias y finales, detrás de las ligas), en cambio, por isla y después por división, como las
+// ligas de benjamín: cada isla tiene las suyas, y así las de Lanzarote no se cuelan entre las de Gran Canaria.
 const LEVEL_FIRST_CATS = ['infantil', 'cadete', 'juvenil'];
 const leagueTier = ck => rankOf(DIVISION_ORDER, ck.division) * 3 + (ck.phase === 'oro' ? 0 : ck.phase === 'plata' ? 2 : 1);
 // Orden de nombres sin tildes ni mayúsculas, el mismo en todos los motores (sin datos de idioma).
@@ -1583,8 +1585,9 @@ export function searchTeams(model, season, query) {
  *   no, 'liga'.
  * - Orden: benjamín y prebenjamín; en cada una, las ligas y después las copas; dentro, la fase más
  *   alta primero, después Gran Canaria, Lanzarote y Fuerteventura, y después la división, la fase y la
- *   copa (PHASE_ORDER…) y el nombre. En infantil, cadete y juvenil, primero el nivel de la liga
- *   (leagueTier: División de Honor… Insular B), después la isla y después la fase.
+ *   copa (PHASE_ORDER…) y el nombre. En infantil, cadete y juvenil, las ligas por el nivel de la liga
+ *   (leagueTier: División de Honor… Insular B), después la isla y después la fase; sus copas, por la isla
+ *   y después por el nivel de la liga y la fase.
  * - Los grupos, en orden natural de su nombre («Grupo 2» antes que «Grupo 10»).
  * - cat e island filtran; sin ellos, todas. Una temporada sin cargar da []. */
 export function competitions(model, season, { cat = null, island = null } = {}) {
@@ -1602,8 +1605,11 @@ export function competitions(model, season, { cat = null, island = null } = {}) 
     entries.get(id).groups.push(group);
   }
   const rank = e => (LEVEL_FIRST_CATS.includes(e.cat)
-    ? [rankOf(CATEGORIES, e.cat), e.kind === 'liga' ? 0 : 1, leagueTier(e.ck), rankOf(ISLAND_ORDER, e.ck.island), -e.level,
-      rankOf(PHASE_ORDER, e.ck.phase), rankOf(CUP_ORDER, e.ck.cup)]
+    ? (e.kind === 'liga'
+      ? [rankOf(CATEGORIES, e.cat), 0, leagueTier(e.ck), rankOf(ISLAND_ORDER, e.ck.island), -e.level,
+        rankOf(PHASE_ORDER, e.ck.phase), rankOf(CUP_ORDER, e.ck.cup)]
+      : [rankOf(CATEGORIES, e.cat), 1, rankOf(ISLAND_ORDER, e.ck.island), leagueTier(e.ck), -e.level,
+        rankOf(PHASE_ORDER, e.ck.phase), rankOf(CUP_ORDER, e.ck.cup)])
     : [rankOf(CATEGORIES, e.cat), e.kind === 'liga' ? 0 : 1, -e.level, rankOf(ISLAND_ORDER, e.ck.island),
       rankOf(DIVISION_ORDER, e.ck.division), rankOf(PHASE_ORDER, e.ck.phase), rankOf(CUP_ORDER, e.ck.cup)]);
   return [...entries.values()]

@@ -112,9 +112,10 @@ test('buildSeason con las perezosas: cada grupo con su categoría', () => {
 // Dentro de una categoría nueva, las ligas van del nivel más alto al más bajo, y el nivel manda sobre la isla y
 // sobre la fase: División de Honor, Autonómica, Interinsular, (Fase Oro), Preferente, (Fase Plata), Primera,
 // Segunda, Insular, Insular B y, al final, las de una sola división de su isla; a igual nivel, Gran Canaria,
-// Lanzarote, Fuerteventura y las interinsulares. Después, las copas, ascensos, eliminatorias y finales, con la
-// misma regla (como en benjamín, detrás de todas las ligas). Con TODAS las fases del convenio, en Ligas
-// (`c=<cat>`) y en Explorar.
+// Lanzarote, Fuerteventura y las interinsulares. Después (como en benjamín, detrás de todas las ligas), las
+// copas, ascensos, eliminatorias y finales, al revés: primero la isla (Gran Canaria, Lanzarote, Fuerteventura y
+// las interinsulares) y después el nivel de su liga, como las ligas de benjamín. Con TODAS las fases del convenio,
+// en Ligas (`c=<cat>`) y en Explorar.
 const ORDEN_LIGAS = {
   infantil: ['Preferente Fase Oro', 'Preferente', 'Preferente de Lanzarote', 'Preferente Fase Plata', 'Primera',
     'Primera de Lanzarote', 'Gran Canaria', 'Fase 2 de Lanzarote', 'Fase 1 de Lanzarote', 'Fase 2 de Fuerteventura',
@@ -124,6 +125,27 @@ const ORDEN_LIGAS = {
     'Fuerteventura'],
   juvenil: ['División de Honor Fase 2 C', 'División de Honor Fase 2 D', 'División de Honor', 'Interinsular',
     'Preferente', 'Preferente de Lanzarote', 'Preferente de Fuerteventura', 'Primera', 'Segunda'],
+};
+const ORDEN_COPAS = {
+  infantil: ['Copa de Campeones', 'Final Liga Preferente GC', 'Copa Cabildo Preferente de Lanzarote',
+    'Copa Cabildo Primera de Lanzarote', 'Copa Cabildo Lanzarote', 'Copa Delegación de Lanzarote', 'Final Copa Cabildo Lanzarote',
+    'Final Copa Cabildo Preferente Lanzarote', 'Final Copa Cabildo Primera Lanzarote', 'Final Copa Delegación Lanzarote',
+    'Final Liga Primera Lanzarote', 'Semifinal Copa Cabildo Lanzarote', 'Semifinal Copa Cabildo Primera Lanzarote',
+    'Semifinal Copa Delegación Lanzarote', 'Copa Delegación de Fuerteventura', 'Copa Fuerteventura', 'Final Copa Fuerteventura',
+    'Final Liga Fuerteventura'],
+  cadete: ['Copa Primera', 'Copa Insular', 'Fase de Ascenso a Preferente GC', 'Eliminatorias Copa Insular GC',
+    'Copa Cabildo Preferente de Lanzarote', 'Copa Preferente de Lanzarote', 'Copa Cabildo Insular de Lanzarote',
+    'Copa Insular de Lanzarote', 'Copa Cabildo Insular B de Lanzarote', 'Eliminatorias Copa Insular Lanzarote',
+    'Eliminatorias Copa Preferente Lanzarote', 'Eliminatorias de Ascenso a Interinsular Lanzarote', 'Copa Delegación de Lanzarote',
+    'Final Copa Cabildo Insular B Lanzarote', 'Final Copa Cabildo Insular Lanzarote', 'Final Copa Cabildo Preferente Lanzarote',
+    'Final Copa Delegación Lanzarote', 'Final Copa Insular Lanzarote', 'Fase de Ascenso a Insular Fuerteventura',
+    'Copa de Campeones de Fuerteventura', 'Copa Delegación de Fuerteventura', 'Copa Fuerteventura', 'Final Copa Fuerteventura',
+    'Final Liga Fuerteventura', 'Fase de Ascenso a Autonómica', 'Fase de Ascenso a Interinsular',
+    'Fase de Ascenso a Interinsular Lanzarote-Fuerteventura', 'Eliminatorias de Ascenso a Interinsular Lanzarote-Fuerteventura'],
+  juvenil: ['Fase de Ascenso a Preferente GC', 'Fase de Ascenso a Primera GC', 'Eliminatorias de Ascenso a Interinsular Lanzarote',
+    'Copa Preferente de Fuerteventura', 'Fase de Ascenso a Interinsular Fuerteventura', 'Final Copa Preferente Fuerteventura',
+    'Copa Territorial', 'Fase de Ascenso a División de Honor', 'Fase de Ascenso a Interinsular',
+    'Fase de Ascenso a Interinsular Lanzarote-Fuerteventura', 'Eliminatorias de Ascenso a Interinsular Lanzarote-Fuerteventura'],
 };
 // Una competición por prefijo y fase del convenio, de cada categoría nueva, con un id propio cada una.
 function convenioPorCategoria() {
@@ -144,7 +166,7 @@ const ISLAS = ['grancanaria', 'lanzarote', 'fuerteventura', 'interinsular'];
 // después.
 const nivelDe = ck => DIVISIONES.indexOf(ck.division) * 3 + (ck.phase === 'oro' ? 0 : ck.phase === 'plata' ? 2 : 1);
 
-test('test_orden_de_las_ligas: en las nuevas, el nivel de la liga manda sobre la isla y la fase; las copas, detrás', () => {
+test('test_orden_de_las_ligas: en las nuevas, el nivel de la liga manda sobre la isla y la fase; las copas, detrás y por isla', () => {
   const por = convenioPorCategoria();
   const raws = Object.fromEntries(Object.entries(por).map(([cat, list]) => [cat, list.map(({ teams, ...g }) => ({ ...g, name: 'Grupo 1', standings: [], matches: [] }))]));
   const season = buildSeason({ name: SEASON, current: true, ...raws });
@@ -158,9 +180,10 @@ test('test_orden_de_las_ligas: en las nuevas, el nivel de la liga manda sobre la
     assert.ok(copas.length > 0);
     copas.forEach((ck, k) => {
       if (!k) return;
-      const a = [nivelDe(copas[k - 1]), ISLAS.indexOf(copas[k - 1].island)], b = [nivelDe(ck), ISLAS.indexOf(ck.island)];
-      assert.ok(a[0] < b[0] || (a[0] === b[0] && a[1] <= b[1]), `${cat}: «${ck.label}» después de una de nivel o isla mayor`);
+      const a = [ISLAS.indexOf(copas[k - 1].island), nivelDe(copas[k - 1])], b = [ISLAS.indexOf(ck.island), nivelDe(ck)];
+      assert.ok(a[0] < b[0] || (a[0] === b[0] && a[1] <= b[1]), `${cat}: «${ck.label}» después de una de otra isla o de nivel mayor`);
     });
+    assert.deepEqual(list.filter(e => e.kind === 'copa').map(e => e.label), ORDEN_COPAS[cat], `copas de ${cat}`);
     // Sin `cat` (Explorar), lo mismo dentro de cada categoría.
     assert.deepEqual(competitions(model, SEASON).filter(e => e.cat === cat).map(e => e.key), list.map(e => e.key), `${cat} sin filtro`);
   }
