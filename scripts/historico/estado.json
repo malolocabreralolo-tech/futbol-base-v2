@@ -693,12 +693,28 @@
     "goleadores:2025-2026"
    ],
    "verde": true
+  },
+  {
+   "at": "2026-11-26T22:46:21+00:00",
+   "mb_antes": 47.105,
+   "mb_despues": 51.426,
+   "motivo": "las pruebas fallaron",
+   "segundos": 75.1,
+   "trabajos": [
+    "actas:2025-2026:alevin"
+   ],
+   "verde": false
   }
  ],
  "trabajos": {
   "actas:2025-2026:alevin": {
-   "actualizado": "2026-11-26T22:37:00+00:00",
-   "estado": "completo",
+   "actualizado": "2026-11-26T22:46:21+00:00",
+   "estado": "fallo",
+   "huellas": {
+    "fiflp_actas_2025-2026_alevin_index.json": "709b0f041731a9ae81f323a651d767787405a28c",
+    "fiflp_actas_2025-2026_alevin_raw.json": "64c31b1bfd0901dc4599c39ddced563da6d5a3bc",
+    "fiflp_actas_2025-2026_alevin_status.json": "cf5fe4d6dc13c957fbcaf6a42a25d3d48f695833"
+   },
    "no_disponible": 0,
    "pendientes": 0
   },
