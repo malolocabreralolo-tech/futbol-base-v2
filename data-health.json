@@ -735,43 +735,8 @@
   },
   "newCompetitions": [
     {
-      "id": "54976878",
-      "name": "LIGA JUVENIL INTERINSULAR",
-      "firstSeen": "2026-11-26"
-    },
-    {
-      "id": "54976880",
-      "name": "LIGA JUVENIL PREFERENTE GRAN CANARIA",
-      "firstSeen": "2026-11-26"
-    },
-    {
-      "id": "54976882",
-      "name": "LIGA JUVENIL PREFERENTE LANZAROTE",
-      "firstSeen": "2026-11-26"
-    },
-    {
-      "id": "54976884",
-      "name": "LIGA JUVENIL PREFERENTE FUERTEVENTURA",
-      "firstSeen": "2026-11-26"
-    },
-    {
-      "id": "54976886",
-      "name": "LIGA PRIMERA JUVENIL GRAN CANARIA",
-      "firstSeen": "2026-11-26"
-    },
-    {
       "id": "54976889",
       "name": "LIGA SEGUNDA JUVENIL GRAN CANARIA",
-      "firstSeen": "2026-11-26"
-    },
-    {
-      "id": "54977072",
-      "name": "COPA CADETE INSULAR DE LANZAROTE",
-      "firstSeen": "2026-11-26"
-    },
-    {
-      "id": "55133909",
-      "name": "ELIMINATORIAS COPA CADETE INSULAR DE LANZAROTE",
       "firstSeen": "2026-11-26"
     }
   ],
@@ -849,112 +814,65 @@
     }
   },
   "activation": {
-    "at": "2026-11-26T18:25:34+00:00",
+    "at": "2026-11-26T20:31:10+00:00",
     "activated": [
       {
-        "competition": "54976894",
-        "name": "LIGA CADETE INTERINSULAR",
+        "competition": "54977072",
+        "name": "COPA CADETE INSULAR DE LANZAROTE",
         "codes": [
-          "CADI1"
+          "CADNLC1",
+          "CADNLC2"
         ]
       },
       {
-        "competition": "54976896",
-        "name": "LIGA CADETE INSULAR GRAN CANARIA 1ª FASE",
+        "competition": "55133909",
+        "name": "ELIMINATORIAS COPA CADETE INSULAR DE LANZAROTE",
         "codes": [
-          "CADNG1",
-          "CADNG2",
-          "CADNG3",
-          "CADNG4",
-          "CADNG5",
-          "CADNG6",
-          "CADNG7"
+          "CADNLCE1"
         ]
       },
       {
-        "competition": "54976904",
-        "name": "LIGA CADETE PREFERENTE LANZAROTE",
+        "competition": "54976878",
+        "name": "LIGA JUVENIL INTERINSULAR",
         "codes": [
-          "CADPL1"
+          "JUVI1"
         ]
       },
       {
-        "competition": "54976906",
-        "name": "LIGA CADETE INSULAR DE FUERTEVENTURA",
+        "competition": "54976880",
+        "name": "LIGA JUVENIL PREFERENTE GRAN CANARIA",
         "codes": [
-          "CADNF1"
+          "JUVPG1"
         ]
       },
       {
-        "competition": "54977104",
-        "name": "LIGA CADETE INSULAR DE LANZAROTE",
+        "competition": "54976882",
+        "name": "LIGA JUVENIL PREFERENTE LANZAROTE",
         "codes": [
-          "CADNL1"
+          "JUVPL1"
         ]
       },
       {
-        "competition": "54977178",
-        "name": "COPA CADETE PREFERENTE DE LANZAROTE",
+        "competition": "54976884",
+        "name": "LIGA JUVENIL PREFERENTE FUERTEVENTURA",
         "codes": [
-          "CADPLC1",
-          "CADPLC2"
+          "JUVPF1"
         ]
       },
       {
-        "competition": "54977183",
-        "name": "LIGA CADETE PREFERENTE GRAN CANARIA",
+        "competition": "54976886",
+        "name": "LIGA PRIMERA JUVENIL GRAN CANARIA",
         "codes": [
-          "CADPG1"
-        ]
-      },
-      {
-        "competition": "54977202",
-        "name": "ELIMINATORIAS COPA CADETE PREFERENTE DE LANZAROTE",
-        "codes": [
-          "CADPLCE1"
+          "JUV1G1",
+          "JUV1G2"
         ]
       }
     ],
     "failed": [
       {
-        "competition": "54977072",
-        "name": "COPA CADETE INSULAR DE LANZAROTE",
-        "reason": "la descarga no está completa: falta la lista de grupos de la federación"
-      },
-      {
-        "competition": "55133909",
-        "name": "ELIMINATORIAS COPA CADETE INSULAR DE LANZAROTE",
-        "reason": "la descarga no está completa: falta la lista de grupos de la federación"
-      },
-      {
-        "competition": "54976878",
-        "name": "LIGA JUVENIL INTERINSULAR",
-        "reason": "la descarga no está completa: falta la lista de grupos de la federación"
-      },
-      {
-        "competition": "54976880",
-        "name": "LIGA JUVENIL PREFERENTE GRAN CANARIA",
-        "reason": "la descarga no está completa: falta la lista de grupos de la federación"
-      },
-      {
-        "competition": "54976882",
-        "name": "LIGA JUVENIL PREFERENTE LANZAROTE",
-        "reason": "la descarga no está completa: falta la lista de grupos de la federación"
-      },
-      {
-        "competition": "54976884",
-        "name": "LIGA JUVENIL PREFERENTE FUERTEVENTURA",
-        "reason": "la descarga no está completa: falta la lista de grupos de la federación"
-      },
-      {
-        "competition": "54976886",
-        "name": "LIGA PRIMERA JUVENIL GRAN CANARIA",
-        "reason": "la descarga no está completa: falta la lista de grupos de la federación"
-      },
-      {
         "competition": "54976889",
         "name": "LIGA SEGUNDA JUVENIL GRAN CANARIA",
-        "reason": "la descarga no está completa: falta la lista de grupos de la federación"
+        "reason": "la descarga no está completa: faltan 3 grupos"
       }
     ],
     "tried": [
@@ -964,15 +882,7 @@
       "54976884",
       "54976886",
       "54976889",
-      "54976894",
-      "54976896",
-      "54976904",
-      "54976906",
       "54977072",
-      "54977104",
-      "54977178",
-      "54977183",
-      "54977202",
       "55133909"
     ],
     "attempts": 1
