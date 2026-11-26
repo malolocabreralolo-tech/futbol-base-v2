@@ -206,8 +206,10 @@ def test_archive_lazy_con_alevin_es_archive_alevin(tmp_path, seis):
 
 
 def test_con_en_web_de_hoy_salen_vacios(tmp_path, monkeypatch):
+    # El EN_WEB de antes de la tarea 8 lo fija la prueba: así sigue valiendo (y no para la puerta del bot) cuando
+    # el director amplíe el de categorias.py.
     import categorias
-    assert "INFANTIL" not in categorias.EN_WEB, "esta prueba mira el EN_WEB de hoy"
+    monkeypatch.setattr(categorias, "EN_WEB", ("BENJAMIN", "PREBENJAMIN", "ALEVIN"))
     import generate_js
     db, root = site(tmp_path)
     files = generate(monkeypatch, db, root)

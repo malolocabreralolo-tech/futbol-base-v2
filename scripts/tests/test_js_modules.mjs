@@ -14,6 +14,7 @@ import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import vm from 'node:vm';
+import { LAZY_CATS } from '../../src/model.js';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
@@ -81,18 +82,38 @@ test('normalizeTeamName: idempotent', () => {
 
 // ─── data-*.js parses ────────────────────────────────────────────────────
 
+// La forma de cada entrada de SEASONS: {name, current}; en las temporadas con cronología, detail: true; y, en
+// las que tienen grupos de infantil, cadete o juvenil en la web (generate_js.season_lazy_keys), `lazy`: sus
+// categorías perezosas, sin repetir y en el orden de LAZY_CATS. Sin datos de grupos. Va aparte para probarla
+// también con entradas inventadas: con el EN_WEB de hoy, data-seasons.js no lleva ninguna `lazy`, y la puerta
+// del bot no puede pararse el día que la lleve.
+function checkSeasonEntry(s) {
+  assert.ok(typeof s.name === 'string' && /^\d{4}-\d{4}$/.test(s.name),
+    `season name should be YYYY-YYYY: ${s.name}`);
+  assert.ok(Object.keys(s).every((k) => ['name', 'current', 'detail', 'lazy'].includes(k)), `claves de ${s.name}`);
+  assert.ok(!('detail' in s) || s.detail === true, `detail de ${s.name}`);
+  if ('lazy' in s) {
+    assert.ok(Array.isArray(s.lazy) && s.lazy.length > 0, `lazy de ${s.name}: una lista con algo`);
+    assert.ok(s.lazy.every((c) => LAZY_CATS.includes(c)), `lazy de ${s.name}: solo categorías perezosas`);
+    const pos = s.lazy.map((c) => LAZY_CATS.indexOf(c));
+    assert.ok(pos.every((p, i) => i === 0 || p > pos[i - 1]), `lazy de ${s.name}: sin repetir y en el orden de LAZY_CATS`);
+  }
+}
+
 test('data-seasons.js loads with SEASONS array', () => {
   const { SEASONS } = loadDataFile('data-seasons.js');
   assert.ok(Array.isArray(SEASONS), 'SEASONS should be an array');
   assert.ok(SEASONS.length >= 2, 'should have at least 2 seasons');
   assert.ok(SEASONS.some(s => s.current === true), 'one season must be marked current');
-  // Solo {name, current} y, en las temporadas con cronología, detail: true (sin datos de grupos).
-  for (const s of SEASONS) {
-    assert.ok(typeof s.name === 'string' && /^\d{4}-\d{4}$/.test(s.name),
-      `season name should be YYYY-YYYY: ${s.name}`);
-    assert.ok(Object.keys(s).every((k) => ['name', 'current', 'detail'].includes(k)), `claves de ${s.name}`);
-    assert.ok(!('detail' in s) || s.detail === true, `detail de ${s.name}`);
-  }
+  for (const s of SEASONS) checkSeasonEntry(s);
+});
+
+test('la forma de SEASONS admite `lazy` (la que sale al ampliar EN_WEB) y rechaza la que no vale', () => {
+  checkSeasonEntry({ name: '2026-2027', current: true, detail: true, lazy: ['alevin', 'infantil', 'juvenil'] });
+  checkSeasonEntry({ name: '2025-2026', current: false, lazy: ['cadete'] });
+  for (const lazy of [[], ['benjamin'], ['cadete', 'infantil'], ['cadete', 'cadete'], 'cadete'])
+    assert.throws(() => checkSeasonEntry({ name: '2026-2027', current: true, lazy }), `lazy ${JSON.stringify(lazy)}`);
+  assert.throws(() => checkSeasonEntry({ name: '2026-2027', current: true, groups: [] }), 'otra clave');
 });
 
 // Una temporada nueva se puede activar por partes (solo benjamín o solo prebenjamín): una de las
