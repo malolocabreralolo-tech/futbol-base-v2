@@ -1,13 +1,13 @@
 {
  "formato": 2,
  "season": "2025-2026",
- "enumerated": 817,
- "in_raw": 572,
- "fetched": 246,
- "pending": 266,
- "actas_por_leer": 245,
- "jornadas_por_leer": 13,
- "grupos_por_leer": 4,
+ "enumerated": 1153,
+ "in_raw": 800,
+ "fetched": 228,
+ "pending": 357,
+ "actas_por_leer": 353,
+ "jornadas_por_leer": 0,
+ "grupos_por_leer": 0,
  "unenumerated_comps": 4,
  "no_disponible": [],
  "intentos": {},
@@ -73,27 +73,7 @@
      "DESEMPATE CLASIFICACIÓN COPA CAMPEONES"
     ]
    ],
-   "pendientes": {
-    "54823258": [
-     "10",
-     "11",
-     "12",
-     "13",
-     "14",
-     "15",
-     "16",
-     "17",
-     "18",
-     "19",
-     "20",
-     "21",
-     "22"
-    ],
-    "54823259": null,
-    "54823263": null,
-    "54823294": null,
-    "54965000": null
-   }
+   "pendientes": {}
   },
   "54422941": {
    "grupos": null,
