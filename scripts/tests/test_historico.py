@@ -462,7 +462,7 @@ def test_el_estado_de_hoy_vale_con_las_reglas_nuevas(tmp_path, monkeypatch, caps
     code, _ = _main(["estado"], tmp_path, monkeypatch, now="2026-11-26T05:45:00Z")
     assert code == 0 and "parado" not in capsys.readouterr().out
     # Y si el bot en vivo frena hoy, sí: el día pasa a parado («bot»).
-    salud.write_text(json.dumps({"checkedAt": "2026-11-26T05:00:00+00:00", "run": {"pauses": 1, "cloud": "azure"}}))
+    salud.write_text(json.dumps({"checkedAt": "2026-11-26T05:00:00+00:00", "run": {"pauses": 1, "cloud": "azure", "brakeAfter": [12]}}))
     code, out = _main(["siguiente", "--salud", str(salud)], tmp_path, monkeypatch, now="2026-11-26T05:45:00Z")
     assert "accion=nada\n" in out and "apuntado=true\n" in out
     estado = json.loads((carpeta / "estado.json").read_text())
@@ -617,7 +617,7 @@ def test_la_orden_compara_el_contenido_de_la_cuarentena(tmp_path, monkeypatch):
 
 
 def test_registrar_lo_que_vio_el_bot():
-    salud = {"checkedAt": "2026-11-25T09:21:28+00:00", "run": {"pauses": 1, "cloud": "azure"}}
+    salud = {"checkedAt": "2026-11-25T09:21:28+00:00", "run": {"pauses": 1, "cloud": "azure", "brakeAfter": [12]}}
     accion = {"accion": "descargar", "trabajo": "goleadores", "temporadas": ["21"], "dia": "2026-11-25",
               "inicio": "2026-11-25T10:00:00+00:00", "partes": ["goleadores:2025-2026"]}
     resumen = {"pedidas": 10, "servidas": 10, "muertas": 0, "esperas": 0, "frenos": 0, "frenos_tras": [],
@@ -637,7 +637,7 @@ def test_el_freno_de_verdad_para_el_dia():
     assert H.siguiente(PLAN, e, T("2026-11-26T01:00:00Z"), env={})["accion"] == "descargar"     # otro día
     normal = {**H.estado_vacio(), "dia": {"fecha": "2026-11-25", "paginas": 400, "freno": "carril"}}
     assert H.siguiente(PLAN, normal, MIERCOLES, env={})["accion"] == "descargar"
-    salud = {"checkedAt": "2026-11-25T09:21:28+00:00", "run": {"pauses": 1, "cloud": "azure"}}
+    salud = {"checkedAt": "2026-11-25T09:21:28+00:00", "run": {"pauses": 1, "cloud": "azure", "brakeAfter": [12]}}
     assert H.freno_del_bot(salud, MIERCOLES)
     assert H.siguiente(PLAN, H.estado_vacio(), MIERCOLES, env={}, salud=salud)["motivo"] == "freno de verdad hoy"
     assert H.siguiente(PLAN, normal, MIERCOLES, env={}, salud=salud)["motivo"] == "freno de verdad hoy"
@@ -651,11 +651,58 @@ def test_el_freno_de_verdad_para_el_dia():
     assert not H.freno_del_bot({**salud, "run": {"cloud": "azure"}}, MIERCOLES)
 
 
+def test_el_freno_del_bot_solo_para_el_dia_si_llego_pronto():
+    """Desde el 26/11/2026, el mismo criterio que con el carril: con el cupo en ~150 páginas por IP y pasadas del bot
+    de ~137, una algo más larga frena sin que pase nada raro. Para el día solo una pasada (de cualquiera de los dos
+    carriles del bot, en Azure) que frenó con menos de RELANZAR_MIN páginas servidas (`brakeAfter[0]`, las servidas
+    antes del primer freno); sin ese dato, como un freno normal: no para."""
+    hoy = "2026-11-25T09:21:28+00:00"
+    for run, para in (({"pauses": 1, "cloud": "azure", "brakeAfter": [140]}, False),
+                      ({"pauses": 1, "cloud": "azure", "brakeAfter": [140, 3]}, False),
+                      ({"pauses": 1, "cloud": "azure", "brakeAfter": [12]}, True),
+                      ({"pauses": 1, "cloud": "azure", "brakeAfter": [59, 100]}, True),
+                      ({"pauses": 1, "cloud": "azure", "brakeAfter": [60]}, False),
+                      ({"pauses": 1, "cloud": "azure"}, False),                       # sin el dato
+                      ({"pauses": 1, "cloud": "azure", "brakeAfter": []}, False),
+                      ({"pauses": 1, "cloud": "azure", "brakeAfter": ["x"]}, False),
+                      ({"pauses": 1, "cloud": "aws", "brakeAfter": [0], "refusedRunner": True}, False),
+                      ({"pauses": 1, "cloud": "aws", "brakeAfter": [5]}, False)):
+        for salud in ({"checkedAt": hoy, "run": run},
+                      {"checkedAt": hoy, "run": {"pauses": 0, "cloud": "azure"}, "carriles": {"mayores": {"run": run}}}):
+            assert H.freno_del_bot(salud, MIERCOLES) is para, (salud, para)
+            a = H.siguiente(PLAN, H.estado_vacio(), MIERCOLES, env={}, salud=salud)
+            assert (a.get("motivo") == "freno de verdad hoy") is para and (a["accion"] == "descargar") is not para
+            assert (H.apuntar_freno_del_bot(H.estado_vacio(), salud, MIERCOLES) is not None) is para
+
+
+def test_con_el_data_health_de_hoy_el_carril_sigue(tmp_path, monkeypatch):
+    """El data-health.json real del 26/11/2026 (copia congelada: la pasada de las 02:18, 137 páginas en Azure, sin
+    freno) y el estado de ese día: `siguiente` da «descargar». Y con esa pasada frenando a las 140, también; a las
+    12, el día parado."""
+    carpeta = tmp_path / "historico"
+    carpeta.mkdir()
+    congelado = ROOT / "scripts" / "tests" / "fixtures" / "historico_2026-11-26"
+    for nombre in ("estado.json", "plan.json"):
+        (carpeta / nombre).write_bytes((congelado / nombre).read_bytes())
+    salud = tmp_path / "data-health.json"
+    salud.write_bytes((congelado / "data-health.json").read_bytes())
+    monkeypatch.setenv("HISTORICO_CARPETA", str(carpeta))
+    monkeypatch.setenv("HISTORICO_PAGINAS_DIA", "")
+    code, out = _main(["siguiente", "--salud", str(salud)], tmp_path, monkeypatch, now="2026-11-26T05:45:00Z")
+    assert code == 0 and "accion=descargar\n" in out and "apuntado=false\n" in out
+    datos = json.loads(salud.read_text())
+    for tras, accion in (([140], "descargar"), ([12], "nada")):
+        datos["run"].update(pauses=1, resumed=1, brakeAfter=tras)
+        salud.write_text(json.dumps(datos))
+        code, out = _main(["siguiente", "--salud", str(salud)], tmp_path, monkeypatch, now="2026-11-26T05:45:00Z")
+        assert f"accion={accion}\n" in out, tras
+
+
 def test_el_freno_que_vio_el_carril_de_las_mayores_tambien_para_el_dia():
     """El carril de infantil, cadete y juvenil (carril-mayores.yml) lee la misma federación que el bot: su freno de
     verdad en Azure (carriles.mayores.run de data-health.json) también para al histórico ese día; el de AWS o sin
     pausas, no. Con el informe de hoy (checkedAt), como el del bot."""
-    frenado = {"pauses": 1, "cloud": "azure"}
+    frenado = {"pauses": 1, "cloud": "azure", "brakeAfter": [12]}
     salud = {"checkedAt": "2026-11-25T09:21:28+00:00", "run": {"pauses": 0, "cloud": "azure"},
              "carriles": {"mayores": {"runHealth": {"ok": True}, "run": frenado}}}
     assert H.freno_del_bot(salud, MIERCOLES)
@@ -905,7 +952,7 @@ def test_el_freno_del_bot_se_apunta_aunque_no_se_lea_nada(tmp_path, monkeypatch)
     carpeta = tmp_path / "historico"
     monkeypatch.setenv("HISTORICO_CARPETA", str(carpeta))
     salud = tmp_path / "salud.json"
-    salud.write_text(json.dumps({"checkedAt": "2026-11-25T09:21:28+00:00", "run": {"pauses": 1, "cloud": "azure"}}))
+    salud.write_text(json.dumps({"checkedAt": "2026-11-25T09:21:28+00:00", "run": {"pauses": 1, "cloud": "azure", "brakeAfter": [12]}}))
     _main(["encargar", "--temporadas", "21", "--categorias", "alevin", "--trabajos", "goleadores",
            "--calendario", ""], tmp_path, monkeypatch)
     code, out = _main(["siguiente", "--salud", str(salud)], tmp_path, monkeypatch)

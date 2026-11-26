@@ -33,7 +33,8 @@ Las reglas del carril, y el porqué de cada número:
     para leer cómo va) y la ejecución siguiente es la del reloj. Solo PARAN EL DÍA (no se lee nada más ese día; al
     día siguiente, el tope entero) un freno con menos de RELANZAR_MIN páginas servidas en la ejecución, sin ser un
     runner rechazado (dia["freno"] «carril_pronto»: la federación limita más de lo normal, y no se insiste), y el
-    del bot en vivo: el último data-health.json del día dice que lo ha esperado en Azure (freno_del_bot, «bot»).
+    del bot en vivo con el mismo criterio: el último data-health.json del día dice que una pasada lo ha esperado en
+    Azure tras menos de RELANZAR_MIN páginas servidas (freno_del_bot, «bot»; con 60 o más, o sin el dato, no para).
     Freno es una vacía sin servir otra o un 503/429 (`frenos` del resumen, no solo `parada`: un freno cortado por
     el tope da parada «tope»). Hasta el 26/11/2026 cualquier freno paraba el día: el carril bajaba ~150 páginas
     al día, y un «carril» de entonces se lee hoy como lo que fue, un freno normal;
@@ -255,21 +256,32 @@ def cupo_hoy(estado, now, env=None):
 
 
 def _frenado(run):
-    """¿Esta pasada esperó el freno en Azure? (pauses >= 1, cloud "azure" y no refusedRunner)."""
+    """¿Esta pasada esperó el freno en Azure (pauses >= 1, cloud "azure" y no refusedRunner) y frenó PRONTO, con menos
+    de RELANZAR_MIN páginas servidas (brakeAfter[0]: las servidas antes del primer freno, update_fiflp)? Desde el
+    26/11/2026, el mismo criterio que con el carril: el cupo ronda las ~150 páginas por IP y las pasadas del bot
+    sirven ~137, así que una algo más larga frena sin que pase nada raro (ese freno no dice nada del día). Sin
+    brakeAfter (o sin entenderlo) no se sabe cuántas llevaba: un freno normal, que no para."""
     try:
-        return (isinstance(run, dict) and int(run.get("pauses") or 0) >= 1 and run.get("cloud") == "azure"
-                and not run.get("refusedRunner"))
+        if not (isinstance(run, dict) and int(run.get("pauses") or 0) >= 1 and run.get("cloud") == "azure"
+                and not run.get("refusedRunner")):
+            return False
+        tras = run.get("brakeAfter")
+        if not isinstance(tras, list) or not tras or isinstance(tras[0], bool):
+            return False
+        return int(tras[0]) < RELANZAR_MIN
     except (TypeError, ValueError):
         return False
 
 
 def freno_del_bot(salud, now):
-    """¿El bot en vivo ha esperado hoy el freno en Azure? Con el data-health.json publicado: su checkedAt es de hoy
-    en Canarias y la última pasada de alguno de sus carriles (`run`, la del bot de siempre; `carriles.mayores.run`,
-    la del carril de infantil, cadete y juvenil: docs/categorias-mayores.md) tiene pauses >= 1, cloud "azure" y no
-    refusedRunner (un runner de AWS no es el freno: es la federación que no sirve a AWS). Los dos leen la misma
-    federación: si cualquiera vio hoy el freno de verdad, el histórico no lee más ese día. Sin fichero, sin
-    `run` o con algo que no se entiende, False: no se para por un dato que no se lee."""
+    """¿El bot en vivo ha esperado hoy el freno en Azure, y pronto? Con el data-health.json publicado: su checkedAt es
+    de hoy en Canarias y la última pasada de alguno de sus carriles (`run`, la del bot de siempre;
+    `carriles.mayores.run`, la del carril de infantil, cadete y juvenil: docs/categorias-mayores.md) tiene pauses >= 1,
+    cloud "azure", no refusedRunner (un runner de AWS no es el freno: es la federación que no sirve a AWS) y frenó con
+    menos de RELANZAR_MIN páginas servidas (brakeAfter[0]: _frenado). Los dos leen la misma federación: si cualquiera
+    vio hoy que la federación limita más de lo normal, el histórico no lee más ese día. Un freno del bot con 60
+    páginas o más (el cupo de siempre) no para el día, ni uno sin brakeAfter. Sin fichero, sin `run` o con algo que
+    no se entiende, False: no se para por un dato que no se lee."""
     try:
         visto = _instante(salud.get("checkedAt"))
         if visto is None or fecha_de(visto) != fecha_de(now):

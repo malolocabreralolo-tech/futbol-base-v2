@@ -8,8 +8,8 @@ name: Histórico de la federación (un solo carril)
 # Cada ejecución hace UNA cosa, la que diga «¿Qué toca?»: bajar lo pendiente del encargo (lo barato primero:
 # goleadores, actas de la temporada más reciente y de la liga de más nivel, detalle, calendario y escudos), probar
 # sobre una copia lo ya bajado de una temporada, o nada (sin encargo, parado, en una ventana de partidos, con el
-# tope del día gastado o con el día parado por el freno: el que vio el bot en vivo, o uno del carril con menos de 60
-# páginas servidas). Lo bajado va a scripts/historico/ (la cuarentena, que
+# tope del día gastado o con el día parado por el freno: uno, del bot en vivo o del carril, tras menos de 60 páginas
+# servidas). Lo bajado va a scripts/historico/ (la cuarentena, que
 # el bot no mira) y solo pasa a scripts/, donde el bot lo importa, lo probado en verde (cuarentena.py promover).
 # El carril nunca sube la base ni lo publicado (futbolbase.db, base/, data-*.js, index.html, sw.js): eso es del
 # bot (update.yml y activar.yml, grupo update-data), y un fallo aquí no lo deja sin publicar.
