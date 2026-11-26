@@ -314,6 +314,55 @@ def test_finish_conserva_base(portal):
     assert "base" not in json.loads(run(OK, T0 + timedelta(hours=8)))
 
 
+def test_set_base_con_pieza(portal):
+    """Con la base en piezas (tarea 7), el aviso es de la pieza mayor: `pieza` dice cuál («comun» o una temporada).
+    Sin ella, como siempre."""
+    run(OK, T0)
+    source_health.set_base(83 * source_health.MB, True, pieza="2025-2026")
+    assert json.loads(source_health.REPORT_PATH.read_text())["base"] == {"mb": 83, "limite": 100, "pieza": "2025-2026"}
+    source_health.set_base(83 * source_health.MB, True, pieza="comun")
+    assert json.loads(source_health.REPORT_PATH.read_text())["base"] == {"mb": 83, "limite": 100, "pieza": "comun"}
+    source_health.set_base(83 * source_health.MB, True)
+    assert json.loads(source_health.REPORT_PATH.read_text())["base"] == {"mb": 83, "limite": 100}
+    source_health.set_base(40 * source_health.MB, False, pieza="comun")
+    assert "base" not in json.loads(source_health.REPORT_PATH.read_text())
+
+
+DESCARGA_HOY = {"url": "https://github.com/malolocabreralolo-tech/futbol-base-v2/releases/download/base-completa/futbolbase.zip",
+                "fecha": "2026-09-23", "bytes": 13_000_000}
+
+
+def test_set_descarga(portal):
+    """set_descarga pone `descarga` en el informe del disco sin tocar nada más, y no lo reescribe si no cambia."""
+    text = run(OK, T0)
+    source_health.set_descarga(DESCARGA_HOY)
+    after = json.loads(source_health.REPORT_PATH.read_text())
+    assert after.pop("descarga") == DESCARGA_HOY
+    assert after == json.loads(text)
+    mtime = source_health.REPORT_PATH.stat().st_mtime_ns
+    source_health.set_descarga(dict(DESCARGA_HOY))
+    assert source_health.REPORT_PATH.stat().st_mtime_ns == mtime
+    otro = portal / "otro.json"
+    source_health.set_descarga(DESCARGA_HOY, otro)
+    assert json.loads(otro.read_text()) == {"descarga": DESCARGA_HOY}
+
+
+def test_begin_conserva_la_descarga(portal):
+    """La descarga del día (scripts/descarga.py apuntar, una vez al día) la pone solo set_descarga: cada pasada la
+    arrastra tal cual (también con otra temporada), sin reescribir el informe por ella; marcar, también."""
+    run(OK, T0)
+    source_health.set_descarga(DESCARGA_HOY)
+    with_it = source_health.REPORT_PATH.read_text()
+    assert run(OK, T0 + timedelta(hours=5)) == with_it, "una pasada sin cambios no reescribe por la descarga"
+    report = json.loads(run([("A1", "error", "HTTP 500"), OK[1]], T0 + timedelta(hours=6)))
+    assert report["descarga"] == DESCARGA_HOY
+    source_health.begin("2026-2027")
+    source_health.finish(now=T0 + timedelta(hours=7))
+    assert json.loads(source_health.REPORT_PATH.read_text())["descarga"] == DESCARGA_HOY
+    assert source_health.main(["marcar", "las pruebas fallaron"]) == 0
+    assert json.loads(source_health.REPORT_PATH.read_text())["descarga"] == DESCARGA_HOY
+
+
 def test_the_mark_order_keeps_base(portal):
     run(OK, T0)
     source_health.set_base(85 * source_health.MB, True)

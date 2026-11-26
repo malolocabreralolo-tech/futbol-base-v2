@@ -219,7 +219,8 @@ lo que hace cada uno en cada fase. Desde la fase 3 la base no está en git: quie
 | `scripts/prueba_mayores.py`, `scripts/prueba_historico.py` | Copian la de la raíz (o la de su copia) y trabajan allí | Con la de git | Montar antes; `prueba_historico.py` mide la pieza mayor y no la base entera |
 | Órdenes a mano que la abren: `activate_season.py`, `quitar_categoria.py`, `fiflp_manifest.py`, `medir_identidad.py`, `migrate_*.py`, `synth_copa_campeones.py`, `discover_temporada.py`, `escudos_federacion.py`, `import_*.py` | La leen o la escriben en la raíz | La de git (el bot parte y sube) | Montar antes; `partir`, `verificar` y `git add -A base/` después; sin montar, `db.get_connection` para con «monta la base» |
 | `pc/copia/` (la copia del PC: `copia/fuentes.py`, `extraer_base`) | Saca `futbolbase.db` del commit del día | La de git (desde la tarea 4, si un commit no la trae, la monta de su `base/`) | La monta de la `base/` del commit (tarea 4, instalada en el PC antes de la 7) |
-| «Datos y fuentes» (`src/screen-fuentes.js`) y `generate_js.py` (`COBERTURA.mb`) | El enlace de descarga y su tamaño | `./futbolbase.db` | El ZIP del día de la release `base-completa` (tarea 5, antes de la 7) |
+| `update.yml`, «Base completa del día» (`scripts/descarga.py`) | La primera pasada sana de cada día (UTC), también del carril de las mayores, copia la base (copia de páginas de SQLite, en solo lectura) a un ZIP y lo sube a la release `base-completa` | Igual | Igual (la montada) |
+| «Datos y fuentes» (`src/screen-fuentes.js`) y `generate_js.py` (`COBERTURA.mb`) | El botón de descarga y el tamaño de la base descomprimida | El ZIP del día de la release (`descarga` de `data-health.json`); hasta que haya uno, sin botón | Igual |
 
 ## Fases
 
@@ -416,3 +417,60 @@ piezas que no montan son un fallo de la fuente, como una base rota: la buena ant
 4. Vuelta atrás: en un árbol aparte con el commit anterior
    (`git -C ~/claude/futbol-base-v2 worktree add <carpeta temporal> <commit anterior>`), `cd <carpeta
    temporal>/pc/copia && bash instalar.sh`.
+
+## La base completa para descargar
+
+«Datos y fuentes» tenía un botón que bajaba `./futbolbase.db` del sitio. Cuando Pages publique solo la web (la
+rama `web`, tarea 6) y la base vaya solo en piezas (fase 3), ese fichero ya no estará en el sitio: por eso el botón
+baja un ZIP de la release fija **`base-completa`** del repositorio, fuera de git y de Pages (`scripts/descarga.py`):
+
+- La primera pasada sana de cada día (UTC), del bot o del carril de las mayores, en el paso **«Base completa del
+  día»** de `update.yml` (tras las suites y antes del commit): `descarga.py toca` mira si `descarga.fecha` de
+  `data-health.json` es de hoy; si no, `preparar` copia la base (copia de páginas de SQLite, desde una conexión de
+  solo lectura: `VACUUM INTO` renumera los rowid de `fp_goals`) a un ZIP con una sola entrada, `futbolbase.db`, en
+  modo de diario `DELETE`; `gh release upload … --clobber` sustituye el de ayer, y `apuntar` deja `descarga: {url,
+  fecha, bytes}` en `data-health.json`, que sube en el commit de la pasada.
+- Un fallo (sin la release, `gh` en rojo, colgado: 5 min de plazo) no para la pasada (`continue-on-error`) ni
+  apunta un ZIP que no se ha subido: la pasada siguiente lo vuelve a intentar.
+- La web enseña el botón solo con una `descarga` válida (una URL de una release de este repositorio, una fecha y
+  un tamaño); sin ella, «La copia para descargar se prepara una vez al día y todavía no está lista.».
+- Con la base en piezas, el aviso de tamaño de la portada es el de la pieza mayor (`base.pieza`: «La parte común de
+  la base de datos ocupa …» o «La parte de 2025/26 …»), que pone la fase 3.
+
+Medido el 26/11/2026 (copia de la base de hoy, 46,4 MB): el ZIP, 13,4 MB; la copia y el ZIP, 4,7 s.
+
+### Crear la release y publicar (PASO DEL DIRECTOR)
+
+1. Antes de publicar:
+   `gh release create base-completa -R malolocabreralolo-tech/futbol-base-v2 --target main --latest=false --title "Base de datos completa" --notes "La base de datos de la web en un ZIP. El bot la renueva una vez al día; la fecha está en «Datos y fuentes» de la web."`.
+   Comprobación: `gh release view base-completa -R malolocabreralolo-tech/futbol-base-v2 --json tagName,isPrerelease,assets`
+   da `"tagName":"base-completa"` y `assets` vacío.
+2. Este cambio toca `src/` (`screen-fuentes.js`, `estado.js`) y `dist/` hay que empaquetarlo **antes de subir y en
+   el mismo push**: el bot pasa en cada pasada `test_empaquetar.py` y `test_season_preparation.py`, que con `dist/`
+   viejo salen en rojo («dist/ es de las fuentes …, y las del árbol son …»), y no publicaría nada. Sin nada en marcha
+   ni esperando (los cinco estados del paso 2 de la fase 2), en un árbol limpio:
+
+   ```sh
+   git fetch origin && git switch -c publicar-descarga <sha de este commit>
+   git rebase origin/main                    # la serie, hasta este commit, sobre el main de ahora
+   npm ci --prefix scripts/empaquetar        # esbuild, si este árbol no lo tiene: sin él publicar.py para sin escribir nada
+   python3 scripts/publicar.py               # empaqueta dist/ y sube las marcas de versión de index.html y sw.js
+   git add dist index.html sw.js && git commit -m "Publicación: el botón de la base completa del día"
+   python3 -m pytest -q -p no:cacheprovider scripts/tests/ && node --test scripts/tests/test_*.mjs   # en verde, entero
+   git push origin HEAD:main                 # el commit de la publicación, no el de la serie
+   ```
+
+   Se empuja ese último commit (el de la publicación, con `dist/`), nunca el de la serie solo. Cada pasada del bot
+   cambia las marcas de versión de `index.html` y `sw.js`: si `main` se ha movido antes de empujar (`git fetch origin
+   && git log --oneline HEAD..origin/main` no vacío, o el push rechazado), `git reset --hard HEAD~1`, `git rebase
+   origin/main`, otra vez `publicar.py`, su commit y las suites. Lo mismo tras cada rebase. Los commits que van
+   después en la serie (la rama `web` y la fase 3) se rebasan sobre este `main` ya empaquetado
+   (`git rebase --onto origin/main <sha de este commit> <rama de la serie>`) y se vuelven a pasar sus suites. Después
+   del push, `gh workflow run update.yml -R malolocabreralolo-tech/futbol-base-v2 --ref main` para no esperar a la pasada siguiente.
+3. Comprobación: el registro de esa pasada sube `futbolbase.zip`;
+   `gh release view base-completa -R malolocabreralolo-tech/futbol-base-v2 --json assets --jq '.assets[] | {name, size}'`
+   da `futbolbase.zip`, de unos 13 MB; `data-health.json` de `main` tiene `descarga` con la fecha de hoy; el ZIP,
+   bajado a una carpeta temporal, tiene una sola entrada, `futbolbase.db`; en la web, «Datos y fuentes» enseña el
+   botón con su tamaño y su fecha.
+4. Vuelta atrás: `git revert` de este cambio y publicar la web (el botón vuelve a `./futbolbase.db`, que Pages
+   sirve mientras publique `main`). La release se queda.

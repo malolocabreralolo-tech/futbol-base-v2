@@ -1,8 +1,10 @@
 // El aviso de estado de la portada: si la última pasada del bot falló, si los datos llevan demasiado
 // sin comprobarse, si la federación ha publicado algo que la web aún no tiene o si la base se acerca
 // al límite de GitHub. Puro: la salud, el instante y la zona horaria llegan como argumentos. Las
-// frases no llevan textos de data-health.json; solo el tamaño de la base, un entero comprobado.
+// frases no llevan textos de data-health.json; solo el tamaño de la base, un entero comprobado, y su
+// pieza, que solo puede ser «comun» o una temporada.
 import { html } from './html.js';
+import { seasonLabel } from './model.js';
 
 // En las ventanas del bot hay pasada cada hora; fuera, cada dos (scripts/reloj_pasadas.py).
 export const UMBRAL_VENTANA_H = 4;
@@ -36,11 +38,18 @@ const edad = (ms) => {
 };
 
 // El tamaño de la base, que el bot apunta en base.mb solo cuando pasa de 80 MB: GitHub no admite
-// ficheros de más de 100. null si no está o no es un entero entre 1 y 1000.
+// ficheros de más de 100. Con la base en piezas (parte D), el tamaño es el de la pieza mayor y base.pieza
+// dice cuál: "comun" o una temporada ("AAAA-AAAA"); otra cosa, o sin ella, la frase de la base entera.
+// null si mb no está o no es un entero entre 1 y 1000.
 export function avisoBase(health) {
   const base = health && typeof health === 'object' ? health.base : null;
   const mb = base && typeof base === 'object' ? base.mb : undefined;
   if (!Number.isInteger(mb) || mb < 1 || mb > 1000) return null;
+  const pieza = base.pieza;
+  if (pieza === 'comun') return `La parte común de la base de datos ocupa ${mb}\u00a0MB de los 100 que admite GitHub por fichero.`;
+  if (typeof pieza === 'string' && /^\d{4}-\d{4}$/.test(pieza)) {
+    return `La parte de ${seasonLabel(pieza)} de la base de datos ocupa ${mb}\u00a0MB de los 100 que admite GitHub por fichero.`;
+  }
   return `La base de datos ocupa ${mb}\u00a0MB de los 100 que admite GitHub.`;
 }
 

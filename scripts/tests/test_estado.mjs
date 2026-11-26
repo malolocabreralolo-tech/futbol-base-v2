@@ -100,6 +100,19 @@ test('avisoBase: con base.mb entero entre 1 y 1000, la frase exacta; si no, nada
   for (const health of [{}, null, undefined, 'x']) assert.equal(avisoBase(health), null, String(health));
 });
 
+test('avisoBase con la base en piezas: la pieza mayor, la común o la de una temporada; si no se entiende, la frase de siempre', () => {
+  assert.equal(avisoBase({ base: { mb: 83, limite: 100, pieza: 'comun' } }),
+    'La parte común de la base de datos ocupa 83 MB de los 100 que admite GitHub por fichero.');
+  assert.equal(avisoBase({ base: { mb: 83, limite: 100, pieza: '2025-2026' } }),
+    'La parte de 2025/26 de la base de datos ocupa 83 MB de los 100 que admite GitHub por fichero.');
+  assert.equal(avisoBase({ base: { mb: 83, limite: 100 } }), BASE_83);
+  for (const pieza of [null, '', 'Comun', 'actas-2025-2026.db', '2025-26', '<b>x</b>', 2025, ['comun'], {}]) {
+    assert.equal(avisoBase({ base: { mb: 83, pieza } }), BASE_83, JSON.stringify(pieza));
+  }
+  // El tamaño manda: sin un mb que valga, nada, también con pieza.
+  assert.equal(avisoBase({ base: { mb: 'x', pieza: 'comun' } }), null);
+});
+
 test('estadoDatos: el tamaño de la base, la última frase; sin la clave, como siempre', () => {
   const base = sana(MIERCOLES);
   assert.deepEqual(estadoDatos({ ...base, base: { mb: 83, limite: 100 } }, MIERCOLES, TZ), [BASE_83]);

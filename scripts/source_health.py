@@ -59,6 +59,7 @@ def begin(season):
     _carry_carriles(_carril())
     _carry_activation()
     _carry_base()
+    _carry_descarga()
 
 
 def _carril():
@@ -152,9 +153,9 @@ MB = 1024 * 1024
 GITHUB_MB = 100
 
 
-def set_base(bytes_, aviso, path=None):
-    """Con aviso, `base: {"mb": <entero>, "limite": 100}` en el informe del disco (`path`; sin él, REPORT_PATH);
-    sin aviso, quita la clave. No toca nada más ni reescribe el fichero si no cambia."""
+def _escribir_clave(path, clave, valor):
+    """`clave: valor` en el informe del disco (`path`; sin él, REPORT_PATH); con valor None, la quita. No toca nada
+    más ni reescribe el fichero si no cambia."""
     path = Path(path) if path is not None else REPORT_PATH
     try:
         report = json.loads(path.read_text())
@@ -162,13 +163,40 @@ def set_base(bytes_, aviso, path=None):
         report = {}
     if not isinstance(report, dict):
         report = {}
-    if aviso:
-        new = {**report, "base": {"mb": int(bytes_) // MB, "limite": GITHUB_MB}}
+    if valor is not None:
+        new = {**report, clave: valor}
     else:
-        new = {k: v for k, v in report.items() if k != "base"}
+        new = {k: v for k, v in report.items() if k != clave}
     if new == report:
         return
     escribir_atomico(path, json.dumps(new, ensure_ascii=False, indent=2) + "\n")
+
+
+def set_base(bytes_, aviso, path=None, pieza=None):
+    """Con aviso, `base: {"mb": <entero>, "limite": 100}` en el informe del disco (`path`; sin él, REPORT_PATH);
+    sin aviso, quita la clave. Con la base en piezas (base/, docs/almacenamiento.md), el aviso es de la pieza
+    mayor y `pieza` dice cuál ("comun" o la temporada, "AAAA-AAAA"): va en la clave para que la web diga qué parte
+    se acerca al límite de GitHub, que es por fichero. No toca nada más ni reescribe el fichero si no cambia."""
+    base = None
+    if aviso:
+        base = {"mb": int(bytes_) // MB, "limite": GITHUB_MB}
+        if pieza is not None:
+            base["pieza"] = str(pieza)
+    _escribir_clave(path, "base", base)
+
+
+def _carry_descarga():
+    """La base completa para descargar (`descarga`, de set_descarga: el ZIP del día en la release base-completa)
+    sigue tal cual: solo scripts/descarga.py la pone, una vez al día, y no depende de la temporada."""
+    descarga = _previous.get("descarga")
+    if isinstance(descarga, dict):
+        _report["descarga"] = descarga
+
+
+def set_descarga(info, path=None):
+    """`descarga: info` ({"url", "fecha", "bytes"}: scripts/descarga.py apuntar) en el informe del disco, sin tocar
+    nada más ni reescribirlo si no cambia, como set_base."""
+    _escribir_clave(path, "descarga", dict(info))
 
 
 def _red(previous, reasons, now=None):

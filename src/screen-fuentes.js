@@ -142,15 +142,36 @@ export function laneHealthNotes(health, today) {
   });
 }
 
-// La base de datos entera (futbolbase.db, SQLite, la misma de la que salen todas las pantallas) y lo
-// que guarda de cada temporada (COBERTURA de data-history.js): grupos, partidos con resultado, actas,
-// jugadores con alineación y goles con autor. null si no hay datos de cobertura.
-export function databaseBlock(cobertura) {
+// La base completa para descargar (descarga de data-health.json, que apunta scripts/descarga.py): un ZIP en la
+// release fija base-completa, que el bot rehace una vez al día. Vale solo si su url es de una release de este
+// repositorio (nada de otro sitio, aunque lo diga el informe), su fecha es un día AAAA-MM-DD y sus bytes, un
+// entero positivo; si no, null.
+const RELEASES = 'https://github.com/malolocabreralolo-tech/futbol-base-v2/releases/download/';
+const DOWNLOAD_RE = /^[\w.\-/]+$/;
+export function validDownload(descarga) {
+  const d = descarga && typeof descarga === 'object' ? descarga : null;
+  if (!d || typeof d.url !== 'string' || !d.url.startsWith(RELEASES) || !DOWNLOAD_RE.test(d.url.slice(RELEASES.length))) return null;
+  if (typeof d.fecha !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(d.fecha) || !dayMonthLong(d.fecha)) return null;
+  if (!Number.isInteger(d.bytes) || d.bytes <= 0) return null;
+  return { url: d.url, day: dayMonthLong(d.fecha), mb: Math.max(1, Math.round(d.bytes / 1048576)) };
+}
+
+// La base de datos entera (la misma de la que salen todas las pantallas) y lo que guarda de cada temporada
+// (COBERTURA de data-history.js): grupos, partidos con resultado, actas, jugadores con alineación y goles con
+// autor. Desde la parte D la base no está en el sitio (va en piezas en git y Pages solo publica la web): el botón
+// baja el ZIP del día (`descarga`, validDownload); sin él, la caja dice que todavía no está. null si no hay datos
+// de cobertura.
+export function databaseBlock(cobertura, descarga) {
   const c = cobertura && typeof cobertura === 'object' && Array.isArray(cobertura.temporadas) ? cobertura : null;
   if (!c) return '';
-  const size = Number.isFinite(c.mb) && c.mb > 0 ? `SQLite, unos ${c.mb} MB` : 'SQLite';
-  const what = html`<p class="box-text">Todo lo que guarda esta web, en un solo archivo: clasificaciones (también en casa y fuera, y las sanciones), calendarios y resultados, actas (alineaciones, goles con su minuto, cuerpo técnico y árbitros), goleadores, la equipación y el campo de cada equipo y la dirección y las coordenadas de cada campo. Se abre con cualquier programa de SQLite. No lleva datos de contacto.</p>`;
-  const link = html`<div class="buttons"><a class="button is-main" href="./futbolbase.db" download="futbolbase.db">Descargar la base de datos<span class="vh"> (${size})</span></a></div>`;
+  const zip = validDownload(descarga);
+  const size = zip ? `ZIP, ${zip.mb} MB` : 'SQLite';
+  const unpacked = Number.isFinite(c.mb) && c.mb > 0 ? ` Descomprimida ocupa unos ${c.mb} MB.` : '';
+  const when = zip
+    ? `Es un archivo ZIP con la base tal como estaba el ${zip.day}; se renueva una vez al día.${unpacked}`
+    : 'La copia para descargar se prepara una vez al día y todavía no está lista.';
+  const what = html`<p class="box-text">Todo lo que guarda esta web, en un solo archivo: clasificaciones (también en casa y fuera, y las sanciones), calendarios y resultados, actas (alineaciones, goles con su minuto, cuerpo técnico y árbitros), goleadores, la equipación y el campo de cada equipo y la dirección y las coordenadas de cada campo. Se abre con cualquier programa de SQLite. No lleva datos de contacto.</p><p class="box-text">${when}</p>`;
+  const link = zip ? html`<div class="buttons"><a class="button is-main" href="${zip.url}" download>Descargar la base de datos<span class="vh"> (${size})</span></a></div>` : '';
   const part = (value, one, many) => (value ? countLabel(value, one, many) : null);
   // Una fila por temporada, como las de la comprobación: lo que hay de ella, en una línea.
   const rows = c.temporadas.filter((r) => Array.isArray(r) && SEASON_RE.test(String(r[0])))
@@ -191,7 +212,7 @@ function render(ctx) {
   const next = health.nextSeason;
   const mine = ctx.resolution && ctx.resolution.status === 'ok' ? ctx.resolution.name : (ctx.myTeam && ctx.myTeam.name) || '';
   const upcoming = next && next.status === 'pending' && SEASON_RE.test(String(next.name)) && mine ? nextSeasonBox(ctx, mine, next.name) : '';
-  const database = databaseBlock(ctx.datasets && ctx.datasets.cobertura);
+  const database = databaseBlock(ctx.datasets && ctx.datasets.cobertura, health.descarga);
   // El tamaño de la base, con las notas de estado: la caja de la base solo está si hay cobertura.
   const base = avisoBase(health);
   const baseNote = base ? notice(null, base) : '';

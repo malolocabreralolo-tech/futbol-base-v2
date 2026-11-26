@@ -182,6 +182,26 @@ jobs:
         if: steps.piezas.outcome == 'success'
         run: node --test scripts/tests/test_*.mjs
 
+      # La base completa para descargar desde «Datos y fuentes» (parte D): un ZIP en la release fija
+      # base-completa, fuera de git y de Pages. La primera pasada sana de cada día (UTC) lo rehace y lo apunta en
+      # data-health.json (descarga), que sube en el commit de abajo. Un fallo no para la pasada: la siguiente
+      # lo vuelve a intentar.
+      - name: Base completa del día
+        id: descarga
+        if: success() && steps.scrape.outcome == 'success'
+        continue-on-error: true
+        timeout-minutes: 5
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if python3 scripts/descarga.py toca; then
+            python3 scripts/descarga.py preparar "$RUNNER_TEMP/futbolbase.zip"
+            gh release upload base-completa "$RUNNER_TEMP/futbolbase.zip" --clobber -R malolocabreralolo-tech/futbol-base-v2
+            python3 scripts/descarga.py apuntar "$RUNNER_TEMP/futbolbase.zip"
+          else
+            echo "La base completa de hoy ya está subida."
+          fi
+
       - name: Commit y push si hay cambios
         if: success() && steps.scrape.outcome == 'success'
         run: |

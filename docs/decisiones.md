@@ -85,6 +85,7 @@ al que afecta. Solo lo que sigue siendo verdad: la historia de cómo se llegó a
 - **Los ficheros se escriben enteros o no se escriben**: un corte a mitad deja el anterior. `scripts/escritura.py`.
 - **El generador trabaja sobre una copia con solo lo de la web** (`EN_WEB`): lo que el bot ya lee y aún no se enseña puede estar en la base sin cambiar un byte de los `data-*.js`, y las fichas no lo miran. `scripts/vista_web.py` (`copia_web`), `scripts/generate_js.py`, `scripts/migrate_identidad.py`.
 - **Las actas del histórico van en un lote por categoría** (`fiflp_actas_<S>_<categoría>_raw.json`; benjamín y prebenjamín, en el de siempre): un raw por temporada con todo pasaría del aviso de GitHub de 50 MB por fichero, y cada lote se prueba y se promueve sin tocar los otros. `scripts/actas_lotes.py`.
+- **La base completa se descarga de la release `base-completa`**, en un ZIP fuera de git y de Pages: la renueva la primera pasada sana de cada día (UTC), y su fecha y su tamaño van en `data-health.json` (`descarga`), de donde «Datos y fuentes» saca el botón. Un fallo al subirla no para la pasada. `scripts/descarga.py`, `.github/workflows/update.yml` («Base completa del día»), `src/screen-fuentes.js`.
 
 ## Publicar
 

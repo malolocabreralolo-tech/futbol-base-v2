@@ -96,16 +96,49 @@ test('los cargos del acta, en palabras', () => {
   assert.equal(roleLabel('PREPARADOR FÍSICO'), 'Preparador físico');
 });
 
-test('Fuentes: la base de datos para descargar y lo que guarda de cada temporada', () => {
-  const out = databaseBlock({ temporadas: [['2025-2026', 63, 3350, 3320, 3172, 3915, 27695], ['2017-2018', 22, 0, 0, 0, 0, 0]],
-    equipos: 380, campos: 1, mb: 60 });
+const COBERTURA = { temporadas: [['2025-2026', 63, 3350, 3320, 3172, 3915, 27695], ['2017-2018', 22, 0, 0, 0, 0, 0]],
+  equipos: 380, campos: 1, mb: 45 };
+const RELEASE = 'https://github.com/malolocabreralolo-tech/futbol-base-v2/releases/download/base-completa/futbolbase.zip';
+
+test('Fuentes: la base de datos, con la descarga del día (la release base-completa), y lo que guarda de cada temporada', () => {
+  const out = databaseBlock(COBERTURA, { url: RELEASE, fecha: '2026-11-25', bytes: 13 * 1048576 + 300000 });
   const t = text(out);
-  assert.match(String(out), /href="\.\/futbolbase\.db" download="futbolbase\.db"/);
-  assert.match(t, /SQLite, unos 60 MB/);
+  assert.match(String(out), new RegExp(`<a class="button is-main" href="${RELEASE.replace(/[.]/g, '\\.')}" download>Descargar la base de datos<span class="vh"> \\(ZIP, 13 MB\\)</span></a>`));
+  assert.doesNotMatch(String(out), /futbolbase\.db"/);
+  assert.match(t, /ZIP, 13 MB/);
+  assert.match(t, /Es un archivo ZIP con la base tal como estaba el 25 de noviembre; se renueva una vez al día\./);
+  assert.match(t, /Descomprimida ocupa unos 45 MB\./);
+  assert.doesNotMatch(t, /todavía no está lista/);
   assert.match(t, /2025\/26 63 grupos · 3320 partidos con resultado · 3172 actas · 3915 jugadores · 27695 goles con autor/);
   assert.match(t, /2017\/18 22 grupos/);
   assert.match(t, /Y 380 equipos con su equipación y su campo y 1 campo con sus coordenadas\./);
+  // Menos de 1 MB: 1 MB; sin cobertura.mb, sin la frase de lo que ocupa descomprimida.
+  const small = text(databaseBlock({ ...COBERTURA, mb: undefined }, { url: RELEASE, fecha: '2026-11-25', bytes: 1000 }));
+  assert.match(small, /ZIP, 1 MB/);
+  assert.doesNotMatch(small, /Descomprimida/);
   assert.equal(databaseBlock(null), '');
+  assert.equal(databaseBlock(null, { url: RELEASE, fecha: '2026-11-25', bytes: 5 }), '');
+});
+
+test('Fuentes: sin descarga del día, o con una que no vale, ni botón ni enlace a ./futbolbase.db', () => {
+  const malas = [undefined, null, 'x', {},
+    { url: 'https://example.com/futbolbase.zip', fecha: '2026-11-25', bytes: 5 },
+    { url: './futbolbase.db', fecha: '2026-11-25', bytes: 5 },
+    { url: 'https://github.com/otro/futbol-base-v2/releases/download/base-completa/futbolbase.zip', fecha: '2026-11-25', bytes: 5 },
+    { url: RELEASE, fecha: '25/11/2026', bytes: 5 }, { url: RELEASE, fecha: '2026-11-25T03:00:00Z', bytes: 5 },
+    { url: RELEASE, fecha: '2026-11-25', bytes: 0 }, { url: RELEASE, fecha: '2026-11-25', bytes: -3 },
+    { url: RELEASE, fecha: '2026-11-25', bytes: 1.5 }, { url: RELEASE, fecha: '2026-11-25', bytes: '13000000' },
+    { url: RELEASE, fecha: '2026-11-25' }];
+  for (const descarga of malas) {
+    const out = String(databaseBlock(COBERTURA, descarga));
+    const t = text(out);
+    assert.doesNotMatch(out, /<a class="button/, JSON.stringify(descarga));
+    assert.doesNotMatch(out, /futbolbase\.db/, JSON.stringify(descarga));
+    assert.match(t, /La copia para descargar se prepara una vez al día y todavía no está lista\./, JSON.stringify(descarga));
+    assert.match(t, /SQLite/);
+    assert.doesNotMatch(t, /ZIP,/);
+    assert.match(t, /2025\/26 63 grupos/);
+  }
 });
 
 

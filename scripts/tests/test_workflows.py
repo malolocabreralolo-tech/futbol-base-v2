@@ -683,13 +683,15 @@ def test_update_no_abre_issues():
     enseña «Datos y fuentes» (update_fiflp.check_competitions)."""
     data = _load("update.yml")
     # actions: write, solo para lanzar activar.yml y relanzar la pasada tras un runner rechazado (sus pasos, los
-    # únicos con GH_TOKEN).
+    # únicos con GH_TOKEN, con el de la base completa del día: la release base-completa, con contents: write, el de
+    # siempre).
     assert data["permissions"] == {"contents": "write", "actions": "write"}
     assert "permissions" not in data["jobs"]["update"], "los del job sustituirían a los del workflow"
     for step in _steps(data, "update"):
         assert "avisar_competiciones" not in (step.get("run") or ""), step.get("name")
         assert "gh issue" not in (step.get("run") or ""), step.get("name")
-        assert "GH_TOKEN" not in (step.get("env") or {}) or step.get("name") in (LANZAR, RELANZAR), step.get("name")
+        assert "GH_TOKEN" not in (step.get("env") or {}) or step.get("name") in (LANZAR, RELANZAR, "Base completa del día"), \
+            step.get("name")
     assert not (ROOT / "scripts" / "avisar_competiciones.py").exists()
 
 
@@ -2173,8 +2175,8 @@ ENTRADA_REINTENTO = {"description": "Relanzamientos seguidos tras un runner rech
 # Los pasos de update.yml de antes del relanzamiento y su job (sin los pasos), tal cual estaban en 1b4c9246: la huella
 # de su YAML (json.dumps(…, sort_keys=True, ensure_ascii=False), sha256), como PASOS_DEL_RELOJ. Y activar.yml entero,
 # que el relanzamiento no toca. Un cambio en ellos se hace a propósito, y entonces se cambia aquí: la parte D, fase 2
-# (docs/almacenamiento.md), «Montar la base» y el paso de las piezas que bloquea.
-HUELLA_PASOS_DEL_BOT = "58170308e2eb99aeae552a40ca56591191cc3c54f27e801727dae5b329f1c179"
+# (docs/almacenamiento.md), «Montar la base» y el paso de las piezas que bloquea; la tarea 5, «Base completa del día».
+HUELLA_PASOS_DEL_BOT = "4fd6dd29a2b04f7445000367f35ca8425240798277a17439042ea74876405a55"
 HUELLA_JOB_DEL_BOT = "67d027495a3a775d6d3fc58c7e0d434b1916440a200bbae1b45a36add49589c3"
 HUELLA_ACTIVAR = "84ff3255fa116a886693ba7118eef6e986dc94ca19a7ba36c2e9fdbf45f2853b"
 
@@ -2642,3 +2644,81 @@ def test_the_historico_launch_step_runs_for_real(tmp_path):
     lines = calls.read_text().splitlines()
     assert lines[0] == "workflow run historico.yml --ref main --repo dueño/futbol-base", lines
     assert len(lines) == 2 and "--workflow historico.yml" in lines[1], lines
+
+
+# ------------------------------------------------- la base completa para descargar (parte D, tarea 5)
+
+DESCARGA = "Base completa del día"
+
+
+def test_la_descarga_va_antes_del_commit_y_no_para_la_pasada():
+    """El ZIP del día va tras las suites y antes del commit (data-health.json, con su `descarga`, sube en él), solo
+    en una pasada sana, con plazo propio y sin poder parar la pasada: sin la release, con gh en rojo o colgado, la
+    pasada publica igual. Sube a la release fija base-completa del repositorio escrito entero (--clobber: el ZIP de
+    ayer se sustituye) con el GITHUB_TOKEN del job."""
+    steps, step = _update_step(DESCARGA)
+    names = [s.get("name") for s in steps]
+    assert names.index("Tests Node (bloquean el commit si fallan)") + 1 == names.index(DESCARGA) \
+        == names.index("Commit y push si hay cambios") - 1
+    assert step.get("id") == "descarga"
+    assert step["if"] == "success() && steps.scrape.outcome == 'success'"
+    assert step.get("continue-on-error") is True
+    assert 0 < step.get("timeout-minutes", 0) <= 10
+    assert step["env"] == {"GH_TOKEN": "${{ github.token }}"}
+    run = step["run"]
+    assert "python3 scripts/descarga.py toca" in run
+    assert 'python3 scripts/descarga.py preparar "$RUNNER_TEMP/futbolbase.zip"' in run
+    assert f'gh release upload base-completa "$RUNNER_TEMP/futbolbase.zip" --clobber -R {V2_REPO}' in run
+    assert 'python3 scripts/descarga.py apuntar "$RUNNER_TEMP/futbolbase.zip"' in run
+    assert run.index("preparar") < run.index("gh release upload") < run.index("apuntar")
+    assert "git " not in run and "${{" not in run
+    # Ni la descarga ni nada después del commit cambian lo que decide el commit: solo él sube.
+    commit = _update_step("Commit y push si hay cambios")[1]
+    assert commit["if"] == "success() && steps.scrape.outcome == 'success'"
+
+
+def _run_descarga(tmp_path, report, gh_exit=0):
+    """El guion de verdad del paso, con descarga.py de verdad (copiado con lo que importa, sobre una base de
+    mentira) y un gh de mentira. (código de salida, órdenes de gh, data-health.json tras el paso, salida)."""
+    import shutil
+    import sqlite3
+    _, step = _update_step(DESCARGA)
+    work = tmp_path / "arbol"
+    (work / "scripts").mkdir(parents=True)
+    for name in ("descarga.py", "source_health.py", "portal_config.py", "escritura.py", "categorias.py"):
+        shutil.copy2(ROOT / "scripts" / name, work / "scripts" / name)
+    con = sqlite3.connect(work / "futbolbase.db")
+    con.execute("CREATE TABLE t(x)")
+    con.execute("INSERT INTO t VALUES (1)")
+    con.commit()
+    con.close()
+    (work / "data-health.json").write_text(json.dumps(report), encoding="utf-8")
+    runner = tmp_path / "runner"
+    runner.mkdir()
+    bin_dir, calls = tmp_path / "bin", tmp_path / "gh-llamadas"
+    bin_dir.mkdir()
+    (bin_dir / "gh").write_text(f'#!/bin/bash\necho "$*" >> "{calls}"\nexit {gh_exit}\n', encoding="utf-8")
+    (bin_dir / "gh").chmod(0o755)
+    env = {**os.environ, "PATH": f"{bin_dir}{os.pathsep}{os.environ.get('PATH', '')}", "GH_TOKEN": "x",
+           "RUNNER_TEMP": str(runner)}
+    done = subprocess.run(["bash", "-e", "-c", step["run"]], cwd=work, env=env, capture_output=True, text=True,
+                          timeout=60)
+    return (done.returncode, (calls.read_text().splitlines() if calls.exists() else []),
+            json.loads((work / "data-health.json").read_text()), done.stdout + done.stderr)
+
+
+def test_la_descarga_de_verdad(tmp_path):
+    """La primera pasada del día sube el ZIP y lo apunta; la siguiente no hace nada; con gh en rojo (la release no
+    existe) el paso sale en rojo y data-health.json no cambia: no apunta un ZIP que no se ha subido."""
+    from datetime import datetime, timezone
+    hoy = datetime.now(timezone.utc).date().isoformat()
+    sube = f"release upload base-completa {tmp_path / 'primera' / 'runner' / 'futbolbase.zip'} --clobber -R {V2_REPO}"
+    code, calls, report, log = _run_descarga(tmp_path / "primera", {"groups": {}})
+    assert code == 0 and calls == [sube], log
+    assert report["descarga"]["fecha"] == hoy and report["descarga"]["bytes"] > 0
+    assert report["descarga"]["url"].endswith("/releases/download/base-completa/futbolbase.zip")
+    code, calls, report2, log = _run_descarga(tmp_path / "segunda", report)
+    assert code == 0 and calls == [] and report2 == report and "ya está subida" in log, log
+    ayer = {"groups": {}, "descarga": {**report["descarga"], "fecha": "2020-01-01"}}
+    code, calls, report3, log = _run_descarga(tmp_path / "gh-falla", ayer, gh_exit=1)
+    assert code != 0 and len(calls) == 1 and report3 == ayer, log
