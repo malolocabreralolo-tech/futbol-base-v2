@@ -16,6 +16,15 @@ Los equipos son los de la base (el acta por su CodActa, `matches.cod_acta`): con
 federación ('ATLETICO HURACAN "A", A.D. A') la letra de filial no sale y cada filial parecería otro club.
 
     python3 scripts/medir_identidad.py [--db futbolbase.db]
+    python3 scripts/medir_identidad.py --entre-categorias [--db <copia>]
+
+--entre-categorias (para el paso E2-D2 de la parte E2, docs/categorias-mayores.md, «En la web»): con la base tal
+cual (solo lectura, sin los originales), resuelve las fichas en memoria dos veces, con el EN_WEB de antes
+(prebenjamín, benjamín y alevín) y con el de después (las seis), y cuenta cuántas fichas une el resolvedor entre una
+categoría de antes y una nueva, por regla (docs/identidad.md: el mismo identificador, que no es una regla; U0 de
+equipo, de club y U1, U2), cuántas fichas de antes pierden o juntan identidades, cuántos pares de fichas del mismo
+nombre (una de antes y una solo de las nuevas, del mismo club) no se unen por la edad o por otra cosa, y los
+segundos del resolvedor. No escribe nada (ni la base ni players.ficha_id). Imprime cifras, nunca nombres.
 """
 import argparse
 import json
@@ -219,10 +228,127 @@ def informe(cuenta, nino, medida, cubos=None):
     return "\n".join(lineas), decision
 
 
+# ---------------------------------------------------------------------------
+# --entre-categorias: lo que une el resolvedor al ampliar EN_WEB (paso E2-D2)
+# ---------------------------------------------------------------------------
+
+EN_WEB_DE_ANTES = ("BENJAMIN", "PREBENJAMIN", "ALEVIN")
+EN_WEB_SEIS = ("BENJAMIN", "PREBENJAMIN", "ALEVIN", "INFANTIL", "CADETE", "JUVENIL")
+
+
+def _resolver_con(conn, categorias):
+    """(identidades, {id: (principal, union_por)}, segundos de resolver) con las vistas de esas categorías, como
+    migrate_identidad.resolver_fichas pero sin escribir (ni realinear: la base ya es la de una pasada)."""
+    import time
+    import migrate_identidad as M
+    from identidad import UNIR_CORTOS_EN_CLUB
+    t0 = time.monotonic()
+    ids = M.identidades(conn, categorias)
+    juntas = M.pares_juntas(conn, categorias)
+    apartadas = M.leer_separadas(conn, log=lambda *a: None)
+    t1 = time.monotonic()
+    fichas = resolver(ids, UNIR_CORTOS_EN_CLUB, juntas=juntas, separadas=apartadas)
+    return ids, fichas, (t1 - t0, time.monotonic() - t1)
+
+
+def entre_categorias(db):
+    """Lo de --entre-categorias (ver el docstring del módulo), como {clave: cifra}."""
+    from identidad import NIVELES_NUEVOS, _base, _nombre, club as club_de
+    conn = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
+    try:
+        ids3, f3, s3 = _resolver_con(conn, EN_WEB_DE_ANTES)
+        ids6, f6, s6 = _resolver_con(conn, EN_WEB_SEIS)
+    finally:
+        conn.close()
+    por_id = {i.id: i for i in ids6}
+    vieja = {i.id: any(v[1] not in NIVELES_NUEVOS for v in i.vistas) for i in ids6}
+    nueva = {i.id: any(v[1] in NIVELES_NUEVOS for v in i.vistas) for i in ids6}
+    miembros6 = defaultdict(list)
+    for k, (p, _) in f6.items():
+        miembros6[p].append(k)
+    out = Counter()
+    out["identidades con el EN_WEB de antes"] = len(ids3)
+    out["identidades con el de después"] = len(ids6)
+    out["fichas con el EN_WEB de antes"] = len({p for p, _ in f3.values()})
+    out["fichas con el de después"] = len(miembros6)
+    out["segundos de las vistas y el resolvedor, antes"] = f"{s3[0]:.1f} + {s3[1]:.1f}"
+    out["segundos de las vistas y el resolvedor, después"] = f"{s6[0]:.1f} + {s6[1]:.1f}"
+    for clave in ("fichas entre categorías", "  por el mismo identificador (la misma fila)",
+                  "  por U0 (mismo nombre, equipo y temporada)", "  por U0 de club o U1 (mismo club)",
+                  "  por U2 (candidata única)", "  por una regla sin identificador", "fichas de antes que se parten",
+                  "fichas de después que juntan dos de antes", "pares del mismo nombre y club que no se unen por la edad",
+                  "pares del mismo nombre y club que no se unen por otra cosa"):
+        out[clave] = 0
+    for p, ks in miembros6.items():
+        if not (any(vieja[k] for k in ks) and any(nueva[k] for k in ks)):
+            continue
+        out["fichas entre categorías"] += 1
+        lado = vieja[p]                                  # el de la principal: con algo de antes, o solo de las nuevas
+        if any(vieja[k] and nueva[k] for k in ks):
+            out["  por el mismo identificador (la misma fila)"] += 1
+        reglas = {f6[k][1] for k in ks if k != p and vieja[k] != lado and not (vieja[k] and nueva[k])}
+        for regla, texto in (("equipo", "U0 (mismo nombre, equipo y temporada)"),
+                             ("club", "U0 de club o U1 (mismo club)"), ("nombre", "U2 (candidata única)")):
+            if regla in reglas:
+                out[f"  por {texto}"] += 1
+        if reglas:
+            out["  por una regla sin identificador"] += 1
+    # Las fichas de antes que el de después cambia: pierden identidades (se parten) o se juntan con otra de antes.
+    miembros3 = defaultdict(list)
+    for k, (p, _) in f3.items():
+        miembros3[p].append(k)
+    for p, ks in miembros3.items():
+        destinos = {f6[k][0] for k in ks if k in f6}
+        if len(destinos) > 1:
+            out["fichas de antes que se parten"] += 1
+    for p, ks in miembros6.items():
+        if len({f3[k][0] for k in ks if k in f3}) > 1:
+            out["fichas de después que juntan dos de antes"] += 1
+    # Pares de fichas del mismo nombre con coma y del mismo club, una con algo de antes y otra solo de las nuevas,
+    # que no se unen: por la edad (sus intervalos no se cruzan) o por otra cosa (ids, uno a uno, candidata única).
+    from identidad import nombre_con_coma
+    por_nombre = defaultdict(set)
+    for p, ks in miembros6.items():
+        for k in ks:
+            if nombre_con_coma(_base(_nombre(por_id[k]))):
+                por_nombre[_base(_nombre(por_id[k]))].add(p)
+    for nombre, fichas in por_nombre.items():
+        viejas = [p for p in fichas if any(vieja[k] for k in miembros6[p])]
+        nuevas = [p for p in fichas if not any(vieja[k] for k in miembros6[p])]
+        for a in viejas:
+            va = [v for k in miembros6[a] for v in por_id[k].vistas]
+            clubes_a = {club_de(v[2] or "") for v in va}
+            for b in nuevas:
+                vb = [v for k in miembros6[b] for v in por_id[k].vistas]
+                if not clubes_a & {club_de(v[2] or "") for v in vb}:
+                    continue
+                if compatibles(va, vb):
+                    out["pares del mismo nombre y club que no se unen por otra cosa"] += 1
+                else:
+                    out["pares del mismo nombre y club que no se unen por la edad"] += 1
+    return dict(out)
+
+
+def informe_entre_categorias(db, medida):
+    lineas = [f"Entre categorías ({db}): EN_WEB de antes ({', '.join(EN_WEB_DE_ANTES)}) y de después (las seis)."]
+    total = medida.get("fichas con el de después", 0) or 1
+    for clave, valor in medida.items():
+        lineas.append(f"  {clave}: {valor}")
+    sin_id = medida.get("  por una regla sin identificador", 0)
+    lineas.append(f"  fichas unidas entre categorías por una regla sin identificador: {100 * sin_id / total:.2f} % "
+                  f"de las fichas (el paso E2-D2 se para si pasa del 2 %)")
+    return "\n".join(lineas)
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     ap.add_argument("--db", default=os.path.join(os.path.dirname(SCRIPTS), "futbolbase.db"))
+    ap.add_argument("--entre-categorias", action="store_true",
+                    help="lo que une el resolvedor al ampliar EN_WEB (paso E2-D2): solo lee la base")
     args = ap.parse_args(argv)
+    if args.entre_categorias:
+        print(informe_entre_categorias(args.db, entre_categorias(args.db)))
+        return
     filas, cuenta = apariciones(args.db)
     nino = ninos(filas)
     texto, _ = informe(cuenta, nino, pares(filas, nino), resumen_u0_cortos(identidades_con_id(filas)))

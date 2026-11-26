@@ -1086,3 +1086,60 @@ def test_una_separada_no_se_une_a_nadie_y_sigue_contando_como_otra_ficha():
     assert juntos(resolver([con, sin], unir_cortos_en_club=True), 10, 11)
     assert resolver([con, sin, otra], unir_cortos_en_club=True, separadas={12}) == \
         {10: (10, None), 11: (11, None), 12: (12, None)}
+
+
+# ── Las categorías nuevas (parte E2): un homónimo de infantil, cadete o juvenil que no cabe por la edad no es una
+# duda (identidad.NIVELES_NUEVOS, _sin_ajenas). Sin esto, en cuanto la web enseñe las mayores, un cadete que se
+# llama como dos prebenjamines del club desharía la ficha de hoy de esos dos. Con un homónimo de las de siempre, la
+# regla es la de antes (une menos): solo cambia lo que entra con las nuevas. ────────────────────────────────────
+INF, CAD = NIVEL["INFANTIL"], NIVEL["CADETE"]
+
+
+def test_u2_un_cadete_homonimo_que_no_cabe_no_deshace_la_candidata_unica():
+    a = ident(1, "ALVAREZ PENA, JOSE", None, v(2024, PRE, "Arucas", n=10))
+    b = ident(2, "ALVAREZ PENA, JOSE", None, v(2026, PRE, "Teror", n=4))
+    cadete = ident(3, "ALVAREZ PENA, JOSE", None, v(2026, CAD, "Moya", n=6))
+    assert resolver([a, b, cadete], unir_cortos_en_club=False) == {1: (1, None), 2: (1, "nombre"), 3: (3, None)}
+    # Uno de las de siempre que tampoco cabe (un alevín de 2019) sigue siendo la duda de antes.
+    alevin = ident(4, "ALVAREZ PENA, JOSE", None, v(2019, ALE, "Moya", n=6))
+    assert len(fichas(resolver([a, b, alevin], unir_cortos_en_club=False))) == 3
+    # Y uno de las nuevas que sí cabe con alguno (un infantil de 2026 con un benjamín de 2022 y un alevín de 2024,
+    # los tres de 2013 a 2016), también.
+    ben = ident(5, "ALVAREZ PENA, JOSE", None, v(2022, BEN, "Arucas", n=10))
+    ale = ident(6, "ALVAREZ PENA, JOSE", None, v(2024, ALE, "Teror", n=10))
+    infantil = ident(7, "ALVAREZ PENA, JOSE", None, v(2026, INF, "Moya", n=6))
+    assert resolver([ben, ale], unir_cortos_en_club=False) == {5: (5, None), 6: (5, "nombre")}
+    assert len(fichas(resolver([ben, ale, infantil], unir_cortos_en_club=False))) == 3
+
+
+def test_u1_un_cadete_del_club_que_no_cabe_no_rompe_el_uno_a_uno():
+    a = ident(1, "ALVAREZ PENA, JOSE", None, v(2025, PRE, "Teror", n=10))
+    b = ident(2, "ALVAREZ PENA, JOSE", None, v(2026, PRE, "Teror B", n=4))
+    cadete = ident(3, "ALVAREZ PENA, JOSE", None, v(2026, CAD, "Teror", n=6))
+    otro = ident(4, "ALVAREZ PENA, JOSE", None, v(2026, CAD, "Arucas", n=6))       # y que U2 no lo una de todas formas
+    r = resolver([a, b, cadete, otro], unir_cortos_en_club=False)
+    assert r[1] == (1, None) and r[2] == (1, "club") and r[3] == (3, None) and r[4] == (4, None)
+
+
+def test_u0_de_club_un_cadete_con_id_que_no_cabe_no_es_un_id_de_mas():
+    a = ident(1, "ALVAREZ PENA, JOSE", 300001, v(2026, BEN, "Teror", n=10))
+    b = ident(2, "ALVAREZ PENA, JOSE", None, v(2026, PRE, "Teror B", n=4))
+    cadete = ident(3, "ALVAREZ PENA, JOSE#300009", 300009, v(2026, CAD, "Teror", n=6))
+    r = resolver([a, b, cadete], unir_cortos_en_club=False)
+    assert r[1] == (1, None) and r[2] == (1, "club") and r[3] == (3, None)
+
+
+def test_u0_de_cortos_un_cadete_asentado_que_no_cabe_no_es_otra_asentada():
+    asentada = ident(1, "LUCAS", 300001, v(2026, BEN, "Teror", n=8))
+    suelta = ident(2, "LUCAS#300002", 300002, v(2026, BEN, "Teror", n=1))
+    cadete = ident(3, "LUCAS#300003", 300003, v(2026, CAD, "Teror", n=8))
+    r = resolver([asentada, suelta, cadete], unir_cortos_en_club=True)
+    assert r[1] == (1, None) and r[2] == (1, "equipo") and r[3] == (3, None)
+
+
+def test_sin_las_categorias_nuevas_el_resolvedor_es_el_de_antes():
+    # Lo mismo con un homónimo de las de siempre en el lugar del cadete: la duda de antes, sin cambios.
+    a = ident(1, "ALVAREZ PENA, JOSE", None, v(2025, PRE, "Teror", n=10))
+    b = ident(2, "ALVAREZ PENA, JOSE", None, v(2026, PRE, "Teror B", n=4))
+    alevin = ident(3, "ALVAREZ PENA, JOSE", None, v(2026, ALE, "Teror", n=6))
+    assert len(fichas(resolver([a, b, alevin], unir_cortos_en_club=False))) == 3

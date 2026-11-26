@@ -50,6 +50,18 @@ def test_dos_fichas_candidatas_no_se_enlaza():
     assert enlazar([nino(1)], [ficha(500), ficha(501, anios=(2010,))]) == {}
 
 
+def test_una_ficha_solo_de_las_nuevas_que_no_cabe_no_es_la_duda():
+    # La de un cadete homónimo (solo ha jugado en infantil, cadete o juvenil, nacido en 2011): no puede ser un niño
+    # de prebenjamín de escuela, así que no quita el enlace con la única ficha que sí puede (paso E2-D2).
+    cadete = Ficha(id=501, nombres=frozenset({RAUL}), anios=(2011,), solo_nuevas=True)
+    assert enlazar([nino(1)], [ficha(500), cadete]) == {1: 500}
+    # Si cabe por la edad (uno de infantil de 2017… que no existe, pero la regla es la de la edad), sí es la duda.
+    assert enlazar([nino(1)], [ficha(500), Ficha(id=501, nombres=frozenset({RAUL}), anios=(2017,),
+                                                 solo_nuevas=True)]) == {}
+    # Y una de las de siempre que no cabe sigue siendo la duda de antes.
+    assert enlazar([nino(1)], [ficha(500), ficha(501, anios=(2011,))]) == {}
+
+
 def test_edad_incompatible_no_se_enlaza():
     assert enlazar([nino(1)], [ficha(500, anios=(2014,))]) == {}
     assert enlazar([nino(1, temporada=2026, categoria="miniprebenjamin")], [ficha(500, anios=(2017,))]) == {}
@@ -314,7 +326,9 @@ def test_lo_de_fuera_de_la_web_no_mueve_los_enlaces(tmp_path, monkeypatch, fijar
     """Hasta que la web enseñe infantil (parte E2), sus actas están en la base pero no mueven ningún enlace:
     Raul (1001) juega además en infantil de 2026-27 (su año, con eso, sería otro y su escuela no cuadraría) y
     un niño nuevo de infantil (2003) se llama como Hugo (sería una segunda ficha de su nombre). El EN_WEB de antes
-    del paso E2-D2 lo fija la prueba (conftest.fijar_web): sigue valiendo cuando el director lo amplíe."""
+    del paso E2-D2 lo fija la prueba (conftest.fijar_web): sigue valiendo cuando el director lo amplíe. Con
+    infantil en la web, el año de Raul cambia; el de infantil que se llama como Hugo, no le quita el suyo: solo ha
+    jugado en infantil y por la edad no puede ser un niño de escuela (enlace_mygol, regla 3)."""
     import categorias
     fijar_web("antes")
     conn = base_con_escuela(tmp_path)
@@ -340,11 +354,14 @@ def test_lo_de_fuera_de_la_web_no_mueve_los_enlaces(tmp_path, monkeypatch, fijar
     assert {f.id: f.anios for f in E.fichas_de(conn)} == anios
     E.guardar_enlaces(conn, registro=quiet)
     assert enlaces(conn) == antes
-    # Con infantil en la web, sí: el año de Raul y la segunda ficha de Hugo cuentan.
+    # Con infantil en la web, sí: el año de Raul cuenta, y la segunda ficha de Hugo es una ficha más de su nombre,
+    # pero solo de las nuevas y de otra edad: no es la duda, y Hugo conserva su enlace.
     monkeypatch.setattr(categorias, "EN_WEB", categorias.EN_WEB + ("INFANTIL",))
-    assert {f.id: f.anios for f in E.fichas_de(conn)}[1] != anios[1]
+    fichas = {f.id: f for f in E.fichas_de(conn)}
+    assert fichas[1].anios != anios[1] and not fichas[1].solo_nuevas
+    assert fichas[6].solo_nuevas and fichas[6].nombres == frozenset({"MORALES RUIZ, HUGO"})
     E.guardar_enlaces(conn, registro=quiet)
-    assert (300, 3) not in enlaces(conn)
+    assert (300, 3) in enlaces(conn)
 
 def test_tablas_de_mygol_desaparecidas(tmp_path):
     """Si las tablas mygol_* ya no están (una base que vuelve atrás), los enlaces viejos no se quedan."""

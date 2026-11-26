@@ -144,7 +144,10 @@ temporadas) se enlaza solo si todos sus torneos llevan a la misma ficha.
 Las fichas y sus años son los que ve la web (`categorias.EN_WEB`, como el generador): hasta que la web enseñe
 infantil, cadete y juvenil (parte E2), una identidad que solo sale en ellas no cuenta como otra ficha del
 mismo nombre (regla 3) y sus partidos no cuentan para el año (regla 4). Así, que el carril de las mayores lea
-a un niño de cadete no quita ni cambia ningún enlace (`enlace_mygol.fichas_de`).
+a un niño de cadete no quita ni cambia ningún enlace (`enlace_mygol.fichas_de`). Y cuando la web las enseñe
+(el paso E2-D2), una ficha que solo ha jugado en infantil, cadete o juvenil y cuya edad no cuadra con la del
+niño de escuela (regla 4) tampoco cuenta para la regla 3: un cadete que se llama como un niño de escuela no es
+él, y no es una duda (`Ficha.solo_nuevas`). Si cuadra, sí: es la duda de siempre.
 
 **Lo que no se enlaza, a propósito:** los niños de un solo apellido (MyGol solo guarda el primero en algunos
 equipos): enlazarlos por el nombre y el primer apellido falla en torno a una de cada seis veces. Tampoco se

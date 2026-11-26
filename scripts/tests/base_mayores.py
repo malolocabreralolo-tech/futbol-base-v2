@@ -29,21 +29,25 @@ Los equipos son clubes que ya están en la base (con su nombre de la federación
 fichas: el mismo club en benjamín y en juvenil es la misma fila de teams) y uno nuevo por grupo. Seis jornadas
 jugadas por liga (y la séptima sin jugar), con resultado, clasificación y goleadores; dos rondas jugadas en la
 copa. Cada acta, 18 jugadores por equipo: un tercio con el id de la federación de un niño de benjamín o alevín
-de entre 7 y 5 temporadas antes (de 2019-20 a 2021-22 para 2026-27) que ya está en la base (el mismo niño, más mayor: la misma fila de players), el resto con
-ids nuevos. Y en el primer grupo de Gran Canaria, los equipos de un grupo de la liga prebenjamín de Gran Canaria
-de esta temporada (que va sin id) llevan además a dos niños sin id con el nombre de dos de ese equipo y
-temporada: el mismo nombre, club y temporada que dos prebenjamines sin id, pero NO la misma identidad (la de
-infantil lleva su categoría: migrate_identidad.norm_sin_id), como lo hace el importador.
+de entre 7 y 4 temporadas antes (de 2019-20 a 2022-23 para 2026-27) que ya está en la base (el mismo niño, más
+mayor: la misma fila de players), en la categoría que le toca por su edad (_ids_de_la_base: la base de después tiene
+que parecerse a la real, y un niño de prebenjamín de este año no juega en juvenil), el resto con ids nuevos. Y en el
+primer grupo de Gran Canaria de cada categoría, dos equipos llevan además a dos niños sin id con el nombre, el club
+y la temporada de dos sin id de otra categoría (SIN_ID_DE): en infantil, de dos alevines (el mismo niño, que sube);
+en cadete y juvenil, de dos prebenjamines (otro niño, que se llama igual). Nunca la misma identidad: la de las
+mayores lleva su categoría (migrate_identidad.norm_sin_id), como lo hace el importador; si son la misma ficha lo
+decide el resolvedor por sus edades, cuando la web las enseñe.
 
 Los nombres de los niños nuevos son inventados (f"JUGADOR {n:06d}, PRUEBA"); los de los reutilizados no se
-escriben (con id, la fila conserva el suyo) salvo los dos sin id, que se leen de la copia al vuelo para que sean
-el mismo nombre (nunca se imprimen ni salen de la copia). Con `islas`, también dos grupos de «LIGA ALEVIN
-LANZAROTE FASE 1» (con categorias.ALEVIN_ISLAS a True durante la llamada: el paso D6).
+escriben (con id, la fila conserva el suyo) salvo los sin id, que se leen de la copia al vuelo para que sean
+el mismo nombre (nunca se imprimen ni salen de la copia, ni van en lo que devuelve). Con `islas`, también dos
+grupos de «LIGA ALEVIN LANZAROTE FASE 1» (con categorias.ALEVIN_ISLAS a True durante la llamada: el paso D6).
 
 Devuelve {"grupos": [códigos], "partidos": n jugados, "actas": n, "jugadores_reutilizados": n ids de la base,
-"sin_id_reutilizados": n nombres sin id de un prebenjamín del mismo club y temporada, "sin_id_disponibles": n
-equipos de la liga prebenjamín de la temporada con dos sin id (con 0, el caso no se monta), "sin_id_en_fila_ajena": n
-identidades sin id con apariciones en una de las mayores y en otra categoría (tiene que ser 0)}.
+"sin_id_reutilizados": n nombres sin id de otra categoría del mismo club y temporada, "sin_id_disponibles": n
+equipos de la liga alevín y la prebenjamín de la temporada con dos sin id (con 0, el caso no se monta),
+"sin_id_en_fila_ajena": n identidades sin id con apariciones en una de las mayores y en otra categoría (tiene que
+ser 0)}.
 """
 import contextlib
 import random
@@ -177,36 +181,101 @@ def _equipos_de_la_temporada(conn, sid):
     return por_isla
 
 
-def _sin_id_de_prebenjamin(conn, sid):
-    """[(team_id, nombre de la federación, [dos nombres sin id])] de los equipos de la liga prebenjamín de Gran
-    Canaria de la temporada (va sin id) con dos niños sin id o más: los del caso «mismo nombre y club sin id»."""
+# El caso «mismo nombre, club y temporada sin id»: en el primer grupo de Gran Canaria de cada categoría nueva, dos
+# equipos llevan cada uno a dos niños sin id con el nombre de dos sin id de ese club y esa temporada en otra
+# categoría (la liga de Gran Canaria de esa categoría, que va sin id en parte). En infantil, alevines: el mismo niño
+# que sube a infantil (edades contiguas: el resolvedor tiene que poder unirlos en una ficha); en cadete y juvenil,
+# prebenjamines: otro niño que se llama igual (seis años o más de diferencia: no se unen nunca). Cada categoría con
+# otros equipos (`desde`): si no, un cadete y un juvenil sin id del mismo nombre y club se unirían entre ellos.
+SIN_ID_DE = {"INFANTIL": ("ALEVIN", 0), "CADETE": ("PREBENJAMIN", 0), "JUVENIL": ("PREBENJAMIN", 2)}
+
+
+def _sin_id_de(conn, sid, categoria):
+    """[(team_id, nombre de la federación, [dos nombres sin id])] de los equipos de la liga de `categoria` de Gran
+    Canaria de la temporada con dos niños sin id o más que solo juegan en ella: los del caso «mismo nombre y club
+    sin id» (SIN_ID_DE)."""
     out = []
     for tid, fed in conn.execute(
             """SELECT DISTINCT st.team_id, ts.fiflp_name FROM standings st JOIN groups g ON g.id = st.group_id
                  JOIN categories c ON c.id = g.category_id
                  JOIN team_seasons ts ON ts.team_id = st.team_id AND ts.season_id = g.season_id
-                WHERE g.season_id = ? AND upper(c.name) = 'PREBENJAMIN' AND g.island = 'grancanaria'
-                  AND ts.fiflp_name IS NOT NULL ORDER BY st.team_id""", (sid,)):
+                WHERE g.season_id = ? AND upper(c.name) = ? AND g.island = 'grancanaria'
+                  AND ts.fiflp_name IS NOT NULL ORDER BY st.team_id""", (sid, categoria)):
         nombres = [n for (n,) in conn.execute(
-            """SELECT full_name FROM players WHERE fiflp_id IS NULL AND team_id = ? AND season_id = ?
-                 AND full_name LIKE '%,%' AND full_name NOT LIKE '#%' ORDER BY id LIMIT 2""", (tid, sid))]
+            """SELECT p.full_name FROM players p WHERE p.fiflp_id IS NULL AND p.team_id = ? AND p.season_id = ?
+                 AND p.full_name LIKE '%,%' AND p.full_name NOT LIKE '#%'
+                 AND EXISTS (SELECT 1 FROM appearances a JOIN matches m ON m.id = a.match_id
+                               JOIN groups g ON g.id = m.group_id JOIN categories c ON c.id = g.category_id
+                              WHERE a.player_id = p.id AND upper(c.name) = ?)
+                 AND NOT EXISTS (SELECT 1 FROM appearances a JOIN matches m ON m.id = a.match_id
+                                   JOIN groups g ON g.id = m.group_id JOIN categories c ON c.id = g.category_id
+                                  WHERE a.player_id = p.id AND upper(c.name) <> ?)
+               ORDER BY p.id LIMIT 2""", (tid, sid, categoria, categoria))]
         if len(nombres) == 2:
             out.append((tid, fed, nombres))
     return out
 
 
+def categoria_natural(anio, nacido):
+    """La categoría de las nuevas (infantil, cadete o juvenil) en la que juega la temporada que empieza `anio` quien
+    nació en `nacido`, por su ventana natural (nacimiento.VENTANA), o None."""
+    from nacimiento import VENTANA
+    for cat in MAYORES:
+        mayor, menor = VENTANA[cat.lower()]
+        if anio - mayor <= nacido <= anio - menor:
+            return cat
+    return None
+
+
 def _ids_de_la_base(conn, sid, anio):
-    """Los ids de la federación de los niños de benjamín o alevín de entre 7 y 5 temporadas antes (de 2019-20 a
-    2021-22 para 2026-27) que no juegan esta temporada (los mismos niños, más mayores), por id."""
-    return [f for (f,) in conn.execute(
-        """SELECT DISTINCT p.fiflp_id FROM players p JOIN appearances a ON a.player_id = p.id
+    """[(id de la federación, categorías en las que puede jugar esta temporada)] de los niños de benjamín o alevín
+    de entre 7 y 4 temporadas antes (de 2019-20 a 2022-23 para 2026-27) que no juegan esta temporada (los mismos
+    niños, más mayores), por id. Sus categorías salen de su edad, como en la realidad: el año de nacimiento que
+    estima la web con todo lo que ha jugado su ficha (nacimiento.estimar, con las filas de prebenjamín, benjamín y
+    alevín de todas sus identidades) da su categoría natural (categoria_natural), que tiene que caber además con el
+    intervalo del resolvedor de toda su ficha (identidad.intervalo: si no, ese niño no podría ser él). Un niño que
+    fue benjamín en 2019-20 es cadete o juvenil en 2026-27, nunca infantil; uno de 2022-23, infantil o cadete. Y solo
+    el id de la principal de cada ficha: la federación ha dado a algunos niños un id para cada partido (los «ids de un
+    solo uso» que la U0 de identidad.py junta en su ficha), y reutilizar dos de ellos como dos niños de las nuevas
+    sería inventar a un niño que juega a la vez en dos equipos."""
+    from identidad import NIVEL, intervalo
+    from nacimiento import estimar
+    candidatos = [(f, ficha) for f, ficha in conn.execute(
+        """SELECT DISTINCT p.fiflp_id, coalesce(p.ficha_id, p.id) FROM players p JOIN appearances a ON a.player_id = p.id
              JOIN matches m ON m.id = a.match_id JOIN groups g ON g.id = m.group_id
              JOIN seasons s ON s.id = g.season_id JOIN categories c ON c.id = g.category_id
-            WHERE p.fiflp_id IS NOT NULL AND upper(c.name) IN ('BENJAMIN', 'ALEVIN') AND s.start_year BETWEEN ? AND ?
+            WHERE p.fiflp_id IS NOT NULL AND p.ficha_id IS NULL AND upper(c.name) IN ('BENJAMIN', 'ALEVIN')
+              AND s.start_year BETWEEN ? AND ?
               AND p.fiflp_id NOT IN (SELECT p2.fiflp_id FROM players p2 JOIN appearances a2 ON a2.player_id = p2.id
                                      JOIN matches m2 ON m2.id = a2.match_id JOIN groups g2 ON g2.id = m2.group_id
                                      WHERE g2.season_id = ? AND p2.fiflp_id IS NOT NULL)
-            ORDER BY p.fiflp_id""", (anio - 7, anio - 5, sid))]
+            ORDER BY p.fiflp_id""", (anio - 7, anio - 4, sid))]
+    # Lo que ha jugado cada ficha de esos niños en prebenjamín, benjamín y alevín (las de la web de antes).
+    fichas = {ficha for _, ficha in candidatos}
+    obs = {}
+    for ficha, inicio, cat, partidos in conn.execute(
+            """SELECT coalesce(p.ficha_id, p.id), s.start_year, upper(c.name), count(*) FROM appearances a
+                 JOIN players p ON p.id = a.player_id JOIN matches m ON m.id = a.match_id
+                 JOIN groups g ON g.id = m.group_id JOIN seasons s ON s.id = g.season_id
+                 JOIN categories c ON c.id = g.category_id
+                WHERE upper(c.name) IN ('PREBENJAMIN', 'BENJAMIN', 'ALEVIN') GROUP BY 1, 2, 3"""):
+        if ficha in fichas:
+            obs.setdefault(ficha, []).append((inicio, cat, partidos))
+    out = []
+    for fid, ficha in candidatos:
+        vistas = obs.get(ficha, [])
+        lo = max(intervalo(y, NIVEL[c])[0] for y, c, _ in vistas)
+        hi = min(intervalo(y, NIVEL[c])[1] for y, c, _ in vistas)
+        cats = []
+        for nacido in estimar((y, c.lower(), n) for y, c, n in vistas):
+            cat = categoria_natural(anio, nacido)
+            if cat and cat not in cats:
+                a, b = intervalo(anio, NIVEL[cat])
+                if max(lo, a) <= min(hi, b):
+                    cats.append(cat)
+        if cats:
+            out.append((fid, tuple(cats)))
+    return out
 
 
 class _Fabrica:
@@ -216,7 +285,14 @@ class _Fabrica:
         self.rnd = random.Random(SEMILLA)
         self.anio = anio                # el año de inicio de la temporada en curso
         self.equipos = _equipos_de_la_base(conn, sid)
-        self.sin_id = _sin_id_de_prebenjamin(conn, sid)
+        # Por categoría nueva, los equipos (y sus dos nombres sin id) del caso «mismo nombre y club sin id».
+        de_otra = {}
+        self.sin_id = {}
+        for cat, (otra, desde) in SIN_ID_DE.items():
+            if otra not in de_otra:
+                de_otra[otra] = _sin_id_de(conn, sid, otra)
+            self.sin_id[cat] = de_otra[otra][desde:desde + 2]
+        self.sin_id_disponibles = sum(len(v) for v in de_otra.values())
         ids = _ids_de_la_base(conn, sid, anio)
         self.rnd.shuffle(ids)
         self.ids_base = ids
@@ -249,7 +325,7 @@ class _Fabrica:
             lista = self.equipos.get(isla) or self.equipos["grancanaria"]
         fijos = []
         if con_sin_id:
-            fijos = [(tid, fed) for tid, fed, _ in self.sin_id[:2]]
+            fijos = [(tid, fed) for tid, fed, _ in self.sin_id.get(con_sin_id, ())]
         i = self.cursor.get(isla, 0)
         out = list(fijos)
         while len(out) < n - 1:
@@ -260,9 +336,19 @@ class _Fabrica:
         self.cursor[isla] = i
         return [fed for _, fed in out]
 
+    def reutilizado(self, categoria):
+        """El siguiente id de la base (en el orden barajado) de un niño que puede jugar esta temporada en
+        `categoria` por su edad (_ids_de_la_base), o None si no queda ninguno."""
+        for i, (fid, cats) in enumerate(self.ids_base):
+            if categoria in cats:
+                del self.ids_base[i]
+                return fid
+        return None
+
     def plantilla(self, categoria, equipo):
         """Los 18 de un equipo en su categoría, los mismos en todas sus competiciones: un tercio con un id de la
-        base, el resto con uno nuevo; y en los equipos del caso sin id, dos sin id del mismo nombre."""
+        base (de un niño de su edad), el resto con uno nuevo; y en los equipos del caso sin id, dos sin id del
+        mismo nombre."""
         clave = (categoria, equipo)
         if clave in self.plantillas:
             return self.plantillas[clave]
@@ -270,18 +356,18 @@ class _Fabrica:
         for k in range(JUGADORES_POR_EQUIPO):
             self.siguiente += 1
             nombre = f"JUGADOR {self.siguiente:06d}, PRUEBA"
-            # Solo en las mayores: un niño de benjamín de 2019-20 es hoy juvenil, no alevín.
-            if k % 3 == 0 and self.ids_base and categoria in MAYORES:
-                fid = self.ids_base.pop()
+            # Solo en las mayores (un niño de benjamín de 2019-20 es hoy cadete o juvenil, no alevín), y en la suya.
+            fid = self.reutilizado(categoria) if k % 3 == 0 and categoria in MAYORES else None
+            if fid is not None:
                 self.reutilizados.add(fid)
             else:
                 fid = ID_NUEVO + self.siguiente
             jugadores.append({"name": nombre, "fiflp_id": fid})
-        for tid, fed, nombres in self.sin_id:
-            if fed == equipo and categoria == "INFANTIL":
+        for tid, fed, nombres in self.sin_id.get(categoria, ()):
+            if fed == equipo:
                 for j, nombre in enumerate(nombres):
                     jugadores[JUGADORES_POR_EQUIPO - 1 - j] = {"name": nombre, "fiflp_id": None}
-                    self.sin_id_usados.add((tid, nombre))
+                    self.sin_id_usados.add((categoria, tid, nombre))
         self.plantillas[clave] = jugadores
         return jugadores
 
@@ -480,7 +566,7 @@ def poblar(conn, categorias=("INFANTIL", "CADETE", "JUVENIL"), temporada=None, i
                        if c.startswith(prefijo) and c[len(prefijo):].isdigit()]
                 for n in range(max(hay, default=0) + 1, max(hay, default=0) + grupos + 1):
                     entrada, suyas = _grupo_raw(fab, categoria, nombre, isla, n, copa,
-                                                con_sin_id=primero and isla == "grancanaria")
+                                                con_sin_id=categoria if primero and isla == "grancanaria" else None)
                     primero = False
                     raw.append(entrada)
                     actas[(entrada["competition_id"], entrada["group_id"])] = suyas
@@ -496,8 +582,9 @@ def poblar(conn, categorias=("INFANTIL", "CADETE", "JUVENIL"), temporada=None, i
                 out["actas"] += leidas
     out["jugadores_reutilizados"] = len(fab.reutilizados)
     out["sin_id_reutilizados"] = len(fab.sin_id_usados)
-    # Los prebenjamines sin id de la temporada con los que montar ese caso: recién empezada una temporada, ninguno.
-    out["sin_id_disponibles"] = len(fab.sin_id)
+    # Los equipos de alevín y prebenjamín con sin id de la temporada con los que montar ese caso: recién empezada una
+    # temporada, ninguno.
+    out["sin_id_disponibles"] = fab.sin_id_disponibles
     out["sin_id_en_fila_ajena"] = sin_id_en_fila_ajena(conn)
     return out
 

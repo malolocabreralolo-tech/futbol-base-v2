@@ -178,10 +178,11 @@ def test_generador_igual_con_y_sin_mayores(tmp_path, bases_reales, fijar_web):
 
 
 def test_los_sin_id_de_las_mayores_no_caen_en_la_fila_de_un_pequeno(bases_reales):
-    """En la base de después (conftest.bases_reales), los niños sin id de infantil que se llaman como un
-    prebenjamín sin id del mismo club y temporada (base_mayores los pone a propósito) son OTRA identidad, con su
-    categoría (migrate_identidad.norm_sin_id): ninguna identidad sin id tiene apariciones en una de las mayores y
-    en otra categoría. Sin eso, sus partidos se mezclarían en la base desde la primera acta."""
+    """En la base de después (conftest.bases_reales), los niños sin id de infantil, cadete y juvenil que se llaman
+    como un alevín o un prebenjamín sin id del mismo club y temporada (base_mayores los pone a propósito:
+    SIN_ID_DE) son OTRA identidad, con su categoría (migrate_identidad.norm_sin_id): ninguna identidad sin id tiene
+    apariciones en una de las mayores y en otra categoría. Sin eso, sus partidos se mezclarían en la base desde la
+    primera acta. (Si son la misma ficha lo decide el resolvedor por la edad: test_fichas_ampliadas.py.)"""
     import base_mayores
     import migrate_identidad as M
     hecho = bases_reales["hecho"]
