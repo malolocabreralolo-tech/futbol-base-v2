@@ -58,11 +58,11 @@
       }
     },
     "actas-2026-2027.db": {
-      "bytes": 1757184,
+      "bytes": 1761280,
       "filas": {
-        "appearances": 28803,
-        "match_events": 13459,
-        "match_staff_all": 6966
+        "appearances": 28834,
+        "match_events": 13467,
+        "match_staff_all": 6971
       }
     },
     "comun.db": {
@@ -89,10 +89,10 @@
         "players": 19962,
         "portal_groups": 102,
         "raw_imports": 53,
-        "scorers": 29985,
+        "scorers": 29990,
         "seasons": 15,
         "standings": 5104,
-        "standings_detail": 3661,
+        "standings_detail": 3660,
         "team_seasons": 2235,
         "teams": 479,
         "tournament_matches": 464,
