@@ -9,7 +9,9 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 // Lo del sitio que no son datos: la página, el SW, el manifiesto, el código (dist/ y, para la app de antes
-// del empaquetado, src/ y acta.css), la fuente, los iconos y los escudos.
+// del empaquetado, src/ y acta.css), la fuente, los iconos y los escudos. Es lo que publica Pages (la rama web:
+// WEB_FICHEROS y WEB_CARPETAS de scripts/rama_web.py) sin data-health.json ni .nojekyll: si cambia una lista,
+// cambia la otra (test_rama_web.py lo comprueba).
 export const DEL_SITIO = ['index.html', 'sw.js', 'manifest.json', 'acta.css', 'dist', 'src', 'fonts', 'icons', 'escudos'];
 
 // { dir, limpiar() }: `dir`, una carpeta temporal nueva con `entradas` de `origen` copiadas (los enlaces,

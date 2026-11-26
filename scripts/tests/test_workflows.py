@@ -46,7 +46,8 @@ OWNED = ["update.yml", "tests.yml", "reloj.yml", "activar.yml", "carril-mayores.
 
 # Los workflows que hay: uno nuevo o uno que vuelve se piensa antes (¿escribe la base?, ¿va en cola?) y se apunta aquí.
 WORKFLOWS = {"actas-federacion.yml", "activar.yml", "carril-mayores.yml", "discover-fiflp.yml", "fetch-fiflp-islas.yml", "freno-fiflp.yml",
-             "historico.yml", "mygol.yml", "probe-fiflp.yml", "reloj.yml", "tests.yml", "update.yml"}
+             "historico.yml", "mygol.yml", "probe-fiflp.yml", "reloj.yml", "tests.yml", "update.yml",
+             "web.yml"}
 # Lo que publica una pasada: quien lo sube tiene que hacer cola con el bot, o dos subidas se pisan la base. Las
 # piezas de la base (base/, docs/almacenamiento.md), también.
 PUBLICADO = ("futbolbase.db", "data-*.js", "index.html", "sw.js", "base/*")
@@ -995,11 +996,11 @@ def test_el_carril_de_las_mayores_monta_y_parte_como_el_bot(tmp_path):
     assert job["uses"] == "./.github/workflows/update.yml" and "steps" not in job
     assert "workflow_call" in _triggers(_load("update.yml"))
     steps = _steps(_load("update.yml"), "update")
-    for paso in (MONTAR, BASE_SANA, PIEZAS, "Commit y push si hay cambios", DIAGNOSTICO):
+    for paso in (MONTAR, BASE_SANA, PIEZAS, "Commit y push si hay cambios", DIAGNOSTICO, "Poner al día la rama web"):
         st = next(s for s in steps if s.get("name") == paso)
         assert "inputs." not in str(st.get("if", "")) and "inputs." not in (st.get("run") or ""), paso
     mayores, _ = _simular(steps, inputs={"cats": CATS_MAYORES})
-    for paso in (MONTAR, PIEZAS, "Commit y push si hay cambios"):
+    for paso in (MONTAR, PIEZAS, "Commit y push si hay cambios", "Poner al día la rama web"):
         assert mayores[paso] == "success", paso
     code, files, log = _run_commit_step(tmp_path / "carril", data_changed=True, cats=CATS_MAYORES)
     assert code == 0 and {"futbolbase.db", "base/comun.db", "data-x.js"} <= set(files), log
@@ -1797,7 +1798,7 @@ ACTIVAR_STEPS = ["Checkout", "Set up Python", "Set up Node", "Montar la base", "
                  "Partir la base y comprobarla (bloquea el commit si falla)",
                  "Tests Python (bloquean el commit si fallan)",
                  "Tests Node (bloquean el commit si fallan)", "Subir la activación",
-                 "Publicar el fallo si las pruebas fallan", "Activación en rojo"]
+                 "Publicar el fallo si las pruebas fallan", "Poner al día la rama web", "Activación en rojo"]
 PENDING = "steps.pendientes.outputs.ids != ''"
 
 
@@ -2175,10 +2176,11 @@ ENTRADA_REINTENTO = {"description": "Relanzamientos seguidos tras un runner rech
 # Los pasos de update.yml de antes del relanzamiento y su job (sin los pasos), tal cual estaban en 1b4c9246: la huella
 # de su YAML (json.dumps(…, sort_keys=True, ensure_ascii=False), sha256), como PASOS_DEL_RELOJ. Y activar.yml entero,
 # que el relanzamiento no toca. Un cambio en ellos se hace a propósito, y entonces se cambia aquí: la parte D, fase 2
-# (docs/almacenamiento.md), «Montar la base» y el paso de las piezas que bloquea; la tarea 5, «Base completa del día».
-HUELLA_PASOS_DEL_BOT = "4fd6dd29a2b04f7445000367f35ca8425240798277a17439042ea74876405a55"
+# (docs/almacenamiento.md), «Montar la base» y el paso de las piezas que bloquea; la tarea 5, «Base completa del día»;
+# la 6, «Poner al día la rama web».
+HUELLA_PASOS_DEL_BOT = "ca3fccc9a9c51d1b8e05cb7561fc5ffafceff01e10bff63b9d2d5c1f52264dba"
 HUELLA_JOB_DEL_BOT = "67d027495a3a775d6d3fc58c7e0d434b1916440a200bbae1b45a36add49589c3"
-HUELLA_ACTIVAR = "84ff3255fa116a886693ba7118eef6e986dc94ca19a7ba36c2e9fdbf45f2853b"
+HUELLA_ACTIVAR = "039b59eafaf8c53089f5c36e5aca4c3f9a8785794c2b3460da5860631fb1175c"
 
 
 def _huella(cosa):
@@ -2578,12 +2580,14 @@ def test_the_clock_launches_the_historico_last_and_apart():
 
 def test_solo_el_reloj_y_el_propio_carril_lanzan_el_historico():
     """historico.yml sin cron: lo lanzan el reloj y su paso «Siguiente» (y el dueño, a mano). Y los workflows con cron
-    son los que son: GitHub los desactiva tras 60 días sin actividad (reloj.yml: test_how_to_wake_the_clock_…)."""
+    son los que son: GitHub los desactiva tras 60 días sin actividad (reloj.yml: test_how_to_wake_the_clock_…).
+    web.yml (parte D, la rama web) lleva uno cada 6 h solo de reserva: la rama la ponen al día el bot y la activación
+    en cada subida, y si su cron no llega no se pierde nada."""
     launchers = sorted(f.name for f in WF_DIR.glob("*.yml") if "gh workflow run historico.yml" in "\n".join(
         (s.get("run") or "") for j in _load(f.name)["jobs"].values() for s in j.get("steps", [])))
     assert launchers == ["historico.yml", "reloj.yml"], launchers
     con_cron = sorted(f.name for f in WF_DIR.glob("*.yml") if "schedule" in _triggers(_load(f.name)))
-    assert con_cron == ["mygol.yml", "reloj.yml", "tests.yml"], con_cron
+    assert con_cron == ["mygol.yml", "reloj.yml", "tests.yml", "web.yml"], con_cron
 
 
 def _run_reloj_step(tmp_path, name, gh_script, pasadas="[]"):
@@ -2722,3 +2726,66 @@ def test_la_descarga_de_verdad(tmp_path):
     ayer = {"groups": {}, "descarga": {**report["descarga"], "fecha": "2020-01-01"}}
     code, calls, report3, log = _run_descarga(tmp_path / "gh-falla", ayer, gh_exit=1)
     assert code != 0 and len(calls) == 1 and report3 == ayer, log
+
+
+# ------------------------------------------------- la rama web (parte D, tarea 6)
+
+WEB = "Poner al día la rama web"
+
+
+def test_web_yml():
+    """web.yml pone al día la rama web (la que publica Pages) tras un push a main a mano, a mano y cada 6 h por si
+    el bot o la activación no pudieron. Solo contents: write, uno a la vez sin cancelar al que corre, sobre el main
+    de ahora."""
+    data = _load("web.yml")
+    trig = _triggers(data)
+    assert trig["push"] == {"branches": ["main"]}
+    assert "workflow_dispatch" in trig
+    assert trig["schedule"] == [{"cron": "41 */6 * * *"}]
+    assert set(trig) == {"push", "workflow_dispatch", "schedule"}
+    assert data["permissions"] == {"contents": "write"}
+    assert data["concurrency"] == {"group": "rama-web", "cancel-in-progress": False}
+    assert list(data["jobs"]) == ["web"]
+    job = data["jobs"]["web"]
+    assert job["runs-on"] == "ubuntu-24.04" and job["timeout-minutes"] == 10
+    assert "permissions" not in job
+    pasos = job["steps"]
+    assert pasos[0]["uses"] == "actions/checkout@v5" and pasos[0]["with"] == {"ref": "main"}
+    assert pasos[-1]["name"] == WEB and pasos[-1]["run"].strip() == "python3 scripts/rama_web.py publicar"
+    assert len(pasos) == 2
+    texto = (WF_DIR / "web.yml").read_text(encoding="utf-8")
+    assert "--force" not in texto and "git push" not in texto
+
+
+def test_el_bot_y_la_activacion_ponen_al_dia_la_web():
+    """El bot, tras sus subidas (la de datos y la del diagnóstico: data-health.json también es de la web) y antes de
+    lanzar la activación; la activación, tras las suyas. Siempre que no se haya cancelado, también con algo en rojo,
+    y sin poder parar nada (continue-on-error, con plazo): un fallo lo arregla la vez siguiente o web.yml."""
+    steps, step = _update_step(WEB)
+    names = [s.get("name") for s in steps]
+    assert names.index(DIAGNOSTICO) + 1 == names.index(WEB) == names.index(LANZAR) - 1
+    assert names.index("Commit y push si hay cambios") < names.index(WEB)
+    assert step["if"] == "${{ !cancelled() }}"
+    assert step.get("continue-on-error") is True
+    assert 0 < step.get("timeout-minutes", 0) <= 10
+    assert step["run"].strip() == "python3 scripts/rama_web.py publicar"
+    assert "env" not in step
+    act = _activar_step(WEB)
+    _, job = _activar()
+    nombres = [s.get("name") for s in job["steps"]]
+    assert nombres.index("Publicar el fallo si las pruebas fallan") + 1 == nombres.index(WEB) \
+        == nombres.index("Activación en rojo") - 1
+    assert act["if"] == "${{ !cancelled() && steps.activar.outcome != 'skipped' }}"
+    assert act.get("continue-on-error") is True
+    assert 0 < act.get("timeout-minutes", 0) <= 10
+    assert act["run"].strip() == "python3 scripts/rama_web.py publicar"
+    # Los permisos de la activación no cambian (sin gh workflow run).
+    assert _load("activar.yml")["permissions"] == {"contents": "write"}
+    for name in ("update.yml", "activar.yml", "web.yml"):
+        assert "--force" not in (WF_DIR / name).read_text(encoding="utf-8"), name
+
+
+def test_tests_yml_paths_cover_web_yml():
+    trig = _triggers(_load("tests.yml"))
+    for event in ("push", "pull_request"):
+        assert ".github/workflows/web.yml" in trig[event]["paths"], event

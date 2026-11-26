@@ -214,7 +214,7 @@ lo que hace cada uno en cada fase. Desde la fase 3 la base no está en git: quie
 | `historico.yml`, «Preparar la copia» … «Tests Node» | Un `git worktree` de `main` en `$RUNNER_TEMP/prueba`: «Importar sin red» escribe la base de la copia, «Base sana» y las suites la leen. Nunca la sube | Igual que hoy (la copia trae `futbolbase.db`) | Monta la de la copia desde su `base/` |
 | `historico.yml`, «¿Qué toca?», «Promover», «Registrar», «Subir» | No la leen (`historico.py`, `cuarentena.py`; solo `scripts/historico/` y lo promovido) | — | — |
 | `freno-fiflp.yml` (a mano) | `freno_experimento.py` lee `groups` y `seasons` (`sqlite3.connect`: sin base, crea una vacía y falla) | Igual que hoy | Monta la parte común antes |
-| `mygol.yml`, `actas-federacion.yml`, `fetch-fiflp-islas.yml`, `discover-fiflp.yml`, `probe-fiflp.yml`, `reloj.yml` | No la leen | — | — |
+| `mygol.yml`, `actas-federacion.yml`, `fetch-fiflp-islas.yml`, `discover-fiflp.yml`, `probe-fiflp.yml`, `reloj.yml`, `web.yml` (la rama `web`: solo lo de la web, ni la base ni `base/`) | No la leen | — | — |
 | `scripts/reconstruir.py` (`--db`, por defecto la de la raíz) | Lee la de la raíz y trabaja en copias | Con la de git | Montar antes |
 | `scripts/prueba_mayores.py`, `scripts/prueba_historico.py` | Copian la de la raíz (o la de su copia) y trabajan allí | Con la de git | Montar antes; `prueba_historico.py` mide la pieza mayor y no la base entera |
 | Órdenes a mano que la abren: `activate_season.py`, `quitar_categoria.py`, `fiflp_manifest.py`, `medir_identidad.py`, `migrate_*.py`, `synth_copa_campeones.py`, `discover_temporada.py`, `escudos_federacion.py`, `import_*.py` | La leen o la escriben en la raíz | La de git (el bot parte y sube) | Montar antes; `partir`, `verificar` y `git add -A base/` después; sin montar, `db.get_connection` para con «monta la base» |
@@ -474,3 +474,106 @@ Medido el 26/11/2026 (copia de la base de hoy, 46,4 MB): el ZIP, 13,4 MB; la cop
    botón con su tamaño y su fecha.
 4. Vuelta atrás: `git revert` de este cambio y publicar la web (el botón vuelve a `./futbolbase.db`, que Pages
    sirve mientras publique `main`). La release se queda.
+
+## La web
+
+Hasta la parte D, GitHub Pages publicaba `main` entero: la web y, con ella, la base, sus piezas, los originales
+de `scripts/`, los documentos y la copia del PC (340 MB el 26/11/2026). Pages admite 1024 MB por sitio y, con
+todas las actas, `main` los pasaría. Por eso Pages publica la rama **`web`**, que lleva solo lo que la web sirve
+(`scripts/rama_web.py`):
+
+| Entra | Por qué |
+|---|---|
+| `index.html`, `sw.js`, `manifest.json`, `data-health.json` | La página, el SW, el manifiesto de la app y la salud que leen «Datos y fuentes» y la portada |
+| `.nojekyll` | Sin él, Pages pasaría la web por Jekyll |
+| `data-*.js` de la raíz | Los datos: los inmediatos de `index.html` y los perezosos de `src/state.js` (`data-season-*`, `data-lineups-*`, `data-jugadores-*`, `data-buscar-*`, `data-ranking*`, `data-matchdetail.js`…), también los de cada categoría de la web (`categorias.EN_WEB`, las seis desde E2-D2: `data-<cat>.js`, `data-matchdetail-<cat>.js`, `data-season-<S>-<cat>.js` y los `data-lineups-*` de sus grupos) |
+| `dist/` | El código empaquetado |
+| `src/` y `acta.css` | La app de antes del empaquetado, que se sirve mientras un móvil se pone al día (`scripts/tests/copia-web.mjs`, `DEL_SITIO`); y `src/config.js`, que el paquete deja fuera |
+| `fonts/`, `icons/`, `escudos/` | La fuente, los iconos y los escudos |
+
+Fuera: `data-history-2024.json` (no lo pide la web), `scripts/`, `base/`, `futbolbase.db`, `docs/`, `pc/`,
+`.github/` y `README.md`. Medido el 26/11/2026, con las seis categorías: 1244 ficheros y 83,4 MB, de ellos 63,9 MB
+de `data-lineups-*` (357 ficheros); hacer el árbol, 0,3 s. Con todas las actas, unos 520 MB. Desde 800 MB la
+subida lo avisa en el registro; desde 950, no se sube.
+
+Cómo se pone al día (`python3 scripts/rama_web.py publicar`):
+
+1. Un solo `git fetch` de `main` y, si existe, de `web`: las dos puntas, del mismo instante (en el clon
+   superficial del runner, con `--depth=1`; en un clon entero, sin él, para no cortarle la historia).
+2. El árbol de la web de esa `main`: sus mismas entradas (modos y blobs) filtradas, escritas con un índice
+   temporal y `git write-tree`. Ni el índice del repositorio ni el árbol de trabajo se tocan. En git no duplica
+   nada: cada subida añade un árbol y un commit, unos KB.
+3. La comprobación: el árbol tiene que llevar cada entrada del precache de su `sw.js`, el código, la hoja y
+   `src/config.js` de `dist/origen.json`, los iconos de `manifest.json`, los `data-*.js` de los `<script defer>` de
+   `index.html` y `.nojekyll`. Sin uno de ellos el SW no se instalaría en ningún móvil: no se sube nada.
+4. Si el árbol es el de la punta de `web`, nada («la rama web ya está al día»). Si no, un commit con ese árbol,
+   la punta anterior de `web` como padre y el mensaje «Web de main <12 cifras>», y un push **sin forzar**. Si
+   no pasa (otro la puso al día entretanto), otra vez desde el fetch, hasta tres veces. Así la rama nunca
+   retrocede: un push que pasa sin forzar no tiene a nadie delante, y su `main` es la de ese mismo fetch.
+
+Quién la pone al día:
+
+- **El bot** (`update.yml`, y con él el carril de las mayores, que lo llama), en su propio job, tras sus dos subidas (la de los datos y la del diagnóstico:
+  `data-health.json` también es de la web) y antes de lanzar la activación: «Poner al día la rama web», también
+  con algo en rojo, con `continue-on-error` y 5 min de plazo. El push con `GITHUB_TOKEN` no lanza otros
+  workflows pero sí la publicación de Pages, así que la web llega tan pronto como antes (unos 3 s más).
+- **La activación** (`activar.yml`), igual, tras sus subidas.
+- **`web.yml`**: tras un push a mano a `main`, a mano y cada 6 h, por si alguno de los dos falló (de reserva: el
+  cron de GitHub no siempre llega, y la pasada siguiente del bot la pone al día igual).
+- Los demás que suben a `main` (el histórico, `mygol.yml`, las tandas de la federación) solo suben originales a
+  `scripts/`, que no van en la rama: no hace falta que la pongan al día.
+
+Si falla (el push no pasa tres veces, al árbol le falta algo), la pasada publica igual en `main` y Pages sigue
+con la `web` de antes hasta la vez siguiente. Lo que no llega a la web es solo el cambio de esa pasada. Pero si al
+árbol de la web le falta algo de verdad (un fichero nuevo del precache que `es_web` no recoge, o más de 950 MB),
+la suite del bot también lo ve (`test_arbol_web_del_repositorio` y `test_todo_lo_que_la_web_puede_pedir_va_en_la_rama`
+miran el árbol de `HEAD`): la primera pasada aún sube a `main`, y desde la siguiente el bot entero sale en rojo
+(«las pruebas fallaron»). Es ruidoso, no silencioso; la señal temprana es `web.yml` en rojo (cada 6 h).
+
+Para mirar: `python3 scripts/rama_web.py arbol [--commit C]` escribe el árbol de la web de `C` y su tamaño, y
+sale con 1 si le falta algo. Tras cambiar Pages a `web`, `python3 scripts/rama_web.py sitio
+https://malolocabreralolo-tech.github.io/futbol-base-v2/` pide cada entrada del precache del sitio publicado,
+como el SW (`?h=<huella>`), y dice lo que no responde 200 o no da su huella.
+
+Por qué una rama y no el despliegue por artefacto (`upload-pages-artifact` y `deploy-pages`): tardan lo mismo
+(el grueso es subir el sitio, entero en los dos), pero el artefacto obliga a cambiar Pages a `build_type:
+workflow`, a dar `pages: write` e `id-token: write` al bot y a la activación, a un job de despliegue en cada uno y
+en otro para los push a mano, a uno a la vez y, para volver a una versión, a tener aún su artefacto. Con la rama,
+el despliegue de siempre sigue igual, cada versión publicada es un commit de `web`, y volver atrás es apuntar
+Pages a `main` otra vez.
+
+La base completa ya no está en el sitio: «Datos y fuentes» enlaza el ZIP del día de la release `base-completa`
+(`scripts/descarga.py`), que rehace la primera pasada sana de cada día (UTC) y apunta en `data-health.json`
+(`descarga`).
+
+### Publicar la rama y cambiar Pages (PASO DEL DIRECTOR)
+
+Con la descarga (la tarea anterior) ya publicada: con Pages en `web`, `./futbolbase.db` daría 404.
+
+1. Push de este cambio a `main`, rebasado sobre el `main` ya empaquetado de la tarea anterior y con sus suites otra
+   vez en verde, sin nada en marcha ni esperando (los cinco estados del paso 2 de la fase 2):
+   `antes=$(date -u +%Y-%m-%dT%H:%M:%SZ); git push origin <sha>:main`. El push lanza `web.yml`, que crea la rama; se
+   sigue esa ejecución (la creada tras el push, no la última de la lista):
+
+   ```sh
+   until id=$(gh run list -R malolocabreralolo-tech/futbol-base-v2 --workflow web.yml -L 5 --json databaseId,createdAt --jq "map(select(.createdAt >= \"$antes\")) | .[0].databaseId // empty") && [ -n "$id" ]; do sleep 5; done
+   gh run watch -R malolocabreralolo-tech/futbol-base-v2 "$id" --exit-status
+   ```
+2. Comprobación de la rama: `git fetch origin web && git ls-tree -r --name-only origin/web | grep -cE '^(scripts|base|docs|pc|\.github)/|^futbolbase\.db$'`
+   da `0`; `git ls-tree -r --name-only origin/web | wc -l` da unos 1250 (1244 el 26/11/2026); `git ls-tree --name-only origin/web | grep -E '^data-(infantil|cadete|juvenil)\.js$'`
+   da los tres; `python3 scripts/rama_web.py arbol --commit origin/main` da el mismo árbol que
+   `git rev-parse origin/web^{tree}`. Tras la pasada siguiente del bot (o del carril), `web` tiene un commit nuevo
+   (`git log -2 --oneline origin/web`).
+3. El cambio: `gh api -X PUT repos/malolocabreralolo-tech/futbol-base-v2/pages --input - <<< '{"build_type": "legacy", "source": {"branch": "web", "path": "/"}}'`.
+   Comprobación: `gh api repos/malolocabreralolo-tech/futbol-base-v2/pages --jq .source` da `{"branch":"web","path":"/"}`;
+   `gh api -X POST repos/malolocabreralolo-tech/futbol-base-v2/pages/builds` y, hasta que salga `built`,
+   `gh api repos/malolocabreralolo-tech/futbol-base-v2/pages/builds/latest --jq '{status, commit}'`, con `commit` igual a
+   `git rev-parse origin/web`.
+4. Comprobación del sitio (tras los 10 min de caché de Pages): `python3 scripts/rama_web.py sitio
+   https://malolocabreralolo-tech.github.io/futbol-base-v2/` no dice nada; `curl -s -o /dev/null -w '%{http_code}\n'` da
+   200 para `index.html`, `sw.js`, `data-health.json` y `data-infantil.js`, y 404 para `futbolbase.db` y
+   `scripts/generate_js.py`; la web, abierta en el móvil con la app instalada, se pone al día sola. Tras la pasada
+   siguiente, `pages/builds/latest` es del commit nuevo de `web` (el push con `GITHUB_TOKEN` lanza la publicación
+   «legacy»). Si no lo fuera, volver a `main` (paso 5) antes de nada más.
+5. Vuelta atrás: `gh api -X PUT repos/malolocabreralolo-tech/futbol-base-v2/pages --input - <<< '{"build_type": "legacy", "source": {"branch": "main", "path": "/"}}'`
+   y la misma comprobación con `main`. La rama `web` puede seguir poniéndose al día sin que nadie la publique.

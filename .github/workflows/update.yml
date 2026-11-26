@@ -294,6 +294,18 @@ jobs:
           fi
           exit 1
 
+      # Parte D (docs/almacenamiento.md, «La web»): Pages publica la rama web, solo lo de la web sacado de main
+      # (scripts/rama_web.py). Tras las dos subidas de arriba (la de datos y la del diagnóstico: data-health.json
+      # también es de la web) y en el mismo job, porque el push con GITHUB_TOKEN no lanza web.yml: así la web llega
+      # tan pronto como hoy. También con algo en rojo (lo subido, subido está), y sin poder parar la pasada: un
+      # fallo (la rama no se pudo subir, al árbol le falta algo) lo arregla la pasada siguiente o web.yml, y
+      # mientras tanto Pages sigue con la web de antes. 5 min de plazo (hoy, unos 3 s).
+      - name: Poner al día la rama web
+        if: ${{ !cancelled() }}
+        continue-on-error: true
+        timeout-minutes: 5
+        run: python3 scripts/rama_web.py publicar
+
       # Fase 2D (14/11/2026): si hay competiciones o grupos nuevos (newCompetitions, newGroups) y toca
       # (source_health.py pendiente: lo nuevo, ya; una descarga a medias, otro intento, hasta 8; lo que no se
       # arregla solo, una vez al día), lanza activar.yml sobre main; arranca en fila tras esta pasada

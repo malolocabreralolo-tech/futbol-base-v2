@@ -1,0 +1,39 @@
+name: Rama web
+
+# Parte D (docs/almacenamiento.md, «La web»): GitHub Pages publica la rama web, que lleva solo lo que la web
+# sirve (scripts/rama_web.py: la página, el SW, el código, los datos, la fuente, los iconos y los escudos), sacado
+# de main; ni la base, ni sus piezas, ni scripts/, ni los documentos. El bot (update.yml) y la activación
+# (activar.yml) la ponen al día ellos mismos tras sus subidas: sus push con GITHUB_TOKEN no lanzan workflows. Este,
+# tras un push a mano a main, a mano, y cada 6 h por si alguno de los dos falló. Nunca fuerza: si otro la puso al
+# día entretanto, vuelve a empezar desde el fetch (la rama nunca retrocede).
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: '41 */6 * * *'
+
+# contents: write, solo para subir la rama web.
+permissions:
+  contents: write
+
+# Uno a la vez y sin cancelar al que corre; con el bot y la activación no hace falta cola: los tres suben sin
+# forzar y reintentan.
+concurrency:
+  group: rama-web
+  cancel-in-progress: false
+
+jobs:
+  web:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      # ref: main, el main de AHORA (un disparo en cola trabajaría sobre el commit de cuando se lanzó); de todos
+      # modos, rama_web.py trae main otra vez antes de hacer el árbol.
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: main
+
+      - name: Poner al día la rama web
+        run: python3 scripts/rama_web.py publicar

@@ -245,6 +245,15 @@ jobs:
           fi
           exit 1
 
+      # Parte D (docs/almacenamiento.md, «La web»): la rama web que publica Pages, al día con lo que acaba de subir
+      # esta activación (lo activado o su fallo), como en update.yml; sin poder parar nada (un fallo lo arregla la
+      # pasada siguiente del bot o web.yml). Sin nada pendiente no ha subido nada y no hace falta.
+      - name: Poner al día la rama web
+        if: ${{ !cancelled() && steps.activar.outcome != 'skipped' }}
+        continue-on-error: true
+        timeout-minutes: 5
+        run: python3 scripts/rama_web.py publicar
+
       # El rojo, al final: lo que sí se activó ya está publicado y el resultado subido. El intento siguiente
       # lo lanza el bot (source_health.py pendiente), no este job.
       - name: Activación en rojo
