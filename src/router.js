@@ -14,7 +14,7 @@ import { CATEGORIES, CAT_WORDS, LAZY_CATS, competitions, findGroup, findMatch, f
 import { defaultCategory, myTeamIn, routeIsMine, sameClub, seasonChangeCats } from './myteam.js';
 import { skeleton, errorScreen, routeNotice, routeTitle, updateTabbar } from './shell.js';
 import { lazyCatOfCode, lazyCatsOf, lazyNeeds, normalizeTeamName, seasonNeeds } from './state.js';
-import { forecastOptions } from './ui.js';
+import { forecastOptions, pickerCategories } from './ui.js';
 import { projectionApplies, standingsStart } from './proyeccion.js';
 
 // Destinos principales de la barra, por pantalla.
@@ -50,6 +50,19 @@ const CLOSED = {
   goleadores: { c: CATEGORIES },
   records: { c: CATEGORIES },
 };
+
+// Infantil, cadete y juvenil, y la isla «interinsular» (solo suya), valen además solo en una temporada que las
+// tiene (pickerCategories de ui.js: las dice su entrada de data-seasons.js o ya están sus grupos). Si no, se
+// quitan como un valor cerrado que no existe: con la base de hoy, una dirección escrita a mano con ellas
+// (#/ligas?c=cadete, #/goleadores?c=juvenil, #/ligas?i=interinsular) hace lo de antes de las nuevas.
+const SINCE_E = ['infantil', 'cadete', 'juvenil'];
+function absentNew(ctx, s, raw, closed) {
+  const has = pickerCategories(ctx, s, null);
+  const out = [];
+  if (closed.c && SINCE_E.includes(raw.c) && !has.includes(raw.c)) out.push('c');
+  if (closed.i && raw.i === 'interinsular' && !SINCE_E.some((cat) => has.includes(cat))) out.push('i');
+  return out;
+}
 
 const redirect = (screen, params, notice = null) => ({ redirect: { screen, params, notice } });
 const omit = (params, key) => Object.fromEntries(Object.entries(params).filter(([k]) => k !== key));
@@ -195,7 +208,8 @@ export function resolveParams(route, ctx) {
     return redirect(screen, omit(raw, 's'), `No existe la temporada ${seasonLabel(raw.s)}; te enseñamos la actual`);
   }
   const closed = CLOSED[screen] || {};
-  const wrong = Object.keys(closed).filter((key) => raw[key] != null && !closed[key].includes(raw[key]));
+  const wrong = [...Object.keys(closed).filter((key) => raw[key] != null && !closed[key].includes(raw[key])),
+    ...absentNew(ctx, raw.s || portal, raw, closed)];
   if (wrong.length) return redirect(screen, Object.fromEntries(Object.entries(raw).filter(([key]) => !wrong.includes(key))));
   const params = { ...raw, s: raw.s || portal };
   if (screen === 'jornada' || screen === 'tabla') return leagueParams(screen, raw, params, ctx);

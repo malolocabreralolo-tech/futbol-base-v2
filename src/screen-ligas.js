@@ -10,7 +10,7 @@
 // La temporada de la ruta la carga el router, que también deja `c`, `i` y `to` válidos o
 // los quita; la barra marca el destino de `to` (activeTab).
 import { html } from './html.js';
-import { screenHead, block, countLabel, crest, decimal, empty, notice, linkRow, listEs, signed } from './ui.js';
+import { screenHead, block, countLabel, crest, decimal, empty, notice, linkRow, listEs, pickerCategories, signed } from './ui.js';
 import { errorBox, lazyFailedBox } from './shell.js';
 import {
   CATEGORIES, CAT_NAMES, CAT_WORDS, competitions, compareGroups, groupSummary, seasonLabel,
@@ -27,15 +27,16 @@ const seasonOf = ctx => (ctx.params && ctx.params.s) || ctx.portal.season;
 
 /* Lo que enseña la ruta, para render y mount: la temporada, las competiciones (ya filtradas por `c`,
  * `i` y, sin `f`, por `to`), las de la clave `f` y las categorías de las que habla: la `c` o, sin ella,
- * las que tienen competiciones en la temporada (una temporada sin alevín no lo nombra), o todas si no
- * hay ninguna. */
+ * las que tienen competiciones en la temporada (una temporada sin alevín no lo nombra) o, si no hay ninguna,
+ * las de la temporada (pickerCategories: benjamín, prebenjamín y alevín, y las nuevas que tenga), nunca las
+ * seis a ciegas. */
 export function ligasView(ctx) {
   const s = seasonOf(ctx);
   const { c = null, i = null, f = null, to = null } = ctx.params || {};
   const all = competitions(ctx.model, s, { cat: c, island: i });
   const list = f ? [] : all.filter(e => !to || e.kind === 'liga');
   const present = CATEGORIES.filter(cat => list.some(e => e.cat === cat));
-  return { s, c, i, f, to, list, chosen: f ? all.filter(e => e.key === f) : [], cats: c ? [c] : present.length ? present : CATEGORIES };
+  return { s, c, i, f, to, list, chosen: f ? all.filter(e => e.key === f) : [], cats: c ? [c] : present.length ? present : pickerCategories(ctx, s, null) };
 }
 
 // Las competiciones con «Comparar grupos»: 2 grupos de liga o más.

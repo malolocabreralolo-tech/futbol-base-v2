@@ -264,3 +264,13 @@ test('test_ligas_interinsular: juvenil con la División de Honor (interinsular) 
   await router.idle();
   assert.equal(b.hash(), '#/ligas?c=juvenil');
 });
+
+// Sin competiciones (una isla sin grupos), el texto nombra las categorías de la temporada, no las seis: con la
+// base de hoy, «benjamín, prebenjamín y alevín», como antes de las nuevas; con cadete, también cadete.
+test('Ligas vacía nombra las categorías de la temporada, no las seis', () => {
+  assert.match(render({ i: 'interinsular' }), /<p class="empty">No hay competiciones interinsulares de benjamín, prebenjamín y alevín en la temporada 2025\/26\.<\/p>/);
+  const CAD = lazyWith('cadete', [{ id: 'CADNG1', phase: 'Insular GC', fullName: 'LIGA CADETE INSULAR GRAN CANARIA - GRUPO 1', teams: ['Club Cadete Uno', 'Club Cadete Dos'] }]);
+  assert.match(render({ i: 'interinsular' }, {}, { lazy: { cadete: CAD } }),
+    /<p class="empty">No hay competiciones interinsulares de benjamín, prebenjamín, alevín y cadete en la temporada 2025\/26\.<\/p>/);
+  assert.match(head(render({ i: 'interinsular' })), /^‹ Ligas Benjamín, prebenjamín y alevín interinsular · 2025\/26$/);
+});

@@ -44,13 +44,13 @@ function model(loaded = []) {
     clubIndex: () => INDEX,
   };
 }
-function context({ resolution = OK, loaded = [] } = {}) {
+function context({ resolution = OK, loaded = [], seasons = SEASONS } = {}) {
   return () => ({
     portal: { season: PORTAL, defaultTeam: { cat: 'prebenjamin', groupId: 'PG2', name: 'Las Mesas Hu.' } },
     model: model(loaded), resolution, myTeam: MY_TEAM, today: '2026-09-23', health: null,
     // El alevín ya pedido y vacío (contrato común de alevín): estas pruebas no lo esperan; las de
     // alevín están en test_rediseno_alevin.mjs.
-    datasets: { seasons: SEASONS, seasonRaw: {}, ...lazyEmpty(['2024-2025']) },
+    datasets: { seasons, seasonRaw: {}, ...lazyEmpty(['2024-2025']) },
   });
 }
 const resolve = (hash, options) => resolveParams(parseRoute(hash), context(options)());
@@ -141,6 +141,27 @@ test('Explorar, Ligas, Copa, Goleadores y Récords: la temporada por defecto y s
   assert.deepEqual(resolve('#/copa?g=MCPK1'), { params: { g: 'MCPK1', s: PORTAL } });
   assert.deepEqual(resolve('#/goleadores?s=2024-2025&c=prebenjamin', { loaded: ['2024-2025'] }), { params: { s: '2024-2025', c: 'prebenjamin' } });
   assert.deepEqual(resolve('#/records?c=benjamin'), { params: { c: 'benjamin', s: PORTAL } });
+});
+
+// Infantil, cadete y juvenil, y la isla «interinsular» (solo de ellas), escritos a mano en una temporada que no
+// las tiene (ni las dice su entrada de data-seasons.js ni están sus grupos): se quitan sin aviso, como antes de
+// las nuevas (un valor cerrado que no existe). Con ellas, se quedan.
+test('una categoría nueva o «interinsular» en una temporada sin ellas se quitan, como antes; con ellas, se quedan', () => {
+  for (const [hash, to] of [['#/ligas?c=cadete', '#/ligas'], ['#/goleadores?c=juvenil', '#/goleadores'], ['#/records?c=infantil', '#/records'],
+    ['#/ligas?i=interinsular', '#/ligas'], ['#/ligas?c=benjamin&i=interinsular', '#/ligas?c=benjamin'],
+    ['#/ligas?s=2024-2025&c=cadete&to=tabla', '#/ligas?s=2024-2025&to=tabla'], ['#/ligas?c=juvenil&i=interinsular', '#/ligas']]) {
+    assert.deepEqual(target(resolve(hash)), [to, null], hash);
+  }
+  // La temporada del portal con cadete (su `lazy`): cadete y la isla interinsular valen; juvenil, no.
+  const withCadete = [{ name: PORTAL, current: true, lazy: ['alevin', 'cadete'] }, { name: '2024-2025', current: false }];
+  const res = (hash) => resolveParams(parseRoute(hash), context({ seasons: withCadete })());
+  assert.deepEqual(res('#/ligas?c=cadete'), { params: { c: 'cadete', s: PORTAL } });
+  assert.deepEqual(res('#/ligas?i=interinsular'), { params: { i: 'interinsular', s: PORTAL } });
+  assert.deepEqual(res('#/records?c=cadete'), { params: { c: 'cadete', s: PORTAL } });
+  assert.deepEqual(target(res('#/goleadores?c=juvenil')), ['#/goleadores', null]);
+  assert.deepEqual(target(res('#/ligas?s=2024-2025&c=cadete')), ['#/ligas?s=2024-2025', null], 'la pasada no la tiene');
+  // Las de siempre, como siempre.
+  assert.deepEqual(resolve('#/ligas?c=alevin&i=lanzarote'), { params: { c: 'alevin', i: 'lanzarote', s: PORTAL } });
 });
 
 test('Partido: vale si findMatch lo encuentra (su ronda, o el único h–a del grupo); si no, a su jornada con aviso', () => {
