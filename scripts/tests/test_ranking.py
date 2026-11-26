@@ -164,6 +164,24 @@ def test_tiene_nivel_y_fase_que_cuenta_de_las_categorias_nuevas():
     assert fase_que_cuenta("Primera Fase GC", "A") == "Segunda Fase A"                   # hoy
 
 
+def test_la_copa_de_campeones_de_las_nuevas_cuenta_con_su_liga():
+    """En infantil, cadete y juvenil (por_liga: las del convenio, generate_js._cuenta_su_liga) la Copa de
+    Campeones es una copa más: cuenta con la mejor liga de su equipo y, sin ella (una liga sin nivel propio,
+    como la Primera), con 1, como las demás copas; nunca con su 1,25 fijo. En benjamín, prebenjamín y alevín
+    de Gran Canaria, como siempre."""
+    assert fase_que_cuenta("Copa de Campeones", "Primera Lanzarote", por_liga=True) == "Primera Lanzarote"
+    assert fase_que_cuenta("Copa de Campeones", "Insular Fuerteventura", por_liga=True) == "Insular Fuerteventura"
+    assert nivel_fase(fase_que_cuenta("Copa de Campeones", None, por_liga=True)) == 1.0
+    assert fase_que_cuenta("Copa de Campeones", "Preferente GC Fase Oro", por_liga=True) == "Preferente GC Fase Oro"
+    # Las demás, igual con por_liga.
+    assert fase_que_cuenta("Copa Insular Lanzarote", "Insular Lanzarote", por_liga=True) == "Insular Lanzarote"
+    assert fase_que_cuenta("Insular GC Fase 1", "Preferente GC", por_liga=True) == "Insular GC Fase 1"
+    # Las de siempre: la suya, 1,25 (o la de su letra).
+    assert fase_que_cuenta("Copa de Campeones", "A") == "Copa de Campeones"
+    assert fase_que_cuenta("Copa Campeones Benjamin B", None) == "Copa Campeones Benjamin B"
+    assert nivel_fase(fase_que_cuenta("Copa de Campeones", None)) == 1.25
+
+
 def test_nivel_isla_interinsular():
     """Las ligas de varias islas no se rebajan."""
     assert nivel_isla("interinsular") == 1.0

@@ -1341,7 +1341,8 @@ def _datos_fichas(conn, confirmados=None):
             ((year, first_day.get(gid, "9999"), code, team, len(motivo), motivo),
              [season, code, team, pj, tit, goals, yellow, red, *motivo], (season, code, cat, gname, phase, island),
              (year, cat, R.fase_que_cuenta(phase, (mejor_liga if _cuenta_su_liga(cat, island) else mejor)
-                                           .get((sid, cid, team_id))), pj, tit, goals,
+                                           .get((sid, cid, team_id)), por_liga=_cuenta_su_liga(cat, island)),
+              pj, tit, goals,
               round(por_rival or 0.0, 4), island, percentil.get((gid, team_id)), season, team)))
     for filas in por_ficha.values():
         filas.sort(key=lambda x: x[0])
