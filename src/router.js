@@ -131,12 +131,15 @@ function mineWaits(ctx) {
 }
 
 // Un grupo `id` que no está en la temporada `s`: lo que falta de la categoría de su prefijo (o de `cat`,
-// la de la ruta) o, si no se sabe, de las que tiene la temporada (seasonCats). Nunca soft: si no llegan, la
-// caja de error de la que falta, nunca un falso «No encontramos el grupo» (con la base de hoy, alevín, como
-// antes de las nuevas).
+// la de la ruta) o, si no se sabe, de las que tiene la temporada (seasonCats). Si la temporada no tiene la de
+// su prefijo (un CAD… escrito a mano en una temporada sin cadete), su data-<cat>.js no tendría nada: alevín,
+// como cualquier grupo que no estaba antes de las nuevas, y con la base de hoy las mismas peticiones que
+// entonces. Nunca soft: si no llegan, la caja de error de la que falta, nunca un falso «No encontramos el grupo».
 function groupWants(ctx, id, s, cat = null) {
   const own = cat || lazyCatOfCode(id);
-  return wantsOf(ctx, own ? [own] : seasonCats(ctx, s), s, false);
+  const declared = seasonCats(ctx, s);
+  const cats = !own ? declared : declared.includes(own) ? [own] : declared.filter((c) => c === 'alevin');
+  return wantsOf(ctx, cats, s, false);
 }
 
 const SCORER_SCREENS = new Set(['goleadores', 'records']);
@@ -293,9 +296,11 @@ function competitionParams(raw, params, ctx) {
   if (!entry) {
     const lost = () => redirect('ligas', { s, c: raw.c, to: 'jornada' }, `No encontramos la competición ${raw.f} en la temporada ${seasonLabel(params.s)}`);
     // La de una perezosa (o, sin `c`, las que puede ser: las de la temporada), como un grupo que no está:
-    // antes, ella.
+    // antes, ella. Solo si la temporada la tiene (seasonCats): `c=cadete` en una temporada sin cadete no pide
+    // data-cadete.js (con la base de hoy, como antes de las nuevas: nada).
     if (raw.c && !LAZY_CATS.includes(raw.c)) return lost();
-    const wants = wantsOf(ctx, raw.c ? [raw.c] : seasonCats(ctx, params.s), params.s, false);
+    const declared = seasonCats(ctx, params.s);
+    const wants = wantsOf(ctx, raw.c ? declared.filter((cat) => cat === raw.c) : declared, params.s, false);
     return wants.length ? { params, lazy: wants } : lost();
   }
   if (raw.c !== entry.cat) return redirect('jornada', { ...raw, c: entry.cat });

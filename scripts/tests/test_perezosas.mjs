@@ -37,7 +37,7 @@ const quiet = (fn) => async () => {
 
 const state = await import('../../src/state.js');
 const { LAZY_CATS, createModel } = await import('../../src/model.js');
-const { needsLazy, startRouter } = await import('../../src/router.js');
+const { needsLazy, resolveParams, startRouter } = await import('../../src/router.js');
 const { parseRoute } = await import('../../src/links.js');
 const { html } = await import('../../src/html.js');
 const { fakeBrowser } = await import('./fixtures/rediseno/fake-browser.mjs');
@@ -186,8 +186,14 @@ test('test_lazy_needs_y_fallos: needsLazy de cada ruta', () => {
   assert.deepEqual(need('#/explorar', ctxWith({}, {}, ['cadete'])), [{ cat: 'alevin', season: PORTAL, soft: true }, { cat: 'cadete', season: PORTAL, soft: true }]);
   assert.deepEqual(need('#/goleadores?c=infantil', none), [{ cat: 'infantil', season: PORTAL, soft: false }]);
   assert.deepEqual(need('#/records?c=cadete', none), [{ cat: 'cadete', season: PORTAL, soft: false }]);
-  assert.deepEqual(need('#/tabla?g=CADNG2&s=2026-2027', none), [{ cat: 'cadete', season: PORTAL, soft: false }]);
-  assert.deepEqual(need('#/tabla?g=JUVPL1', none), [{ cat: 'juvenil', season: PORTAL, soft: false }]);
+  // Un grupo de una nueva, por su prefijo, si la temporada la tiene; si no (la base de hoy), lo de antes de las
+  // nuevas (alevín), sin pedir un data-<cat>.js que no tendría nada.
+  const cadete = ctxWith({}, {}, ['cadete']);
+  assert.deepEqual(need('#/tabla?g=CADNG2&s=2026-2027', cadete), [{ cat: 'cadete', season: PORTAL, soft: false }]);
+  assert.deepEqual(need('#/tabla?g=CADNG2&s=2026-2027', none), [{ cat: 'alevin', season: PORTAL, soft: false }]);
+  assert.deepEqual(need('#/tabla?g=CADI1', none), [{ cat: 'alevin', season: PORTAL, soft: false }]);
+  assert.deepEqual(need('#/tabla?g=JUVPL1', all), [{ cat: 'juvenil', season: PORTAL, soft: false }]);
+  assert.deepEqual(need('#/tabla?g=JUVPL1', cadete), [{ cat: 'alevin', season: PORTAL, soft: false }], 'nunca la de otra nueva');
   assert.deepEqual(need('#/tabla?g=AL3', none), [{ cat: 'alevin', season: PORTAL, soft: false }]);
   // Un código que no dice su categoría: las de la temporada, sin soft (si no llegan, su caja de error, nunca un
   // falso «No encontramos el grupo»): con la base de hoy, alevín, como antes de las nuevas.
@@ -209,6 +215,17 @@ test('test_lazy_needs_y_fallos: needsLazy de cada ruta', () => {
   assert.deepEqual(need(`#/explorar?s=${PAST}`, ctxWith(loadedAll())), [{ cat: 'alevin', season: PAST, soft: true }]);
   const pastLoaded = Object.fromEntries(LAZY_CATS.map((cat) => [cat, { [PAST]: {} }]));
   assert.deepEqual(need(`#/explorar?s=${PAST}`, ctxWith(loadedAll(), pastLoaded, ALL)), []);
+});
+
+test('test_lazy_needs_y_fallos: «Todos los grupos» de una nueva (c=cadete&f=…) solo pide su fichero si la temporada la tiene', () => {
+  const at = (hash, ctx) => resolveParams(parseRoute(hash), ctx);
+  // Con la base de hoy (SEASONS sin `lazy`): nada que pedir, a Ligas con su aviso, como antes de las nuevas.
+  const hoy = at('#/jornada?c=cadete&f=interinsular', ctxWith());
+  assert.equal(hoy.lazy, undefined, 'no pide data-cadete.js');
+  assert.equal(hoy.redirect.screen, 'ligas');
+  // Con cadete en la temporada, lo pide antes de dar la competición por perdida; alevín, como siempre.
+  assert.deepEqual(at('#/jornada?c=cadete&f=interinsular', ctxWith({}, {}, ['cadete'])).lazy, [{ cat: 'cadete', season: PORTAL, soft: false }]);
+  assert.deepEqual(at('#/jornada?c=alevin&f=primera-fase', ctxWith()).lazy, [{ cat: 'alevin', season: PORTAL, soft: false }]);
 });
 
 test('test_lazy_needs_y_fallos: con data-juvenil.js caído, Explorar se pinta con las demás y lo dice en ctx.lazyFailed', quiet(async () => {
@@ -235,7 +252,7 @@ test('test_lazy_needs_y_fallos: con data-juvenil.js caído, Explorar se pinta co
 }));
 
 test('test_lazy_needs_y_fallos: un grupo de cadete que no llega da la caja de error de cadete, nunca «No encontramos el grupo»', quiet(async () => {
-  const ctx = ctxWith();
+  const ctx = ctxWith({}, {}, ['cadete']);
   const loadLazy = (cat, season, data, portalSeason) => state.lazyNeeds(cat, season, data, portalSeason, { ensure: async () => null });
   const screens = { tabla: { id: 'tabla', render: () => html`<section><h1>Tabla</h1></section>` } };
   screens[''] = screens.tabla;
