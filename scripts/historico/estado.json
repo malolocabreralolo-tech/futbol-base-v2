@@ -929,6 +929,17 @@
     "actas:2025-2026:alevin"
    ],
    "verde": true
+  },
+  {
+   "at": "2026-11-27T08:07:47+00:00",
+   "mb_antes": 53.598,
+   "mb_despues": 54.844,
+   "motivo": "",
+   "segundos": 80.5,
+   "trabajos": [
+    "actas:2026-2027:infantil"
+   ],
+   "verde": true
   }
  ],
  "trabajos": {
@@ -944,8 +955,13 @@
    "pendientes": 0
   },
   "actas:2026-2027:infantil": {
-   "actualizado": "2026-11-27T07:56:10+00:00",
-   "estado": "completo",
+   "actualizado": "2026-11-27T08:07:47+00:00",
+   "estado": "promovido",
+   "huellas": {
+    "fiflp_actas_2026-2027_infantil_index.json": "55108fc859bb1a0a7a695d954c3a4fd098980784",
+    "fiflp_actas_2026-2027_infantil_raw.json": "74b3996a6e0c88d9b90a95e2854f673fe7210a72",
+    "fiflp_actas_2026-2027_infantil_status.json": "96106bd4e3c866fd2d04327706cb440f0301b83b"
+   },
    "no_disponible": 0,
    "pendientes": 0
   },
