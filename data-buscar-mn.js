@@ -1,1 +1,1 @@
-const BUSCAR_MN = [["235538","MNIJEL MEZIANE, OMAR","San Antonio B","2025-2026",[2014,2015]]];
+const BUSCAR_MN = [["235538","MNIJEL MEZIANE, OMAR","San Antonio B","2026-2027",[2014]]];
