@@ -401,15 +401,12 @@ def test_cada_disparo_tiene_sus_tres_relanzamientos():
     assert seguidas == [True, True, True, False]
 
 
-def test_el_estado_de_hoy_se_lee_bien(tmp_path):
-    """El estado.json del 26/11/2026 (copiado de scripts/historico/, sin tocar el de verdad): sus rechazadas son de
-    antes de relanzar («relanzada» falsa en todas), así que el disparo siguiente que cae en AWS abre cadena y tiene
-    sus 3. El formato no cambia."""
-    import shutil
-    real = ROOT / "scripts" / "historico" / "estado.json"
-    copia = tmp_path / "estado.json"
-    shutil.copy2(real, copia)
-    e = json.loads(copia.read_text(encoding="utf-8"))
+def test_el_estado_del_26_11_se_lee_bien():
+    """El estado.json del 26/11/2026, congelado en fixtures (el de scripts/historico/ lo escribe el carril en cada
+    ejecución: hasta el 27/11 esta prueba leía ese, y cuando acababa en una cadena de rechazadas ya relanzadas dejaba
+    en rojo la puerta de pruebas del bot, que se quedó una pasada sin publicar). Sus rechazadas son de antes de
+    relanzar («relanzada» falsa en todas), así que el disparo siguiente que cae en AWS abre cadena y tiene sus 3."""
+    e = json.loads((ROOT / "scripts" / "tests" / "fixtures" / "historico_estado_2026-11-26.json").read_text(encoding="utf-8"))
     assert e["formato"] == H.estado_vacio()["formato"]
     rechazado = {"servidas": 0, "runner_rechazado": True, "parada": "runner"}
     nueva = {"runner_rechazado": True, "relanzada": False}
@@ -422,7 +419,13 @@ def test_el_estado_de_hoy_se_lee_bien(tmp_path):
     hoy["ejecuciones"][-1]["relanzada"] = True
     hoy["ejecuciones"].append(dict(nueva))
     assert not H.relanzar(rechazado, {"accion": "descargar"}, hoy)       # la 4.ª
-    assert real.read_bytes() != b"" and json.loads(real.read_text(encoding="utf-8")) == e
+
+
+def test_el_estado_de_verdad_tiene_el_formato_de_hoy():
+    """Del estado de verdad (el que escribe el carril), solo lo que no depende de por dónde vaya: que se lee y que
+    su formato es el del código."""
+    real = json.loads((ROOT / "scripts" / "historico" / "estado.json").read_text(encoding="utf-8"))
+    assert real["formato"] == H.estado_vacio()["formato"] and isinstance(real["ejecuciones"], list)
 
 
 def test_un_runner_rechazado_no_gasta_el_dia_ni_toca_los_trabajos():
