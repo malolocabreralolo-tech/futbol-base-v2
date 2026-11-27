@@ -1,14 +1,14 @@
 {
  "formato": 2,
  "season": "2026-2027",
- "enumerated": 346,
- "in_raw": 158,
- "fetched": 0,
- "pending": 191,
- "actas_por_leer": 188,
+ "enumerated": 556,
+ "in_raw": 400,
+ "fetched": 241,
+ "pending": 158,
+ "actas_por_leer": 156,
  "jornadas_por_leer": 0,
  "grupos_por_leer": 0,
- "unenumerated_comps": 3,
+ "unenumerated_comps": 2,
  "no_disponible": [],
  "intentos": {},
  "motivos": {},
@@ -48,7 +48,24 @@
    "pendientes": {}
   },
   "55184138": {
-   "grupos": null,
+   "grupos": [
+    [
+     "55184282",
+     "GRUPO 1"
+    ],
+    [
+     "55184285",
+     "GRUPO 2"
+    ],
+    [
+     "55184293",
+     "GRUPO 3"
+    ],
+    [
+     "55184307",
+     "GRUPO 4"
+    ]
+   ],
    "pendientes": {}
   },
   "54976911": {
@@ -61,8 +78,8 @@
   }
  },
  "paginas": {
-  "pedidas": 1,
-  "servidas": 0
+  "pedidas": 306,
+  "servidas": 300
  },
- "parada": "runner"
+ "parada": "freno"
 }
