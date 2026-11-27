@@ -1,1 +1,1 @@
-const BUSCAR_UQ = [["226224","BELLO GALAZ, UQUEN","Atco. Isleta","2023-2024",[2014,2015]]];
+const BUSCAR_UQ = [["226224","BELLO GALAZ, UQUEN","Atl. Isleta B","2025-2026",[2014,2015]]];
