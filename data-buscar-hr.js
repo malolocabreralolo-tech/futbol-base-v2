@@ -1,1 +1,1 @@
-const BUSCAR_HR = [["211872","DONCHEV HRISTOV, DENIS","Maspalomas B","2026-2027",[2010,2011]]];
+const BUSCAR_HR = [["211872","DONCHEV HRISTOV, DENIS","Maspalomas B","2026-2027",[2010]]];
