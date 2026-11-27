@@ -50,7 +50,7 @@
   "2026-11-24": "2026-11-25T01:39:31",
   "2026-11-25": "2026-11-26T02:05:30",
   "2026-11-26": "2026-11-27T00:23:49",
-  "2026-11-27": "2026-11-27T10:44:03"
+  "2026-11-27": "2026-11-27T12:35:18"
  },
  "ligas": {
   "121": {
@@ -42421,7 +42421,7 @@
    "arbitro_principal_nombre": null,
    "asistente1_nombre": null,
    "asistente2_nombre": null,
-   "campo_gps": "https://google.com27.85893350,-15.39102560",
+   "campo_gps": "https://goo.gl/maps/Ks8x6ZHjpiZpBhZ29",
    "campo_latitud": "27.85893350",
    "campo_longitud": "-15.39102560",
    "club_padre_local": "CD Arinaga",
@@ -42429,7 +42429,7 @@
    "escudo_local": "100x100arinaga.png",
    "escudo_visitante": "tableroEscudo.png",
    "estadio": "Mun. Arinaga",
-   "estado": "no_iniciado",
+   "estado": "retirado",
    "fase_eliminatoria": "",
    "fecha_programada": "2026-11-27 17:30:00",
    "goleadores_local": null,
@@ -42571,12 +42571,14 @@
    "campo_gps": "https://maps.app.goo.gl/BH7oKLzexQDsjSPL7",
    "campo_latitud": "27.84739640",
    "campo_longitud": "-15.44896970",
+   "club_padre_local": "Vecindario",
+   "club_padre_visitante": "CD Cerruda",
    "escudo_local": "UDvecindario.png",
    "escudo_visitante": "100x100cerruda.png",
    "estadio": "Axo. Vecindario",
    "estado": "no_iniciado",
    "fase_eliminatoria": "",
-   "fecha_programada": "2026-11-28 10:30:00",
+   "fecha_programada": "2026-11-27 17:30:00",
    "goleadores_local": null,
    "goleadores_visitante": null,
    "goles_ida_local": 0,
@@ -42597,6 +42599,7 @@
    "pen_visit": "",
    "penaltis_local": "",
    "penaltis_visitante": "",
+   "permitir_comentarios": 0,
    "permitir_comentarios_liga": 0,
    "racha_local": [
     "E",
