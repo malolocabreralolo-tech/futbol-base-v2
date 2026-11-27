@@ -1,14 +1,14 @@
 {
  "formato": 2,
  "season": "2026-2027",
- "enumerated": 547,
- "in_raw": 431,
- "fetched": 0,
- "pending": 123,
- "actas_por_leer": 116,
- "jornadas_por_leer": 0,
+ "enumerated": 669,
+ "in_raw": 641,
+ "fetched": 210,
+ "pending": 30,
+ "actas_por_leer": 28,
+ "jornadas_por_leer": 1,
  "grupos_por_leer": 0,
- "unenumerated_comps": 7,
+ "unenumerated_comps": 1,
  "no_disponible": [],
  "intentos": {},
  "motivos": {},
@@ -74,28 +74,70 @@
    "pendientes": {}
   },
   "54976906": {
-   "grupos": null,
+   "grupos": [
+    [
+     "55088396",
+     "CADETE INSULAR"
+    ]
+   ],
    "pendientes": {}
   },
   "54977104": {
-   "grupos": null,
+   "grupos": [
+    [
+     "55103161",
+     "GRUPO 1"
+    ]
+   ],
    "pendientes": {}
   },
   "54977178": {
-   "grupos": null,
+   "grupos": [
+    [
+     "55069270",
+     "GRUPO 1"
+    ],
+    [
+     "55069390",
+     "GRUPO 2"
+    ]
+   ],
    "pendientes": {}
   },
   "54977202": {
-   "grupos": null,
+   "grupos": [
+    [
+     "55301286",
+     "FINAL"
+    ]
+   ],
    "pendientes": {}
   },
   "55133947": {
-   "grupos": null,
+   "grupos": [
+    [
+     "55133948",
+     "ELIMINATORIA"
+    ]
+   ],
    "pendientes": {}
   },
   "54977072": {
-   "grupos": null,
-   "pendientes": {}
+   "grupos": [
+    [
+     "55093516",
+     "GRUPO 1"
+    ],
+    [
+     "55098683",
+     "GRUPO 2"
+    ]
+   ],
+   "pendientes": {
+    "55098683": [
+     "7"
+    ]
+   }
   },
   "55133909": {
    "grupos": null,
@@ -103,8 +145,8 @@
   }
  },
  "paginas": {
-  "pedidas": 1,
-  "servidas": 0
+  "pedidas": 306,
+  "servidas": 300
  },
- "parada": "runner"
+ "parada": "freno"
 }
