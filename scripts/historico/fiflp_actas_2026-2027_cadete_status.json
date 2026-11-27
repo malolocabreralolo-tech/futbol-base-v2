@@ -1,0 +1,66 @@
+{
+ "formato": 2,
+ "season": "2026-2027",
+ "enumerated": 0,
+ "in_raw": 0,
+ "fetched": 0,
+ "pending": 11,
+ "actas_por_leer": 0,
+ "jornadas_por_leer": 0,
+ "grupos_por_leer": 0,
+ "unenumerated_comps": 11,
+ "no_disponible": [],
+ "intentos": {},
+ "motivos": {},
+ "enumeracion": {
+  "54976894": {
+   "grupos": null,
+   "pendientes": {}
+  },
+  "54977183": {
+   "grupos": null,
+   "pendientes": {}
+  },
+  "54976904": {
+   "grupos": null,
+   "pendientes": {}
+  },
+  "54976896": {
+   "grupos": null,
+   "pendientes": {}
+  },
+  "54976906": {
+   "grupos": null,
+   "pendientes": {}
+  },
+  "54977104": {
+   "grupos": null,
+   "pendientes": {}
+  },
+  "54977178": {
+   "grupos": null,
+   "pendientes": {}
+  },
+  "54977202": {
+   "grupos": null,
+   "pendientes": {}
+  },
+  "55133947": {
+   "grupos": null,
+   "pendientes": {}
+  },
+  "54977072": {
+   "grupos": null,
+   "pendientes": {}
+  },
+  "55133909": {
+   "grupos": null,
+   "pendientes": {}
+  }
+ },
+ "paginas": {
+  "pedidas": 2,
+  "servidas": 0
+ },
+ "parada": "runner"
+}
