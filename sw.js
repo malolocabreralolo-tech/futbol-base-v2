@@ -1,4 +1,4 @@
-const CACHE_NAME = 'futbolbase2-v20261127s';
+const CACHE_NAME = 'futbolbase2-v20261127t';
 const CRESTS_CACHE = 'futbolbase2-escudos-21f9b5f8';
 
 // El service worker de Fútbol Base v2. La línea 1 la sube el bot con cada versión de datos
@@ -15,7 +15,7 @@ const PRECACHE_CACHE = 'futbolbase2-precache';
 
 // >>> precache: lo escribe scripts/precache.py
 const PRECACHE = {
-  "index.html": "f4710998",
+  "index.html": "af50d824",
   "dist/acta-c2dfa212.css": "c2dfa212",
   "dist/app-4d586eb3.js": "4d586eb3",
   "src/config.js": "34193a4f",
@@ -25,14 +25,14 @@ const PRECACHE = {
   "icons/icon-192.png": "efe8a25e",
   "icons/icon-512.png": "498ff532",
   "icons/icon-maskable-512.png": "a3e02b61",
-  "data-benjamin.js": "fbd4dcd5",
+  "data-benjamin.js": "bc17e877",
   "data-prebenjamin.js": "720a6ceb",
-  "data-history.js": "37429d74",
-  "data-goleadores.js": "1a23a50c",
+  "data-history.js": "3300f3f1",
+  "data-goleadores.js": "57ef10b8",
   "data-shields.js": "eaeca19f",
-  "data-seasons.js": "14a04e78",
+  "data-seasons.js": "7579bbca",
   "data-maspalomas-cup-2026.js": "4a43b19c",
-  "data-alevin.js": "84adcddb",
+  "data-alevin.js": "b40021fe",
   "data-season-2025-2026.js": "d21763a9",
   "data-season-2024-2025.js": "3880023c",
   "data-season-2023-2024.js": "ab706092",
