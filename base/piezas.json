@@ -58,15 +58,15 @@
       }
     },
     "actas-2026-2027.db": {
-      "bytes": 3272704,
+      "bytes": 4100096,
       "filas": {
-        "appearances": 60240,
-        "match_events": 19661,
-        "match_staff_all": 13136
+        "appearances": 77892,
+        "match_events": 22449,
+        "match_staff_all": 16485
       }
     },
     "comun.db": {
-      "bytes": 17276928,
+      "bytes": 17432576,
       "filas": {
         "categories": 6,
         "detalle_groups": 7,
@@ -86,9 +86,9 @@
         "mygol_participaciones": 136862,
         "mygol_partidos": 4296,
         "mygol_torneos": 17,
-        "players": 22407,
+        "players": 23428,
         "portal_groups": 102,
-        "raw_imports": 55,
+        "raw_imports": 56,
         "scorers": 32105,
         "seasons": 15,
         "standings": 5614,
