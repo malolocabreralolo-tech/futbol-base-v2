@@ -1,0 +1,61 @@
+{
+ "formato": 2,
+ "season": "2026-2027",
+ "enumerated": 243,
+ "in_raw": 204,
+ "fetched": 204,
+ "pending": 42,
+ "actas_por_leer": 39,
+ "jornadas_por_leer": 0,
+ "grupos_por_leer": 0,
+ "unenumerated_comps": 3,
+ "no_disponible": [],
+ "intentos": {},
+ "motivos": {},
+ "enumeracion": {
+  "54976878": {
+   "grupos": [
+    [
+     "55028606",
+     "Grupo 1"
+    ]
+   ],
+   "pendientes": {}
+  },
+  "54976880": {
+   "grupos": [
+    [
+     "55049790",
+     "GRUPO 1"
+    ]
+   ],
+   "pendientes": {}
+  },
+  "54976882": {
+   "grupos": [
+    [
+     "55045510",
+     "GRUPO 1"
+    ]
+   ],
+   "pendientes": {}
+  },
+  "54976884": {
+   "grupos": null,
+   "pendientes": {}
+  },
+  "54976886": {
+   "grupos": null,
+   "pendientes": {}
+  },
+  "54976889": {
+   "grupos": null,
+   "pendientes": {}
+  }
+ },
+ "paginas": {
+  "pedidas": 306,
+  "servidas": 300
+ },
+ "parada": "freno"
+}
