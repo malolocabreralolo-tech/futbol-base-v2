@@ -770,7 +770,11 @@
     "status": "pending"
   },
   "runHealth": {
-    "ok": true
+    "ok": false,
+    "reasons": [
+      "las pruebas fallaron: los datos de esta pasada no se publicaron"
+    ],
+    "since": "2026-11-27T05:46:29+00:00"
   },
   "carriles": {
     "mayores": {
