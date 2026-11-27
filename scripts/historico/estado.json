@@ -2,7 +2,7 @@
  "dia": {
   "fecha": "2026-11-27",
   "freno": "carril",
-  "paginas": 918
+  "paginas": 1009
  },
  "dias_frenados": [
   "2026-11-26",
@@ -870,6 +870,29 @@
     "22"
    ],
    "trabajo": "actas"
+  },
+  {
+   "accion": "descargar",
+   "esperas": 0,
+   "esperas_s": [],
+   "esperas_sirvio": [],
+   "fin": "2026-11-27T07:56:10+00:00",
+   "frenos": 0,
+   "frenos_tras": [],
+   "inicio": "2026-11-27T07:45:32+00:00",
+   "lote": "infantil",
+   "muertas": 0,
+   "nube": "azure",
+   "paginas": 3082,
+   "parada": null,
+   "pedidas": 91,
+   "relanzada": true,
+   "runner_rechazado": false,
+   "servidas": 91,
+   "temporadas": [
+    "22"
+   ],
+   "trabajo": "actas"
   }
  ],
  "formato": 1,
@@ -921,10 +944,10 @@
    "pendientes": 0
   },
   "actas:2026-2027:infantil": {
-   "actualizado": "2026-11-27T07:05:11+00:00",
-   "estado": "pendiente",
+   "actualizado": "2026-11-27T07:56:10+00:00",
+   "estado": "completo",
    "no_disponible": 0,
-   "pendientes": 62
+   "pendientes": 0
   },
   "goleadores:2025-2026": {
    "actualizado": "2026-11-25T19:24:27+00:00",

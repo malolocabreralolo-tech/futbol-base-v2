@@ -1,12 +1,12 @@
 {
  "formato": 2,
  "season": "2026-2027",
- "enumerated": 697,
- "in_raw": 644,
- "fetched": 243,
- "pending": 62,
- "actas_por_leer": 53,
- "jornadas_por_leer": 9,
+ "enumerated": 726,
+ "in_raw": 726,
+ "fetched": 80,
+ "pending": 0,
+ "actas_por_leer": 0,
+ "jornadas_por_leer": 0,
  "grupos_por_leer": 0,
  "unenumerated_comps": 0,
  "no_disponible": [],
@@ -104,24 +104,12 @@
      "GRUPO 3"
     ]
    ],
-   "pendientes": {
-    "55180174": [
-     "1",
-     "2",
-     "3",
-     "4",
-     "5",
-     "6",
-     "7",
-     "8",
-     "9"
-    ]
-   }
+   "pendientes": {}
   }
  },
  "paginas": {
-  "pedidas": 306,
-  "servidas": 300
+  "pedidas": 91,
+  "servidas": 91
  },
- "parada": "freno"
+ "parada": null
 }
