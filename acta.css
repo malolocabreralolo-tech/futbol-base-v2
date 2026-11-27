@@ -1,0 +1,1690 @@
+/* Sistema visual «Acta» en tinta roja (spec §3).
+ * Era style-acta.css hasta el corte de B2, que la convirtió en la hoja de la app con una URL nueva:
+ * el SW de la app anterior sirve style.css desde su caché aunque cambie la ?v=.
+ * Tema claro por defecto; el oscuro solo si el sistema lo pide (spec §4.9). */
+
+/* Public Sans variable, subconjunto latino (@fontsource-variable/public-sans
+ * 5.3.0, licencia OFL en fonts/OFL.txt). Si no carga, system-ui (spec §3.2). */
+@font-face {
+  font-family: 'Public Sans';
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url('fonts/PublicSans-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+:root {
+  color-scheme: light dark;
+  --paper: #FFFFFF;
+  --text: #1A1F2B;
+  --mute: #5A6272;
+  --ink: #C0182B;
+  --on-ink: #FFFFFF;
+  --rule: #E7B9BE;
+  --line: #ECEEF2;
+  --mark: #FBEDEE;
+  --win: #1B7A43;
+  --on-win: #FFFFFF;
+  --draw: #E4E7EC;
+  --on-draw: #1A1F2B;
+  --loss: #1A1F2B;
+  --on-loss: #FFFFFF;
+  --gutter: 14px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #15171C;
+    --text: #ECEEF2;
+    --mute: #A3AAB8;
+    --ink: #FF5A64;
+    --on-ink: #15171C;
+    --rule: #5A2A30;
+    --line: #262A33;
+    --mark: #2A1B1E;
+    --win: #3FBF78;
+    --on-win: #15171C;
+    --draw: #3A3F4A;
+    --on-draw: #ECEEF2;
+    --loss: #ECEEF2;
+    --on-loss: #15171C;
+  }
+}
+
+/* ── Base ─────────────────────────────────────────────────────────────── */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  /* El foco nunca queda debajo de la barra fija. */
+  scroll-padding-bottom: calc(64px + env(safe-area-inset-bottom));
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--text);
+  font-family: 'Public Sans', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 0.84375rem;
+  line-height: 1.45;
+  font-variant-numeric: tabular-nums;
+  padding-bottom: calc(64px + env(safe-area-inset-bottom));
+}
+
+h1, h2, h3, p, dl, dd { margin: 0; }
+h1 { font-size: 1.1875rem; font-weight: 800; line-height: 1.2; }
+a { color: var(--ink); text-underline-offset: 3px; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { background: none; border: 0; padding: 0; cursor: pointer; }
+abbr[title] { text-decoration: none; }
+
+:focus-visible { outline: 2px solid var(--ink); outline-offset: 2px; }
+
+.page { max-width: 640px; margin: 0 auto; padding: 0 var(--gutter) 24px; }
+
+.vh {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.skip-link {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 100;
+  padding: 10px 14px;
+  background: var(--ink);
+  color: var(--on-ink);
+  font-weight: 700;
+  text-decoration: none;
+  transform: translateY(calc(-100% - 16px));
+}
+.skip-link:focus { transform: none; }
+
+/* ── Bloque y caja ────────────────────────────────────────────────────── */
+
+.block { margin-top: 18px; }
+.block-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  column-gap: 8px;
+  margin-bottom: 7px;
+}
+.block-title { font-size: 0.9375rem; font-weight: 800; line-height: 1.25; color: var(--ink); }
+.block-context { min-width: 0; font-size: 0.78125rem; font-weight: 600; color: var(--mute); text-align: right; }
+
+.box { border: 1.5px solid var(--ink); background: var(--paper); }
+.box > * + * { border-top: 1px solid var(--rule); }
+
+/* ── Casillas ─────────────────────────────────────────────────────────── */
+
+.cells {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1px;
+  background: var(--rule);
+}
+.cells-1 { grid-template-columns: minmax(0, 1fr); }
+.cells-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.cells-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.cells-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.cell { min-width: 0; padding: 6px 8px 7px; background: var(--paper); }
+.cell-label { font-size: 0.71875rem; color: var(--mute); }
+.cell-value { font-size: 1.0625rem; font-weight: 800; line-height: 1.3; color: var(--ink); overflow-wrap: anywhere; }
+.cell.is-muted .cell-value { font-size: 0.84375rem; font-weight: 600; color: var(--mute); }
+
+/* ── Fila de partido ──────────────────────────────────────────────────── */
+
+.match-row {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) 52px minmax(0, 1fr);
+  align-items: center;
+  gap: 4px;
+  min-height: 44px;
+  padding: 8px 6px;
+  color: var(--text);
+  text-decoration: none;
+}
+.box > .match-row + .match-row { border-top-color: var(--line); }
+.match-time { font-size: 0.71875rem; color: var(--mute); }
+.match-team { display: flex; align-items: center; gap: 5px; min-width: 0; }
+.match-home { justify-content: flex-end; text-align: right; }
+.match-away { justify-content: flex-start; }
+.match-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.match-score {
+  padding: 3px 0;
+  border: 1px solid var(--rule);
+  font-size: 0.9375rem;
+  font-weight: 800;
+  line-height: 1.3;
+  text-align: center;
+}
+.match-score.is-pending { color: var(--mute); font-weight: 600; }
+.match-note { grid-column: 2 / -1; font-size: 0.78125rem; font-weight: 600; color: var(--mute); text-align: center; }
+/* El pronóstico de un partido sin jugar (forecastLine de ui.js; prebenjamín de la temporada en curso,
+ * 17/10/2026): debajo, a lo ancho de los dos equipos y nunca en la casilla del marcador, que sigue con su
+ * «–»; más pequeño que los nombres, sin negrita y en --mute, también en la fila propia (en tinta y 800). */
+.match-forecast,
+.match-row.is-mine .match-forecast { grid-column: 2 / -1; font-size: 0.75rem; font-weight: 400; line-height: 1.3; color: var(--mute); text-align: center; }
+.match-row.is-mine {
+  background: var(--mark);
+  color: var(--ink);
+  font-weight: 800;
+  box-shadow: inset 3px 0 0 var(--ink);
+}
+.match-row.is-mine .match-score { border-color: var(--ink); }
+.match-row.is-mine .match-time { color: var(--ink); }
+
+/* ── Tabla ────────────────────────────────────────────────────────────── */
+
+.standings { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.standings th, .standings td {
+  height: 44px;
+  padding: 0 3px;
+  border-bottom: 1px solid var(--line);
+  text-align: right;
+}
+.standings thead th {
+  height: auto;
+  padding: 6px 3px;
+  border-bottom: 1.5px solid var(--ink);
+  font-size: 0.71875rem;
+  font-weight: 600;
+  color: var(--mute);
+  white-space: nowrap;
+}
+.standings tbody tr:last-child > * { border-bottom: 0; }
+.standings .st-pos { width: 24px; text-align: center; color: var(--mute); }
+/* Sin overflow: el recorte va en .st-name, y así no se come el contorno de foco de .st-link. */
+.standings .st-team { text-align: left; font-weight: 400; }
+.standings .st-num { width: 24px; }
+.standings .st-gf, .standings .st-gc { width: 32px; }
+.standings .st-dg { width: 38px; }
+.standings .st-pts { width: 30px; font-weight: 800; }
+.standings .st-form { width: 98px; padding-left: 6px; text-align: left; }
+.st-link, .st-label {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  min-height: 44px;
+  color: inherit;
+  text-decoration: none;
+}
+.st-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.st-retired { font-size: 0.71875rem; font-weight: 400; color: var(--mute); }
+.standings tr.is-mine > * { background: var(--mark); color: var(--ink); font-weight: 800; }
+.standings tr.is-mine > :first-child { box-shadow: inset 3px 0 0 var(--ink); }
+
+/* ── Forma ────────────────────────────────────────────────────────────── */
+
+.form { display: inline-flex; gap: 2px; vertical-align: middle; }
+.form-chip {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  font-size: 0.625rem;
+  font-weight: 800;
+  line-height: 1;
+}
+.form-g { background: var(--win); color: var(--on-win); }
+.form-e { background: var(--draw); color: var(--on-draw); }
+.form-p { background: var(--loss); color: var(--on-loss); }
+
+/* ── Selector segmentado y botonera ───────────────────────────────────── */
+
+.segmented { display: flex; border: 1.5px solid var(--ink); }
+.segment {
+  display: flex;
+  flex: 1 1 0;
+  align-items: center;
+  justify-content: center;
+  min-width: 0;
+  min-height: 44px;
+  padding: 0 4px;
+  font-size: 0.84375rem;
+  font-weight: 700;
+  color: var(--ink);
+  text-align: center;
+  text-decoration: none;
+}
+.segment + .segment { border-left: 1px solid var(--rule); }
+.segment[aria-current] { background: var(--ink); color: var(--on-ink); }
+/* El selector de categoría de Goleadores y Récords (categoryPicker de ui.js): el segmentado de siempre, que
+ * con las tres de antes se ve igual (cada una, la misma anchura), y con seis, que no caben a 320 px, se
+ * desliza él, nunca la página, sin barra en el móvil (con ratón, una fina), como la fila de años del ranking.
+ * Ningún nombre se parte ni se monta sobre el de al lado: cada enlace mide al menos su nombre.
+ * position: relative hace de la fila la referencia de offsetLeft (scrollToCurrent, que la lleva a la
+ * elegida al pintar con un nombre entero a la izquierda: el corte, la pista de que se desliza, solo a la
+ * derecha; con la elegida entre las últimas, alarga el final lo justo, --strip-tail). */
+.cat-picker {
+  position: relative;
+  padding-right: var(--strip-tail, 0px);
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
+}
+.cat-picker .segment { min-width: max-content; white-space: nowrap; }
+/* La pista de que hay más categorías a un lado: el borde que tiene más se funde con el papel (un degradado de
+ * --paper, encima de lo que pasa por debajo, también de la elegida, rellena de tinta), y solo entonces:
+ * data-more («left», «right» o los dos) lo pone mountCategoryPicker (ui.js) al pintar y al deslizar. Son dos
+ * pseudoelementos pegados a los bordes de la fila (position: sticky) que no ocupan sitio (su margen negativo
+ * descuenta su anchura): con lo que cabe (las tres de siempre), la fila se ve como antes. */
+.cat-picker::before,
+.cat-picker::after {
+  content: '';
+  position: sticky;
+  z-index: 1;
+  flex: none;
+  width: var(--picker-fade);
+  pointer-events: none;
+  visibility: hidden;
+}
+.cat-picker { --picker-fade: 20px; }
+.cat-picker::before { left: 0; margin-right: calc(-1 * var(--picker-fade)); background: linear-gradient(to right, var(--paper), transparent); }
+.cat-picker::after { right: 0; margin-left: calc(-1 * var(--picker-fade)); background: linear-gradient(to left, var(--paper), transparent); }
+.cat-picker[data-more~="left"]::before,
+.cat-picker[data-more~="right"]::after { visibility: visible; }
+/* El anillo de foco, por dentro: la fila (overflow-x: auto) recorta lo que sale de ella, y por fuera solo se
+ * veían sus lados. Sobre la elegida, rellena de tinta, del color de lo escrito sobre la tinta. */
+.cat-picker .segment:focus-visible { outline-offset: -4px; }
+.cat-picker .segment[aria-current]:focus-visible { outline-color: var(--on-ink); }
+@media (hover: hover) and (pointer: fine) {
+  .cat-picker { scrollbar-width: thin; }
+}
+
+.buttons { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr); }
+.button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0 4px;
+  font-size: 0.84375rem;
+  font-weight: 700;
+  color: var(--ink);
+  text-align: center;
+  text-decoration: none;
+}
+.button + .button { border-left: 1px solid var(--rule); }
+.button.is-main { background: var(--ink); color: var(--on-ink); }
+
+/* La respuesta de «Compartir» (shareStatus de ui.js), la misma en Mi equipo, Jornada y Partido:
+ * «Enlace copiado.» o el enlace, si no se pudo copiar, para copiarlo a mano. Nunca display: none,
+ * o dejaría de anunciarse (decisión 111), y el enlace parte donde haga falta: sin desplazamiento
+ * horizontal a 320 px. Vacía, no ocupa sitio. */
+.share-status { font-size: 0.78125rem; font-weight: 600; color: var(--mute); text-align: right; overflow-wrap: anywhere; }
+.share-status:not(:empty) { margin-top: 6px; }
+
+/* ── Escudo y monograma ───────────────────────────────────────────────── */
+
+.crest { display: inline-block; flex: none; object-fit: contain; vertical-align: middle; }
+.mono {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--line);
+  color: var(--mute);
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  vertical-align: middle;
+}
+.crest-16, .mono-16 { width: 16px; height: 16px; }
+.crest-32, .mono-32 { width: 32px; height: 32px; }
+.crest-46, .mono-46 { width: 46px; height: 46px; }
+.mono-16 { font-size: 0.46875rem; }
+.mono-32 { font-size: 0.75rem; }
+.mono-46 { font-size: 1rem; }
+
+/* ── Aviso y vacío ────────────────────────────────────────────────────── */
+
+.notice { margin-top: 10px; font-size: 0.78125rem; color: var(--mute); }
+.notice b { font-weight: 700; color: var(--text); }
+.empty { padding: 12px; border: 1.5px dashed var(--rule); color: var(--mute); }
+
+/* ── Barra de navegación: abajo en móvil y tableta ────────────────────── */
+
+.tabbar {
+  position: fixed;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: 20;
+  display: flex;
+  justify-content: center;
+  height: calc(64px + env(safe-area-inset-bottom));
+  padding-bottom: env(safe-area-inset-bottom);
+  border-top: 1.5px solid var(--ink);
+  background: var(--paper);
+}
+.tab {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  max-width: 160px;
+  min-height: 44px;
+  font-size: 0.71875rem;
+  font-weight: 600;
+  color: var(--mute);
+  text-decoration: none;
+}
+.tab-icon { display: grid; place-items: center; width: 44px; height: 28px; }
+.tab-icon svg { width: 22px; height: 22px; }
+.tab-label { line-height: 1.2; }
+.tab[aria-current] { font-weight: 800; color: var(--ink); }
+.tab[aria-current] .tab-icon { background: var(--ink); color: var(--on-ink); }
+
+/* Por debajo de 1024 px la marca de la cabecera no se ve: «v2», como una muesca sobre la línea de la
+ * barra, distingue esta web de v1 sin cambiar la altura de nada ni tapar las pestañas. */
+@media (max-width: 1023.98px) {
+  .tabbar::before {
+    content: 'v2';
+    position: absolute;
+    top: 0;
+    right: 12px;
+    transform: translateY(-50%);
+    padding: 0 6px;
+    background: var(--paper);
+    color: var(--ink);
+    font-size: 0.65625rem;
+    font-weight: 700;
+    line-height: 1;
+    pointer-events: none;
+  }
+}
+
+/* ── Escritorio: pestañas arriba, 1120 px de ancho ────────────────────── */
+
+@media (min-width: 1024px) {
+  html { scroll-padding-bottom: 0; }
+  body { padding-bottom: 0; }
+  .page { max-width: 1120px; }
+  .tabbar {
+    position: static;
+    justify-content: flex-start;
+    gap: 4px;
+    height: auto;
+    padding-bottom: 0;
+    border-top: 0;
+    background: transparent;
+  }
+  .tab {
+    flex: none;
+    flex-direction: row;
+    gap: 6px;
+    max-width: none;
+    min-height: 48px;
+    padding: 0 14px;
+    font-size: 0.84375rem;
+  }
+  .tab-icon { width: auto; height: auto; }
+  .tab-icon svg { width: 20px; height: 20px; }
+  .tab[aria-current] { box-shadow: inset 0 -3px 0 var(--ink); }
+  .tab[aria-current] .tab-icon { background: transparent; color: inherit; }
+}
+
+/* ── Enlaces con puntero ──────────────────────────────────────────────── */
+
+@media (hover: hover) {
+  a.match-row:hover .match-name,
+  .st-link:hover .st-name,
+  a.segment:not([aria-current]):hover,
+  a.button:not(.is-main):hover { text-decoration: underline; }
+}
+
+/* ── Movimiento: solo como respuesta a una acción (spec §3.4) ─────────── */
+
+@media (prefers-reduced-motion: no-preference) {
+  .segment, .button, .tab-icon { transition: background-color 0.15s ease, color 0.15s ease; }
+}
+
+/* ── Cabecera de pantalla (maquetas 4, 5-1, 5-2 y 5-3): screenHead de ui.js ── */
+
+.screen-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 72px;
+  margin: 0 calc(-1 * var(--gutter));
+  padding: 14px var(--gutter) 8px;
+  border-bottom: 2px solid var(--ink);
+}
+.screen-head-text { flex: 1 1 auto; min-width: 0; }
+/* Nombre completo, con elipsis si no cabe a 320 px (spec §3.5). */
+.screen-head h1 { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* La ficha del jugador: su nombre entero, en dos o más líneas si hace falta (nunca con «…»). */
+[data-screen="jugador"] .screen-head h1 { overflow: visible; white-space: normal; overflow-wrap: anywhere; }
+.screen-sub { margin-top: 2px; font-size: 0.78125rem; color: var(--mute); }
+/* Enlace o botón («Cambiar», «Mi grupo», «Otras ligas», «Compartir»): los dos en tinta y subrayados. */
+.screen-action {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  min-height: 44px;
+  font-weight: 700;
+  color: var(--ink);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.back {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  min-height: 44px;
+  margin: 0 -8px 0 -12px;
+  font-size: 1.75rem;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+/* ── Mi equipo: la pregunta de E y la acción de X (spec §4.2) ──────────── */
+
+.choices { margin: 0; padding: 0; list-style: none; }
+.choices > li + li { border-top: 1px solid var(--line); }
+.choice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 56px;
+  padding: 8px 12px;
+  color: var(--text);
+  text-align: left;
+  text-decoration: none;
+}
+.choice-text { display: flex; flex-direction: column; min-width: 0; }
+.choice-name { font-size: 0.9375rem; font-weight: 800; color: var(--ink); overflow-wrap: anywhere; }
+.choice-label { font-size: 0.78125rem; color: var(--mute); }
+.choice-none { font-weight: 700; color: var(--ink); text-decoration: underline; }
+.home-cta { margin-top: 10px; }
+
+/* ── Marco de la app: marca y aviso sin conexión (spec §4.8 y §4.10) ──── */
+
+/* En móvil y tableta la cabecera no ocupa nada: la barra es fija abajo y
+ * la marca no se ve. El hueco del aviso solo tiene alto cuando hay aviso. */
+.brand { display: none; }
+.shell-offline:not(:empty) { border-bottom: 1px solid var(--rule); }
+.shell-offline .notice { max-width: 640px; margin: 0 auto; padding: 8px var(--gutter); }
+/* El aviso de datos nuevos (actualizacion.js), en su hueco: la letra y el ancho del de sin conexión, con
+ * «Actualizar» a la derecha, del alto de los demás controles. En el flujo: empuja, nunca tapa. */
+.shell-update:not(:empty) { border-bottom: 1px solid var(--rule); }
+.update-notice { display: flex; align-items: center; justify-content: space-between; gap: 12px; max-width: 640px; margin: 0 auto; padding: 0 var(--gutter); }
+.update-notice .notice { margin: 0; padding: 8px 0; }
+.update-notice .button { flex: none; padding: 0 16px; }
+
+/* ── Esqueletos de carga: gris plano, sin animación (spec §3.4 y §7) ──── */
+
+.sk { display: block; background: var(--line); }
+.sk-crest { flex: none; width: 46px; height: 46px; border-radius: 50%; }
+.sk-title { width: 55%; height: 22px; }
+.sk-sub { width: 80%; height: 15px; margin-top: 5px; }
+.sk-block-title { width: 130px; height: 19px; margin-bottom: 7px; }
+.sk-day { width: 140px; height: 18px; margin: 16px 0 6px; }
+.box.skeleton { border-color: var(--line); }
+.sk-box-home { height: 272px; }
+.sk-box-round { height: 60px; margin-top: 14px; }
+.sk-rows-6 { height: 272px; }
+.sk-box-seg { height: 47px; margin-top: 14px; }
+.sk-rows-10 { height: 474px; }
+.sk-box-match { height: 240px; }
+.sk-box { height: 96px; }
+/* Las seis de B3 (B5, decisión 4): el primer bloque de lo que se ve tras su esqueleto, medido a 390 px
+ * con las fixtures (título de 19 px y 7 de margen, más la caja). */
+.sk-box-team { height: 147px; }
+.sk-box-search { height: 54px; margin-top: 16px; }
+.sk-box-leagues { height: 319px; }
+.sk-box-groups { height: 197px; }
+.sk-box-cats { height: 46px; margin-top: 14px; }
+.sk-box-totals { height: 54px; }
+.sk-box-champion { height: 99px; }
+.sk-box-note { height: 65px; }
+
+/* ── Caja de error y aviso de redirección (spec §7 y §4.1) ────────────── */
+
+.error-text { padding: 12px; font-weight: 600; }
+/* El aviso de una carga que la pantalla no necesita para pintarse (los datos de alevín en Explorar y en
+ * Ligas sin categoría): el texto y «Reintentar», sin el peso de la caja de error. */
+.partial-text { padding: 12px; font-size: 0.84375rem; }
+.partial-box .buttons { border-top: 1px solid var(--rule); }
+
+/* ── Escritorio: marca a la izquierda y pestañas, 1120 px (spec §4.8) ─── */
+
+@media (min-width: 1024px) {
+  .shell-header { border-bottom: 1.5px solid var(--ink); }
+  .shell-bar {
+    display: flex;
+    align-items: stretch;
+    gap: 24px;
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 0 var(--gutter);
+  }
+  /* Las partes de la marca, en la misma línea base y centradas en la barra: align-content solo centra con
+   * flex-wrap, que no llega a partir la marca porque desde 1024 px marca y pestañas caben con holgura. */
+  .brand {
+    display: flex;
+    flex-wrap: wrap;
+    align-content: center;
+    align-items: baseline;
+    gap: 6px;
+    min-height: 44px;
+    font-size: 1.0625rem;
+    font-weight: 800;
+    color: var(--ink);
+    text-decoration: none;
+  }
+  .brand-place { font-weight: 600; color: var(--mute); }
+  /* «v2» distingue esta web de v1, abiertas una al lado de otra: pequeña, en la tinta del tema. */
+  .brand-version { font-size: 0.78125rem; font-weight: 600; color: var(--ink); }
+  .shell-bar .tabbar { margin-left: auto; }
+  .shell-offline .notice { max-width: 1120px; }
+  .update-notice { max-width: 1120px; }
+}
+
+/* ── Mi equipo: la portada (spec §4.2) ─────────────────────────────────── */
+
+/* Enlace de texto pulsable: «calendario completo», «ver todos»… Mide 44 px
+ * de alto, pero los márgenes negativos no agrandan la línea ni la cabecera del bloque. */
+.more {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  margin-top: -12px;
+  margin-bottom: -12px;
+  font-weight: 700;
+  color: var(--ink);
+  text-decoration: underline;
+}
+
+.home-note { padding: 10px 12px; font-size: 0.84375rem; font-weight: 600; color: var(--mute); text-align: center; }
+.home-fresh { margin-top: 14px; font-size: 0.78125rem; color: var(--mute); }
+/* El aviso de estado de los datos, bajo la cabecera: el de .notice, algo más separado de la raya. */
+.home-status { margin-top: 12px; }
+/* Columnas de la portada: en móvil, una debajo de otra, y nunca más anchas que la página. */
+.home-cols, .home-main, .home-side { min-width: 0; }
+
+/* Próximo partido y último partido */
+.fixture {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: start;
+  gap: 6px;
+  padding: 14px 8px 12px;
+}
+.fixture-team { display: flex; flex-direction: column; align-items: center; gap: 2px; min-width: 0; text-align: center; }
+.fixture-side { margin-top: 4px; font-size: 0.78125rem; color: var(--mute); }
+.fixture-name {
+  max-width: 100%;
+  font-size: 0.9375rem;
+  font-weight: 800;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fixture-vs { align-self: center; padding: 0 6px; font-size: 1.1875rem; font-weight: 800; color: var(--rule); }
+/* Su pronóstico (forecastLine de ui.js, 17/10/2026), la misma línea discreta de la Jornada, bajo los dos. */
+.fixture-forecast { grid-column: 1 / -1; margin-top: 2px; font-size: 0.78125rem; line-height: 1.3; color: var(--mute); text-align: center; }
+.fixture-venue { display: flex; flex-direction: column; gap: 1px; padding: 6px 8px 8px; }
+.fixture-place { font-size: 0.9375rem; overflow-wrap: anywhere; }
+.fixture-place.is-muted { font-size: 0.84375rem; font-weight: 600; color: var(--mute); }
+/* Superficie y tipo del campo (directorio de campos de la federación). */
+.fixture-place-kind { display: block; font-size: 0.8125rem; color: var(--mute); margin-top: 2px; }
+
+.result {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 14px 8px 12px;
+  color: var(--text);
+  text-decoration: none;
+}
+.result-score { font-size: 2.5rem; font-weight: 800; line-height: 1; color: var(--ink); }
+
+/* Últimos cinco: una casilla por partido, cada una abre su ficha */
+.last5 { display: grid; gap: 1px; margin: 0; padding: 0; list-style: none; background: var(--rule); }
+.last5-1 { grid-template-columns: minmax(0, 1fr); }
+.last5-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.last5-3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.last5-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.last5-5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.last5 > li { display: flex; min-width: 0; background: var(--paper); }
+.last5-cell {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  min-height: 44px;
+  padding: 8px 2px 7px;
+  color: var(--text);
+  text-decoration: none;
+}
+.last5-score { font-size: 1.0625rem; font-weight: 800; line-height: 1.2; }
+.last5-rival {
+  max-width: 100%;
+  font-size: 0.78125rem;
+  color: var(--mute);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Goleadores del equipo */
+.scorers { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.scorers th, .scorers td { height: 40px; padding: 0 8px; border-bottom: 1px solid var(--line); text-align: right; }
+.scorers thead th {
+  height: auto;
+  padding: 6px 8px;
+  border-bottom: 1.5px solid var(--ink);
+  font-size: 0.71875rem;
+  font-weight: 600;
+  color: var(--mute);
+}
+.scorers tbody tr:last-child > * { border-bottom: 0; }
+.scorers .sc-name { text-align: left; font-weight: 400; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.scorers .sc-goals { width: 60px; }
+.scorers .sc-games { width: 44px; }
+.scorers td.sc-goals { font-size: 1.0625rem; font-weight: 800; color: var(--ink); }
+
+@media (hover: hover) {
+  a.last5-cell:hover .last5-score,
+  a.result:hover .result-score,
+  .choice:hover .choice-name { text-decoration: underline; }
+}
+
+/* ── Mi equipo, estado D: temporada siguiente, «Así terminó» y «Verano» ── */
+
+.box-text { padding: 10px 12px 12px; font-size: 0.9375rem; line-height: 1.5; }
+.home-top { display: flex; flex-direction: column; gap: 1px; padding: 6px 8px 8px; }
+.home-top-name { font-size: 0.9375rem; overflow-wrap: anywhere; }
+.summer { margin: 0; padding: 0; list-style: none; }
+.summer > li + li { border-top: 1px solid var(--line); }
+.summer-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 10px;
+  min-height: 44px;
+  padding: 8px 12px;
+  color: var(--text);
+  text-decoration: none;
+}
+.summer-what { grid-column: 1 / -1; font-size: 0.78125rem; color: var(--mute); }
+.summer-main { min-width: 0; font-size: 0.9375rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.summer-score { font-size: 1.0625rem; font-weight: 800; }
+.summer-note {
+  grid-column: 1 / -1;
+  justify-self: end;
+  margin-top: 4px;
+  padding: 1px 6px;
+  border: 1px solid var(--rule);
+  font-size: 0.78125rem;
+  font-weight: 700;
+  color: var(--ink);
+}
+
+/* Calendario completo del equipo: en Mi equipo y en la ficha, siempre y a cualquier ancho, en render
+ * (con su .ics); en móvil, al final. */
+.cal { margin: 0; padding: 0; list-style: none; }
+.box.cal > li + li { border-top-color: var(--line); }
+.cal-when { padding: 6px 6px 0; font-size: 0.71875rem; font-weight: 600; color: var(--mute); }
+
+/* Dos columnas en escritorio (spec §4.8); en móvil, una debajo de otra */
+@media (min-width: 1024px) {
+  .home-cols {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+    column-gap: 40px;
+  }
+}
+
+@media (hover: hover) {
+  a.summer-row:hover .summer-main { text-decoration: underline; }
+}
+
+/* ── Jornada: navegación, días y botonera (spec §4.3) ─────────────────── */
+
+.round-nav {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) 52px;
+  margin-top: 14px;
+  border: 1.5px solid var(--ink);
+}
+.round-step {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 56px;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--ink);
+  text-decoration: none;
+}
+.round-step.is-off { color: var(--rule); }
+.round-now {
+  min-width: 0;
+  padding: 8px 6px;
+  border-right: 1px solid var(--rule);
+  border-left: 1px solid var(--rule);
+  text-align: center;
+}
+.round-title { font-size: 1.0625rem; font-weight: 800; line-height: 1.3; }
+.round-dates { font-size: 0.78125rem; font-weight: 600; color: var(--mute); }
+.day { min-width: 0; }
+.day-title { margin: 16px 0 6px; font-size: 0.84375rem; font-weight: 700; color: var(--mute); }
+.round-actions { margin-top: 16px; }
+
+/* Escritorio: los días en dos columnas si caben (spec §4.8); uno solo ocupa todo el ancho. */
+@media (min-width: 1024px) {
+  .days {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    column-gap: 24px;
+    align-items: start;
+  }
+}
+
+/* ── Tira de grupos (Tabla y Jornada): groupStrip de ui.js ──────────────── */
+
+/* Una ficha por grupo de la competición, sin borde y con fondo suave: la actual, rellena de tinta, y la
+ * de mi equipo, en tinta y con una raya corta bajo el número (la barra de 3 px del resalte propio). Las de los grupos (.group-scroll) se deslizan
+ * dentro de su caja hasta el borde derecho de la pantalla (la página nunca, §8), con ajuste al
+ * principio de cada ficha (scroll-padding = su relleno izquierdo): a la izquierda, siempre una entera, y
+ * el corte, a la derecha; scrollToCurrent usa las mismas paradas y, si hace falta, alarga el final de la
+ * tira (--strip-tail) para que también al final quede una entera a la izquierda. «Todos» (Jornada) se
+ * queda fija a su izquierda, tras una raya fina. En escritorio, en filas.
+ * position: relative hace de la caja la referencia de offsetLeft (scrollToCurrent) y contiene lo
+ * absoluto de sus fichas. El padding vertical deja sitio al contorno de foco, que la caja recortaría. */
+.group-strip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+}
+.group-scroll {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  gap: 8px;
+  min-width: 0;
+  margin-right: calc(-1 * var(--gutter));
+  padding: 3px calc(var(--gutter) + var(--strip-tail, 0px)) 3px 3px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  scroll-padding-inline: 3px var(--gutter);
+  scrollbar-width: none;
+}
+/* Sin «Todos» (Tabla), de borde a borde. */
+.group-scroll:first-child {
+  margin-left: calc(-1 * var(--gutter));
+  padding-left: var(--gutter);
+  scroll-padding-inline: var(--gutter);
+}
+.group-chip.is-all + .group-scroll { padding-left: 8px; border-left: 1px solid var(--line); scroll-padding-left: 8px; }
+.group-chip {
+  position: relative;
+  display: flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 10px;
+  border-radius: 22px;
+  background: var(--line);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--text);
+  text-decoration: none;
+  scroll-snap-align: start;
+}
+.group-chip.is-all { padding: 0 16px; }
+.group-chip.is-mine { color: var(--ink); }
+.group-chip.is-mine::after {
+  content: '';
+  position: absolute;
+  bottom: 7px;
+  left: 50%;
+  width: 12px;
+  height: 3px;
+  margin-left: -6px;
+  background: currentColor;
+}
+.group-chip[aria-current] { background: var(--ink); color: var(--on-ink); }
+.group-chip:focus-visible { outline-offset: 1px; }
+
+/* «Todos los grupos» (Jornada sin g): un bloque por grupo, con su caja de partidos y el día encima de
+ * los de cada día; en escritorio, los grupos en dos columnas. */
+.block-mine { font-weight: 600; color: var(--mute); }
+.match-day { padding: 8px 8px 0; font-size: 0.78125rem; font-weight: 700; color: var(--mute); }
+.box > .match-day + .match-row { border-top: 0; }
+@media (min-width: 1024px) {
+  .round-groups {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    column-gap: 24px;
+    align-items: start;
+  }
+}
+
+/* Escritorio: caben todas a la vista, en filas, sin deslizar; «Todos», arriba a la izquierda. */
+@media (min-width: 1024px) {
+  .group-strip { align-items: flex-start; margin-top: 14px; }
+  .group-scroll, .group-scroll:first-child { flex-wrap: wrap; margin: 0; padding: 3px; overflow: visible; }
+  .group-chip.is-all { margin-top: 3px; }
+  .group-chip.is-all + .group-scroll { padding-left: 11px; }
+}
+
+/* Con ratón, una barra fina para deslizarla; en el móvil, sin barra. */
+@media (hover: hover) and (pointer: fine) {
+  .group-scroll { scrollbar-width: thin; }
+}
+
+@media (hover: hover) {
+  a.group-chip:not([aria-current]):hover { background: var(--mark); color: var(--ink); }
+}
+
+/* ── Tabla: vistas, goleadores y procedencia (spec §4.4) ──────────────── */
+
+.tabla-views { margin-top: 14px; }
+.tabla-views.is-wide { display: none; }
+.block-link, .source-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-weight: 700;
+}
+/* «tabla ›» de «Todos los grupos» es más corto que el dedo: 44 px de ancho, con el texto a la derecha. */
+.block-link { min-width: 44px; justify-content: flex-end; }
+/* Goleadores del grupo: la tabla de la clasificación con sus propias columnas (la de la portada es .scorers). */
+.group-scorers .sc-goals { width: 52px; }
+.group-scorers .sc-pj { width: 36px; }
+.group-scorers td.sc-goals { font-weight: 800; color: var(--ink); }
+.source-line { margin-top: 14px; }
+/* El paso entre la clasificación y el pronóstico de la clasificación final (19/10/2026): «Ver el
+ * pronóstico de la clasificación final ›» bajo la clasificación y, en la vista del pronóstico, «‹ Ver la
+ * clasificación actual» en el sitio del selector (la flecha, aparte y sin subrayar: en .more, inline-flex,
+ * el espacio se perdería). El pronóstico, con las clases de la clasificación (.standings, la fila resaltada en .is-mine)
+ * y una columna más, la del abanico («2.º–4.º»), en --mute; en escritorio, a 640 px como mucho: con
+ * cuatro columnas, a todo el ancho, los puntos quedarían lejísimos del nombre. */
+.tabla-switch { margin-top: 14px; font-size: 0.84375rem; }
+.tabla-switch .more { gap: 0.3em; text-decoration: none; }
+.tabla-switch-label { text-decoration: underline; }
+.standings .st-fan { width: 74px; padding-left: 6px; font-size: 0.78125rem; color: var(--mute); white-space: nowrap; }
+
+/* Móvil y tableta: una sola tabla con todas las columnas; cada vista deja las suyas. */
+@media (max-width: 1023.98px) {
+  .tabla-puntos .standings :is(.st-gf, .st-gc, .st-form) { display: none; }
+  .tabla-goles .standings :is(.st-pj, .st-g, .st-e, .st-p, .st-form) { display: none; }
+  .tabla-goles .standings :is(.st-gf, .st-gc) { width: 40px; }
+  .tabla-goles .standings .st-dg { width: 48px; }
+  .tabla-forma .standings :is(.st-g, .st-e, .st-p, .st-gf, .st-gc, .st-dg) { display: none; }
+}
+
+/* Escritorio: el selector de Todas, Casa y Fuera en lugar del de cinco (decisión 15 de B1),
+ * y columnas de cifras más anchas, que en móvil van justas. */
+@media (min-width: 1024px) {
+  .tabla-proj { max-width: 640px; }
+  .tabla-views.is-narrow { display: none; }
+  .tabla-views.is-wide { display: block; max-width: 480px; }
+  [data-screen="tabla"] .standings .st-num { width: 36px; }
+  [data-screen="tabla"] .standings :is(.st-gf, .st-gc) { width: 48px; }
+  [data-screen="tabla"] .standings .st-dg { width: 56px; }
+  [data-screen="tabla"] .standings .st-form { width: 124px; padding-left: 14px; }
+  [data-screen="tabla"] .standings .st-pts { width: 48px; }
+}
+
+/* ── Partido (spec §4.5) ──────────────────────────────────────────────── */
+
+/* La cabecera es la de screenHead (Tarea 4); bajo ella, la región de Compartir (.share-status). */
+.pt-main, .pt-aside { min-width: 0; }
+
+/* Resultado: casillas, escudos de 46 px y marcador de 40 px. */
+.pt-teams {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: center;
+  column-gap: 8px;
+  padding: 14px 8px 12px;
+}
+.pt-team { display: flex; flex-direction: column; align-items: center; gap: 3px; min-width: 0; text-align: center; }
+.pt-side { font-size: 0.78125rem; font-weight: 400; color: var(--mute); }
+/* Nombre completo; si no cabe en dos líneas, cortado con elipsis (spec §3.5). */
+.pt-name {
+  display: -webkit-box;
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 0.9375rem;
+  font-weight: 800;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.pt-score { font-size: 2.5rem; font-weight: 800; line-height: 1; white-space: nowrap; }
+.pt-score.is-pending { font-weight: 600; color: var(--mute); }
+.pt-penalties { padding: 8px 10px; font-size: 0.78125rem; font-weight: 700; color: var(--mute); text-align: center; }
+.pt-tanda { white-space: nowrap; }
+
+/* Pronóstico (17/10/2026): la barra fina del 1X2 (oddsBar de ui.js), tres tramos sólidos (local en
+ * tinta, empate en --mute y visitante en --text) con una raya del papel entre ellos, sin discontinuas;
+ * debajo, las tres cifras con la muestra de su color, el local a la izquierda y el visitante a la
+ * derecha, y el nombre en una línea, recortado con «…» como en la fila del partido (con uno largo, las
+ * tres cifras quedaban a alturas distintas); luego, el resultado más probable y los goles esperados
+ * (casillas apagadas) y otros marcadores. El empate iba en --draw, que sobre el papel se confundía con
+ * las rayas (1,24:1); --mute pasa de 3:1 en los dos temas (revisión del 17/10/2026). */
+.odds { padding: 10px 10px 8px; }
+.odds-bar { display: block; width: 100%; height: 8px; }
+.odds-bar rect { stroke: var(--paper); stroke-width: 2px; vector-effect: non-scaling-stroke; }
+.odds-home { fill: var(--ink); }
+.odds-draw { fill: var(--mute); }
+.odds-away { fill: var(--text); }
+.odds-legend { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); column-gap: 8px; margin-top: 8px; }
+.odds-item { min-width: 0; }
+.odds-item.is-draw { text-align: center; }
+.odds-item.is-away { text-align: right; }
+.odds-item dt { font-size: 0.78125rem; color: var(--mute); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.odds-item dd { font-size: 0.9375rem; font-weight: 800; }
+.odds-key { display: inline-block; width: 9px; height: 9px; margin-right: 5px; vertical-align: 0; }
+.is-home .odds-key { background: var(--ink); }
+.is-draw .odds-key { background: var(--mute); }
+.is-away .odds-key { background: var(--text); }
+.odds-also { padding: 8px 10px; font-size: 0.78125rem; color: var(--mute); }
+
+/* Goles: tres columnas (local | minuto y marcador | visitante) o dos listas. */
+.pt-goals { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.pt-goals thead th { height: 0; padding: 0; border: 0; }
+.pt-goals td { padding: 9px 10px; border-top: 1px solid var(--line); overflow-wrap: anywhere; }
+.pt-goals tbody tr:first-child td { border-top: 0; }
+.pt-g-home { text-align: right; font-weight: 700; }
+.pt-g-away { text-align: left; font-weight: 700; }
+.pt-g-mid { width: 88px; text-align: center; white-space: nowrap; }
+.pt-goals td.pt-g-mid { border-right: 1px solid var(--rule); border-left: 1px solid var(--rule); }
+.pt-g-min { font-size: 0.78125rem; font-weight: 400; color: var(--mute); }
+.pt-g-score { font-weight: 800; }
+.pt-noname { font-weight: 400; color: var(--mute); }
+/* El goleador enlaza a su ficha como el jugador de la alineación: en su tinta, con el subrayado suave. */
+.pt-goals a, .pt-glist a { color: inherit; text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; }
+.pt-goals .pt-mine, .pt-glist.pt-mine li { color: var(--ink); }
+.pt-glists { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.pt-glist { min-width: 0; padding: 8px 10px 10px; }
+.pt-glist + .pt-glist { border-left: 1px solid var(--rule); }
+.pt-glist-head { overflow: hidden; font-size: 0.84375rem; font-weight: 800; text-overflow: ellipsis; white-space: nowrap; }
+.pt-glist-head .pt-side { display: block; }
+.pt-glist ul { margin: 4px 0 0; padding: 0; list-style: none; }
+.pt-glist li { padding: 3px 0; font-weight: 700; }
+.pt-glist-n { font-weight: 400; color: var(--mute); }
+.pt-glist-none { margin-top: 4px; color: var(--mute); }
+
+/* Alineaciones del acta: titulares y suplentes con dorsal y goles. */
+.pt-lu-teams { display: grid; grid-template-columns: minmax(0, 1fr); }
+.pt-lu-team { min-width: 0; padding: 10px 10px 12px; }
+.pt-lu-team + .pt-lu-team { border-top: 1px solid var(--rule); }
+.pt-lu-head { font-size: 0.9375rem; font-weight: 800; }
+.pt-lu-head .pt-side { margin-right: 4px; }
+.pt-lineup { width: 100%; margin-top: 6px; border-collapse: collapse; }
+.pt-lineup th, .pt-lineup td { padding: 6px 4px; border-bottom: 1px solid var(--line); font-weight: 400; text-align: left; vertical-align: top; }
+.pt-lineup thead th { padding-top: 0; border-bottom: 1.5px solid var(--ink); font-size: 0.71875rem; font-weight: 600; color: var(--mute); }
+.pt-lineup .pt-player { overflow-wrap: anywhere; }
+.pt-lineup .pt-player a { color: inherit; text-decoration: underline; text-decoration-color: var(--line); text-underline-offset: 3px; }
+.pt-lineup .pt-dorsal { width: 38px; padding-right: 10px; color: var(--mute); text-align: right; }
+.pt-lineup .pt-pgoals { width: 52px; font-weight: 800; color: var(--ink); text-align: right; }
+.pt-lineup thead .pt-pgoals { font-weight: 600; color: var(--mute); }
+.pt-lu-group th { padding-top: 10px; font-size: 0.78125rem; font-weight: 700; color: var(--mute); }
+.pt-staff { margin-top: 8px; }
+.pt-staff-label, .pt-none { color: var(--mute); }
+.pt-lu-foot { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; column-gap: 12px; padding: 2px 10px; }
+.pt-lu-foot .pt-staff { margin: 0; padding: 8px 0; }
+.pt-acta { display: inline-flex; align-items: center; min-height: 44px; font-weight: 800; }
+
+/* Cara a cara: el partido actual con el resalte propio, sin óvalo. */
+.pt-h2h-row {
+  display: grid;
+  grid-template-columns: 78px minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 8px;
+  min-height: 44px;
+  padding: 6px 10px;
+  color: var(--text);
+  text-decoration: none;
+}
+.box > .pt-h2h-row + .pt-h2h-row { border-top-color: var(--line); }
+.pt-h2h-when { font-size: 0.78125rem; line-height: 1.3; color: var(--mute); }
+.pt-h2h-teams { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pt-h2h-score { font-weight: 800; white-space: nowrap; }
+.pt-h2h-score.is-pending { font-weight: 600; color: var(--mute); }
+.pt-h2h-row.is-current { background: var(--mark); color: var(--ink); font-weight: 800; box-shadow: inset 3px 0 0 var(--ink); }
+.pt-h2h-row.is-current .pt-h2h-when { color: var(--ink); }
+/* Nombre corto en móvil (spec §3.5); el completo, oculto a la vista, lo leen los lectores de pantalla. */
+.pt-full { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.pt-prev-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 8px;
+  border: 1.5px solid var(--ink);
+  font-weight: 700;
+  color: var(--ink);
+}
+.pt-prev { margin-top: 10px; }
+.pt-prev-head { margin: 12px 0 6px; font-size: 0.78125rem; font-weight: 700; color: var(--mute); }
+.pt-prev-head:first-child { margin-top: 0; }
+.pt-loading { color: var(--mute); }
+
+/* Contexto: posición y últimos cinco de los dos, en una línea. */
+.pt-context .cell-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pt-context .cell-value { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; }
+.pt-pos { white-space: nowrap; }
+
+@media (hover: hover) {
+  a.pt-h2h-row:hover .pt-h2h-teams { text-decoration: underline; }
+}
+
+@media (min-width: 1024px) {
+  .pt-cols { display: grid; grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); column-gap: 28px; align-items: start; }
+  .pt-lu-teams { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pt-lu-team + .pt-lu-team { border-top: 0; border-left: 1px solid var(--rule); }
+  .pt-full { position: static; width: auto; height: auto; overflow: visible; clip-path: none; }
+  .pt-short { display: none; }
+}
+
+/* ── Vista de equipo: lo largo de la ficha (team-view.js, decisión 8 de B3) ─ */
+
+/* El calendario completo de la ficha (teamColumns con `rest`): en móvil va al final, detrás de la
+ * clasificación y las cifras, en el orden del documento; en escritorio, en la columna izquierda, justo
+ * debajo de lo principal, mientras la derecha ocupa las dos filas (spec §4.8). La segunda fila (1fr)
+ * crece si la derecha es más alta: lo principal y `rest` quedan juntos, sin hueco entre ellos. */
+.home-rest { min-width: 0; }
+
+@media (min-width: 1024px) {
+  .home-cols.has-rest { grid-template-rows: auto 1fr; }
+  .has-rest > .home-main { grid-column: 1; grid-row: 1; }
+  .has-rest > .home-side { grid-column: 2; grid-row: 1 / span 2; }
+  .has-rest > .home-rest { grid-column: 1; grid-row: 2; }
+}
+
+/* «Hacer mi equipo» en la cabecera de la ficha: en un móvil estrecho parte en dos líneas y deja sitio
+ * al nombre, con «‹» y el escudo al lado (a 320 px, «AD Huracán» entero y no «AD Hu…»). */
+@media (max-width: 479.98px) {
+  .team-make { max-width: 72px; line-height: 1.25; text-align: right; }
+}
+
+/* ── Equipo: la ficha de cualquier equipo (spec §4.6) ─────────────────── */
+
+/* «Calendario del equipo (.ics)», encima de la lista del calendario completo. */
+.cal-actions { margin-bottom: 8px; }
+
+/* «Pronóstico final», la primera cifra de «La temporada en cifras» (projectionFigure de team-view.js,
+ * 19/10/2026): la etiqueta de las casillas y, en una línea, el puesto, grande y en tinta («4.º»), su margen
+ * en gris («entre 2.º y 5.º»), los puntos y, a la derecha, «Ver la tabla prevista ›», subrayado como .more. Toda la fila es el enlace (a la
+ * vista del pronóstico de la Tabla); si no cabe, «Ver la tabla prevista» pasa debajo. */
+.proj-figure { display: block; padding: 6px 8px 8px; color: inherit; text-decoration: none; }
+.proj-figure:focus-visible { outline-offset: -4px; }
+.proj-figure-main { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0 10px; }
+.proj-figure-pos { font-size: 1.75rem; font-weight: 800; line-height: 1.15; color: var(--ink); }
+.proj-figure-fan { font-size: 0.9375rem; font-weight: 700; color: var(--mute); }
+.proj-figure-pts { font-size: 0.9375rem; font-weight: 700; color: var(--text); }
+.proj-figure-more { margin-left: auto; font-size: 0.8125rem; font-weight: 700; color: var(--ink); text-decoration: underline; }
+@media (hover: hover) {
+  a.proj-figure:hover { background: var(--mark); }
+}
+
+/* Plantilla: N.º, jugador (el botón que despliega sus partidos), PJ, titular y goles. */
+.squad { width: 100%; border-collapse: collapse; table-layout: fixed; }
+.squad th, .squad td { padding: 0 6px; border-bottom: 1px solid var(--line); font-weight: 400; text-align: right; }
+.squad thead th { padding: 6px; border-bottom: 1.5px solid var(--ink); font-size: 0.71875rem; font-weight: 600; color: var(--mute); white-space: nowrap; }
+.squad tbody tr:last-child > * { border-bottom: 0; }
+.squad .sq-dorsal { width: 38px; color: var(--mute); }
+.squad .sq-name { text-align: left; }
+.squad .sq-num { width: 36px; }
+.squad .sq-goals { width: 52px; }
+.squad td.sq-goals { font-size: 0.9375rem; font-weight: 800; color: var(--ink); }
+.squad-player {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 44px;
+  padding: 6px 0;
+  color: var(--text);
+  text-align: left;
+  overflow-wrap: anywhere;
+}
+.squad-player[aria-expanded="true"] { font-weight: 800; color: var(--ink); }
+.squad-detail > td { padding: 0 0 8px; background: var(--mark); }
+.squad-matches { margin: 0; padding: 0; list-style: none; }
+.squad-match {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  column-gap: 10px;
+  min-height: 44px;
+  padding: 6px 10px;
+  color: var(--text);
+  text-align: left;
+  text-decoration: none;
+}
+.squad-matches > li + li { border-top: 1px solid var(--line); }
+.squad-when { grid-column: 1 / -1; font-size: 0.71875rem; font-weight: 600; color: var(--mute); }
+.squad-rival { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.squad-score { font-weight: 800; white-space: nowrap; }
+.squad-goals { font-size: 0.78125rem; color: var(--mute); white-space: nowrap; }
+/* «Ver su trayectoria»: la ficha del jugador, bajo sus partidos. */
+.squad-more { margin: 8px 10px 0; }
+
+/* Trayectoria: el botón que la carga bajo demanda y su panel, una caja por temporada. */
+.team-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 44px;
+  border: 1.5px solid var(--ink);
+  font-weight: 700;
+  color: var(--ink);
+}
+.team-panel { margin-top: 10px; }
+.team-loading { color: var(--mute); }
+.traj-season { margin: 12px 0 6px; font-size: 0.78125rem; font-weight: 700; color: var(--mute); }
+.traj-season:first-child { margin-top: 0; }
+.traj-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 10px;
+  min-height: 44px;
+  padding: 6px 10px;
+  color: var(--text);
+  text-decoration: none;
+}
+.box > .traj-row + .traj-row { border-top-color: var(--line); }
+.traj-team { min-width: 0; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.traj-group { grid-column: 1; min-width: 0; font-size: 0.78125rem; color: var(--mute); }
+.traj-pos { grid-column: 2; grid-row: 1; font-weight: 800; white-space: nowrap; }
+.traj-pts { grid-column: 2; grid-row: 2; font-size: 0.78125rem; color: var(--mute); text-align: right; white-space: nowrap; }
+
+@media (hover: hover) {
+  a.squad-match:hover .squad-rival,
+  a.traj-row:hover .traj-team { text-decoration: underline; }
+}
+
+/* ── Explorar: buscador, resultados, vistos, listas y temporada (spec §4.7; maqueta 5-4) ── */
+
+/* Buscador: una caja de tinta con la lupa. El campo, de 17 px: iOS no amplía la página al enfocarlo.
+ * El foco se ve en la caja entera (:focus-within), con el contorno de tinta de 2 px (§8). */
+.search {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+  padding: 0 12px;
+  border: 1.5px solid var(--ink);
+  background: var(--paper);
+}
+.search:focus-within { outline: 2px solid var(--ink); outline-offset: 2px; }
+.search-icon { display: grid; flex: none; place-items: center; color: var(--ink); }
+.search-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 52px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  font-size: 1.0625rem;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.search-input:focus, .search-input:focus-visible { outline: none; }
+/* Sin la cruz de borrar del navegador: no llega a 44 px (§8). Se borra con el teclado. */
+.search-input::-webkit-search-cancel-button, .search-input::-webkit-search-decoration { -webkit-appearance: none; appearance: none; }
+.search-input::placeholder { color: var(--mute); opacity: 1; }
+.search-results > .empty { margin-top: 14px; }
+
+/* Resultados: escudo de 32 px, el nombre y su categoría y grupo debajo. */
+.search-list { margin: 0; padding: 0; list-style: none; }
+.box.search-list > li + li { border-top-color: var(--line); }
+.search-result {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 56px;
+  padding: 8px 12px;
+  color: var(--text);
+  text-decoration: none;
+}
+.search-result-text { display: flex; flex-direction: column; min-width: 0; }
+.search-result-name { font-size: 0.9375rem; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.search-result-label { font-size: 0.78125rem; color: var(--mute); }
+
+/* Vistos hace poco: fichas en tinta, una al lado de otra, que parten de línea si no caben. */
+.recent { display: flex; flex-wrap: wrap; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.recent > li { display: flex; min-width: 0; max-width: 100%; }
+.recent-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1.5px solid var(--ink);
+  color: var(--text);
+  text-decoration: none;
+}
+.recent-name { min-width: 0; font-size: 0.9375rem; font-weight: 800; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.recent-meta { flex: none; font-size: 0.78125rem; color: var(--mute); }
+
+/* Listas de enlaces (Ligas, Copas y torneos, Más, y los grupos de Ligas): una fila por enlace, con el
+ * contexto a la derecha; las categorías, con el fondo del resalte (maqueta 5-4). */
+.link-head { padding: 8px 12px; background: var(--mark); font-size: 0.84375rem; font-weight: 800; color: var(--ink); }
+.link-list { margin: 0; padding: 0; list-style: none; }
+.link-list > li + li { border-top: 1px solid var(--line); }
+.link-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 48px;
+  padding: 8px 12px;
+  color: var(--text);
+  text-decoration: none;
+}
+.link-row-main { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.link-row-title { font-size: 0.9375rem; font-weight: 800; overflow-wrap: anywhere; }
+.link-row-detail { font-size: 0.78125rem; color: var(--mute); overflow-wrap: anywhere; }
+.link-row-context { flex: none; max-width: 45%; font-size: 0.84375rem; color: var(--mute); text-align: right; }
+
+/* Selector de temporada: el botón de la cabecera y su lista, que se abre debajo, a la derecha. */
+.season-picker { position: relative; flex: none; }
+.season-toggle { gap: 5px; font-size: 1.0625rem; }
+.season-caret { display: inline-block; width: 0; height: 0; border-top: 6px solid currentColor; border-right: 5px solid transparent; border-left: 5px solid transparent; }
+.season-menu {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 30;
+  min-width: 150px;
+  /* Con el archivo desde 2017/18 son diez temporadas (unos 450 px de opciones de 44 px): el menú se
+     desplaza por dentro y no tira de la página. */
+  max-height: min(70vh, 30rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1.5px solid var(--ink);
+  background: var(--paper);
+}
+.season-menu > li + li { border-top: 1px solid var(--line); }
+.season-option {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 16px;
+  font-weight: 700;
+  color: var(--text);
+  text-decoration: none;
+}
+.season-option[aria-current] { background: var(--mark); color: var(--ink); font-weight: 800; box-shadow: inset 3px 0 0 var(--ink); }
+
+@media (hover: hover) {
+  .search-result:hover .search-result-name,
+  .recent-chip:hover .recent-name,
+  .link-row:hover .link-row-title,
+  .season-option:hover { text-decoration: underline; }
+}
+
+/* ── Ligas: los grupos de una competición y «Comparar grupos» (spec §4.7; decisiones 20 y 21 de B3) ── */
+
+/* El grupo de mi equipo, con el resalte propio (spec §3.3), sin óvalo. */
+.link-row.is-mine { background: var(--mark); box-shadow: inset 3px 0 0 var(--ink); }
+.link-row.is-mine .link-row-title { color: var(--ink); }
+/* La ronda en curso de un grupo («jornada 22»), en una sola línea. */
+.group-row .link-row-context { white-space: nowrap; }
+.compare-toggle { width: 100%; margin-top: 8px; border: 1.5px solid var(--ink); }
+.compare { margin-top: 4px; }
+/* El puesto llega a 3 cifras (134 equipos en la Primera Fase de benjamín): unos 3,5 ch de la cifra de
+   la tabla (13,5 px), en px porque con table-layout: fixed el ancho lo da la cabecera, de 11,5 px, y
+   en ch saldría más estrecho (decisión 161 de B3). */
+.compare-table .st-pos { width: 34px; }
+.compare-table .cmp-group { width: 30px; color: var(--mute); text-align: center; }
+.compare-table .cmp-ppj { width: 48px; font-weight: 800; color: var(--ink); }
+.compare-table thead .cmp-ppj { font-weight: 600; color: var(--mute); }
+
+/* Escritorio: las cifras de la comparación, más anchas (como las de la Tabla). */
+@media (min-width: 1024px) {
+  .compare-table .st-num { width: 36px; }
+  .compare-table .st-dg { width: 56px; }
+  .compare-table .st-pts { width: 48px; }
+  .compare-table .cmp-group { width: 44px; }
+  .compare-table .cmp-ppj { width: 64px; }
+}
+
+/* ── Copa: el campeón, el cuadro y la liguilla (spec §4.7 y §8) ────────── */
+
+/* El campeón, arriba: su escudo y su nombre en tinta; debajo, la final. */
+.cup-champion { display: flex; align-items: center; gap: 10px; min-width: 0; padding: 10px 12px; }
+.cup-champion-name { min-width: 0; font-size: 1.0625rem; font-weight: 800; color: var(--ink); overflow-wrap: anywhere; }
+.cup-champion.is-mine { background: var(--mark); box-shadow: inset 3px 0 0 var(--ink); }
+
+/* Pestañas de ronda: botones que desplazan el cuadro (mount); la ronda a la vista, rellena de tinta.
+ * Si no caben en una fila, parten en dos: nunca desplazan la página. */
+.bracket-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1px;
+  margin-bottom: 10px;
+  border: 1.5px solid var(--ink);
+  background: var(--rule);
+}
+.bracket-tab {
+  flex: 1 1 auto;
+  min-height: 44px;
+  padding: 0 10px;
+  background: var(--paper);
+  font-weight: 700;
+  color: var(--ink);
+}
+.bracket-tab[aria-current] { background: var(--ink); color: var(--on-ink); }
+
+/* Móvil y tableta: una ronda por pantalla. El desplazamiento horizontal va dentro de esta caja, con
+ * ajuste a cada columna: es la única excepción de §8, y la página nunca se desplaza. Cada columna
+ * conserva su alto (mount le da a la caja el de la ronda a la vista). */
+.bracket {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  overflow-x: auto;
+  overflow-y: hidden;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+}
+.bracket-round { flex: 0 0 100%; min-width: 0; scroll-snap-align: start; }
+.bracket-head { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+.bracket-title { font-size: 0.84375rem; font-weight: 800; }
+.bracket-date { font-size: 0.78125rem; font-weight: 600; color: var(--mute); }
+.bracket-matches { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+
+/* Un partido del cuadro: los dos equipos en dos líneas con sus goles; quién pasó, en negrita. */
+.bm {
+  display: grid;
+  gap: 2px;
+  min-height: 44px;
+  padding: 7px 9px;
+  border: 1.5px solid var(--ink);
+  color: var(--text);
+  text-decoration: none;
+}
+.bm-when { font-size: 0.71875rem; color: var(--mute); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bm-team { display: flex; align-items: center; gap: 6px; min-width: 0; }
+.bm-name { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bm-goals { flex: none; min-width: 22px; font-weight: 800; text-align: right; }
+.bm-team.is-through { font-weight: 800; }
+.bm-note { font-size: 0.78125rem; font-weight: 600; color: var(--mute); }
+.bm-note.is-conflict { color: var(--ink); }
+/* El camino de mi equipo: el resalte propio (spec §3.3), sin óvalo. */
+.bm.is-mine { background: var(--mark); box-shadow: inset 3px 0 0 var(--ink); }
+.bm-team.is-me { color: var(--ink); }
+
+@media (hover: hover) {
+  a.bm:hover .bm-name { text-decoration: underline; }
+}
+
+/* El contorno de foco cae fuera de `.bracket`, que recorta el eje X: sin este hueco se pierden los
+ * lados izquierdo y derecho a 320 y 390 px (Minor 1 de la revisión final de B3, §8). */
+.bracket .bm:focus-visible { outline-offset: -4px; }
+
+/* Escritorio: todas las rondas a la vista, una columna por ronda, sin pestañas ni alto fijo. Los
+ * partidos se reparten a lo alto de cada columna, como en un cuadro. */
+@media (min-width: 1024px) {
+  .bracket-tabs { display: none; }
+  .bracket {
+    display: grid;
+    grid-auto-columns: minmax(0, 1fr);
+    grid-auto-flow: column;
+    column-gap: 14px;
+    align-items: stretch;
+    height: auto !important;
+    overflow: visible;
+  }
+  .bracket-round { display: flex; flex-direction: column; }
+  .bracket-matches { display: flex; flex: 1 1 auto; flex-direction: column; justify-content: space-around; }
+}
+
+/* ── Goleadores: la lista completa con su buscador (spec §4.7) ─────────── */
+
+.gol-cats { margin-top: 14px; }
+.gol-count { margin: 12px 0 6px; font-size: 0.78125rem; font-weight: 600; color: var(--mute); }
+/* La tabla de los goleadores del grupo de la Tabla (.group-scorers), con el puesto más ancho y el
+ * jugador en dos líneas: su nombre y, debajo, su equipo, que abre la ficha. El enlace mide 44 px de
+ * alto, pero sus márgenes negativos no agrandan la fila. El puesto llega a 4 cifras («2140» en
+ * benjamín con los datos vivos): unos 4,5 ch de la cifra de la tabla (13,5 px), en px porque con
+ * table-layout: fixed el ancho lo da la cabecera, de 11,5 px, y en ch saldría más estrecho
+ * (decisión 161 de B3). */
+.gol-table .st-pos { width: 44px; }
+.gol-table .gol-player { padding-top: 7px; padding-bottom: 7px; font-weight: 400; text-align: left; }
+.gol-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.gol-team {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  min-height: 44px;
+  margin: -12px 0;
+  font-size: 0.78125rem;
+  font-weight: 600;
+  color: var(--ink);
+  text-decoration: none;
+}
+.gol-team-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* «Ver 200 más»: añade la página siguiente de la lista (mount, decisión 159 de B3). */
+.gol-more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 44px;
+  margin-top: 8px;
+  border: 1.5px solid var(--ink);
+  font-weight: 700;
+  color: var(--ink);
+}
+
+@media (hover: hover) {
+  a.gol-team:hover .gol-team-name { text-decoration: underline; }
+}
+
+/* Escritorio: cuatro columnas no necesitan los 1120 px; a 720, el nombre y los goles quedan cerca. */
+@media (min-width: 1024px) {
+  [data-screen="goleadores"] > :not(.screen-head) { max-width: 720px; }
+}
+
+/* ── Los mejores de cada año: el ranking por año de nacimiento (screen-ranking.js) ──────────────
+ * La fila de años es la tira de grupos de Tabla (.group-strip), que se desliza dentro de su caja; las
+ * vistas, el selector segmentado. La lista es la tabla de la clasificación (.standings) con el jugador en
+ * dos líneas, como los goleadores: el nombre (con «año dudoso» detrás, que nunca se corta) y su equipo y
+ * categoría debajo; todo es el enlace a su ficha, de 44 px o más. A 320 px caben el puesto, el jugador,
+ * los goles y el índice; partidos y titularidades, desde 480 px. */
+.rank-table .st-pos { width: 32px; }
+.rank-table .rank-player { text-align: left; font-weight: 400; }
+.rank-table .sc-goals { width: 48px; }
+.rank-table .rank-pj, .rank-table .rank-tit { width: 38px; }
+.rank-table .rank-idx { width: 54px; }
+.rank-table td.rank-idx { font-weight: 800; color: var(--ink); }
+.rank-link {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 0;
+  min-height: 44px;
+  padding: 4px 0;
+  color: inherit;
+  text-decoration: none;
+}
+.rank-line { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+.rank-name { min-width: 0; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rank-mark { flex: none; font-size: 0.71875rem; color: var(--mute); }
+.rank-team { font-size: 0.78125rem; color: var(--mute); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* «Cómo se calcula»: un desplegable sin caja, con el resumen de 44 px. */
+.rank-how { margin-top: 16px; }
+.rank-how summary { min-height: 44px; padding: 12px 0; font-weight: 700; color: var(--ink); cursor: pointer; }
+.rank-how p { margin: 0; font-size: 0.84375rem; line-height: 1.5; color: var(--text); }
+
+@media (max-width: 479.98px) {
+  .rank-table .rank-pj, .rank-table .rank-tit { display: none; }
+}
+
+@media (hover: hover) {
+  a.rank-link:hover .rank-name { text-decoration: underline; }
+}
+
+/* Escritorio: seis columnas no necesitan los 1120 px, como los goleadores. */
+@media (min-width: 1024px) {
+  [data-screen="ranking"] > :not(.screen-head) { max-width: 720px; }
+}
+
+/* ── Récords: totales, récords de partido y de equipo y goleadores (spec §4.7; decisión 26 de B3) ── */
+
+.rc-cats { margin-top: 14px; }
+.rc-cols, .rc-records, .rc-top { min-width: 0; }
+.rc-list { margin: 0; padding: 0; list-style: none; }
+.box.rc-list > li + li { border-top-color: var(--line); }
+/* Cada récord es un enlace a su partido o a su equipo: qué es, quién, la cifra y el detalle. */
+.rc-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 10px;
+  min-height: 44px;
+  padding: 8px 12px;
+  color: var(--text);
+  text-decoration: none;
+}
+.rc-what { grid-column: 1 / -1; font-size: 0.78125rem; color: var(--mute); }
+.rc-subject { display: flex; align-items: center; gap: 6px; min-width: 0; font-size: 0.9375rem; font-weight: 700; }
+.rc-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rc-figure { font-size: 1.0625rem; font-weight: 800; color: var(--ink); white-space: nowrap; }
+.rc-detail { grid-column: 1 / -1; font-size: 0.78125rem; color: var(--mute); }
+.rc-detail:empty { display: none; }
+/* Máximos goleadores: la tabla de la clasificación, con el equipo debajo del jugador. */
+.rc-scorers .st-pos { width: 28px; }
+.rc-scorers .sc-goals { width: 52px; }
+.rc-scorers .sc-pj { width: 36px; }
+.rc-scorers td.sc-goals { font-weight: 800; color: var(--ink); }
+.rc-who { display: flex; flex-direction: column; min-width: 0; line-height: 1.25; }
+.rc-team { font-size: 0.78125rem; color: var(--mute); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+@media (hover: hover) {
+  a.rc-row:hover .rc-name { text-decoration: underline; }
+}
+
+/* Escritorio: los récords a la izquierda y los goleadores a la derecha (spec §4.8). */
+@media (min-width: 1024px) {
+  .rc-cats { max-width: 480px; }
+  .rc-cols {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+    column-gap: 40px;
+  }
+}
+
+/* ── Temporadas: el archivo, una fila por temporada (decisión 27 de B3) ─── */
+
+.tp-list { margin: 0; padding: 0; list-style: none; }
+.box.tp-list > li + li { border-top-color: var(--line); }
+.tp-row { display: flex; align-items: stretch; }
+.tp-season {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  min-height: 56px;
+  padding: 8px 12px;
+  color: var(--ink);
+  text-decoration: none;
+}
+.tp-name { font-size: 1.0625rem; font-weight: 800; }
+.tp-now { padding: 1px 6px; border: 1px solid var(--rule); font-size: 0.78125rem; font-weight: 700; }
+.tp-records {
+  display: flex;
+  flex: none;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 12px;
+  border-left: 1px solid var(--rule);
+  font-weight: 700;
+  color: var(--ink);
+  text-decoration: underline;
+}
+
+/* ── Datos y fuentes: estado, comprobación por grupo y temporada siguiente (decisión 28 de B3) ── */
+
+.fu-list { margin: 0; padding: 0; list-style: none; }
+.box.fu-list > li + li { border-top-color: var(--line); }
+/* Cada grupo comprobado abre su fuente: etiqueta y estado, el mensaje y el dominio. */
+.fu-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  column-gap: 10px;
+  min-height: 44px;
+  padding: 8px 12px;
+  color: var(--text);
+  text-decoration: none;
+}
+.fu-name { min-width: 0; font-weight: 700; overflow-wrap: anywhere; }
+.fu-state { font-size: 0.78125rem; font-weight: 600; color: var(--mute); white-space: nowrap; }
+.fu-state.is-alert { font-weight: 800; color: var(--ink); }
+.fu-detail { grid-column: 1 / -1; font-size: 0.78125rem; color: var(--mute); overflow-wrap: anywhere; }
+
+/* ── Ajustes: mi equipo y «Borrar datos de esta app» en dos pasos (decisión 29 de B3) ─── */
+
+.aj-team { display: flex; align-items: center; gap: 10px; min-height: 56px; padding: 8px 12px; }
+.aj-team-text { display: flex; flex: 1 1 auto; flex-direction: column; min-width: 0; }
+.aj-team-name { font-size: 0.9375rem; font-weight: 800; color: var(--ink); overflow-wrap: anywhere; }
+.aj-team-label { font-size: 0.78125rem; color: var(--mute); }
+.aj-clear { width: 100%; }
+.aj-warning { padding: 10px 12px; font-weight: 700; }
+.aj-confirm .buttons { border-top: 1px solid var(--rule); }
+
+@media (hover: hover) {
+  a.tp-season:hover .tp-name,
+  a.fu-row:hover .fu-name { text-decoration: underline; }
+}
+
+/* Escritorio: Temporadas y Ajustes son listas cortas; a 640 px, como en móvil y tableta. */
+@media (min-width: 1024px) {
+  :is([data-screen="temporadas"], [data-screen="ajustes"]) .block { max-width: 640px; }
+}

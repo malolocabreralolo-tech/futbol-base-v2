@@ -1,0 +1,1 @@
+const BUSCAR_VU = [["236247","GARATTONI KOSTIC, KALIM VUK","El Cotillo","2026-2027",[2015]]];

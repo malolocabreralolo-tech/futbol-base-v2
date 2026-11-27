@@ -1,0 +1,1 @@
+const BUSCAR_LG = [["226176","LGANDOUZ ECHKAIMA, MOHAMED","Aregranca","2026-2027",[2014]]];

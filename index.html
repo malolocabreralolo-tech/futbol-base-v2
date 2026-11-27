@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Fútbol Base Las Palmas v2</title>
+  <meta name="description" content="Tu equipo de fútbol base en Canarias: próximo partido, resultados, clasificación y goleadores. Sin publicidad.">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="v2 Fútbol Base">
+  <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#15171C" media="(prefers-color-scheme: dark)">
+  <link rel="apple-touch-icon" href="./icons/icon-180.png">
+  <link rel="icon" type="image/png" href="./icons/icon-192.png">
+  <link rel="manifest" href="./manifest.json">
+  <link rel="stylesheet" href="./dist/acta-c2dfa212.css">
+</head>
+<body>
+  <a class="skip-link" href="#contenido">Saltar al contenido</a>
+  <header class="shell-header"><div class="shell-bar"><a class="brand" href="#/">Fútbol base <span class="brand-place">Las Palmas</span> <span class="brand-version">v2</span></a><nav class="tabbar" aria-label="Navegación principal"><a class="tab" href="#/" aria-current="page"><span class="tab-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true" focusable="false"><path d="M12 3l7 2.6V11c0 4.4-2.9 7.9-7 9.6-4.1-1.7-7-5.2-7-9.6V5.6z"/><path d="M5.2 10.5h13.6"/></svg></span><span class="tab-label">Mi equipo</span></a><a class="tab" href="#/jornada"><span class="tab-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true" focusable="false"><rect x="4" y="5.5" width="16" height="14.5"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/></svg></span><span class="tab-label">Jornada</span></a><a class="tab" href="#/tabla"><span class="tab-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true" focusable="false"><rect x="4" y="4.5" width="16" height="15"/><path d="M4 9.5h16M4 14.5h16M9.5 4.5v15"/></svg></span><span class="tab-label">Tabla</span></a><a class="tab" href="#/explorar"><span class="tab-icon"><svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="square" stroke-linejoin="miter" aria-hidden="true" focusable="false"><circle cx="10.5" cy="10.5" r="6"/><path d="M15 15l5 5"/></svg></span><span class="tab-label">Explorar</span></a></nav></div><div class="shell-offline" role="status"></div><div class="shell-update" role="status"></div></header>
+  <main id="contenido" class="page" tabindex="-1">
+    <div class="skeleton-screen" data-skeleton="home" aria-busy="true"><p class="vh" role="status">Cargando…</p><div class="screen-head sk-head" aria-hidden="true"><span class="sk sk-crest"></span><span class="screen-head-text"><span class="sk sk-title"></span><span class="sk sk-sub"></span></span></div><div class="block"><span class="sk sk-block-title"></span><div class="box skeleton sk-box-home"></div></div></div>
+  </main>
+  <span id="legacyUpdated" hidden>Última actualización: 27/11/2026</span>
+
+  <!-- Datos inmediatos: los siete que lee la portada. Con defer se ejecutan en este orden al terminar
+       el análisis, y el módulo del arranque, detrás: sus globales ya están cuando arranca app.js. -->
+  <script defer src="./data-benjamin.js?v=20261127i"></script>
+  <script defer src="./data-prebenjamin.js?v=20261127i"></script>
+  <script defer src="./data-history.js?v=20261127i"></script>
+  <script defer src="./data-goleadores.js?v=20261127i"></script>
+  <script defer src="./data-shields.js?v=20261127i"></script>
+  <script defer src="./data-seasons.js?v=20261127i"></script>
+  <script defer src="./data-maspalomas-cup-2026.js?v=20261127i"></script>
+  <script type="module">
+    // El código, de dist/ (con la huella de su contenido en el nombre: nunca una versión mezclada con otra).
+    // Si el arranque falla (sin conexión, con una página nueva de la red cuyo paquete todavía no está
+    // guardado, o un módulo que no llega), un aviso con estilos en línea y «Reintentar»: nunca «Cargando…»
+    // para siempre. Es texto fijo, sin datos.
+    (async () => {
+      try {
+        const { start } = await import('./dist/app-4d586eb3.js');
+        start(document, window);
+      } catch (error) {
+        console.error('[arranque]', error);
+        document.getElementById('contenido').innerHTML = `<div role="alert" style="max-width:40rem;margin:0 auto;padding:24px 16px;font:16px/1.5 system-ui,sans-serif">
+          <p style="margin:0 0 16px">No se pudo abrir la versión nueva de la app. Comprueba la conexión y pulsa Reintentar.</p>
+          <button type="button" id="reintentar-arranque" style="min-height:44px;padding:0 20px;border:0;border-radius:0;background:#C0182B;color:#FFFFFF;font:inherit;font-weight:700">Reintentar</button>
+        </div>`;
+        document.getElementById('reintentar-arranque').addEventListener('click', async () => {
+          // Que el navegador busque ya el SW nuevo (sin esperarlo más de 3 s) y otra vez desde el principio.
+          try {
+            const registration = await navigator.serviceWorker?.getRegistration();
+            if (registration) await Promise.race([registration.update(), new Promise((resolve) => setTimeout(resolve, 3000))]);
+          } catch { /* sin SW o sin red: se recarga igual */ }
+          location.reload();
+        });
+      }
+    })();
+  </script>
+  <script>
+    // El registro del SW, tras load: en la primera visita su instalación compite con los datos y el código de
+    // la portada. register y update() en cada apertura (nunca unregister: reinstalaría todo cada vez); sw.js
+    // toma el mando en seguida (skipWaiting y clients.claim).
+    if ('serviceWorker' in navigator) {
+      const register = () => navigator.serviceWorker.register('./sw.js')
+        .then(reg => reg.update())
+        .catch(() => {});
+      if (document.readyState === 'complete') register();
+      else addEventListener('load', register, { once: true });
+    }
+  </script>
+</body>
+</html>

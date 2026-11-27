@@ -1,0 +1,169 @@
+// Arranque: almacén, registro de datos, modelo y router. index.html llama a
+// start(document, window) cuando ya han llegado los datos inmediatos: importar este módulo no toca
+// el navegador (test_rediseno_modulos). Antes del primer pintado, start instala la cadena de los
+// escudos, sigue la conexión para el aviso de la cabecera y guarda el cambio de fase de mi equipo;
+// sin los datos inmediatos de la temporada, pinta la caja de error y no arranca el router. Tras el
+// primer pintado (el de la pantalla o el de la caja de error), escucha al SW para ponerse al día sola.
+import { PORTAL } from './config.js';
+import { readGlobals, healthNeeds, dataVersion } from './state.js';
+import { LAZY_CATS, createModel, seasonLabel } from './model.js';
+import { buildClubIndex, resolveMyTeam, myTeamToSave } from './myteam.js';
+import { loadStore, saveStore, safeStorage, addRecent, clearStore, importFromV1 } from './store.js';
+import { loadFollowed, saveFollowed, toggleFollowed } from './followed.js';
+import { canaryTodayISO, parseRoute } from './links.js';
+import { crestFallback } from './ui.js';
+import { errorScreen, offlineNotice, routeTitle, updateTabbar } from './shell.js';
+import { startRouter, activeTab, SESSION_KEY } from './router.js';
+import { SCREEN_MAP } from './screens.js';
+import { startUpdates, RELOAD_KEY } from './actualizacion.js';
+
+// Los datos de un pintado (el ctx de las pantallas sin la ruta, que añade el router): mi equipo
+// resuelto contra la temporada del portal con el «hoy» de Canarias, un solo reloj, y
+// los vistos hace poco del almacén, y los jugadores seguidos (followed.js). now es
+// el instante del pintado, con el que el aviso de estado mide la edad de la salud.
+function contextFor({ model, myTeam, recent = [], followed = [], portal, datasets, today, now, legacyDate = null }) {
+  const resolution = resolveMyTeam(myTeam, model.season(portal.season), model.clubIndex(), today);
+  return { model, myTeam, recent, followed, resolution, today, now, health: datasets.health, datasets, portal, legacyDate };
+}
+
+// El mismo contexto desde un almacén y con el día que se le pida: la base de las pruebas de las
+// pantallas. Con el almacén vacío o bloqueado, loadStore da el equipo por defecto, sin preguntas.
+// Solo lee el almacén: lo de v1 lo trae start, con importFromV1. Sin now, el mediodía UTC de today.
+export function startContext({ storage, portal, datasets, today, now = new Date(`${today}T12:00:00Z`) }) {
+  const store = loadStore(storage, { defaultTeam: portal.defaultTeam, portalSeason: portal.season });
+  const model = createModel(datasets, { portalSeason: portal.season, buildClubIndex });
+  const base = { season: portal.season, defaultTeam: portal.defaultTeam };
+  return { ...contextFor({ model, myTeam: store.myTeam, recent: store.recent, followed: loadFollowed(storage), portal: base, datasets, today, now }), lastPrimary: 'miequipo' };
+}
+
+// Los datos inmediatos sin los que no hay temporada: sin uno de ellos, ni X ni B serían verdad.
+const REQUIRED = ['benjamin', 'prebenjamin', 'history'];
+
+// config: el PORTAL de config.js; las pruebas pasan otro (una temporada simulada). now: el reloj,
+// inyectable en las pruebas (así no hace falta simular temporizadores); por defecto, el de verdad.
+export function start(doc, win, config = PORTAL, { now = () => new Date() } = {}) {
+  // Escudos: miniatura → original → monograma. Los errores de <img> no burbujean: se escuchan en
+  // captura, y desde antes del primer pintado (una miniatura de escudos/s/ puede faltar).
+  doc.addEventListener('error', (event) => crestFallback(event.target), true);
+  const storage = () => win.localStorage;
+  const portal = { season: config.season, defaultTeam: config.defaultTeam };
+  // Registro de datos: los globales inmediatos y lo que traen los cargadores perezosos. health es
+  // undefined mientras data-health.json no se ha pedido y null si falló; healthAt, la hora de la última
+  // respuesta: la de la red se vuelve a pedir pasados 10 minutos y la copia del SW, pasados 30 s y sin
+  // esperarla (healthNeeds). Las categorías perezosas (alevín, infantil, cadete y juvenil: LAZY_CATS),
+  // nunca en REQUIRED: lazy[cat], undefined hasta que el router la pide (data-<cat>.js), y
+  // seasonLazy[cat], la de cada temporada pasada (data-season-<S>-<cat>.js). matchDetailLazy[cat], la
+  // cronología de infantil, cadete y juvenil (data-matchdetail-<cat>.js), al abrir uno de sus partidos.
+  const datasets = {
+    ...readGlobals(), seasonRaw: {}, matchDetail: null, matchDetailLazy: {}, lineups: {}, health: undefined,
+    lazy: Object.fromEntries(LAZY_CATS.map((cat) => [cat, undefined])),
+    seasonLazy: Object.fromEntries(LAZY_CATS.map((cat) => [cat, {}])),
+  };
+  // La fecha del literal oculto «Última actualización» de index.html, por si falta data-health.
+  const legacyDate = doc.getElementById('legacyUpdated')?.textContent.match(/\d{2}\/\d{2}\/\d{4}/)?.[0] || null;
+
+  // «Sin conexión. Datos del …» en la cabecera, en vivo.
+  function showOffline() {
+    const slot = doc.querySelector('.shell-offline');
+    if (slot) slot.innerHTML = win.navigator.onLine === false ? String(offlineNotice(datasets.health, legacyDate)) : '';
+  }
+  win.addEventListener('online', showOffline);
+  win.addEventListener('offline', showOffline);
+  showOffline();
+  // El mismo vuelo que la portada (ensureHealth es de un solo vuelo): su resultado, o null si falla,
+  // queda en datasets.health, y así ninguna visita a Mi equipo lo vuelve a pedir en los 10 minutos
+  // siguientes (30 s si es la copia del SW, y entonces la pide sin esperarla).
+  healthNeeds(datasets).then(showOffline);
+
+  // Sin los datos inmediatos de la temporada (un precache a medias y sin conexión, por ejemplo), la caja de
+  // error con «Reintentar», que recarga la página: nunca un X o un B falsos. Mi equipo no se resuelve ni se
+  // guarda, y el router no arranca.
+  if (REQUIRED.some((key) => !datasets[key])) {
+    const route = parseRoute(win.location.hash);
+    const screen = SCREEN_MAP[route.screen] || SCREEN_MAP[''];
+    // Sin datos no hay resolución de mi equipo (isMine, false): la barra y el título de la ruta
+    // pedida se actualizan igual que lo haría el router, que aquí no llega a arrancar.
+    const tab = activeTab(route, null, false);
+    updateTabbar(tab.active, tab.current, doc);
+    doc.title = route.screen === '' ? doc.title : `${routeTitle(route.screen)} · ${doc.title}`;
+    doc.getElementById('contenido').innerHTML = String(errorScreen({
+      screenId: screen.id, title: routeTitle(route.screen), what: `la temporada ${seasonLabel(portal.season)}`,
+    }));
+    doc.addEventListener('click', (event) => {
+      if (event.target?.closest?.('[data-action="retry"]')) win.location.reload();
+    });
+    // Una versión nueva puede traer lo que falta: que se ponga al día sola, como la app entera.
+    startUpdates({ win, doc, version: dataVersion() });
+    return null;
+  }
+
+  const model = createModel(datasets, { portalSeason: portal.season, buildClubIndex });
+  // La primera vez en este navegador, mi equipo y los seguidos de v1 (mismo origen) pasan a v2.
+  importFromV1(storage, { portalSeason: portal.season });
+  let store = loadStore(storage, { defaultTeam: portal.defaultTeam, portalSeason: portal.season });
+  let followed = loadFollowed(storage);
+  const getContext = () => {
+    const instant = now();
+    return contextFor({
+      model, myTeam: store.myTeam, recent: store.recent, followed, portal, datasets, today: canaryTodayISO(instant, config.timeZone), now: instant, legacyDate,
+    });
+  };
+
+  // El cambio de fase que se resuelve sin preguntar (FF5 → A2) queda guardado desde el arranque. Un cambio de
+  // temporada, nunca: se resuelve en cada carga hasta que la familia lo confirma. Un dato mal formado no debe
+  // impedir que el router arranque: si getContext() falla aquí (buildSeason, el índice de clubes o
+  // resolveMyTeam, con datos mal formados), se registra y no se guarda nada; el router arranca igual y, si el
+  // mismo fallo vuelve a aparecer al pintar, enseña su propia caja de error.
+  try {
+    const next = myTeamToSave(store.myTeam, getContext().resolution);
+    if (next) {
+      store = { ...store, myTeam: next };
+      saveStore(storage, store);
+    }
+  } catch (err) {
+    console.error('[app] guardado al arrancar', err);
+  }
+
+  const router = startRouter({
+    screens: SCREEN_MAP,
+    root: doc.getElementById('contenido'),
+    getContext,
+    window: win,
+    // El último destino principal, para la barra en Partido, dura lo que la pestaña.
+    session: safeStorage(() => win.sessionStorage),
+    actions: {
+      // Respuesta a la pregunta de E y «Hacer mi equipo»: se guarda (o, si el
+      // almacenamiento falla, queda en memoria) y el router vuelve a pintar la ruta.
+      saveMyTeam(myTeam) {
+        store = { ...store, myTeam };
+        return saveStore(storage, store);
+      },
+      // «Vistos hace poco»: la ficha visitada va la primera, sin repetidos y como
+      // máximo 8 (addRecent de store.js); se guarda o, si el almacenamiento falla, queda en memoria.
+      addRecent(entry) {
+        store = addRecent(store, entry);
+        return saveStore(storage, store);
+      },
+      // «Seguir a este jugador» (la ficha de jugador): entra el primero o sale; se guarda o, si el
+      // almacenamiento falla, queda en memoria.
+      toggleFollow(player) {
+        followed = toggleFollowed(followed, player);
+        return saveFollowed(storage, followed);
+      },
+      // «Borrar datos de esta app»: el almacén y los seguidos (clearStore: las claves de v1
+      // y la marca de la importación se quedan) y, de la sesión, el último destino y la marca de la
+      // recarga sola (actualizacion.js); en memoria, lo de un almacén vacío (loadStore sin
+      // almacenamiento da el equipo por defecto), aunque el navegador no deje borrar.
+      clearData() {
+        followed = [];
+        clearStore(storage);
+        const session = safeStorage(() => win.sessionStorage);
+        session.removeItem(SESSION_KEY);
+        session.removeItem(RELOAD_KEY);
+        store = loadStore(null, { defaultTeam: portal.defaultTeam, portalSeason: portal.season });
+      },
+    },
+  });
+  startUpdates({ win, doc, version: dataVersion() });
+  return router;
+}

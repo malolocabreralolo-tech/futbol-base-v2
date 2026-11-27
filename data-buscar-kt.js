@@ -1,0 +1,1 @@
+const BUSCAR_KT = [["229903","KTIRI EL HANCHAOUI, IMRAN","Peña Amistad","2023-2024",[2016,2017]]];

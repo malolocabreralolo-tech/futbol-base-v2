@@ -1,0 +1,175 @@
+// Marco de la app: cabecera con la marca y la barra, aria-current de la barra, avisos sin conexión y de datos
+// nuevos, esqueletos de carga, caja de error y aviso de redirección. Todo son funciones puras que devuelven
+// Html, salvo updateTabbar, que cambia la barra ya pintada del documento que recibe, y retryBlock, que vuelve
+// a pintar un bloque de la pantalla. La cabecera de cada pantalla es screenHead (ui.js). No toca el navegador
+// al importarse.
+import { html } from './html.js';
+import { tabbar, notice, screenHead, listEs } from './ui.js';
+import { CATEGORIES, CAT_WORDS, LAZY_CATS } from './model.js';
+
+const TAB_HREFS = { miequipo: '#/', jornada: '#/jornada', tabla: '#/tabla', explorar: '#/explorar' };
+
+// Títulos de las rutas: el h1 de la caja de error y del <title> del documento.
+const TITLES = {
+  '': 'Mi equipo', jornada: 'Jornada', tabla: 'Tabla', explorar: 'Explorar', partido: 'Partido',
+  equipo: 'Equipo', ligas: 'Ligas', copa: 'Copa', goleadores: 'Goleadores',
+  temporadas: 'Temporadas anteriores', records: 'Récords', fuentes: 'Datos y fuentes', ajustes: 'Ajustes',
+  jugador: 'Jugador', ranking: 'Los mejores de cada año',
+};
+
+export function routeTitle(screen) {
+  return Object.hasOwn(TITLES, screen) ? TITLES[screen] : TITLES[''];
+}
+
+// ── Cabecera de la app y barra ───────────────────────────────────────────
+
+// La marca y la barra de 4 destinos. En móvil y tableta la barra es fija abajo y la marca no se
+// ve; desde 1024 px, la marca va a la izquierda y los destinos en pestañas, con 1120 px de
+// ancho máximo. .shell-offline es el hueco del aviso sin conexión, que
+// rellena app.js, y .shell-update, el de los datos nuevos, que rellena actualizacion.js. index.html
+// lleva esta misma cabecera, con Mi equipo activo.
+export function renderHeader({ active = 'miequipo', current = 'page' } = {}) {
+  return html`<div class="shell-bar"><a class="brand" href="#/">Fútbol base <span class="brand-place">Las Palmas</span> <span class="brand-version">v2</span></a>${tabbar(active, { current })}</div><div class="shell-offline" role="status"></div><div class="shell-update" role="status"></div>`;
+}
+
+// El destino de una pestaña de la barra por su enlace, sea el de siempre («#/tabla») o uno con su grupo
+// («#/tabla?s=2026-2027&g=FF6»): la pantalla de la ruta, antes de `?`.
+const TAB_OF = { '': 'miequipo', jornada: 'jornada', tabla: 'tabla', explorar: 'explorar' };
+const tabOf = (href) => TAB_OF[(String(href ?? '').match(/^#\/([a-z]*)(?:[?#]|$)/) || [])[1]] ?? null;
+
+// aria-current en la barra ya pintada: "page" en el destino de la pantalla y "true"
+// en las secundarias (Partido, Equipo, Ligas…); con active null, en ninguno. hrefs: el enlace de las
+// pestañas que no van a su destino de siempre ({ jornada, tabla }: las del grupo que se mira, de
+// tabTargets en router.js); las demás vuelven al suyo (#/jornada: el grupo de mi equipo).
+export function updateTabbar(active, current, doc, hrefs = {}) {
+  if (active != null && !Object.hasOwn(TAB_HREFS, active)) throw new RangeError(`Destino de la barra no válido: ${active}`);
+  if (current !== 'page' && current !== 'true') throw new RangeError(`aria-current no válido: ${current}`);
+  for (const tab of doc.querySelectorAll('.tabbar a.tab')) {
+    const id = tabOf(tab.getAttribute('href'));
+    if (!id) continue;
+    const href = hrefs[id] || TAB_HREFS[id];
+    if (tab.getAttribute('href') !== href) tab.setAttribute('href', href);
+    if (id === active) tab.setAttribute('aria-current', current);
+    else tab.removeAttribute('aria-current');
+  }
+}
+
+// ── Aviso sin conexión ───────────────────────────────────────────────────
+
+const isoToDMY = (iso) => {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso ?? ''));
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : null;
+};
+
+// «Sin conexión. Datos del DD/MM/AAAA»: la fecha es lastDataChange de data-health o, si falta,
+// la del literal oculto «Última actualización» de index.html (legacyDate, DD/MM/AAAA).
+export function offlineNotice(health, legacyDate) {
+  const legacy = /^\d{2}\/\d{2}\/\d{4}$/.test(String(legacyDate ?? '')) ? legacyDate : null;
+  const date = isoToDMY(health?.lastDataChange) || legacy;
+  return notice('Sin conexión.', date ? `Datos del ${date}` : '');
+}
+
+// ── Aviso de datos nuevos (actualizacion.js) ─────────────────────────────
+
+// La página es de una versión anterior a la del SW y alguien la está usando: «Actualizar» la recarga
+// (data-action="actualizar", que atiende actualizacion.js). Con la letra del aviso sin conexión.
+export function updateNotice() {
+  return html`<div class="update-notice">${notice('Hay datos nuevos.', '')}<button class="button is-main" type="button" data-action="actualizar">Actualizar</button></div>`;
+}
+
+// ── Esqueletos de carga ──────────────────────────────────────────────────
+
+// Mismas medidas que la pantalla terminada: la cabecera de pantalla (72 px) y sus primeras
+// cajas. Sin animación y sin h1: el h1 llega con el contenido.
+const BODIES = {
+  home: html`<div class="block"><span class="sk sk-block-title"></span><div class="box skeleton sk-box-home"></div></div>`,
+  jornada: html`<div class="box skeleton sk-box-round"></div><span class="sk sk-day"></span><div class="box skeleton sk-rows-6"></div>`,
+  tabla: html`<div class="box skeleton sk-box-seg"></div><div class="block"><span class="sk sk-block-title"></span><div class="box skeleton sk-rows-10"></div></div>`,
+  partido: html`<div class="block"><span class="sk sk-block-title"></span><div class="box skeleton sk-box-match"></div></div>`,
+  // Estas seis: lo que va antes de su primer bloque (el buscador de Explorar, el
+  // selector de categoría de Récords) y ese bloque, con su título y el alto que tiene a 390 px con las
+  // fixtures, en lo que se ve tras el esqueleto: Equipo de una temporada pasada («Así terminó»),
+  // Explorar («Ligas»), Ligas (su primera categoría), Récords («Totales»), Copa («Campeón») y Goleadores
+  // de una temporada pasada, que solo dice que no los hay (sin título de bloque, como ella).
+  equipo: html`<div class="block"><span class="sk sk-block-title"></span><div class="box skeleton sk-box-team"></div></div>`,
+  explorar: html`<div class="box skeleton sk-box-search"></div><div class="block"><span class="sk sk-block-title"></span><div class="box skeleton sk-box-leagues"></div></div>`,
+  ligas: html`<div class="block"><span class="sk sk-block-title"></span><div class="box skeleton sk-box-groups"></div></div>`,
+  records: html`<div class="box skeleton sk-box-cats"></div><div class="block"><span class="sk sk-block-title"></span><div class="box skeleton sk-box-totals"></div></div>`,
+  copa: html`<div class="block"><span class="sk sk-block-title"></span><div class="box skeleton sk-box-champion"></div></div>`,
+  goleadores: html`<div class="box skeleton sk-box-note"></div>`,
+};
+// Temporadas, Fuentes y Ajustes: el genérico (listas cortas, que casi nunca esperan a nada).
+const OTHER = html`<div class="block"><div class="box skeleton sk-box"></div></div>`;
+// Las cabeceras con escudo: Mi equipo y la ficha de Equipo.
+const WITH_CREST = new Set(['home', 'equipo']);
+
+export function skeleton(screenId) {
+  const head = html`<div class="screen-head sk-head" aria-hidden="true">${WITH_CREST.has(screenId) ? html`<span class="sk sk-crest"></span>` : ''}<span class="screen-head-text"><span class="sk sk-title"></span><span class="sk sk-sub"></span></span></div>`;
+  return html`<div class="skeleton-screen" data-skeleton="${screenId}" aria-busy="true"><p class="vh" role="status">Cargando…</p>${head}${Object.hasOwn(BODIES, screenId) ? BODIES[screenId] : OTHER}</div>`;
+}
+
+// ── Error y avisos del router ────────────────────────────────────────────
+
+// «No se pudieron cargar los datos de <qué>» con «Reintentar», que el router atiende
+// por data-action="retry". Nunca se cae a datos de otra temporada.
+export function errorBox(what) {
+  return html`<div class="box error-box" role="alert"><p class="error-text">No se pudieron cargar los datos de ${what}.</p><div class="buttons"><button class="button is-main" type="button" data-action="retry">Reintentar</button></div></div>`;
+}
+
+// «Reintentar» de un bloque que falló en el primer pintado: la Plantilla de Equipo
+// y los Goles y las Alineaciones de Partido, que lo atienden en su mount sin pasar por el router (con
+// stopPropagation, como la Trayectoria). Vuelve a pedir lo que le falta (`load`, que nunca rechaza: los
+// cargadores de state.js dan null) y pinta de nuevo el bloque `#id` de `section` en su sitio, con
+// `paint()` (su Html: una sección con el mismo id). El resto de la pantalla, el desplazamiento y la
+// ruta se quedan, y el foco va al título del bloque (tabindex -1, como el h1 del router). Mientras
+// carga, su botón dice «Cargando…» y no se puede volver a pulsar. Si el bloque ya no está en la página
+// (otra navegación lo quitó), no pinta nada. Devuelve el bloque nuevo, o null.
+export async function retryBlock(section, id, button, load, paint) {
+  const current = section.querySelector(`#${id}`);
+  if (!current) return null;
+  button.disabled = true;
+  button.textContent = 'Cargando…';
+  await load();
+  if (!current.isConnected) return null;
+  // El desplazamiento, donde estaba: sin esto, el anclaje del navegador (scroll anchoring) sube la
+  // página tanto como crece el bloque, para dejar quieto lo de debajo, y el bloque nuevo quedaría
+  // por encima de la vista.
+  const view = current.ownerDocument?.defaultView || null;
+  const y = view ? view.scrollY : null;
+  // Html de html``, que escapa cada dato, como el pintado del router.
+  current.outerHTML = String(paint());
+  if (view && view.scrollY !== y) view.scrollTo(view.scrollX, y);
+  const fresh = section.querySelector(`#${id}`);
+  const title = fresh && fresh.querySelector('.block-title');
+  if (title) {
+    if (!title.hasAttribute('tabindex')) title.setAttribute('tabindex', '-1');
+    title.focus({ preventScroll: true });
+  }
+  return fresh;
+}
+
+// El aviso de Explorar y de Ligas sin categoría cuando no llegaron los datos de las perezosas `cats`
+// (ctx.lazyFailed del router, en el orden de LAZY_CATS): la pantalla se pinta con las otras categorías y lo
+// dice, sin la alerta de la caja de error, que es para lo que no se puede pintar. «Reintentar» lo atiende el
+// router (data-action="retry") y vuelve a pedirlas. «No se pudieron cargar los datos de cadete y juvenil: se
+// ven las demás categorías.» Solo alevín, si lo que se ve son las de la carga inicial (`shown`, las
+// categorías que la pantalla enseña; sin él, se supone), el texto de siempre: «… de alevín: se ven benjamín
+// y prebenjamín.»
+export function lazyFailedBox(cats, shown = null) {
+  const failed = LAZY_CATS.filter((cat) => cats.includes(cat));
+  const eager = CATEGORIES.filter((cat) => !LAZY_CATS.includes(cat));
+  const onlyEager = !shown || shown.every((cat) => eager.includes(cat));
+  const others = failed.length === 1 && failed[0] === 'alevin' && onlyEager ? listEs(eager.map((cat) => CAT_WORDS[cat])) : 'las demás categorías';
+  return html`<div class="block"><div class="box partial-box" role="status"><p class="partial-text">No se pudieron cargar los datos de ${listEs(failed.map((cat) => CAT_WORDS[cat]))}: se ven ${others}.</p><div class="buttons"><button class="button" type="button" data-action="retry">Reintentar</button></div></div></div>`;
+}
+
+// La pantalla entera cuando falla una carga o el pintado: su h1 y la caja de error.
+export function errorScreen({ screenId, title, what, back = null }) {
+  return html`<section data-screen="${screenId}" data-state="error">${screenHead(title, { back })}<div class="block">${errorBox(what)}</div></section>`;
+}
+
+// Aviso de una redirección del router («Elige tu equipo en Mi equipo»). El router lo pone
+// detrás de la cabecera de la pantalla de destino.
+export function routeNotice(text) {
+  return html`<p class="notice route-notice" role="status">${text}</p>`;
+}

@@ -1,0 +1,168 @@
+// Pantalla Ligas. render(ctx) es pura:
+// - sin `f`, las competiciones de la categoría `c` (o de las dos), filtradas por isla si llega `i`, que
+//   abren su lista de grupos (#/ligas?s&c&f); con `to` (de «Otras ligas», o de Jornada y Tabla sin mi
+//   equipo), solo las ligas;
+// - con `f`, los grupos de esa competición (de las dos categorías si no llega `c`: la clave se repite),
+//   con su nombre, sus equipos, su ronda y su líder o su campeón. Cada grupo abre la
+//   pantalla de `to` o, sin ella, su Tabla o su Copa según su tipo;
+// - en una competición con 2 grupos de liga o más, «Comparar grupos»: un botón con aria-expanded que
+//   mount despliega, con la tabla de compareGroups pintada bajo demanda (sin parámetro en la dirección).
+// La temporada de la ruta la carga el router, que también deja `c`, `i` y `to` válidos o
+// los quita; la barra marca el destino de `to` (activeTab).
+import { html } from './html.js';
+import { screenHead, block, countLabel, crest, decimal, empty, notice, linkRow, listEs, pickerCategories, signed } from './ui.js';
+import { errorBox, lazyFailedBox } from './shell.js';
+import {
+  CATEGORIES, CAT_NAMES, CAT_WORDS, competitions, compareGroups, groupSummary, seasonLabel,
+} from './model.js';
+import { routeHref, teamHref } from './links.js';
+import { myTeamIn } from './myteam.js';
+
+const ISLAND_NAMES = { grancanaria: 'Gran Canaria', lanzarote: 'Lanzarote', fuerteventura: 'Fuerteventura', interinsular: 'Interinsular' };
+// «interinsular» no es una isla: las competiciones de varias islas (la División de Honor de juvenil…) son
+// «interinsulares», nunca «de Interinsular».
+const INTERINSULAR = 'interinsular';
+const shieldsOf = ctx => (ctx.datasets && ctx.datasets.shields) || {};
+const seasonOf = ctx => (ctx.params && ctx.params.s) || ctx.portal.season;
+
+/* Lo que enseña la ruta, para render y mount: la temporada, las competiciones (ya filtradas por `c`,
+ * `i` y, sin `f`, por `to`), las de la clave `f` y las categorías de las que habla: la `c` o, sin ella,
+ * las que tienen competiciones en la temporada (una temporada sin alevín no lo nombra) o, si no hay ninguna,
+ * las de la temporada (pickerCategories: benjamín, prebenjamín y alevín, y las nuevas que tenga), nunca las
+ * seis a ciegas. */
+export function ligasView(ctx) {
+  const s = seasonOf(ctx);
+  const { c = null, i = null, f = null, to = null } = ctx.params || {};
+  const all = competitions(ctx.model, s, { cat: c, island: i });
+  const list = f ? [] : all.filter(e => !to || e.kind === 'liga');
+  const present = CATEGORIES.filter(cat => list.some(e => e.cat === cat));
+  return { s, c, i, f, to, list, chosen: f ? all.filter(e => e.key === f) : [], cats: c ? [c] : present.length ? present : pickerCategories(ctx, s, null) };
+}
+
+// Las competiciones con «Comparar grupos»: 2 grupos de liga o más.
+const comparable = entry => entry.groups.filter(g => g.kind === 'league').length >= 2;
+
+// «Benjamín», «Benjamín y prebenjamín»; «de Gran Canaria» si llega la isla («Juvenil interinsular»).
+function scopeText(cats, island) {
+  const names = cats.map((cat, k) => (k ? CAT_WORDS[cat] : CAT_NAMES[cat]));
+  const where = island === INTERINSULAR ? ' interinsular' : island ? ` de ${ISLAND_NAMES[island]}` : '';
+  return `${listEs(names)}${where}`;
+}
+
+// ── Sin `f`: las competiciones ───────────────────────────────────────────
+
+function competitionsBlocks(ctx, view) {
+  const { s, i, to, list, cats } = view;
+  if (!list.length) {
+    const what = to ? 'ligas' : 'competiciones';
+    const words = listEs(cats.map(cat => CAT_WORDS[cat]));
+    if (i === INTERINSULAR) return empty(`No hay ${what} interinsulares de ${words} en la temporada ${seasonLabel(s)}.`);
+    return empty(`No hay ${what} de ${words}${i ? ` en ${ISLAND_NAMES[i]}` : ''} en la temporada ${seasonLabel(s)}.`);
+  }
+  return CATEGORIES.map(cat => list.filter(e => e.cat === cat)).filter(entries => entries.length).map((entries) => {
+    const total = entries.reduce((n, e) => n + e.groups.length, 0);
+    const rows = entries.map(e => html`<li>${linkRow(routeHref('ligas', { s, c: e.cat, f: e.key, to }), e.label, { context: countLabel(e.groups.length, 'grupo', 'grupos') })}</li>`);
+    return block(CAT_NAMES[entries[0].cat], html`<ul class="box link-list">${rows}</ul>`, { context: countLabel(total, 'grupo', 'grupos') });
+  });
+}
+
+// ── Con `f`: los grupos de la competición ────────────────────────────────
+
+/* Una fila por grupo: su nombre; los equipos y el líder o el campeón debajo; la ronda en
+ * curso a la derecha. Abre la pantalla de `to` (un grupo de liga) o, sin ella, su Tabla o su Copa. El
+ * grupo resuelto de mi equipo lleva el resalte propio. */
+function groupRow(ctx, group, to) {
+  const g = groupSummary(group);
+  const s = group.season;
+  const target = group.kind === 'league' ? (to || 'tabla') : 'copa';
+  const detail = [g.teams ? countLabel(g.teams, 'equipo', 'equipos') : null, g.leader ? `líder: ${g.leader}` : null,
+    g.champion ? `campeón: ${g.champion}` : null].filter(Boolean).join(' · ');
+  const r = ctx.resolution;
+  const mine = r && r.status === 'ok' && r.group && r.group.season === s && r.group.id === group.id;
+  const title = mine ? html`${g.label}<span class="vh"> (grupo de mi equipo)</span>` : g.label;
+  return html`<li>${linkRow(routeHref(target, { s, g: group.id }), title, { detail, context: g.round ? g.round.toLowerCase() : null, cls: mine ? 'group-row is-mine' : 'group-row' })}</li>`;
+}
+
+/* La tabla de «Comparar grupos» de una competición, la que mount pinta bajo demanda:
+ * compareGroups con su grupo en una columna («2» por «Grupo 2») y la diferencia de goles, que desempata;
+ * cada equipo a su ficha, mi equipo con el resalte propio y los retirados al final, sin puntos por
+ * partido. */
+export function compareView(ctx, entry) {
+  const byId = new Map(entry.groups.map(g => [g.id, g]));
+  const mine = new Map(entry.groups.map(g => [g.id, myTeamIn(g, ctx.myTeam, ctx.resolution)]));
+  const shields = shieldsOf(ctx);
+  const body = compareGroups(entry.groups).map((row, k) => {
+    const group = byId.get(row.groupId);
+    const isMine = mine.get(row.groupId) === row.team;
+    const cells = html`<td class="st-pos">${k + 1}</td><th scope="row" class="st-team"><a class="st-link" href="${teamHref(group.season, group.id, row.team)}">${crest(row.team, { shields })}<span class="st-name">${row.team}</span></a>${isMine ? html`<span class="vh"> (mi equipo)</span>` : ''}</th><td class="cmp-group">${row.groupLabel.replace(/^Grupo\s+/i, '')}</td><td class="st-num st-pj">${row.pj}</td><td class="st-dg">${signed(row.dg)}</td><td class="st-pts">${row.pts}</td><td class="cmp-ppj">${row.retired ? html`<span class="st-retired">retirado</span>` : decimal(row.ppj, 2)}</td>`;
+    return html`<tr${isMine ? html` class="is-mine"` : ''}>${cells}</tr>`;
+  });
+  const caption = `Comparación de los grupos de ${entry.label}, ${CAT_WORDS[entry.cat]}`;
+  return html`${notice(null, 'Por puntos por partido; a igualdad, por puntos, diferencia de goles y nombre. Los retirados, al final.')}<div class="box"><table class="standings compare-table"><caption class="vh">${caption}</caption><thead><tr><th scope="col" class="st-pos"><abbr title="Posición">#</abbr></th><th scope="col" class="st-team">Equipo</th><th scope="col" class="cmp-group"><abbr title="Grupo">Gr.</abbr></th><th scope="col" class="st-num st-pj"><abbr title="Partidos jugados">J</abbr></th><th scope="col" class="st-dg"><abbr title="Diferencia de goles">DG</abbr></th><th scope="col" class="st-pts"><abbr title="Puntos">Pts</abbr></th><th scope="col" class="cmp-ppj"><abbr title="Puntos por partido">Pts/J</abbr></th></tr></thead><tbody>${body}</tbody></table></div>`;
+}
+
+function groupsBlocks(ctx, view) {
+  const { s, f, to, chosen } = view;
+  if (!chosen.length) {
+    return html`${empty(`No encontramos la competición «${f}» en la temporada ${seasonLabel(s)}.`)}<ul class="box link-list"><li>${linkRow(routeHref('ligas', { s, c: view.c, i: view.i, to }), 'Ver todas las competiciones')}</li></ul>`;
+  }
+  return chosen.map((entry) => {
+    const rows = entry.groups.map(group => groupRow(ctx, group, to));
+    const id = `comparar-${entry.cat}`;
+    const compare = comparable(entry)
+      ? html`<button class="button compare-toggle" type="button" id="${id}" data-action="comparar" aria-expanded="false" aria-controls="${id}-tabla">Comparar grupos</button><div class="compare" id="${id}-tabla" hidden></div>`
+      : '';
+    return block(CAT_NAMES[entry.cat], html`<ul class="box link-list">${rows}</ul>${compare}`, { context: countLabel(entry.groups.length, 'grupo', 'grupos') });
+  });
+}
+
+// ── Pantalla ────────────────────────────────────────────────────────────
+
+function render(ctx) {
+  const view = ligasView(ctx);
+  const { s, i, f, chosen } = view;
+  const back = ctx.backHref;
+  // La temporada de la ruta la carga el router; si aun así no está, la caja de
+  // error con «Reintentar», nunca otra temporada.
+  if (!ctx.model.season(s)) {
+    return html`<section data-screen="ligas">${screenHead('Ligas', { back })}${errorBox(`la temporada ${seasonLabel(s)}`)}</section>`;
+  }
+  // Sin `c`, sin los datos de alguna perezosa (el router no los pudo cargar): las otras categorías, con su
+  // aviso, que dice cuál falta.
+  const failed = ctx.lazyFailed || [];
+  const partial = failed.length ? lazyFailedBox(failed, view.cats) : '';
+  if (f && chosen.length) {
+    const cats = [...new Set(chosen.map(e => e.cat))];
+    const head = screenHead(chosen[0].label, { sub: `${scopeText(cats, null)} · ${seasonLabel(s)}`, back });
+    return html`<section data-screen="ligas">${head}${partial}${groupsBlocks(ctx, view)}</section>`;
+  }
+  const head = screenHead('Ligas', { sub: `${scopeText(view.cats, i)} · ${seasonLabel(s)}`, back });
+  return html`<section data-screen="ligas">${head}${partial}${f ? groupsBlocks(ctx, view) : competitionsBlocks(ctx, view)}</section>`;
+}
+
+/* «Comparar grupos»: cada botón despliega su tabla (compareView), que se pinta la primera vez que se
+ * abre (Html de html``, que escapa cada dato) y después solo se muestra o se esconde. Las escuchas van
+ * en los botones, que se sustituyen con la sección en cada pintado. */
+function mount(root, ctx) {
+  for (const entry of ligasView(ctx).chosen.filter(comparable)) {
+    const button = root.querySelector(`#comparar-${entry.cat}`);
+    const box = root.querySelector(`#comparar-${entry.cat}-tabla`);
+    if (!button || !box) continue;
+    button.addEventListener('click', () => {
+      const open = button.getAttribute('aria-expanded') !== 'true';
+      button.setAttribute('aria-expanded', String(open));
+      button.textContent = open ? 'Ocultar la comparación' : 'Comparar grupos';
+      if (open && !box.innerHTML) box.innerHTML = String(compareView(ctx, entry));
+      box.hidden = !open;
+    });
+  }
+}
+
+export const screen = {
+  id: 'ligas',
+  // Nada que cargar: los grupos salen de la temporada de la ruta, que carga el router,
+  // y de los torneos, que son datos inmediatos.
+  needs: () => [],
+  render,
+  mount,
+};

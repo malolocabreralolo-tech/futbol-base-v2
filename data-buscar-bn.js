@@ -1,0 +1,1 @@
+const BUSCAR_BN = [["220148","BENAISA BNIDAR, RAYAN","CD Cerruda","2022-2023",[2013]]];
