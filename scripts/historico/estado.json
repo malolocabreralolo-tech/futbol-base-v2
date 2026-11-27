@@ -2,7 +2,7 @@
  "dia": {
   "fecha": "2026-11-27",
   "freno": "carril",
-  "paginas": 1927
+  "paginas": 1963
  },
  "dias_frenados": [
   "2026-11-26",
@@ -1158,6 +1158,29 @@
     "22"
    ],
    "trabajo": "actas"
+  },
+  {
+   "accion": "descargar",
+   "esperas": 0,
+   "esperas_s": [],
+   "esperas_sirvio": [],
+   "fin": "2026-11-27T13:38:11+00:00",
+   "frenos": 0,
+   "frenos_tras": [],
+   "inicio": "2026-11-27T13:33:57+00:00",
+   "lote": "cadete",
+   "muertas": 0,
+   "nube": "azure",
+   "paginas": 2073,
+   "parada": null,
+   "pedidas": 36,
+   "relanzada": true,
+   "runner_rechazado": false,
+   "servidas": 36,
+   "temporadas": [
+    "22"
+   ],
+   "trabajo": "actas"
   }
  ],
  "formato": 1,
@@ -1220,10 +1243,10 @@
    "pendientes": 0
   },
   "actas:2026-2027:cadete": {
-   "actualizado": "2026-11-27T11:42:31+00:00",
-   "estado": "pendiente",
+   "actualizado": "2026-11-27T13:38:11+00:00",
+   "estado": "completo",
    "no_disponible": 0,
-   "pendientes": 30
+   "pendientes": 0
   },
   "actas:2026-2027:infantil": {
    "actualizado": "2026-11-27T08:07:47+00:00",

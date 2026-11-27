@@ -1,14 +1,14 @@
 {
  "formato": 2,
  "season": "2026-2027",
- "enumerated": 669,
- "in_raw": 641,
- "fetched": 0,
- "pending": 30,
- "actas_por_leer": 28,
- "jornadas_por_leer": 1,
+ "enumerated": 673,
+ "in_raw": 673,
+ "fetched": 32,
+ "pending": 0,
+ "actas_por_leer": 0,
+ "jornadas_por_leer": 0,
  "grupos_por_leer": 0,
- "unenumerated_comps": 1,
+ "unenumerated_comps": 0,
  "no_disponible": [],
  "intentos": {},
  "motivos": {},
@@ -133,20 +133,21 @@
      "GRUPO 2"
     ]
    ],
-   "pendientes": {
-    "55098683": [
-     "7"
-    ]
-   }
+   "pendientes": {}
   },
   "55133909": {
-   "grupos": null,
+   "grupos": [
+    [
+     "55301300",
+     "FINAL"
+    ]
+   ],
    "pendientes": {}
   }
  },
  "paginas": {
-  "pedidas": 2,
-  "servidas": 0
+  "pedidas": 36,
+  "servidas": 36
  },
- "parada": "runner"
+ "parada": null
 }
