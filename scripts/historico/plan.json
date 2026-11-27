@@ -6,7 +6,7 @@
  "encargado": "2026-11-25T15:38:14+00:00",
  "formato": 1,
  "parado": false,
- "reintentar_desde": null,
+ "reintentar_desde": "2026-11-27T01:00:41+00:00",
  "temporadas": [
   "21"
  ],
