@@ -50,7 +50,7 @@
   "2026-11-24": "2026-11-25T01:39:31",
   "2026-11-25": "2026-11-26T02:05:30",
   "2026-11-26": "2026-11-27T00:23:49",
-  "2026-11-27": "2026-11-27T19:05:11"
+  "2026-11-27": "2026-11-27T19:45:49"
  },
  "ligas": {
   "121": {
@@ -46720,15 +46720,15 @@
    "escudo_local": "200x20maciotSport.png",
    "escudo_visitante": "sportingTias20-21.png",
    "estadio": "SF Javier",
-   "estado": "no_iniciado",
+   "estado": "finalizado",
    "fase_eliminatoria": "",
    "fecha_programada": "2026-11-27 17:00:00",
    "goleadores_local": null,
    "goleadores_visitante": null,
    "goles_ida_local": 0,
    "goles_ida_visitante": 0,
-   "goles_local": 0,
-   "goles_visitante": 0,
+   "goles_local": 1,
+   "goles_visitante": 8,
    "hora_inicio": null,
    "id": 22007,
    "id_local": 1787,
@@ -46746,17 +46746,17 @@
    "permitir_comentarios": 1,
    "permitir_comentarios_liga": 1,
    "racha_local": [
-    "D",
     "V",
     "V",
     "V",
-    "V"
+    "V",
+    "D"
    ],
    "racha_visitante": [
     "V",
     "V",
-    "V",
     "D",
+    "V",
     "V"
    ],
    "tecnico_local": null,
