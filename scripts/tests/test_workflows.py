@@ -2590,9 +2590,19 @@ def test_solo_el_reloj_y_el_propio_carril_lanzan_el_historico():
     assert con_cron == ["mygol.yml", "reloj.yml", "tests.yml", "web.yml"], con_cron
 
 
-def _run_reloj_step(tmp_path, name, gh_script, pasadas="[]"):
+# La hora de los pasos del reloj en estas pruebas: un martes a media mañana, fuera de las ventanas de partidos y a más
+# de una hora de la siguiente (5 min después de las ejecuciones «en marcha» de abajo).
+AHORA_DEL_RELOJ = "2026-12-01T10:05:00Z"
+EN_LA_VENTANA = "2026-12-04T18:30:00Z"      # un viernes a las 18:30 de Canarias
+
+
+def _run_reloj_step(tmp_path, name, gh_script, pasadas="[]", now=AHORA_DEL_RELOJ):
     """El guion de un paso de reloj.yml, con bash y un gh de mentira (`gh_script`), desde la raíz del repositorio, con
-    la lista del bot que dejó el primer paso ($RUNNER_TEMP/pasadas.json): (código, $GITHUB_OUTPUT o None, la salida)."""
+    la lista del bot que dejó el primer paso ($RUNNER_TEMP/pasadas.json): (código, $GITHUB_OUTPUT o None, la salida).
+    La hora del paso es `now` y no la de la máquina: un python3 de mentira le pasa --now a reloj_pasadas.py. Con la
+    de la máquina, el paso contesta «ventana de partidos» antes de mirar nada más, y la prueba salía en rojo en las
+    ventanas (viernes 27/11/2026 a las 18:03: la pasada del bot no publicó sus datos)."""
+    import sys
     step = _reloj_step(name)
     bin_dir = tmp_path / "bin"
     bin_dir.mkdir(parents=True)
@@ -2600,6 +2610,11 @@ def _run_reloj_step(tmp_path, name, gh_script, pasadas="[]"):
     (bin_dir / "gh").chmod(0o755)
     (bin_dir / "sleep").write_text("#!/bin/sh\nexit 0\n", encoding="utf-8")       # sin esperar
     (bin_dir / "sleep").chmod(0o755)
+    (bin_dir / "python3").write_text(
+        "#!/bin/bash\n"
+        f'[ "$1" = scripts/reloj_pasadas.py ] && exec "{sys.executable}" "$@" --now "{now}"\n'
+        f'exec "{sys.executable}" "$@"\n', encoding="utf-8")
+    (bin_dir / "python3").chmod(0o755)
     (tmp_path / "pasadas.json").write_text(pasadas, encoding="utf-8")
     out = tmp_path / "salida"
     env = {"PATH": f"{bin_dir}{os.pathsep}{os.environ.get('PATH', '')}", "RUNNER_TEMP": str(tmp_path),
@@ -2625,6 +2640,14 @@ def test_the_historico_step_runs_for_real(tmp_path):
     body, _ = _gh_por_workflow(tmp_path / "bot", {**todas, "historico.yml": "[]"})
     code, out, log = _run_reloj_step(tmp_path / "bot", TOCA_HISTORICO, body, pasadas=busy)
     assert code == 0 and out == "due_historico=false\n" and "update.yml, carril-mayores.yml o activar.yml" in log, log
+    # Sin nada en marcha, toca; y a la misma hora de un día de partidos, no: en las ventanas el carril no lee.
+    libres = {k: "[]" for k in todas}
+    code, out, log = _run_reloj_step(tmp_path / "libre", TOCA_HISTORICO, _gh_por_workflow(tmp_path / "libre", libres)[0])
+    assert code == 0 and out == "due_historico=true\n", (code, out, log)
+    code, out, log = _run_reloj_step(tmp_path / "ventana", TOCA_HISTORICO,
+                                     _gh_por_workflow(tmp_path / "ventana", libres)[0], now=EN_LA_VENTANA)
+    assert code == 0 and out == "due_historico=false\n", (code, out, log)
+    assert "Carril del histórico: no toca: ventana de partidos (viernes de 18:00 a 24:00)" in log, log
     for missing in todas:
         body, calls = _gh_por_workflow(tmp_path / f"falla-{missing}", {k: v for k, v in todas.items() if k != missing})
         code, out, log = _run_reloj_step(tmp_path / f"falla-{missing}", TOCA_HISTORICO, body)
