@@ -1228,6 +1228,17 @@
     "actas:2026-2027:infantil"
    ],
    "verde": true
+  },
+  {
+   "at": "2026-11-27T13:49:18+00:00",
+   "mb_antes": 55.191,
+   "mb_despues": 56.484,
+   "motivo": "",
+   "segundos": 77.6,
+   "trabajos": [
+    "actas:2026-2027:cadete"
+   ],
+   "verde": true
   }
  ],
  "trabajos": {
@@ -1243,8 +1254,13 @@
    "pendientes": 0
   },
   "actas:2026-2027:cadete": {
-   "actualizado": "2026-11-27T13:38:11+00:00",
-   "estado": "completo",
+   "actualizado": "2026-11-27T13:49:18+00:00",
+   "estado": "promovido",
+   "huellas": {
+    "fiflp_actas_2026-2027_cadete_index.json": "f8b80199a4fe9dd2a9a865f043921d6bd9ffb8f5",
+    "fiflp_actas_2026-2027_cadete_raw.json": "736cfc628d4d6b0c7f3407cb2bb7f83efd2ed819",
+    "fiflp_actas_2026-2027_cadete_status.json": "2e020436ba7b8c28588c76ed08c89460daf6a60f"
+   },
    "no_disponible": 0,
    "pendientes": 0
   },
