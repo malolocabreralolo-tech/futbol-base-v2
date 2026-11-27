@@ -3,7 +3,7 @@
  "season": "2026-2027",
  "enumerated": 349,
  "in_raw": 176,
- "fetched": 176,
+ "fetched": 0,
  "pending": 192,
  "actas_por_leer": 173,
  "jornadas_por_leer": 9,
@@ -118,8 +118,8 @@
   }
  },
  "paginas": {
-  "pedidas": 306,
-  "servidas": 300
+  "pedidas": 2,
+  "servidas": 0
  },
- "parada": "freno"
+ "parada": "runner"
 }
