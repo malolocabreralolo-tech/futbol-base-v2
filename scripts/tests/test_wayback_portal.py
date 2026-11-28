@@ -165,3 +165,41 @@ def test_el_mismo_equipo_con_y_sin_marca_casa_una_sola_vez():
     names = P.base_names_for(conn, ["Atlético G.C. B *", "Atlético G.C. B", "Ingenio A"])
     assert names["Atlético G.C. B *"] == names["Atlético G.C. B"]
     assert names["Ingenio A"] == "Ingenio"
+
+
+def test_un_grupo_con_actas_no_se_rehace_cuando_la_temporada_gana_grupos(tmp_path):
+    """El portal rellena un grupo de la federación y el bot le enlaza después las actas. Cuando la temporada gana
+    grupos cambia la huella y el portal vuelve a pasar: el grupo sin actas se rehace; el que las tiene, no (borrar sus
+    partidos se las llevaría, y con las claves ajenas activas, como en el bot, el DELETE falla: la importación del
+    histórico de alevín de 2020-21 salió en rojo por eso el 28/11/2026)."""
+    conn = _base()
+    conn.execute("PRAGMA foreign_keys=ON")
+    _write(tmp_path, "2017-2018", {"GC4": {
+        "category": "BENJAMIN", "phase": "Primera Fase GC", "island": "grancanaria", "name": "Grupo 4",
+        "standings": [[1, "Unión Carrizal", 6, 2, 2, 0, 0, 5, 1, 4], [2, "Ingenio", 3, 2, 1, 0, 1, 3, 3, 0],
+                      [3, "Villa", 0, 2, 0, 0, 2, 1, 5, -4]],
+        "jornadas": {"Jornada 1": [_m("2017-10-07", "Unión Carrizal", "Ingenio", 2, 0)],
+                     "Jornada 2": [_m("2017-10-14", "Ingenio", "Villa", 3, 1)]}}})
+    importar = lambda: P.import_changed_portal(conn, folder=str(tmp_path), log=lambda *a: None)
+    partidos = lambda: conn.execute("SELECT jornada, home_score, away_score FROM matches ORDER BY jornada").fetchall()
+    assert importar()["wayback_portal_2017-2018_raw.json"]["groups"] == 1
+    antes = partidos()
+    assert len(antes) == 2
+
+    # La temporada gana un grupo: el del portal, sin actas todavía, se rehace con los mismos partidos.
+    conn.execute("INSERT INTO groups(id, season_id, category_id, code, name, phase) VALUES (2, 1, 2, 'PGC1', 'Grupo 1', 'Primera Fase GC')")
+    rep = importar()["wayback_portal_2017-2018_raw.json"]
+    assert (rep["groups"], rep["skipped"]) == (1, 0) and partidos() == antes
+
+    # Con un acta enlazada a uno de sus partidos, y otro grupo nuevo en la temporada: se queda como está.
+    mid = conn.execute("SELECT id FROM matches WHERE jornada='Jornada 1'").fetchone()[0]
+    conn.execute("INSERT INTO match_staff_all(match_id, team_id, role, name, ord) VALUES (?, 2, 'Entrenador', 'E. Uno', 0)", (mid,))
+    conn.execute("INSERT INTO groups(id, season_id, category_id, code, name, phase) VALUES (3, 1, 2, 'PGC2', 'Grupo 2', 'Primera Fase GC')")
+    conn.commit()
+    rep = importar()["wayback_portal_2017-2018_raw.json"]
+    assert (rep["groups"], rep["skipped"]) == (0, 1)
+    assert partidos() == antes
+    assert conn.execute("SELECT match_id, name FROM match_staff_all").fetchall() == [(mid, "E. Uno")]
+    assert conn.execute("SELECT mode FROM portal_groups WHERE group_id=1").fetchone() == ("matches",)
+    # Y con la huella puesta: sin más cambios, nada.
+    assert importar() == {}

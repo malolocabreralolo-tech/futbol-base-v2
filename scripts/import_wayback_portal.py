@@ -19,13 +19,15 @@ fetch_wayback_portal.py, wayback_portal_<S>_raw.json) en la base.
   no, el del portal, sin sus marcas de sanción o retirada.
 
 Lo que crea o rellena queda en portal_groups, y se rehace cuando cambia su raw (huella en
-raw_imports). Un resultado administrativo de 2013-14 (contra un retirado) entra con su marcador
+raw_imports); un grupo de la federación con actas ya enlazadas a sus partidos, no: se queda
+como está. Un resultado administrativo de 2013-14 (contra un retirado) entra con su marcador
 y sin campo.
 """
 import hashlib
 import json
 import os
 import re
+import sqlite3
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -349,7 +351,15 @@ def import_existing_season(conn, season_id, season, raw, log=print):
                          else mapping.get(portal_name(n))) for n in names}
         # Solo equipos del grupo: un nombre que no casa no crea un equipo nuevo.
         names_map = {n: v for n, v in names_map.items() if v in group_teams}
-        conn.execute("DELETE FROM matches WHERE group_id=?", (gid,))
+        try:
+            conn.execute("DELETE FROM matches WHERE group_id=?", (gid,))
+        except sqlite3.IntegrityError:
+            # Sus partidos ya tienen actas enlazadas, y un grupo con actas no se borra (db.MATCH_CHILD_TABLES):
+            # se queda como está. La huella cambia también cuando la temporada gana grupos (los de alevín de
+            # una pasada), y ahí en los que ya tenían partidos no hay nada que rehacer.
+            report["skipped"] += 1
+            log(f"    {season} {code}: con actas, no se rehace")
+            continue
         report["matches"] += _write_matches(conn, gid, jornadas, names_map)
         _current_round(conn, gid)
         conn.execute("""INSERT OR REPLACE INTO portal_groups(group_id, season, code, mode, source)
