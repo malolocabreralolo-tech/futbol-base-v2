@@ -2,7 +2,7 @@
  "dia": {
   "fecha": "2026-11-28",
   "freno": null,
-  "paginas": 123
+  "paginas": 341
  },
  "dias_frenados": [
   "2026-11-26",
@@ -1379,6 +1379,34 @@
     "15"
    ],
    "trabajo": "goleadores"
+  },
+  {
+   "accion": "descargar",
+   "esperas": 0,
+   "esperas_s": [],
+   "esperas_sirvio": [],
+   "fin": "2026-11-28T01:56:53+00:00",
+   "frenos": 0,
+   "frenos_tras": [],
+   "inicio": "2026-11-28T01:31:29+00:00",
+   "lote": null,
+   "muertas": 0,
+   "nube": "azure",
+   "paginas": 3877,
+   "parada": null,
+   "pedidas": 218,
+   "relanzada": true,
+   "runner_rechazado": false,
+   "servidas": 218,
+   "temporadas": [
+    "20",
+    "19",
+    "18",
+    "17",
+    "16",
+    "15"
+   ],
+   "trabajo": "goleadores"
   }
  ],
  "formato": 1,
@@ -1492,6 +1520,60 @@
     "fiflp_actas_2026-2027_juvenil_raw.json": "db14a45f73205d1b82916047893525d84769b9bb",
     "fiflp_actas_2026-2027_juvenil_status.json": "b56ed51635b9757360d10f10189cdf179b06602c"
    },
+   "no_disponible": 0,
+   "pendientes": 0
+  },
+  "goleadores:2019-2020": {
+   "actualizado": "2026-11-28T01:56:53+00:00",
+   "categorias": [
+    "alevin"
+   ],
+   "estado": "completo",
+   "no_disponible": 0,
+   "pendientes": 0
+  },
+  "goleadores:2020-2021": {
+   "actualizado": "2026-11-28T01:56:53+00:00",
+   "categorias": [
+    "alevin"
+   ],
+   "estado": "completo",
+   "no_disponible": 0,
+   "pendientes": 0
+  },
+  "goleadores:2021-2022": {
+   "actualizado": "2026-11-28T01:56:53+00:00",
+   "categorias": [
+    "alevin"
+   ],
+   "estado": "completo",
+   "no_disponible": 0,
+   "pendientes": 0
+  },
+  "goleadores:2022-2023": {
+   "actualizado": "2026-11-28T01:56:53+00:00",
+   "categorias": [
+    "alevin"
+   ],
+   "estado": "completo",
+   "no_disponible": 0,
+   "pendientes": 0
+  },
+  "goleadores:2023-2024": {
+   "actualizado": "2026-11-28T01:56:53+00:00",
+   "categorias": [
+    "alevin"
+   ],
+   "estado": "completo",
+   "no_disponible": 0,
+   "pendientes": 0
+  },
+  "goleadores:2024-2025": {
+   "actualizado": "2026-11-28T01:56:53+00:00",
+   "categorias": [
+    "alevin"
+   ],
+   "estado": "completo",
    "no_disponible": 0,
    "pendientes": 0
   },
