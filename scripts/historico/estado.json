@@ -1476,6 +1476,17 @@
     "actas:2026-2027:juvenil"
    ],
    "verde": true
+  },
+  {
+   "at": "2026-11-28T02:05:21+00:00",
+   "mb_antes": 58.207,
+   "mb_despues": 58.508,
+   "motivo": "",
+   "segundos": 57.5,
+   "trabajos": [
+    "goleadores:2024-2025"
+   ],
+   "verde": true
   }
  ],
  "trabajos": {
@@ -1569,11 +1580,14 @@
    "pendientes": 0
   },
   "goleadores:2024-2025": {
-   "actualizado": "2026-11-28T01:56:53+00:00",
+   "actualizado": "2026-11-28T02:05:21+00:00",
    "categorias": [
     "alevin"
    ],
-   "estado": "completo",
+   "estado": "promovido",
+   "huellas": {
+    "fiflp_goleadores_2024-2025_raw.json": "dac61e8c88aaf931f95ecadec7c3d39b362bc147"
+   },
    "no_disponible": 0,
    "pendientes": 0
   },
