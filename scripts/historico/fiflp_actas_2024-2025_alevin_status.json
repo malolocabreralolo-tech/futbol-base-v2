@@ -3,7 +3,7 @@
  "season": "2024-2025",
  "enumerated": 1118,
  "in_raw": 990,
- "fetched": 222,
+ "fetched": 0,
  "pending": 135,
  "actas_por_leer": 128,
  "jornadas_por_leer": 0,
@@ -127,8 +127,8 @@
   }
  },
  "paginas": {
-  "pedidas": 306,
-  "servidas": 300
+  "pedidas": 1,
+  "servidas": 0
  },
- "parada": "freno"
+ "parada": "runner"
 }

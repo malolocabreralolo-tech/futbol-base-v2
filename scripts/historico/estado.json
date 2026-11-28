@@ -1553,6 +1553,31 @@
     "20"
    ],
    "trabajo": "actas"
+  },
+  {
+   "accion": "descargar",
+   "esperas": 0,
+   "esperas_s": [],
+   "esperas_sirvio": [],
+   "fin": "2026-11-28T08:16:05+00:00",
+   "frenos": 1,
+   "frenos_tras": [
+    0
+   ],
+   "inicio": "2026-11-28T08:16:00+00:00",
+   "lote": "alevin",
+   "muertas": 0,
+   "nube": "aws",
+   "paginas": 2334,
+   "parada": "runner",
+   "pedidas": 1,
+   "relanzada": true,
+   "runner_rechazado": true,
+   "servidas": 0,
+   "temporadas": [
+    "20"
+   ],
+   "trabajo": "actas"
   }
  ],
  "formato": 1,
