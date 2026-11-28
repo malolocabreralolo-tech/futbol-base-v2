@@ -1,14 +1,14 @@
 {
  "formato": 2,
  "season": "2024-2025",
- "enumerated": 845,
- "in_raw": 768,
+ "enumerated": 1118,
+ "in_raw": 990,
  "fetched": 222,
- "pending": 85,
- "actas_por_leer": 77,
+ "pending": 135,
+ "actas_por_leer": 128,
  "jornadas_por_leer": 0,
  "grupos_por_leer": 0,
- "unenumerated_comps": 8,
+ "unenumerated_comps": 7,
  "no_disponible": [],
  "intentos": {},
  "motivos": {},
@@ -77,7 +77,24 @@
    "pendientes": {}
   },
   "1701": {
-   "grupos": null,
+   "grupos": [
+    [
+     "192545",
+     "GRUPO 1"
+    ],
+    [
+     "192725",
+     "GRUPO 2"
+    ],
+    [
+     "192815",
+     "GRUPO 3"
+    ],
+    [
+     "192905",
+     "GRUPO 4"
+    ]
+   ],
    "pendientes": {}
   },
   "1702": {
