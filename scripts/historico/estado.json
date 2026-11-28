@@ -1349,6 +1349,36 @@
     "15"
    ],
    "trabajo": "goleadores"
+  },
+  {
+   "accion": "descargar",
+   "esperas": 0,
+   "esperas_s": [],
+   "esperas_sirvio": [],
+   "fin": "2026-11-28T01:30:27+00:00",
+   "frenos": 1,
+   "frenos_tras": [
+    0
+   ],
+   "inicio": "2026-11-28T01:30:17+00:00",
+   "lote": null,
+   "muertas": 0,
+   "nube": "aws",
+   "paginas": 3877,
+   "parada": "runner",
+   "pedidas": 2,
+   "relanzada": true,
+   "runner_rechazado": true,
+   "servidas": 0,
+   "temporadas": [
+    "20",
+    "19",
+    "18",
+    "17",
+    "16",
+    "15"
+   ],
+   "trabajo": "goleadores"
   }
  ],
  "formato": 1,
