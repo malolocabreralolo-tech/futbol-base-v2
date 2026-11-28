@@ -66,7 +66,7 @@
       }
     },
     "comun.db": {
-      "bytes": 18833408,
+      "bytes": 18841600,
       "filas": {
         "categories": 6,
         "detalle_groups": 7,
@@ -92,7 +92,7 @@
         "scorers": 44821,
         "seasons": 15,
         "standings": 6703,
-        "standings_detail": 4052,
+        "standings_detail": 4064,
         "team_seasons": 2259,
         "teams": 528,
         "tournament_matches": 464,
