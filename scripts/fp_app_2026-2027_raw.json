@@ -50,8 +50,8 @@
   "2026-11-24": "2026-11-25T01:39:31",
   "2026-11-25": "2026-11-26T02:05:30",
   "2026-11-26": "2026-11-27T00:23:49",
-  "2026-11-27": "2026-11-28T12:00:06",
-  "2026-11-28": "2026-11-28T12:00:06"
+  "2026-11-27": "2026-11-28T12:41:22",
+  "2026-11-28": "2026-11-28T12:41:22"
  },
  "ligas": {
   "121": {
@@ -38653,7 +38653,7 @@
    "arbitro_principal_nombre": null,
    "asistente1_nombre": null,
    "asistente2_nombre": null,
-   "campo_gps": "https://google.com27.99372900,-15.49657990",
+   "campo_gps": "https://goo.gl/maps/HstbJBBoFZs",
    "campo_latitud": "27.99372900",
    "campo_longitud": "-15.49657990",
    "club_padre_local": "UD Valsequillo",
@@ -38661,7 +38661,7 @@
    "escudo_local": "100x100valsequillo.png",
    "escudo_visitante": "200x200atleticograncanaria19-20.png",
    "estadio": "Valsequillo",
-   "estado": "no_iniciado",
+   "estado": "finalizado",
    "fase_eliminatoria": "",
    "fecha_programada": "2026-11-28 11:00:00",
    "goleadores_local": null,
@@ -38669,7 +38669,7 @@
    "goles_ida_local": 0,
    "goles_ida_visitante": 0,
    "goles_local": 0,
-   "goles_visitante": 0,
+   "goles_visitante": 7,
    "hora_inicio": null,
    "id": 19383,
    "id_local": 1358,
@@ -38694,9 +38694,9 @@
     "D"
    ],
    "racha_visitante": [
-    "V",
     "D",
     "E",
+    "V",
     "V",
     "V"
    ],
@@ -79180,7 +79180,7 @@
    "escudo_local": "100x100cerruda.png",
    "escudo_visitante": "escudoFutboltec.png",
    "estadio": "Axo. Vecindario",
-   "estado": "en_juego",
+   "estado": "finalizado",
    "fase_eliminatoria": "",
    "fecha_programada": "2026-11-28 10:30:00",
    "goleadores_local": null,
