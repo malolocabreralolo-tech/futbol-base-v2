@@ -1531,6 +1531,17 @@
     "goleadores:2020-2021"
    ],
    "verde": false
+  },
+  {
+   "at": "2026-11-28T02:40:55+00:00",
+   "mb_antes": 58.617,
+   "mb_despues": 59.051,
+   "motivo": "",
+   "segundos": 59.5,
+   "trabajos": [
+    "goleadores:2019-2020"
+   ],
+   "verde": true
   }
  ],
  "trabajos": {
@@ -1579,11 +1590,14 @@
    "pendientes": 0
   },
   "goleadores:2019-2020": {
-   "actualizado": "2026-11-28T01:56:53+00:00",
+   "actualizado": "2026-11-28T02:40:55+00:00",
    "categorias": [
     "alevin"
    ],
-   "estado": "completo",
+   "estado": "promovido",
+   "huellas": {
+    "fiflp_goleadores_2019-2020_raw.json": "c963ad9a907b372910ed04d1da65f15f5ec875f9"
+   },
    "no_disponible": 0,
    "pendientes": 0
   },
