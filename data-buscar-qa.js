@@ -1,0 +1,1 @@
+const BUSCAR_QA = [["217814","KEMMECH QASEM, YOUSSEF","Internacional PH","2026-2027",[2008,2009,2010]]];
