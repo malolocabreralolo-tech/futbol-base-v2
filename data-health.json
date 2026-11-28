@@ -794,7 +794,8 @@
     "status": "pending"
   },
   "runHealth": {
-    "ok": true
+    "ok": true,
+    "drySince": "2026-11-28T02:06:54+00:00"
   },
   "carriles": {
     "mayores": {
@@ -905,21 +906,21 @@
     "bytes": 17367780
   },
   "run": {
-    "pass": 247,
+    "pass": 248,
     "groups": 107,
-    "refreshed": 23,
+    "refreshed": 0,
     "priority": [
-      "ALC1",
-      "C1",
-      "ALB1"
+      "EL2",
+      "ALEL1",
+      "ALB2"
     ],
     "fresh": [
       "PG2",
-      "EL2",
+      "C1",
       "FF5",
-      "ALB2",
+      "ALB1",
       "ALB3",
-      "ALEL1",
+      "ALC1",
       "ALEL2"
     ],
     "resting": [
@@ -931,7 +932,6 @@
       "FF18",
       "FF19",
       "AL1",
-      "AL2",
       "AL3",
       "AL4",
       "AL5",
@@ -944,13 +944,14 @@
       "AL13",
       "AL14",
       "AL15",
+      "AL16",
       "AL17",
       "AL18",
       "AL19",
       "AL20",
+      "AL21",
       "AL22",
       "AL23",
-      "AL24",
       "AL25",
       "AL26",
       "AL27",
@@ -960,72 +961,84 @@
       "AL32"
     ],
     "deferred": [
-      "PFV1",
+      "ALEL1",
+      "ALB2",
+      "AL2",
+      "AL24",
+      "B2",
+      "AL31",
       "C2",
+      "ALA1",
       "CGC1",
+      "ALA2",
       "D1",
+      "AL11",
+      "PFV1",
       "D2",
       "E1",
-      "PFV2",
+      "ALC2",
       "E2",
+      "ALC3",
       "A1",
+      "ALD1",
       "A2",
+      "ALA3",
+      "PFV2",
       "B1",
       "FF4",
-      "PFV3",
       "FF6",
-      "ALC3",
       "FF7",
       "FF8",
+      "PFV3",
       "FF9",
-      "ALD1",
       "FF10",
-      "PG1",
       "FF11",
       "EL1",
-      "ALA3",
       "F1",
+      "PG1",
       "FF3",
       "FF20",
       "ALD3",
-      "PG3",
       "FF21",
       "FF22",
       "ALE1",
       "FF23",
+      "PG3",
       "FF24",
       "FV11",
       "ALE2",
-      "PG4",
       "FV12",
       "FF13",
-      "FF14",
+      "PG4",
       "ALD2",
-      "FF15"
+      "FF14",
+      "FF15",
+      "LZ1",
+      "ALE3",
+      "LZ2",
+      "PLZ1",
+      "LZ3",
+      "ALF1",
+      "LZ4",
+      "LZ5",
+      "ALF2",
+      "FV13",
+      "PLZ2",
+      "FV14"
     ],
-    "unserved": [],
-    "extrasDeferred": [
-      "ALE3"
+    "unserved": [
+      "EL2"
     ],
-    "seconds": 863,
-    "pages": 124,
-    "extras": [
-      "competiciones",
-      "directorio"
-    ],
-    "calendarShows": {
-      "other": 21
-    },
-    "groupSelects": {
-      "seen": 23,
-      "of": 23
-    },
-    "cloud": "azure",
-    "deadPages": 1
+    "extrasDeferred": [],
+    "seconds": 9,
+    "pages": 2,
+    "blocked": true,
+    "cloud": "aws",
+    "refusedRunner": true
   },
-  "checkedAt": "2026-11-28T01:15:42+00:00",
+  "checkedAt": "2026-11-28T02:08:00+00:00",
   "lastDataChange": "2026-11-28",
-  "dataVersion": "20261128b",
+  "dataVersion": "20261128c",
   "summary": {
     "ok": 131,
     "rejected": 0,
