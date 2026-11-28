@@ -1498,6 +1498,17 @@
     "goleadores:2023-2024"
    ],
    "verde": true
+  },
+  {
+   "at": "2026-11-28T02:22:44+00:00",
+   "mb_antes": 58.207,
+   "mb_despues": 58.82,
+   "motivo": "",
+   "segundos": 59.1,
+   "trabajos": [
+    "goleadores:2022-2023"
+   ],
+   "verde": true
   }
  ],
  "trabajos": {
@@ -1573,11 +1584,14 @@
    "pendientes": 0
   },
   "goleadores:2022-2023": {
-   "actualizado": "2026-11-28T01:56:53+00:00",
+   "actualizado": "2026-11-28T02:22:44+00:00",
    "categorias": [
     "alevin"
    ],
-   "estado": "completo",
+   "estado": "promovido",
+   "huellas": {
+    "fiflp_goleadores_2022-2023_raw.json": "1259a4ca001880742116d9efde48d446d259de31"
+   },
    "no_disponible": 0,
    "pendientes": 0
   },
