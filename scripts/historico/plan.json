@@ -1,18 +1,24 @@
 {
  "calendario": [],
  "categorias": [
-  "infantil",
-  "cadete",
-  "juvenil"
+  "alevin"
  ],
- "encargado": "2026-11-27T01:50:17+00:00",
+ "encargado": "2026-11-28T01:27:15+00:00",
  "formato": 1,
  "parado": false,
  "reintentar_desde": null,
  "temporadas": [
-  "22"
+  "20",
+  "19",
+  "18",
+  "17",
+  "16",
+  "15"
  ],
  "trabajos": [
-  "actas"
+  "goleadores",
+  "actas",
+  "detalle",
+  "escudos"
  ]
 }
