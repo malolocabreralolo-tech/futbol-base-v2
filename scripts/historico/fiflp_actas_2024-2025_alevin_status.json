@@ -1,14 +1,14 @@
 {
  "formato": 2,
  "season": "2024-2025",
- "enumerated": 275,
- "in_raw": 223,
- "fetched": 223,
- "pending": 62,
- "actas_por_leer": 52,
+ "enumerated": 557,
+ "in_raw": 546,
+ "fetched": 322,
+ "pending": 20,
+ "actas_por_leer": 11,
  "jornadas_por_leer": 0,
  "grupos_por_leer": 0,
- "unenumerated_comps": 10,
+ "unenumerated_comps": 9,
  "no_disponible": [],
  "intentos": {},
  "motivos": {},
@@ -35,7 +35,24 @@
    "pendientes": {}
   },
   "1699": {
-   "grupos": null,
+   "grupos": [
+    [
+     "193060",
+     "GRUPO 3"
+    ],
+    [
+     "193355",
+     "GRUPO 4"
+    ],
+    [
+     "195580",
+     "GRUPO 1"
+    ],
+    [
+     "195670",
+     "GRUPO 2"
+    ]
+   ],
    "pendientes": {}
   },
   "1700": {
@@ -76,8 +93,8 @@
   }
  },
  "paginas": {
-  "pedidas": 306,
-  "servidas": 300
+  "pedidas": 407,
+  "servidas": 401
  },
  "parada": "freno"
 }
