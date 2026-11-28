@@ -78,6 +78,13508 @@
   ],
   "standings": []
  },
+ "885:121875": {
+  "comp": "885",
+  "comp_name": "LIGA PREFERENTE ALEVIN F-8 GRAN CANARIA",
+  "fetched": "2026-11-28",
+  "grupo": "121875",
+  "grupo_name": "GRUPO 1",
+  "ok": true,
+  "scorers": [
+   [
+    "HENRIQUEZ RODRIGUEZ, SAMUEL",
+    "PALMAS, U.D. LAS",
+    13,
+    31,
+    0
+   ],
+   [
+    "MARRERO ARENCIBIA, ADRIAN JESUS",
+    "ACODETTI C.F. A A",
+    14,
+    31,
+    0
+   ],
+   [
+    "FIGUEROA TEJERA, ALEX",
+    "PALMAS, U.D. LAS",
+    18,
+    31,
+    0
+   ],
+   [
+    "JORGE HERRERA, BRIAN",
+    "ATLETICO HURACAN A, A.D. A",
+    17,
+    28,
+    0
+   ],
+   [
+    "CUBILLO HERNANDEZ, FRANCISCO",
+    "PALMAS, U.D. LAS",
+    18,
+    28,
+    0
+   ],
+   [
+    "ANTON DEL VALLE, AITOR",
+    "ATLETICO HURACAN A, A.D. A",
+    21,
+    28,
+    0
+   ],
+   [
+    "SANCHEZ GARCIA, AIRAM",
+    "ARUCAS C.F. A A",
+    17,
+    25,
+    0
+   ],
+   [
+    "MORENO MACIAS, UNAI",
+    "PALMAS, U.D. LAS",
+    7,
+    23,
+    0
+   ],
+   [
+    "PEREZ IZQUIER, SAUL",
+    "PALMAS, U.D. LAS",
+    13,
+    23,
+    0
+   ],
+   [
+    "BARRAGAN GONZALEZ, HECTOR",
+    "PALMAS, U.D. LAS",
+    16,
+    20,
+    0
+   ],
+   [
+    "VALIN AUYANET, PEDRO",
+    "CORAZON DE MARIA A, C.D. A",
+    16,
+    20,
+    0
+   ],
+   [
+    "GALVAN HERNANDEZ, IZAN",
+    "UNION VIERA A, C.F. A",
+    17,
+    18,
+    0
+   ],
+   [
+    "DOMINGUEZ MONTESDEOCA, ENEKO MIGUEL",
+    "UNION VIERA A, C.F. A",
+    18,
+    18,
+    0
+   ],
+   [
+    "GRANADOS SANCHEZ, GABRIEL",
+    "UNIVERSITARIO C.D. A A",
+    12,
+    17,
+    0
+   ],
+   [
+    "TORRES FABELO, AIRAM",
+    "UNIVERSITARIO C.D. A A",
+    16,
+    17,
+    0
+   ],
+   [
+    "GARCIA HERRERA, IVAN DEL ROSARIO",
+    "UNIVERSITARIO C.D. A A",
+    8,
+    16,
+    0
+   ],
+   [
+    "IGLESIAS CREUS, AIRAM",
+    "UNIVERSITARIO C.D. A A",
+    14,
+    16,
+    0
+   ],
+   [
+    "LEON GONZALEZ, ANTONIO",
+    "VICTORIA A, REAL CLUB A",
+    24,
+    16,
+    0
+   ],
+   [
+    "ADAMO, NICCOLO",
+    "ATLETICO HURACAN A, A.D. A",
+    12,
+    15,
+    0
+   ],
+   [
+    "MARTIN RAMOS, DANIEL",
+    "ACODETTI C.F. A A",
+    13,
+    15,
+    0
+   ],
+   [
+    "TAVIO RODRIGUEZ, ELIAS",
+    "ACODETTI C.F. A A",
+    16,
+    15,
+    0
+   ],
+   [
+    "GINER RODRIGUEZ, RICARDO",
+    "UNION VIERA A, C.F. A",
+    17,
+    15,
+    0
+   ],
+   [
+    "MENDOZA GONZALEZ, JAVIER",
+    "PALMAS, U.D. LAS",
+    18,
+    15,
+    0
+   ],
+   [
+    "CABALLERO DE RODAS GROSS, ALFONSO",
+    "VILLA DE SANTA BRIGIDA A, U.D. A",
+    21,
+    15,
+    0
+   ],
+   [
+    "ARBELO GUERRA, SANDRO",
+    "VICTORIA A, REAL CLUB A",
+    22,
+    15,
+    0
+   ],
+   [
+    "SAN GIL SOSA, ISAIAH",
+    "GUINIGUADA APOLINARIO A, C.D. A",
+    23,
+    15,
+    0
+   ],
+   [
+    "TEJERA BETANCOR, DANIEL JESUS",
+    "TAMARACEITE, U.D.",
+    20,
+    14,
+    0
+   ],
+   [
+    "",
+    "ATLETICO HURACAN A, A.D. A",
+    6,
+    13,
+    0
+   ],
+   [
+    "BAATOUT GONZALEZ, RAYAEN",
+    "PALMAS, U.D. LAS",
+    6,
+    13,
+    0
+   ],
+   [
+    "SOSA CELA, ALVARO",
+    "ACODETTI C.F. A A",
+    9,
+    13,
+    0
+   ],
+   [
+    "MATEO GARCIA, NOEL",
+    "ARUCAS C.F. A A",
+    18,
+    13,
+    0
+   ],
+   [
+    "ORTEGA YANEZ, HUGO",
+    "UNION VIERA A, C.F. A",
+    22,
+    13,
+    0
+   ],
+   [
+    "LIMA DIAZ, JORGE ARIAM",
+    "PALMAS, U.D. LAS",
+    7,
+    12,
+    0
+   ],
+   [
+    "SANCHEZ GALVEZ, MATEO",
+    "UNIVERSITARIO C.D. A A",
+    9,
+    12,
+    0
+   ],
+   [
+    "QUINTANA ESPINO, ADRIAN",
+    "ACODETTI C.F. A A",
+    9,
+    12,
+    0
+   ],
+   [
+    "BARRIOS LLEO, JAVIER",
+    "VILLA DE SANTA BRIGIDA A, U.D. A",
+    9,
+    12,
+    0
+   ],
+   [
+    "BOLAÑOS RODRIGUEZ, PEDRO",
+    "PILETAS A, A.D. U.D. A",
+    10,
+    12,
+    0
+   ],
+   [
+    "SANCHEZ BALLESTER, ERIK",
+    "ARUCAS C.F. A A",
+    15,
+    12,
+    0
+   ],
+   [
+    "AFONSO MORALES, FAVIO MIGUEL",
+    "VICTORIA A, REAL CLUB A",
+    19,
+    12,
+    0
+   ],
+   [
+    "BAEZ BORREGO, LUIS",
+    "PALMAS, U.D. LAS",
+    7,
+    11,
+    0
+   ],
+   [
+    "SANTANA PADILLA, ALEJANDRO",
+    "CORAZON DE MARIA A, C.D. A",
+    8,
+    11,
+    0
+   ],
+   [
+    "CORDERO PEREZ, ZENON ARIDAY",
+    "VICTORIA A, REAL CLUB A",
+    8,
+    11,
+    0
+   ],
+   [
+    "ABAD PERERA, ISAAC",
+    "ATLETICO HURACAN A, A.D. A",
+    14,
+    11,
+    0
+   ],
+   [
+    "CARDONA HERRERA, JAVIER",
+    "UNIVERSITARIO C.D. A A",
+    15,
+    11,
+    0
+   ],
+   [
+    "PEREZ SANTANA, LIONEL",
+    "ATLETICO HURACAN A, A.D. A",
+    15,
+    11,
+    0
+   ],
+   [
+    "URQUIOLA GONZALEZ, RAUL",
+    "TAMARACEITE, U.D.",
+    26,
+    11,
+    0
+   ],
+   [
+    "GALAN VILLARES, FERNANDO",
+    "CORAZON DE MARIA A, C.D. A",
+    6,
+    10,
+    0
+   ],
+   [
+    "MEDINA SANTANA, ERIK",
+    "ACODETTI C.F. A A",
+    9,
+    10,
+    0
+   ],
+   [
+    "MORENO MORENO, AITOR",
+    "ATLETICO HURACAN A, A.D. A",
+    19,
+    10,
+    0
+   ],
+   [
+    "NAVARRO HERRERA, CARLOS",
+    "GUINIGUADA APOLINARIO A, C.D. A",
+    22,
+    10,
+    0
+   ],
+   [
+    "OJEDA QUESADA, ALVARO",
+    "GUINIGUADA APOLINARIO A, C.D. A",
+    24,
+    10,
+    0
+   ],
+   [
+    "FERRERA TORRES, CAROLINA",
+    "ARUCAS C.F. A A",
+    25,
+    10,
+    0
+   ],
+   [
+    "SANTANA HURTADO DE MENDOZA, JORGE",
+    "VILLA DE SANTA BRIGIDA A, U.D. A",
+    5,
+    9,
+    0
+   ],
+   [
+    "DIEPA DIAZ, IKER",
+    "PALMAS, U.D. LAS",
+    7,
+    9,
+    0
+   ],
+   [
+    "BARRIOS ORTIZ, BORJA",
+    "VILLA DE SANTA BRIGIDA A, U.D. A",
+    7,
+    9,
+    0
+   ],
+   [
+    "PERDOMO MONROY, HUGO",
+    "ACODETTI C.F. A A",
+    10,
+    9,
+    0
+   ],
+   [
+    "GONZALEZ LEON, KILIAN DAVID",
+    "PILETAS A, A.D. U.D. A",
+    17,
+    9,
+    0
+   ],
+   [
+    "SERGIO",
+    "ATLETICO HURACAN A, A.D. A",
+    18,
+    9,
+    0
+   ],
+   [
+    "DIAZ BERNETE, ADRIAN",
+    "CORAZON DE MARIA A, C.D. A",
+    21,
+    9,
+    0
+   ],
+   [
+    "SANTANA PERDOMO, LUCAS",
+    "VETERANOS DEL PILA.A, C.D. A",
+    8,
+    8,
+    0
+   ],
+   [
+    "GLADOW CARRERAS, RODRIGO",
+    "UNIVERSITARIO C.D. A A",
+    10,
+    8,
+    0
+   ],
+   [
+    "VERA MENDEZ, BYRON",
+    "UNIVERSITARIO C.D. A A",
+    13,
+    8,
+    0
+   ],
+   [
+    "GALVAN TRUJILLO, ORSON",
+    "UNIVERSITARIO C.D. A A",
+    13,
+    8,
+    0
+   ],
+   [
+    "ALBY",
+    "ACODETTI C.F. A A",
+    16,
+    8,
+    0
+   ],
+   [
+    "RAMIREZ SUAREZ, PABLO",
+    "CORAZON DE MARIA A, C.D. A",
+    18,
+    8,
+    0
+   ],
+   [
+    "VALIDO MEDINA, ALVARO",
+    "PILETAS A, A.D. U.D. A",
+    22,
+    8,
+    0
+   ],
+   [
+    "JORGE JIMÉNEZ, KEVIN DANIEL",
+    "UNIVERSITARIO C.D. A A",
+    3,
+    7,
+    0
+   ],
+   [
+    "GARCIA ALEMAN, RUYMAN",
+    "CORAZON DE MARIA A, C.D. A",
+    8,
+    7,
+    0
+   ],
+   [
+    "ARMAS BERANGER, HUGO",
+    "CORAZON DE MARIA A, C.D. A",
+    10,
+    7,
+    0
+   ],
+   [
+    "SANTANA DELGADO, NESTOR",
+    "ACODETTI C.F. A A",
+    10,
+    7,
+    0
+   ],
+   [
+    "RAMIREZ PEREZ, ALEJANDRO",
+    "ATLETICO HURACAN A, A.D. A",
+    17,
+    7,
+    0
+   ],
+   [
+    "BARRERA HOHAUS, LUCAS",
+    "ATLETICO HURACAN A, A.D. A",
+    17,
+    7,
+    0
+   ],
+   [
+    "KOKALY ESPINO, IKER",
+    "ATLETICO HURACAN A, A.D. A",
+    7,
+    6,
+    0
+   ],
+   [
+    "TRUJILLO DE LA FE, DORIAN",
+    "UNIVERSITARIO C.D. A A",
+    11,
+    6,
+    0
+   ],
+   [
+    "NAVARRO",
+    "UNION VIERA A, C.F. A",
+    15,
+    6,
+    0
+   ],
+   [
+    "DYADYUCHENKO DYADYUCHENKO, IVAN",
+    "VETERANOS DEL PILA.A, C.D. A",
+    17,
+    6,
+    0
+   ],
+   [
+    "NAVARRO CORREA, JOSE MARIA",
+    "CORAZON DE MARIA A, C.D. A",
+    20,
+    6,
+    0
+   ],
+   [
+    "MORENO GODOY, JAVIER",
+    "UNION VIERA A, C.F. A",
+    22,
+    6,
+    0
+   ],
+   [
+    "MORALES SANTANA, ISMAEL CARMELO",
+    "ARUCAS C.F. A A",
+    2,
+    5,
+    0
+   ],
+   [
+    "LEON RODRIGUEZ, ABRAHAM",
+    "PALMAS, U.D. LAS",
+    9,
+    5,
+    0
+   ],
+   [
+    "RIVERO VENTURA, ETHAN",
+    "UNIVERSITARIO C.D. A A",
+    10,
+    5,
+    0
+   ],
+   [
+    "GUEYE NDIAYE, MODOU",
+    "VETERANOS DEL PILA.A, C.D. A",
+    10,
+    5,
+    0
+   ],
+   [
+    "ORAMAS ARAUJO, PABLO",
+    "UNIVERSITARIO C.D. A A",
+    11,
+    5,
+    0
+   ],
+   [
+    "SILVA LOPEZ, PABLO",
+    "CORAZON DE MARIA A, C.D. A",
+    11,
+    5,
+    0
+   ],
+   [
+    "NOVAL SAMPER, SANTIAGO",
+    "CORAZON DE MARIA A, C.D. A",
+    17,
+    5,
+    0
+   ],
+   [
+    "RODRIGUEZ RUBIDO, ADRIEL",
+    "VICTORIA A, REAL CLUB A",
+    21,
+    5,
+    0
+   ],
+   [
+    "ORTEGA GOMEZ, AGUSTIN",
+    "VICTORIA A, REAL CLUB A",
+    2,
+    4,
+    0
+   ],
+   [
+    "BOSCH GARCIA, JUAN",
+    "CORAZON DE MARIA A, C.D. A",
+    7,
+    4,
+    0
+   ],
+   [
+    "ARBELO PEREZ, DIEGO",
+    "ACODETTI C.F. A A",
+    9,
+    4,
+    0
+   ],
+   [
+    "GRAU NAKOURA, AYTHAMI YALEM",
+    "SANTOS, C.F.",
+    11,
+    4,
+    0
+   ],
+   [
+    "RODRIGUEZ GARCIA, JAIME",
+    "CORAZON DE MARIA A, C.D. A",
+    12,
+    4,
+    0
+   ],
+   [
+    "GONZÁLEZ CORUJO, JOSÉ YUBAY",
+    "PALMAS, U.D. LAS",
+    17,
+    4,
+    0
+   ],
+   [
+    "PALMERO FIGUERAS, DANIEL",
+    "VILLA DE SANTA BRIGIDA A, U.D. A",
+    17,
+    4,
+    0
+   ],
+   [
+    "ALVAREZ GARCIA, MARIO",
+    "ACODETTI C.F. A A",
+    18,
+    4,
+    0
+   ],
+   [
+    "RODRIGUEZ MEDINA, DANIEL",
+    "PILETAS A, A.D. U.D. A",
+    24,
+    4,
+    0
+   ],
+   [
+    "IZQUIERDO GUERRA DEL RIO, NICOLAS",
+    "PILETAS A, A.D. U.D. A",
+    25,
+    4,
+    0
+   ],
+   [
+    "GUERRA TAVIO, AIMAR",
+    "TAMARACEITE, U.D.",
+    6,
+    3,
+    0
+   ],
+   [
+    "DE LUIS PEREZ, ALEJANDRO",
+    "CORAZON DE MARIA A, C.D. A",
+    9,
+    3,
+    0
+   ],
+   [
+    "RUSO, NINO",
+    "SANTOS, C.F.",
+    10,
+    3,
+    0
+   ],
+   [
+    "ARMAS RAMIREZ, ADRIAN",
+    "TAMARACEITE, U.D.",
+    11,
+    3,
+    0
+   ],
+   [
+    "GUERRA CALDERIN, DIEGO",
+    "TAMARACEITE, U.D.",
+    13,
+    3,
+    0
+   ],
+   [
+    "CARRILLO VEGA, ALVARO",
+    "VETERANOS DEL PILA.A, C.D. A",
+    13,
+    3,
+    0
+   ],
+   [
+    "SAAVEDRA SANTANA, HUGO",
+    "TAMARACEITE, U.D.",
+    14,
+    3,
+    0
+   ],
+   [
+    "MEDINA SANCHEZ, PATRICK DANIEL",
+    "GUINIGUADA APOLINARIO A, C.D. A",
+    15,
+    3,
+    0
+   ],
+   [
+    "GARCIA QUINTANA, JUAN YEROBE",
+    "SANTOS, C.F.",
+    16,
+    3,
+    0
+   ],
+   [
+    "MEDINA RODRIGUEZ, BORJA",
+    "VICTORIA A, REAL CLUB A",
+    17,
+    3,
+    0
+   ],
+   [
+    "RODRIGUEZ SAAVEDRA, PABLO",
+    "UNION VIERA A, C.F. A",
+    19,
+    3,
+    0
+   ],
+   [
+    "VENTURA PEREZ, GABRIEL",
+    "PILETAS A, A.D. U.D. A",
+    19,
+    3,
+    0
+   ],
+   [
+    "YUN SOSA, SERGIO",
+    "VILLA DE SANTA BRIGIDA A, U.D. A",
+    24,
+    3,
+    0
+   ],
+   [
+    "MONTESDEOCA MOLINA, LUCAS",
+    "TAMARACEITE, U.D.",
+    5,
+    2,
+    0
+   ],
+   [
+    "CUBAS CABALLERO, PABLO",
+    "PALMAS, U.D. LAS",
+    6,
+    2,
+    0
+   ],
+   [
+    "BELLO PEREZ, THIAGO",
+    "TAMARACEITE, U.D.",
+    7,
+    2,
+    0
+   ],
+   [
+    "BENITEZ CUPEIRO, CRISTIAN",
+    "PILETAS A, A.D. U.D. A",
+    9,
+    2,
+    0
+   ],
+   [
+    "GARCIA DARUNKHUP, ARAN",
+    "GUINIGUADA APOLINARIO A, C.D. A",
+    11,
+    2,
+    0
+   ],
+   [
+    "VILLAR SICILIA, ALVARO",
+    "UNIVERSITARIO C.D. A A",
+    12,
+    2,
+    0
+   ],
+   [
+    "CABRERA SUAREZ, CARLOS",
+    "CORAZON DE MARIA A, C.D. A",
+    12,
+    2,
+    0
+   ],
+   [
+    "PEREZ SANCHEZ, PABLO",
+    "UNION VIERA A, C.F. A",
+    13,
+    2,
+    0
+   ],
+   [
+    "MARTIN SAINZ DE AJA, DANIEL",
+    "VETERANOS DEL PILA.A, C.D. A",
+    14,
+    2,
+    0
+   ],
+   [
+    "SANTANA MORALES, LENKO",
+    "TAMARACEITE, U.D.",
+    15,
+    2,
+    0
+   ],
+   [
+    "MONZON SANTANA, ADRIAN JOSE",
+    "UNIVERSITARIO C.D. A A",
+    17,
+    2,
+    0
+   ],
+   [
+    "MENDOZA GONZALEZ, GUILLERMO",
+    "PALMAS, U.D. LAS",
+    18,
+    2,
+    0
+   ],
+   [
+    "LULLA LULLA, ARUSH",
+    "SANTOS, C.F.",
+    18,
+    2,
+    0
+   ],
+   [
+    "AMOZA ALAMO, RUBEN",
+    "SANTOS, C.F.",
+    19,
+    2,
+    0
+   ],
+   [
+    "LANTIGUA NUEZ, NESTOR MANUEL",
+    "ARUCAS C.F. A A",
+    20,
+    2,
+    0
+   ],
+   [
+    "SUAREZ MARRERO, RUBEN",
+    "ARUCAS C.F. A A",
+    21,
+    2,
+    0
+   ],
+   [
+    "SISSOKO CALDERIN, OMAR",
+    "TAMARACEITE, U.D.",
+    22,
+    2,
+    0
+   ],
+   [
+    "LORENZO MARTIN, DANIEL",
+    "VICTORIA A, REAL CLUB A",
+    24,
+    2,
+    0
+   ],
+   [
+    "CRUZ VAL, PABLO",
+    "VETERANOS DEL PILA.A, C.D. A",
+    1,
+    1,
+    0
+   ],
+   [
+    "RIAÑO TORENA, ADRIAN ALEJANDRO",
+    "ATLETICO HURACAN A, A.D. A",
+    2,
+    1,
+    0
+   ],
+   [
+    "COMAS MATEO, CARLOS TADEO",
+    "VETERANOS DEL PILA.A, C.D. A",
+    6,
+    1,
+    0
+   ],
+   [
+    "MONZON RAMIREZ, GABRIEL",
+    "CORAZON DE MARIA A, C.D. A",
+    7,
+    1,
+    0
+   ],
+   [
+    "FOSSIS PEREZ, HUGO",
+    "ATLETICO HURACAN A, A.D. A",
+    9,
+    1,
+    0
+   ],
+   [
+    "BENITEZ CUPEIRO, ALEJANDRO",
+    "PILETAS A, A.D. U.D. A",
+    9,
+    1,
+    0
+   ],
+   [
+    "RUANO SOSA, EDGAR",
+    "ACODETTI C.F. A A",
+    9,
+    1,
+    0
+   ],
+   [
+    "QUESADA PADRON, DANIEL",
+    "ACODETTI C.F. A A",
+    13,
+    1,
+    0
+   ],
+   [
+    "RODRIGUEZ PEREZ, MARIO",
+    "UNIVERSITARIO C.D. A A",
+    14,
+    1,
+    0
+   ],
+   [
+    "ALCON PEREZ, ASIER",
+    "VICTORIA A, REAL CLUB A",
+    17,
+    1,
+    0
+   ],
+   [
+    "CORVO GONZALEZ, HUGO",
+    "PILETAS A, A.D. U.D. A",
+    18,
+    1,
+    0
+   ],
+   [
+    "DIAZ SANTANA, ALEJANDRO",
+    "UNIVERSITARIO C.D. A A",
+    18,
+    1,
+    0
+   ],
+   [
+    "QUESADA HORCAJO, MATEO",
+    "VETERANOS DEL PILA.A, C.D. A",
+    19,
+    1,
+    0
+   ],
+   [
+    "RUIZ FULOP, LUCAS",
+    "SANTOS, C.F.",
+    20,
+    1,
+    0
+   ],
+   [
+    "NUEZ GARCIA, SANTIAGO",
+    "ACODETTI C.F. A A",
+    21,
+    1,
+    0
+   ],
+   [
+    "RODRIGUEZ ALVARADO, IKER MANUEL",
+    "VILLA DE SANTA BRIGIDA A, U.D. A",
+    21,
+    1,
+    0
+   ],
+   [
+    "DIEZ QUINTANA, IKER",
+    "ARUCAS C.F. A A",
+    23,
+    1,
+    0
+   ],
+   [
+    "GONZALEZ HERRERA, JOSE MANUEL",
+    "VICTORIA A, REAL CLUB A",
+    23,
+    1,
+    0
+   ],
+   [
+    "GUEDE SOSA, JAVIER",
+    "VILLA DE SANTA BRIGIDA A, U.D. A",
+    24,
+    1,
+    0
+   ]
+  ],
+  "standings": [
+   {
+    "df": 225,
+    "e": 0,
+    "form": "GGPGG",
+    "g": 25,
+    "gc": 16,
+    "gf": 241,
+    "j": 26,
+    "p": 1,
+    "pos": 1,
+    "pts": 75,
+    "team": "PALMAS, U.D. LAS"
+   },
+   {
+    "df": 83,
+    "e": 1,
+    "form": "GGGGG",
+    "g": 22,
+    "gc": 52,
+    "gf": 135,
+    "j": 26,
+    "p": 3,
+    "pos": 2,
+    "pts": 67,
+    "team": "UNIVERSITARIO C.D. A \"A\""
+   },
+   {
+    "df": 115,
+    "e": 1,
+    "form": "GGGPG",
+    "g": 21,
+    "gc": 47,
+    "gf": 162,
+    "j": 26,
+    "p": 4,
+    "pos": 3,
+    "pts": 64,
+    "team": "ATLETICO HURACAN A, A.D. \"A\""
+   },
+   {
+    "df": 51,
+    "e": 5,
+    "form": "EGGGG",
+    "g": 16,
+    "gc": 57,
+    "gf": 108,
+    "j": 26,
+    "p": 5,
+    "pos": 4,
+    "pts": 53,
+    "team": "UNION VIERA A, C.F. \"A\""
+   },
+   {
+    "df": 64,
+    "e": 2,
+    "form": "PGEGP",
+    "g": 16,
+    "gc": 68,
+    "gf": 132,
+    "j": 26,
+    "p": 8,
+    "pos": 5,
+    "pts": 50,
+    "team": "ACODETTI C.F. A \"A\""
+   },
+   {
+    "df": 49,
+    "e": 4,
+    "form": "EGEPG",
+    "g": 15,
+    "gc": 57,
+    "gf": 106,
+    "j": 26,
+    "p": 7,
+    "pos": 6,
+    "pts": 49,
+    "team": "CORAZON DE MARIA A, C.D. \"A\""
+   },
+   {
+    "df": -3,
+    "e": 4,
+    "form": "PPGGG",
+    "g": 11,
+    "gc": 95,
+    "gf": 92,
+    "j": 26,
+    "p": 11,
+    "pos": 7,
+    "pts": 37,
+    "team": "ARUCAS C.F. A \"A\""
+   },
+   {
+    "df": -5,
+    "e": 0,
+    "form": "GGPPG",
+    "g": 12,
+    "gc": 89,
+    "gf": 84,
+    "j": 26,
+    "p": 14,
+    "pos": 8,
+    "pts": 36,
+    "team": "VETERANOS DEL PILA.A, C.D. \"A\""
+   },
+   {
+    "df": -10,
+    "e": 3,
+    "form": "PPGGP",
+    "g": 10,
+    "gc": 86,
+    "gf": 76,
+    "j": 26,
+    "p": 13,
+    "pos": 9,
+    "pts": 33,
+    "team": "VICTORIA A, REAL CLUB \"A\""
+   },
+   {
+    "df": -41,
+    "e": 3,
+    "form": "GPPEP",
+    "g": 7,
+    "gc": 104,
+    "gf": 63,
+    "j": 26,
+    "p": 16,
+    "pos": 10,
+    "pts": 24,
+    "team": "GUINIGUADA APOLINARIO A, C.D. \"A\""
+   },
+   {
+    "df": -40,
+    "e": 7,
+    "form": "PPPPP",
+    "g": 4,
+    "gc": 99,
+    "gf": 59,
+    "j": 26,
+    "p": 15,
+    "pos": 11,
+    "pts": 19,
+    "team": "VILLA DE SANTA BRIGIDA A, U.D. \"A\""
+   },
+   {
+    "df": -118,
+    "e": 2,
+    "form": "PPGPP",
+    "g": 4,
+    "gc": 163,
+    "gf": 45,
+    "j": 26,
+    "p": 20,
+    "pos": 12,
+    "pts": 14,
+    "team": "TAMARACEITE, U.D."
+   },
+   {
+    "df": -111,
+    "e": 2,
+    "form": "GPPEP",
+    "g": 2,
+    "gc": 160,
+    "gf": 49,
+    "j": 26,
+    "p": 22,
+    "pos": 13,
+    "pts": 8,
+    "team": "PILETAS A, A.D. U.D. \"A\""
+   },
+   {
+    "df": -259,
+    "e": 0,
+    "form": "PPPPP",
+    "g": 0,
+    "gc": 274,
+    "gf": 15,
+    "j": 26,
+    "p": 26,
+    "pos": 14,
+    "pts": 0,
+    "team": "SANTOS, C.F."
+   }
+  ]
+ },
+ "885:122057": {
+  "comp": "885",
+  "comp_name": "LIGA PREFERENTE ALEVIN F-8 GRAN CANARIA",
+  "fetched": "2026-11-28",
+  "grupo": "122057",
+  "grupo_name": "GRUPO 3",
+  "ok": true,
+  "scorers": [
+   [
+    "GONZALEZ GONZALEZ, ALEJANDRO",
+    "DORAMAS A, C.D. A",
+    14,
+    48,
+    0
+   ],
+   [
+    "JONASSON, JASON NICO",
+    "MASPALOMAS A, C.D. A",
+    15,
+    42,
+    0
+   ],
+   [
+    "COZENS GARSIDE, EDWARD WILLIAM",
+    "SAN FERNANDO ARENAS, U.D.",
+    19,
+    38,
+    0
+   ],
+   [
+    "CARDENES SANTANA, ALVARO",
+    "SAN FERNANDO ARENAS, U.D.",
+    20,
+    34,
+    0
+   ],
+   [
+    "CABRERA MARTINEZ, HUGO",
+    "MASPALOMAS A, C.D. A",
+    19,
+    30,
+    0
+   ],
+   [
+    "ZERPA SUAREZ, MIGUEL",
+    "MOGAN A, C.F. A",
+    26,
+    30,
+    0
+   ],
+   [
+    "HERNANDEZ CEBALLOS, MARCOS JOAN",
+    "DORAMAS A, C.D. A",
+    16,
+    29,
+    0
+   ],
+   [
+    "RIVERO AFONSO, RUBEN",
+    "SAN FERNANDO ARENAS, U.D.",
+    7,
+    25,
+    0
+   ],
+   [
+    "IONESCU BUMBESCU, BOGDAN ANDREI",
+    "SAN FERNANDO ARENAS, U.D.",
+    14,
+    24,
+    0
+   ],
+   [
+    "ARTEAGA ORTEGA, JUAN CARLOS",
+    "AGUIMES C.F. A A",
+    22,
+    23,
+    0
+   ],
+   [
+    "SANCHEZ PERDOMO, JAVIER",
+    "ESTRELLA C.F. A A",
+    18,
+    22,
+    0
+   ],
+   [
+    "CONCEPCION DEL VALLE, ADRIANO",
+    "DORAMAS A, C.D. A",
+    20,
+    21,
+    0
+   ],
+   [
+    "ALMEIDA TEJERA, IVAN",
+    "PASEO COMERCIAL DE VECINDARIO A, C.D. A",
+    16,
+    20,
+    0
+   ],
+   [
+    "MEJIAS CABRERA, KEVIN",
+    "PASEO COMERCIAL DE VECINDARIO A, C.D. A",
+    16,
+    20,
+    0
+   ],
+   [
+    "MARTEL GARCIA, IKER",
+    "MASPALOMAS A, C.D. A",
+    21,
+    20,
+    0
+   ],
+   [
+    "FABELO BUENO, OLIVER",
+    "SAN FERNANDO ARENAS, U.D.",
+    13,
+    19,
+    0
+   ],
+   [
+    "PEREZ JOUHRATI, NABIL",
+    "ARGUINEGUIN A, C.D. A",
+    17,
+    19,
+    0
+   ],
+   [
+    "SOARES DE LIMA DIAZ, YEROVE DIEGO",
+    "PASEO COMERCIAL DE VECINDARIO A, C.D. A",
+    20,
+    19,
+    0
+   ],
+   [
+    "ABRANTE TRUJILLO, ZUALEM MIGUEL",
+    "SAN FERNANDO ARENAS, U.D.",
+    6,
+    18,
+    0
+   ],
+   [
+    "FUNTANE MARQUEZ, XAVIER",
+    "SAN FERNANDO ARENAS, U.D.",
+    11,
+    18,
+    0
+   ],
+   [
+    "ESTUPIÑAN MENDEZ, DAMIAN SANTOS",
+    "CARRIZAL A, C.F. UNION A",
+    18,
+    18,
+    0
+   ],
+   [
+    "HERNANDEZ DIAZ, AIMAR DE JESUS",
+    "ARGUINEGUIN A, C.D. A",
+    26,
+    18,
+    0
+   ],
+   [
+    "CABRERA MEDINA, DAEL",
+    "DORAMAS A, C.D. A",
+    16,
+    17,
+    0
+   ],
+   [
+    "SUAREZ TORRES, YEREDEI",
+    "CERRUDA A, C.D. A",
+    22,
+    17,
+    0
+   ],
+   [
+    "PEÑA PADRON, ALBERTO",
+    "DORAMAS A, C.D. A",
+    11,
+    16,
+    0
+   ],
+   [
+    "CISSE BOCANDE, REMY TALLA",
+    "DORAMAS A, C.D. A",
+    14,
+    16,
+    0
+   ],
+   [
+    "ALEMAN BENITEZ, JOEL",
+    "CARRIZAL A, C.F. UNION A",
+    18,
+    16,
+    0
+   ],
+   [
+    "QUINTANA RODRIGUEZ, FRANCISCO ABRAHAM",
+    "BALOS A, U.D. A",
+    22,
+    16,
+    0
+   ],
+   [
+    "CRUZ ORTEGA, AITOR",
+    "SAN FERNANDO ARENAS, U.D.",
+    10,
+    15,
+    0
+   ],
+   [
+    "PEREZ SANTANA, NICOLA",
+    "MASPALOMAS A, C.D. A",
+    10,
+    15,
+    0
+   ],
+   [
+    "ESPINO VALENCIA, SAMUEL",
+    "CARRIZAL A, C.F. UNION A",
+    21,
+    15,
+    0
+   ],
+   [
+    "PEREZ GUEDES, SAUL",
+    "SAN PEDRO MARTIR, C.D.",
+    23,
+    15,
+    0
+   ],
+   [
+    "NDOJ ELEZI, LEVIN",
+    "MASPALOMAS A, C.D. A",
+    9,
+    14,
+    0
+   ],
+   [
+    "SOSA ESPINO, HUGO",
+    "PASEO COMERCIAL DE VECINDARIO A, C.D. A",
+    15,
+    14,
+    0
+   ],
+   [
+    "TRUJILLO RODRIGUEZ, JARED",
+    "BALOS A, U.D. A",
+    22,
+    14,
+    0
+   ],
+   [
+    "PEREZ RODRIGUEZ, IKER",
+    "SAN PEDRO MARTIR, C.D.",
+    23,
+    14,
+    0
+   ],
+   [
+    "MEJIAS SANTANA, DIEGO",
+    "ESTRELLA C.F. A A",
+    25,
+    14,
+    0
+   ],
+   [
+    "SANTANA SOCORRO, JOEL",
+    "CARRIZAL A, C.F. UNION A",
+    14,
+    13,
+    0
+   ],
+   [
+    "VASILE HALOVSCHI, GEORGE ANTONIO",
+    "MASPALOMAS A, C.D. A",
+    21,
+    13,
+    0
+   ],
+   [
+    "ZARYAHI EL AZZAOUI, ADAM",
+    "ESTRELLA C.F. A A",
+    5,
+    12,
+    0
+   ],
+   [
+    "SANTANA SANTANA, HUGO JOSE",
+    "SAN FERNANDO ARENAS, U.D.",
+    7,
+    12,
+    0
+   ],
+   [
+    "MACIAS SUAREZ, MICHAEL",
+    "CARRIZAL A, C.F. UNION A",
+    18,
+    12,
+    0
+   ],
+   [
+    "QUINTANA TRUJILLO, ADRIAN",
+    "MOGAN A, C.F. A",
+    18,
+    12,
+    0
+   ],
+   [
+    "SANTANA RAMIREZ, SERGIO NATHAEL",
+    "INGENIO A, C.D. A",
+    24,
+    12,
+    0
+   ],
+   [
+    "LEON SANTANA, ALVARO",
+    "ESTRELLA C.F. A A",
+    8,
+    11,
+    0
+   ],
+   [
+    "HERNANDEZ POZON, DIEGO",
+    "MOGAN A, C.F. A",
+    15,
+    11,
+    0
+   ],
+   [
+    "DEL PINO GRIMON, JUAN FRANCISCO",
+    "CASA PASTORES, C.F.",
+    16,
+    11,
+    0
+   ],
+   [
+    "HERRERA CRUZ, CARLOS",
+    "CASA PASTORES, C.F.",
+    20,
+    11,
+    0
+   ],
+   [
+    "GARCIA GONZALEZ, FABIO",
+    "CASA PASTORES, C.F.",
+    23,
+    11,
+    0
+   ],
+   [
+    "MELIAN CASTELLANO, MARIO",
+    "SAN FERNANDO ARENAS, U.D.",
+    7,
+    10,
+    0
+   ],
+   [
+    "LOPEZ CASADO, AARON",
+    "PASEO COMERCIAL DE VECINDARIO A, C.D. A",
+    10,
+    10,
+    0
+   ],
+   [
+    "SICOLA, GIORGIO",
+    "MASPALOMAS A, C.D. A",
+    11,
+    10,
+    0
+   ],
+   [
+    "LARENA-AVELLANEDA TORO, AARON",
+    "MASPALOMAS A, C.D. A",
+    13,
+    10,
+    0
+   ],
+   [
+    "BATISTA ANTOLIN, CRISTIAN",
+    "SAN FERNANDO ARENAS, U.D.",
+    19,
+    10,
+    0
+   ],
+   [
+    "PEREZ TORRES, UNAI",
+    "BALOS A, U.D. A",
+    24,
+    10,
+    0
+   ],
+   [
+    "RAMIREZ VEGA, MIGUEL",
+    "ARGUINEGUIN A, C.D. A",
+    18,
+    9,
+    0
+   ],
+   [
+    "AFIF MOHAMED, WASIM",
+    "CERRUDA A, C.D. A",
+    6,
+    8,
+    0
+   ],
+   [
+    "PISCI, FEDERICO",
+    "PASEO COMERCIAL DE VECINDARIO A, C.D. A",
+    14,
+    8,
+    0
+   ],
+   [
+    "NARANJO PLASENCIA, FRANCISCO JAVIER",
+    "INGENIO A, C.D. A",
+    18,
+    8,
+    0
+   ],
+   [
+    "MARRERO CARMONA, KENAI",
+    "ESTRELLA C.F. A A",
+    21,
+    8,
+    0
+   ],
+   [
+    "PEREZ MARTEL, ZHENG DUAN",
+    "AGUIMES C.F. A A",
+    24,
+    8,
+    0
+   ],
+   [
+    "PERDOMO LEON, ISAAC UNAI",
+    "ESTRELLA C.F. A A",
+    12,
+    7,
+    0
+   ],
+   [
+    "CHILLOGALLI TORRES, DYLAN JASSIEL",
+    "ESTRELLA C.F. A A",
+    15,
+    7,
+    0
+   ],
+   [
+    "GASCON FERNANDEZ, YESEDEI",
+    "BALOS A, U.D. A",
+    15,
+    7,
+    0
+   ],
+   [
+    "CHAVEZ VASQUEZ, ADRIAN",
+    "BALOS A, U.D. A",
+    20,
+    7,
+    0
+   ],
+   [
+    "VARGAS MEDINA, PERLA YULEIDI",
+    "AGUIMES C.F. A A",
+    24,
+    7,
+    0
+   ],
+   [
+    "MARAGLIANO LORENZO, HERNAN",
+    "CERRUDA A, C.D. A",
+    4,
+    6,
+    0
+   ],
+   [
+    "PEREZ SUAREZ, CARLOS",
+    "ARGUINEGUIN A, C.D. A",
+    6,
+    6,
+    0
+   ],
+   [
+    "OJEDA BRITO, ALEJANDRO JESUS",
+    "PASEO COMERCIAL DE VECINDARIO A, C.D. A",
+    8,
+    6,
+    0
+   ],
+   [
+    "RAMIREZ SANTANA, CAMELOT JOSE",
+    "INGENIO A, C.D. A",
+    14,
+    6,
+    0
+   ],
+   [
+    "SANCHEZ RAMIREZ, AITOR",
+    "CASA PASTORES, C.F.",
+    15,
+    6,
+    0
+   ],
+   [
+    "ARMAS SANTANA, BRIAN",
+    "MOGAN A, C.F. A",
+    17,
+    6,
+    0
+   ],
+   [
+    "CABALLERO SUAREZ, ANTONIO NAUZET",
+    "DORAMAS A, C.D. A",
+    19,
+    6,
+    0
+   ],
+   [
+    "SUAREZ RODRIGUEZ, ALEJANDRO",
+    "BALOS A, U.D. A",
+    20,
+    6,
+    0
+   ],
+   [
+    "SEGURA MARTEL, AIRAM CARLOS",
+    "ARGUINEGUIN A, C.D. A",
+    21,
+    6,
+    0
+   ],
+   [
+    "ABOU-MEDLEJ ACOSTA, ALVARO",
+    "AGUIMES C.F. A A",
+    3,
+    5,
+    0
+   ],
+   [
+    "VENTURA BATISTA, EDGAR",
+    "CERRUDA A, C.D. A",
+    6,
+    5,
+    0
+   ],
+   [
+    "RAMOS TRUJILLO, IVAN ADONEY",
+    "SAN PEDRO MARTIR, C.D.",
+    15,
+    5,
+    0
+   ],
+   [
+    "PEREZ FALCON, RUBEN",
+    "MOGAN A, C.F. A",
+    16,
+    5,
+    0
+   ],
+   [
+    "VERA DENIZ, CARLOS HIMAR",
+    "PASEO COMERCIAL DE VECINDARIO A, C.D. A",
+    16,
+    5,
+    0
+   ],
+   [
+    "SUAREZ BICHLER, ENZO ALEJANDRO",
+    "MOGAN A, C.F. A",
+    24,
+    5,
+    0
+   ],
+   [
+    "MBAYE, MOHAMED",
+    "BALOS A, U.D. A",
+    2,
+    4,
+    0
+   ],
+   [
+    "SANTANA GONZALEZ, IKER MANUEL",
+    "ESTRELLA C.F. A A",
+    10,
+    4,
+    0
+   ],
+   [
+    "POLO CORTES, JERONIMO",
+    "PASEO COMERCIAL DE VECINDARIO A, C.D. A",
+    13,
+    4,
+    0
+   ],
+   [
+    "SUAREZ SANTANA, HUGO",
+    "MASPALOMAS A, C.D. A",
+    14,
+    4,
+    0
+   ],
+   [
+    "NARANJO SUAREZ, OMAR",
+    "PASEO COMERCIAL DE VECINDARIO A, C.D. A",
+    16,
+    4,
+    0
+   ],
+   [
+    "VALENTIN NAVARRO, NAUZET",
+    "ESTRELLA C.F. A A",
+    17,
+    4,
+    0
+   ],
+   [
+    "MORA LORENZO, TOMAS AGUSTIN",
+    "SAN PEDRO MARTIR, C.D.",
+    18,
+    4,
+    0
+   ],
+   [
+    "GONZALEZ ARTILES, ERIC DANIEL",
+    "DORAMAS A, C.D. A",
+    20,
+    4,
+    0
+   ],
+   [
+    "OJEDA LUJAN, HUGO",
+    "MASPALOMAS A, C.D. A",
+    20,
+    4,
+    0
+   ],
+   [
+    "MADANI LAZAAR, HAROUN",
+    "SAN PEDRO MARTIR, C.D.",
+    21,
+    4,
+    0
+   ],
+   [
+    "CORONILLA JESUS, YEICOB JOSE",
+    "CASA PASTORES, C.F.",
+    24,
+    4,
+    0
+   ],
+   [
+    "ALZATE LONDOÑO, OSCAR EDUARDO",
+    "INGENIO A, C.D. A",
+    24,
+    4,
+    0
+   ],
+   [
+    "ROMERO VALERON, IVAN",
+    "AGUIMES C.F. A A",
+    1,
+    3,
+    0
+   ],
+   [
+    "HENRIQUEZ TORRENS, SALVADOR",
+    "CASA PASTORES, C.F.",
+    3,
+    3,
+    0
+   ],
+   [
+    "QUINTANA CABELLO, ALEJANDRO",
+    "CERRUDA A, C.D. A",
+    6,
+    3,
+    0
+   ],
+   [
+    "RODRIGUEZ BORDON, IZAN NAHUEL",
+    "ESTRELLA C.F. A A",
+    7,
+    3,
+    0
+   ],
+   [
+    "GENTO LAGO, AITOR",
+    "ARGUINEGUIN A, C.D. A",
+    9,
+    3,
+    0
+   ],
+   [
+    "SANCHEZ HERNANDEZ, VICTOR LUIS",
+    "AGUIMES C.F. A A",
+    9,
+    3,
+    0
+   ],
+   [
+    "BARRIOS MARTIN, JUAN ADUEN",
+    "INGENIO A, C.D. A",
+    11,
+    3,
+    0
+   ],
+   [
+    "NINSRAR BOULAHFA, RAYAN",
+    "PASEO COMERCIAL DE VECINDARIO A, C.D. A",
+    18,
+    3,
+    0
+   ],
+   [
+    "YANES VIERA, NOAH FRANCISCO",
+    "SAN FERNANDO ARENAS, U.D.",
+    19,
+    3,
+    0
+   ],
+   [
+    "RAVELO SOSA, ALBERTO",
+    "MOGAN A, C.F. A",
+    22,
+    3,
+    0
+   ],
+   [
+    "GAURISHANKER NAVARRO, KEVIN",
+    "CASA PASTORES, C.F.",
+    22,
+    3,
+    0
+   ],
+   [
+    "LUZARDO HERNANDEZ, RUBEN",
+    "AGUIMES C.F. A A",
+    23,
+    3,
+    0
+   ],
+   [
+    "BENITEZ CABRERA, DAYRON MOISES",
+    "CARRIZAL A, C.F. UNION A",
+    23,
+    3,
+    0
+   ],
+   [
+    "TRUJILLO GONZALEZ, UNAI",
+    "ARGUINEGUIN A, C.D. A",
+    23,
+    3,
+    0
+   ],
+   [
+    "ESTUPIÑAN TOLEDO, GUAYRE JESUS",
+    "AGUIMES C.F. A A",
+    26,
+    3,
+    0
+   ],
+   [
+    "CASTELLANO HERNANDEZ, JUAN FELIX",
+    "SAN PEDRO MARTIR, C.D.",
+    1,
+    2,
+    0
+   ],
+   [
+    "HIBOUT GONZALEZ, RAIAN",
+    "MOGAN A, C.F. A",
+    2,
+    2,
+    0
+   ],
+   [
+    "SOARES DE LIMA DIAZ, LIONEL",
+    "INGENIO A, C.D. A",
+    3,
+    2,
+    0
+   ],
+   [
+    "GONZALEZ PEREZ, ARIDAY ANGEL",
+    "ESTRELLA C.F. A A",
+    3,
+    2,
+    0
+   ],
+   [
+    "LOPEZ LOPEZ, ERIC DEL CRISTO",
+    "CASA PASTORES, C.F.",
+    6,
+    2,
+    0
+   ],
+   [
+    "LUJAN BASTIDA, GONZALO",
+    "CERRUDA A, C.D. A",
+    8,
+    2,
+    0
+   ],
+   [
+    "SUAREZ SOCORRO, ENZO",
+    "ESTRELLA C.F. A A",
+    8,
+    2,
+    0
+   ],
+   [
+    "HIDANI DIB, AYMAN",
+    "CERRUDA A, C.D. A",
+    8,
+    2,
+    0
+   ],
+   [
+    "LOPEZ CUPSA, FABIO",
+    "ESTRELLA C.F. A A",
+    8,
+    2,
+    0
+   ],
+   [
+    "OMIGIE AIGBOVBIOSA, DANIEL OSAGIE",
+    "CERRUDA A, C.D. A",
+    10,
+    2,
+    0
+   ],
+   [
+    "ABREU ANTON, ALEXANDER ENRIQUE",
+    "BALOS A, U.D. A",
+    12,
+    2,
+    0
+   ],
+   [
+    "MORA GONZALEZ, GERARD",
+    "PASEO COMERCIAL DE VECINDARIO A, C.D. A",
+    15,
+    2,
+    0
+   ],
+   [
+    "TASS GUIZAOUI, YASIN",
+    "BALOS A, U.D. A",
+    18,
+    2,
+    0
+   ],
+   [
+    "RUANO ESPINO, DAREK",
+    "SAN FERNANDO ARENAS, U.D.",
+    21,
+    2,
+    0
+   ],
+   [
+    "VASSELLINI QUETGLAS, NICOLO",
+    "CERRUDA A, C.D. A",
+    24,
+    2,
+    0
+   ],
+   [
+    "MARRERO SANTANA, HUGO",
+    "SAN PEDRO MARTIR, C.D.",
+    26,
+    2,
+    0
+   ],
+   [
+    "SCHULZ CABRERA, AITOR SAMUEL",
+    "ESTRELLA C.F. A A",
+    1,
+    1,
+    0
+   ],
+   [
+    "RAMIREZ URREGO, KEVIN",
+    "CASA PASTORES, C.F.",
+    4,
+    1,
+    0
+   ],
+   [
+    "GARCIA REIGOSA, JAVIER",
+    "CASA PASTORES, C.F.",
+    4,
+    1,
+    0
+   ],
+   [
+    "LOPEZ GONZALEZ, DIEGO JOSE",
+    "PASEO COMERCIAL DE VECINDARIO A, C.D. A",
+    5,
+    1,
+    0
+   ],
+   [
+    "PEÑA CHIL, GEMA",
+    "SAN PEDRO MARTIR, C.D.",
+    6,
+    1,
+    0
+   ],
+   [
+    "MACIAS RODRIGUEZ, AYTHAMI",
+    "SAN PEDRO MARTIR, C.D.",
+    6,
+    1,
+    0
+   ],
+   [
+    "MUÑOZ SANTANA, ANGEL",
+    "CARRIZAL A, C.F. UNION A",
+    7,
+    1,
+    0
+   ],
+   [
+    "NAONE PEREZ, ISMAEL",
+    "SAN PEDRO MARTIR, C.D.",
+    7,
+    1,
+    0
+   ],
+   [
+    "ZAGHDAJ BOUZBIB, REDA",
+    "CERRUDA A, C.D. A",
+    10,
+    1,
+    0
+   ],
+   [
+    "HERNANDEZ HERNANDEZ, CARLOS",
+    "CASA PASTORES, C.F.",
+    12,
+    1,
+    0
+   ],
+   [
+    "DELGADO MEJIAS, CARLOS",
+    "MASPALOMAS A, C.D. A",
+    13,
+    1,
+    0
+   ],
+   [
+    "CASTILLO SARAS, LUCIA",
+    "INGENIO A, C.D. A",
+    14,
+    1,
+    0
+   ],
+   [
+    "CALDERIN MEDINA, BORJA GAROE",
+    "SAN PEDRO MARTIR, C.D.",
+    14,
+    1,
+    0
+   ],
+   [
+    "RODRIGUEZ HERNANDEZ, RAUL",
+    "SAN FERNANDO ARENAS, U.D.",
+    15,
+    1,
+    0
+   ],
+   [
+    "GRIMALDI GONZALEZ, MOISES",
+    "CERRUDA A, C.D. A",
+    17,
+    1,
+    0
+   ],
+   [
+    "CURBELO DONATE, OSCAR",
+    "MASPALOMAS A, C.D. A",
+    18,
+    1,
+    0
+   ],
+   [
+    "HERNANDEZ CEBALLOS, ADRIAN",
+    "DORAMAS A, C.D. A",
+    20,
+    1,
+    0
+   ],
+   [
+    "SANCHEZ SANTANA, HECTOR",
+    "CASA PASTORES, C.F.",
+    25,
+    1,
+    0
+   ],
+   [
+    "SUAREZ RODRIGUEZ, MATEO",
+    "AGUIMES C.F. A A",
+    25,
+    1,
+    0
+   ],
+   [
+    "OLIVARES QUINTANA, XAVIER",
+    "INGENIO A, C.D. A",
+    0,
+    1,
+    0
+   ]
+  ],
+  "standings": [
+   {
+    "df": 206,
+    "e": 0,
+    "form": "GGGGG",
+    "g": 26,
+    "gc": 25,
+    "gf": 231,
+    "j": 26,
+    "p": 0,
+    "pos": 1,
+    "pts": 78,
+    "team": "SAN FERNANDO ARENAS, U.D."
+   },
+   {
+    "df": 121,
+    "e": 1,
+    "form": "GGPGG",
+    "g": 22,
+    "gc": 60,
+    "gf": 181,
+    "j": 26,
+    "p": 3,
+    "pos": 2,
+    "pts": 67,
+    "team": "MASPALOMAS A, C.D. \"A\""
+   },
+   {
+    "df": 110,
+    "e": 1,
+    "form": "PGGGG",
+    "g": 20,
+    "gc": 64,
+    "gf": 174,
+    "j": 26,
+    "p": 5,
+    "pos": 3,
+    "pts": 61,
+    "team": "DORAMAS A, C.D. \"A\""
+   },
+   {
+    "df": 44,
+    "e": 3,
+    "form": "GPGPE",
+    "g": 17,
+    "gc": 70,
+    "gf": 114,
+    "j": 26,
+    "p": 6,
+    "pos": 4,
+    "pts": 54,
+    "team": "PASEO COMERCIAL DE VECINDARIO A, C.D. \"A\""
+   },
+   {
+    "df": 42,
+    "e": 2,
+    "form": "GGGGG",
+    "g": 16,
+    "gc": 89,
+    "gf": 131,
+    "j": 26,
+    "p": 8,
+    "pos": 5,
+    "pts": 50,
+    "team": "CARRIZAL A, C.F. UNION \"A\""
+   },
+   {
+    "df": -3,
+    "e": 2,
+    "form": "GPGGE",
+    "g": 12,
+    "gc": 105,
+    "gf": 102,
+    "j": 26,
+    "p": 12,
+    "pos": 6,
+    "pts": 38,
+    "team": "ESTRELLA C.F. A \"A\""
+   },
+   {
+    "df": -44,
+    "e": 4,
+    "form": "PPPPP",
+    "g": 9,
+    "gc": 149,
+    "gf": 105,
+    "j": 26,
+    "p": 13,
+    "pos": 7,
+    "pts": 31,
+    "team": "ARGUINEGUIN A, C.D. \"A\""
+   },
+   {
+    "df": -16,
+    "e": 6,
+    "form": "PPGGP",
+    "g": 8,
+    "gc": 96,
+    "gf": 80,
+    "j": 26,
+    "p": 12,
+    "pos": 8,
+    "pts": 30,
+    "team": "CERRUDA A, C.D. \"A\""
+   },
+   {
+    "df": -17,
+    "e": 3,
+    "form": "GGPGG",
+    "g": 9,
+    "gc": 104,
+    "gf": 87,
+    "j": 26,
+    "p": 14,
+    "pos": 9,
+    "pts": 30,
+    "team": "BALOS A, U.D. \"A\""
+   },
+   {
+    "df": -54,
+    "e": 4,
+    "form": "PPPPG",
+    "g": 8,
+    "gc": 142,
+    "gf": 88,
+    "j": 26,
+    "p": 14,
+    "pos": 10,
+    "pts": 28,
+    "team": "MOGAN A, C.F. \"A\""
+   },
+   {
+    "df": -27,
+    "e": 4,
+    "form": "EGPPP",
+    "g": 7,
+    "gc": 99,
+    "gf": 72,
+    "j": 26,
+    "p": 15,
+    "pos": 11,
+    "pts": 25,
+    "team": "AGUIMES C.F. A \"A\""
+   },
+   {
+    "df": -34,
+    "e": 5,
+    "form": "EGGPP",
+    "g": 6,
+    "gc": 87,
+    "gf": 53,
+    "j": 26,
+    "p": 15,
+    "pos": 12,
+    "pts": 23,
+    "team": "SAN PEDRO MARTIR, C.D."
+   },
+   {
+    "df": -148,
+    "e": 2,
+    "form": "PPPPP",
+    "g": 2,
+    "gc": 201,
+    "gf": 53,
+    "j": 26,
+    "p": 22,
+    "pos": 13,
+    "pts": 8,
+    "team": "INGENIO A, C.D. \"A\""
+   },
+   {
+    "df": -180,
+    "e": 3,
+    "form": "PPPPP",
+    "g": 0,
+    "gc": 235,
+    "gf": 55,
+    "j": 26,
+    "p": 23,
+    "pos": 14,
+    "pts": 3,
+    "team": "CASA PASTORES, C.F."
+   }
+  ]
+ },
+ "885:122239": {
+  "comp": "885",
+  "comp_name": "LIGA PREFERENTE ALEVIN F-8 GRAN CANARIA",
+  "fetched": "2026-11-28",
+  "grupo": "122239",
+  "grupo_name": "GRUPO 2",
+  "ok": true,
+  "scorers": [
+   [
+    "MACIAS REYES, SERGIO DEL CRISTO",
+    "GARITA A, C.F.S. LA A",
+    0,
+    47,
+    0
+   ],
+   [
+    "MORALES SOSA, EYDAN",
+    "FUNDACION CANARIA U.D. LAS PALMAS, C.D.",
+    14,
+    34,
+    0
+   ],
+   [
+    "SANTANA ARROYO, ANGEL",
+    "GARITA A, C.F.S. LA A",
+    23,
+    31,
+    0
+   ],
+   [
+    "TRUJILLO CURQUEJO, ABIAN",
+    "SAGRADO CORAZON UNIVERSITARIO A A",
+    21,
+    25,
+    0
+   ],
+   [
+    "COLADO PULIDO, ALVARO EDUARDO",
+    "HEIDELBERG A, C.F. A",
+    24,
+    25,
+    0
+   ],
+   [
+    "CRESPO CASTRO, ANDRES",
+    "FUNDACION CANARIA U.D. LAS PALMAS, C.D.",
+    14,
+    23,
+    0
+   ],
+   [
+    "NEPI EDET, DOMINGO JAVIER",
+    "FUNDACION CANARIA U.D. LAS PALMAS, C.D.",
+    15,
+    23,
+    0
+   ],
+   [
+    "HERNANDEZ CAZORLA, HECTOR FLORENCIO",
+    "FUNDACION CANARIA U.D. LAS PALMAS, C.D.",
+    10,
+    22,
+    0
+   ],
+   [
+    "SOSA GARCIA, ERNESTO",
+    "ATLETICO G.C.A, C.F. A",
+    22,
+    22,
+    0
+   ],
+   [
+    "PÉREZ PÉREZ, DANIEL",
+    "HUESAS A, U.D. LAS A",
+    20,
+    21,
+    0
+   ],
+   [
+    "FORMENTO SUAREZ, MICHEL",
+    "HEIDELBERG A, C.F. A",
+    9,
+    20,
+    0
+   ],
+   [
+    "MARIO",
+    "MESAS HURACAN, U.D. LAS",
+    13,
+    20,
+    0
+   ],
+   [
+    "HERRANZ LORENZO, KENAY",
+    "ALCOTAN CANARIAS, C.D.",
+    19,
+    20,
+    0
+   ],
+   [
+    "CABALLERO SOSA, AARON DEL CRISTO",
+    "GARITA A, C.F.S. LA A",
+    0,
+    20,
+    0
+   ],
+   [
+    "MAXIMO",
+    "FUNDACION CANARIA U.D. LAS PALMAS, C.D.",
+    5,
+    18,
+    0
+   ],
+   [
+    "ROMERO SAN JOSE, CARLOS",
+    "GAREPA VIERA A, C.F. A",
+    20,
+    17,
+    0
+   ],
+   [
+    "AFONSO MIRABAL, JORGE",
+    "HUESAS A, U.D. LAS A",
+    25,
+    17,
+    0
+   ],
+   [
+    "PEÑATE LOPEZ, JAVIER",
+    "GARITA A, C.F.S. LA A",
+    0,
+    17,
+    0
+   ],
+   [
+    "CERPA GONZALEZ, ALVARO",
+    "FUNDACION CANARIA U.D. LAS PALMAS, C.D.",
+    9,
+    16,
+    0
+   ],
+   [
+    "HERNANDEZ DAMASO, JOSUE SANTIAGO",
+    "ALCOTAN CANARIAS, C.D.",
+    25,
+    16,
+    0
+   ],
+   [
+    "JIMENEZ BENITEZ, ALVARO",
+    "GARITA A, C.F.S. LA A",
+    2,
+    15,
+    0
+   ],
+   [
+    "ALFARO VEGA, RODRIGO",
+    "SAGRADO CORAZON UNIVERSITARIO A A",
+    3,
+    15,
+    0
+   ],
+   [
+    "CAMPOS GARCÍA, DANIEL",
+    "FUNDACION CANARIA U.D. LAS PALMAS, C.D.",
+    14,
+    15,
+    0
+   ],
+   [
+    "NICHOLAS PARKER",
+    "GAREPA VIERA A, C.F. A",
+    18,
+    15,
+    0
+   ],
+   [
+    "PEREZ RODRIGUEZ, FRANCISCO YASSER",
+    "ATLETICO G.C.A, C.F. A",
+    12,
+    14,
+    0
+   ],
+   [
+    "JIMENEZ HERNANDEZ, OSCAR",
+    "ATLETICO G.C.A, C.F. A",
+    13,
+    13,
+    0
+   ],
+   [
+    "DOMINGUEZ CUTIE, FABIO",
+    "FUNDACION CANARIA U.D. LAS PALMAS, C.D.",
+    15,
+    13,
+    0
+   ],
+   [
+    "RAMIREZ GUILLEN, JUAN FRANCISCO",
+    "MESAS HURACAN, U.D. LAS",
+    23,
+    13,
+    0
+   ],
+   [
+    "PERERA RAMOS, ANSEL",
+    "VALSEQUILLO A, U.D. A",
+    23,
+    13,
+    0
+   ],
+   [
+    "NUÑEZ RIVERO, YAUCI",
+    "MESAS HURACAN, U.D. LAS",
+    9,
+    12,
+    0
+   ],
+   [
+    "DIAZ SENRA, ADRIAN",
+    "FUNDACION CANARIA U.D. LAS PALMAS, C.D.",
+    9,
+    12,
+    0
+   ],
+   [
+    "SANTANA DEL ROSARIO, MAURO",
+    "SAGRADO CORAZON UNIVERSITARIO A A",
+    24,
+    12,
+    0
+   ],
+   [
+    "TORRES VEGA, HUGO HIERON",
+    "SIMUSETTI C. F. A A",
+    17,
+    11,
+    0
+   ],
+   [
+    "SUAREZ ALEMAN, ALEJANDRO",
+    "GARITA A, C.F.S. LA A",
+    22,
+    11,
+    0
+   ],
+   [
+    "SUAREZ FLORIDO, PABLO",
+    "HUESAS A, U.D. LAS A",
+    24,
+    11,
+    0
+   ],
+   [
+    "",
+    "MESAS HURACAN, U.D. LAS",
+    16,
+    10,
+    0
+   ],
+   [
+    "CASAUS ALZOLA, IKER",
+    "FUNDACION CANARIA U.D. LAS PALMAS, C.D.",
+    11,
+    9,
+    0
+   ],
+   [
+    "PIQUERAS MORAN, BENTCHEY",
+    "SIMUSETTI C. F. A A",
+    12,
+    9,
+    0
+   ],
+   [
+    "GALVAN SUAREZ, ABIAN",
+    "VALSEQUILLO A, U.D. A",
+    19,
+    9,
+    0
+   ],
+   [
+    "MARTINEZ DE BOURIO BADIA, JORGE",
+    "HEIDELBERG A, C.F. A",
+    19,
+    9,
+    0
+   ],
+   [
+    "ROMAN RIVERO, OWEN JOSE",
+    "HEIDELBERG A, C.F. A",
+    23,
+    9,
+    0
+   ],
+   [
+    "HERNANDEZ ESPINOSA, AIMAR",
+    "PUERTOS DE L.P., C.E.F.",
+    25,
+    9,
+    0
+   ],
+   [
+    "BUENO DAVILA, YEIDEN",
+    "FUNDACION CANARIA U.D. LAS PALMAS, C.D.",
+    6,
+    8,
+    0
+   ],
+   [
+    "SANTANA PERDOMO, LUCAS",
+    "MESAS HURACAN, U.D. LAS",
+    9,
+    8,
+    0
+   ],
+   [
+    "MATEO PERDOMO, CARLOS",
+    "GARITA A, C.F.S. LA A",
+    26,
+    8,
+    0
+   ],
+   [
+    "CONDE HERRERA, JOSE FRANCISCO",
+    "PUERTOS DE L.P., C.E.F.",
+    2,
+    7,
+    0
+   ],
+   [
+    "SANTANA DE LA CALLE, HUGO",
+    "HUESAS A, U.D. LAS A",
+    8,
+    7,
+    0
+   ],
+   [
+    "SUAREZ RAMOS, MARCOS NAYEM",
+    "HUESAS A, U.D. LAS A",
+    8,
+    7,
+    0
+   ],
+   [
+    "CINI SANTANA, ADRIAN",
+    "FUNDACION CANARIA U.D. LAS PALMAS, C.D.",
+    9,
+    7,
+    0
+   ],
+   [
+    "ALVAREZ PONTON, AITOR JAVIER",
+    "ATLETICO G.C.A, C.F. A",
+    10,
+    7,
+    0
+   ],
+   [
+    "ORTEGA GARCIA, ERIC",
+    "FUNDACION CANARIA U.D. LAS PALMAS, C.D.",
+    12,
+    7,
+    0
+   ],
+   [
+    "ALE PÉREZ",
+    "SIMUSETTI C. F. A A",
+    14,
+    7,
+    0
+   ],
+   [
+    "RODRIGUEZ SUAREZ, ASIER",
+    "ALCOTAN CANARIAS, C.D.",
+    15,
+    7,
+    0
+   ],
+   [
+    "SAAVEDRA GARCIA, NUHAZET",
+    "SAGRADO CORAZON UNIVERSITARIO A A",
+    18,
+    7,
+    0
+   ],
+   [
+    "ALMEIDA MARAÑON, LIAM",
+    "FUNDACION CANARIA U.D. LAS PALMAS, C.D.",
+    19,
+    7,
+    0
+   ],
+   [
+    "PEREZ CORUJO, YEDIEL",
+    "GAREPA VIERA A, C.F. A",
+    21,
+    7,
+    0
+   ],
+   [
+    "CACERES SANTANA, AARON",
+    "SAGRADO CORAZON UNIVERSITARIO A A",
+    6,
+    6,
+    0
+   ],
+   [
+    "ALCANTARA RAMIREZ, NEIZAN FRANCISCO",
+    "PUERTOS DE L.P., C.E.F.",
+    10,
+    6,
+    0
+   ],
+   [
+    "PALMA HERRERA, ALEJANDRO",
+    "FUNDACION CANARIA U.D. LAS PALMAS, C.D.",
+    10,
+    6,
+    0
+   ],
+   [
+    "EZUMA MBELA, DIEGO",
+    "ALCOTAN CANARIAS, C.D.",
+    11,
+    6,
+    0
+   ],
+   [
+    "ALONSO VIÑOLY, DIEGO",
+    "GARITA A, C.F.S. LA A",
+    12,
+    6,
+    0
+   ],
+   [
+    "BRESSO DELGADO, ALVARO",
+    "SIMUSETTI C. F. A A",
+    12,
+    6,
+    0
+   ],
+   [
+    "SANCHEZ SANTAMARTA, ARIAN",
+    "MESAS HURACAN, U.D. LAS",
+    12,
+    6,
+    0
+   ],
+   [
+    "SANTANA MENDOZA, EDUARDO",
+    "SIMUSETTI C. F. A A",
+    13,
+    6,
+    0
+   ],
+   [
+    "MARTIN MARRERO, ERIK",
+    "GAREPA VIERA A, C.F. A",
+    18,
+    6,
+    0
+   ],
+   [
+    "GUEDES GALVAN, ABIAN",
+    "TELDE A, U.D. A",
+    22,
+    6,
+    0
+   ],
+   [
+    "GARCIA GONZALEZ, ANTONIO",
+    "HEIDELBERG A, C.F. A",
+    22,
+    6,
+    0
+   ],
+   [
+    "AVERO CASTELLANO, DANIEL JESUS",
+    "ALCOTAN CANARIAS, C.D.",
+    23,
+    6,
+    0
+   ],
+   [
+    "GODOY MARTIN, HECTOR",
+    "GARITA A, C.F.S. LA A",
+    25,
+    6,
+    0
+   ],
+   [
+    "LLINARES ALONSO, PABLO",
+    "HEIDELBERG A, C.F. A",
+    8,
+    5,
+    0
+   ],
+   [
+    "ATTA CORDERO, ALVARO",
+    "VALSEQUILLO A, U.D. A",
+    9,
+    5,
+    0
+   ],
+   [
+    "MARTIN CASTELLANO, PABLO",
+    "SIMUSETTI C. F. A A",
+    9,
+    5,
+    0
+   ],
+   [
+    "SILVA SOSA, DIEGO",
+    "TELDE A, U.D. A",
+    9,
+    5,
+    0
+   ],
+   [
+    "SANTANA SANTIAGO, PABLO",
+    "HEIDELBERG A, C.F. A",
+    13,
+    5,
+    0
+   ],
+   [
+    "NOE MARRERO, JERIEL SANTIAGO",
+    "ATLETICO G.C.A, C.F. A",
+    14,
+    5,
+    0
+   ],
+   [
+    "RAMIREZ GONZALEZ, MATEO",
+    "PUERTOS DE L.P., C.E.F.",
+    21,
+    5,
+    0
+   ],
+   [
+    "LORENZO ESTEBAN, ALVARO",
+    "PUERTOS DE L.P., C.E.F.",
+    24,
+    5,
+    0
+   ],
+   [
+    "ROSARIO QUINTANA, BESAY",
+    "SAGRADO CORAZON UNIVERSITARIO A A",
+    26,
+    5,
+    0
+   ],
+   [
+    "SOSA SEGURA, JAIDEN",
+    "ALCOTAN CANARIAS, C.D.",
+    2,
+    4,
+    0
+   ],
+   [
+    "JORGE ACOSTA, RODRIGO",
+    "HEIDELBERG A, C.F. A",
+    2,
+    4,
+    0
+   ],
+   [
+    "PEREZ CRUZ, RAUL FELIPE",
+    "SAGRADO CORAZON UNIVERSITARIO A A",
+    3,
+    4,
+    0
+   ],
+   [
+    "MEJIAS RODRIGUEZ, MATIAS",
+    "HEIDELBERG A, C.F. A",
+    5,
+    4,
+    0
+   ],
+   [
+    "MIGUEL",
+    "SAGRADO CORAZON UNIVERSITARIO A A",
+    9,
+    4,
+    0
+   ],
+   [
+    "RODRIGUEZ SUAREZ, DANIEL",
+    "SAGRADO CORAZON UNIVERSITARIO A A",
+    12,
+    4,
+    0
+   ],
+   [
+    "BRITO MONAGAS, JEUDIEL",
+    "AREGRANCA A, C.D. A",
+    14,
+    4,
+    0
+   ],
+   [
+    "JIMENEZ AMAYA, THIAGO",
+    "SIMUSETTI C. F. A A",
+    14,
+    4,
+    0
+   ],
+   [
+    "HERNANDEZ MIRANDA, CALEB",
+    "VALSEQUILLO A, U.D. A",
+    14,
+    4,
+    0
+   ],
+   [
+    "ALEMAN SANTIAGO, YARLEY",
+    "ATLETICO G.C.A, C.F. A",
+    17,
+    4,
+    0
+   ],
+   [
+    "CRESPO MAYOR, IRIOME",
+    "HUESAS A, U.D. LAS A",
+    18,
+    4,
+    0
+   ],
+   [
+    "DEL RIO SAAVEDRA, DIEGO",
+    "SIMUSETTI C. F. A A",
+    18,
+    4,
+    0
+   ],
+   [
+    "GARCIA MAGDALENA, ALONSO",
+    "PUERTOS DE L.P., C.E.F.",
+    22,
+    4,
+    0
+   ],
+   [
+    "WORDEN SANTANA, CHRISTIAN BRIAN",
+    "PUERTOS DE L.P., C.E.F.",
+    2,
+    3,
+    0
+   ],
+   [
+    "MEDINA CARREÑO, AYOZE",
+    "PUERTOS DE L.P., C.E.F.",
+    3,
+    3,
+    0
+   ],
+   [
+    "BATISTA TEJERA, AITOR",
+    "AREGRANCA A, C.D. A",
+    3,
+    3,
+    0
+   ],
+   [
+    "NUEZ LORENZO, DANIEL",
+    "PUERTOS DE L.P., C.E.F.",
+    3,
+    3,
+    0
+   ],
+   [
+    "",
+    "PUERTOS DE L.P., C.E.F.",
+    5,
+    3,
+    0
+   ],
+   [
+    "DE LA PEÑA ROQUE, ALEJANDRO",
+    "PUERTOS DE L.P., C.E.F.",
+    6,
+    3,
+    0
+   ],
+   [
+    "EHIAGUINA EGWOM, CHIBUZOR IYKE",
+    "GAREPA VIERA A, C.F. A",
+    9,
+    3,
+    0
+   ],
+   [
+    "MEDINA LORENZO, IZAN CHEDEY",
+    "SIMUSETTI C. F. A A",
+    11,
+    3,
+    0
+   ],
+   [
+    "QUINTERO RODRIGUEZ, ALAN JOSE",
+    "ALCOTAN CANARIAS, C.D.",
+    11,
+    3,
+    0
+   ],
+   [
+    "BORROMEO, DANIELE KAROL",
+    "MESAS HURACAN, U.D. LAS",
+    11,
+    3,
+    0
+   ],
+   [
+    "ALAMO RUA, ADRIAN",
+    "PUERTOS DE L.P., C.E.F.",
+    12,
+    3,
+    0
+   ],
+   [
+    "CARO LOPEZ, ALEJANDRO",
+    "TELDE A, U.D. A",
+    12,
+    3,
+    0
+   ],
+   [
+    "CALDERIN SUAREZ, GUILLERMO",
+    "TELDE A, U.D. A",
+    12,
+    3,
+    0
+   ],
+   [
+    "CARREÑO MELIAN, VICTOR",
+    "TELDE A, U.D. A",
+    13,
+    3,
+    0
+   ],
+   [
+    "REYES DIAZ-REIXA, XAVIER",
+    "AREGRANCA A, C.D. A",
+    16,
+    3,
+    0
+   ],
+   [
+    "VINUESA MARTINEZ, JORGE",
+    "SIMUSETTI C. F. A A",
+    16,
+    3,
+    0
+   ],
+   [
+    "SANTANA HERNANDEZ, AIDAN",
+    "AREGRANCA A, C.D. A",
+    16,
+    3,
+    0
+   ],
+   [
+    "SANTIAGO FERNANDEZ, CESAR",
+    "SIMUSETTI C. F. A A",
+    18,
+    3,
+    0
+   ],
+   [
+    "MUNGUIA GONZALEZ, ARDIEL",
+    "ATLETICO G.C.A, C.F. A",
+    18,
+    3,
+    0
+   ],
+   [
+    "SARR SARR, LAMINE",
+    "AREGRANCA A, C.D. A",
+    22,
+    3,
+    0
+   ],
+   [
+    "DORTA HERNÁNDEZ, IRIOME DEL CRISTO",
+    "PUERTOS DE L.P., C.E.F.",
+    1,
+    2,
+    0
+   ],
+   [
+    "SUAREZ TEJERA, LEONEL JESUS",
+    "PUERTOS DE L.P., C.E.F.",
+    1,
+    2,
+    0
+   ],
+   [
+    "MORALES DIAZ, MARTIN",
+    "SAGRADO CORAZON UNIVERSITARIO A A",
+    3,
+    2,
+    0
+   ],
+   [
+    "QUINTANA SARMIENTO, DANIEL",
+    "HEIDELBERG A, C.F. A",
+    3,
+    2,
+    0
+   ],
+   [
+    "NOLASCO ANDUEZA, NEYSAN",
+    "MESAS HURACAN, U.D. LAS",
+    4,
+    2,
+    0
+   ],
+   [
+    "AZALE MOLINA, DANIEL",
+    "ATLETICO G.C.A, C.F. A",
+    8,
+    2,
+    0
+   ],
+   [
+    "ALEMAN NUEZ, ALEJANDRO",
+    "TELDE A, U.D. A",
+    8,
+    2,
+    0
+   ],
+   [
+    "FUENTES GONZALEZ, RAFAEL",
+    "ALCOTAN CANARIAS, C.D.",
+    11,
+    2,
+    0
+   ],
+   [
+    "MUÑOZ HERNANDEZ, IKER",
+    "SAGRADO CORAZON UNIVERSITARIO A A",
+    12,
+    2,
+    0
+   ],
+   [
+    "PEREZ MENDOZA, ENZO",
+    "PUERTOS DE L.P., C.E.F.",
+    12,
+    2,
+    0
+   ],
+   [
+    "GONZALEZ GONZALEZ, AYDAN JESUS",
+    "VALSEQUILLO A, U.D. A",
+    14,
+    2,
+    0
+   ],
+   [
+    "ALEMAN SANTIAGO, YAMAI",
+    "ATLETICO G.C.A, C.F. A",
+    14,
+    2,
+    0
+   ],
+   [
+    "GARCIA REYES, VICTOR IBAI",
+    "GAREPA VIERA A, C.F. A",
+    14,
+    2,
+    0
+   ],
+   [
+    "BARRIOS GONZALEZ, ISMAEL",
+    "PUERTOS DE L.P., C.E.F.",
+    17,
+    2,
+    0
+   ],
+   [
+    "MORENO MACHIN, JAVIER",
+    "TELDE A, U.D. A",
+    17,
+    2,
+    0
+   ],
+   [
+    "GUTIERREZ FERNANDEZ, GUILLERMO",
+    "GAREPA VIERA A, C.F. A",
+    18,
+    2,
+    0
+   ],
+   [
+    "ANDRADE SANTIAGO, ALBERTO",
+    "PUERTOS DE L.P., C.E.F.",
+    18,
+    2,
+    0
+   ],
+   [
+    "MACIAS VERA, CARLOS",
+    "ATLETICO G.C.A, C.F. A",
+    20,
+    2,
+    0
+   ],
+   [
+    "RIVAS ALZOLA, ANTONIO",
+    "HEIDELBERG A, C.F. A",
+    21,
+    2,
+    0
+   ],
+   [
+    "",
+    "SAGRADO CORAZON UNIVERSITARIO A A",
+    22,
+    2,
+    0
+   ],
+   [
+    "GARCIA BENITEZ, JUAN GARAY",
+    "GARITA A, C.F.S. LA A",
+    23,
+    2,
+    0
+   ],
+   [
+    "BETANCOR HERNANDEZ, RAUL",
+    "GARITA A, C.F.S. LA A",
+    24,
+    2,
+    0
+   ],
+   [
+    "SANCHEZ GONZALEZ, GUILLERMO",
+    "HEIDELBERG A, C.F. A",
+    24,
+    2,
+    0
+   ],
+   [
+    "ORTEGA TORRES, DANIEL",
+    "GARITA A, C.F.S. LA A",
+    25,
+    2,
+    0
+   ],
+   [
+    "ABAD PERERA, ISAAC",
+    "MESAS HURACAN, U.D. LAS",
+    1,
+    1,
+    0
+   ],
+   [
+    "KENIKSSI ZEKRI, ALI",
+    "AREGRANCA A, C.D. A",
+    1,
+    1,
+    0
+   ],
+   [
+    "MIRANDA PEREIRA, GIOVANNI",
+    "PUERTOS DE L.P., C.E.F.",
+    2,
+    1,
+    0
+   ],
+   [
+    "HERNANDEZ-REJA GONZALEZ, ALEJANDRO",
+    "MESAS HURACAN, U.D. LAS",
+    4,
+    1,
+    0
+   ],
+   [
+    "MESA VIZCAINO, DAISSEL DAVID",
+    "MESAS HURACAN, U.D. LAS",
+    6,
+    1,
+    0
+   ],
+   [
+    "LOPEZ LOPEZ, NEIZAN",
+    "HUESAS A, U.D. LAS A",
+    6,
+    1,
+    0
+   ],
+   [
+    "GULLON CABRERA, PABLO FACUNDO",
+    "VALSEQUILLO A, U.D. A",
+    6,
+    1,
+    0
+   ],
+   [
+    "SCHMID GIL, PEDRO YERIEL",
+    "ATLETICO G.C.A, C.F. A",
+    7,
+    1,
+    0
+   ],
+   [
+    "CABRERA LOPEZ, GABRIEL",
+    "HUESAS A, U.D. LAS A",
+    7,
+    1,
+    0
+   ],
+   [
+    "TRONCOSO GIL, FERNANDO",
+    "VALSEQUILLO A, U.D. A",
+    7,
+    1,
+    0
+   ],
+   [
+    "VEGA AROCHA, OLIVER",
+    "TELDE A, U.D. A",
+    7,
+    1,
+    0
+   ],
+   [
+    "CORONADO VEGA, ABIAN",
+    "HEIDELBERG A, C.F. A",
+    9,
+    1,
+    0
+   ],
+   [
+    "ALONSO RODRIGUEZ, EDRIAN",
+    "FUNDACION CANARIA U.D. LAS PALMAS, C.D.",
+    10,
+    1,
+    0
+   ],
+   [
+    "RIAÑO TORENA, ADRIAN ALEJANDRO",
+    "MESAS HURACAN, U.D. LAS",
+    10,
+    1,
+    0
+   ],
+   [
+    "GIL LOPEZ, HUGO",
+    "ALCOTAN CANARIAS, C.D.",
+    11,
+    1,
+    0
+   ],
+   [
+    "MARTEL AMADOR, DAN ELLIOT",
+    "VALSEQUILLO A, U.D. A",
+    11,
+    1,
+    0
+   ],
+   [
+    "PEREZ PEREZ, SERGIO",
+    "SIMUSETTI C. F. A A",
+    11,
+    1,
+    0
+   ],
+   [
+    "SANCHEZ RODRIGUEZ, GABRIEL",
+    "MESAS HURACAN, U.D. LAS",
+    12,
+    1,
+    0
+   ],
+   [
+    "",
+    "TELDE A, U.D. A",
+    12,
+    1,
+    0
+   ],
+   [
+    "PEREZ FALCON, ALBERTO",
+    "TELDE A, U.D. A",
+    13,
+    1,
+    0
+   ],
+   [
+    "ALVARO",
+    "HUESAS A, U.D. LAS A",
+    14,
+    1,
+    0
+   ],
+   [
+    "PASCUAL HERNANDEZ, DAYRON DANIEL",
+    "SIMUSETTI C. F. A A",
+    14,
+    1,
+    0
+   ],
+   [
+    "RODRIGUEZ RODRIGUEZ, MARIO",
+    "AREGRANCA A, C.D. A",
+    14,
+    1,
+    0
+   ],
+   [
+    "RIOS SEPULVEDA, ADRIAN",
+    "GAREPA VIERA A, C.F. A",
+    16,
+    1,
+    0
+   ],
+   [
+    "MELIAN PEREZ, JAIDEN ALEJANDRO",
+    "GAREPA VIERA A, C.F. A",
+    16,
+    1,
+    0
+   ],
+   [
+    "HERNANDEZ FALCON, PABLO",
+    "ALCOTAN CANARIAS, C.D.",
+    21,
+    1,
+    0
+   ],
+   [
+    "AFONSO CASTELLANO, DAVID",
+    "SAGRADO CORAZON UNIVERSITARIO A A",
+    21,
+    1,
+    0
+   ],
+   [
+    "NUÑEZ LOPEZ, JOSHUA SEBASTIAN",
+    "MESAS HURACAN, U.D. LAS",
+    21,
+    1,
+    0
+   ],
+   [
+    "PADRON JIMENEZ, ALVARO",
+    "MESAS HURACAN, U.D. LAS",
+    22,
+    1,
+    0
+   ],
+   [
+    "DIAZ RODRIGUEZ, SAUL",
+    "ALCOTAN CANARIAS, C.D.",
+    23,
+    1,
+    0
+   ],
+   [
+    "GALVAN CEBALLOS, HUGO ARIDANE",
+    "TELDE A, U.D. A",
+    23,
+    1,
+    0
+   ],
+   [
+    "MEDINA SANTANA, ERIK",
+    "SIMUSETTI C. F. A A",
+    0,
+    1,
+    0
+   ],
+   [
+    "",
+    "MESAS HURACAN, U.D. LAS",
+    0,
+    1,
+    0
+   ],
+   [
+    "SUAREZ MEDINA, MATEO",
+    "PUERTOS DE L.P., C.E.F.",
+    0,
+    1,
+    0
+   ],
+   [
+    "QUIMPER PERAL, PABLO",
+    "PUERTOS DE L.P., C.E.F.",
+    0,
+    1,
+    0
+   ]
+  ],
+  "standings": [
+   {
+    "df": 199,
+    "e": 0,
+    "form": "GGGGG",
+    "g": 26,
+    "gc": 25,
+    "gf": 224,
+    "j": 26,
+    "p": 0,
+    "pos": 1,
+    "pts": 78,
+    "team": "FUNDACION CANARIA U.D. LAS PALMAS, C.D."
+   },
+   {
+    "df": 133,
+    "e": 2,
+    "form": "GGPGG",
+    "g": 21,
+    "gc": 41,
+    "gf": 174,
+    "j": 26,
+    "p": 3,
+    "pos": 2,
+    "pts": 65,
+    "team": "GARITA A, C.F.S. LA \"A\""
+   },
+   {
+    "df": 45,
+    "e": 4,
+    "form": "EGGGG",
+    "g": 17,
+    "gc": 63,
+    "gf": 108,
+    "j": 26,
+    "p": 5,
+    "pos": 3,
+    "pts": 55,
+    "team": "HUESAS A, U.D. LAS \"A\""
+   },
+   {
+    "df": 16,
+    "e": 6,
+    "form": "GEGGG",
+    "g": 15,
+    "gc": 71,
+    "gf": 87,
+    "j": 26,
+    "p": 5,
+    "pos": 4,
+    "pts": 51,
+    "team": "ATLETICO G.C.A, C.F. \"A\""
+   },
+   {
+    "df": 33,
+    "e": 5,
+    "form": "EGGPE",
+    "g": 14,
+    "gc": 63,
+    "gf": 96,
+    "j": 26,
+    "p": 7,
+    "pos": 5,
+    "pts": 47,
+    "team": "HEIDELBERG A, C.F. \"A\""
+   },
+   {
+    "df": 7,
+    "e": 6,
+    "form": "GEGPP",
+    "g": 13,
+    "gc": 68,
+    "gf": 75,
+    "j": 26,
+    "p": 7,
+    "pos": 6,
+    "pts": 45,
+    "team": "VALSEQUILLO A, U.D. \"A\""
+   },
+   {
+    "df": 11,
+    "e": 2,
+    "form": "PPGGP",
+    "g": 13,
+    "gc": 80,
+    "gf": 91,
+    "j": 26,
+    "p": 11,
+    "pos": 7,
+    "pts": 41,
+    "team": "SAGRADO CORAZON UNIVERSITARIO A \"A\""
+   },
+   {
+    "df": -30,
+    "e": 3,
+    "form": "PPGPE",
+    "g": 9,
+    "gc": 97,
+    "gf": 67,
+    "j": 26,
+    "p": 14,
+    "pos": 8,
+    "pts": 30,
+    "team": "GAREPA VIERA A, C.F. \"A\""
+   },
+   {
+    "df": -37,
+    "e": 5,
+    "form": "PGPPE",
+    "g": 7,
+    "gc": 106,
+    "gf": 69,
+    "j": 26,
+    "p": 14,
+    "pos": 9,
+    "pts": 26,
+    "team": "SIMUSETTI C. F. A \"A\""
+   },
+   {
+    "df": -44,
+    "e": 3,
+    "form": "PPPPE",
+    "g": 7,
+    "gc": 110,
+    "gf": 66,
+    "j": 26,
+    "p": 16,
+    "pos": 10,
+    "pts": 24,
+    "team": "PUERTOS DE L.P., C.E.F."
+   },
+   {
+    "df": -55,
+    "e": 3,
+    "form": "GGPGP",
+    "g": 7,
+    "gc": 126,
+    "gf": 71,
+    "j": 26,
+    "p": 16,
+    "pos": 11,
+    "pts": 24,
+    "team": "ALCOTAN CANARIAS, C.D."
+   },
+   {
+    "df": -46,
+    "e": 5,
+    "form": "GPPGE",
+    "g": 6,
+    "gc": 122,
+    "gf": 76,
+    "j": 26,
+    "p": 15,
+    "pos": 12,
+    "pts": 23,
+    "team": "MESAS HURACAN, U.D. LAS"
+   },
+   {
+    "df": -135,
+    "e": 3,
+    "form": "PPPPE",
+    "g": 1,
+    "gc": 169,
+    "gf": 34,
+    "j": 26,
+    "p": 22,
+    "pos": 13,
+    "pts": 6,
+    "team": "AREGRANCA A, C.D. \"A\""
+   },
+   {
+    "df": -97,
+    "e": 3,
+    "form": "PPPPP",
+    "g": 1,
+    "gc": 128,
+    "gf": 31,
+    "j": 26,
+    "p": 22,
+    "pos": 14,
+    "pts": 6,
+    "team": "TELDE A, U.D. \"A\""
+   }
+  ]
+ },
+ "887:123821": {
+  "comp": "887",
+  "comp_name": "LIGA PRIMERA ALEVIN F-8 GRAN CANARIA",
+  "fetched": "2026-11-28",
+  "grupo": "123821",
+  "grupo_name": "GRUPO 6",
+  "ok": true,
+  "scorers": [
+   [
+    "SUAREZ TEJERA, LEONEL JESUS",
+    "VETERANOS DEL PILA B, C.D.",
+    19,
+    52,
+    0
+   ],
+   [
+    "MEDINA ARRUFAT, JORDI MANUEL",
+    "SIMUSETTI C. F. B B",
+    18,
+    44,
+    0
+   ],
+   [
+    "MARTIN HERNANDEZ, ALVARO",
+    "UNIVERSITARIO C.D. B B",
+    13,
+    41,
+    0
+   ],
+   [
+    "SANTOS RUIZ, MARLON",
+    "ATLETICO G.C.B, C.F. B",
+    23,
+    40,
+    0
+   ],
+   [
+    "DAZA SOCORRO, MARIO",
+    "HEIDELBERG B, C.F. B",
+    11,
+    34,
+    0
+   ],
+   [
+    "OJEDA QUINTANA, IKER",
+    "ATLETICO G.C.B, C.F. B",
+    23,
+    32,
+    0
+   ],
+   [
+    "TORRES SUAREZ, ERIC",
+    "VICTORIA B, REAL CLUB B",
+    17,
+    29,
+    0
+   ],
+   [
+    "ROBLES GARCIA, JAVIER",
+    "HEIDELBERG B, C.F. B",
+    21,
+    28,
+    0
+   ],
+   [
+    "RIVERO JIMENEZ, ALVARO",
+    "VILLA DE SANTA BRIGIDA B, U.D B",
+    25,
+    28,
+    0
+   ],
+   [
+    "",
+    "HEIDELBERG B, C.F. B",
+    23,
+    26,
+    0
+   ],
+   [
+    "TIESTOS GARASA, FERNANDO",
+    "VICTORIA B, REAL CLUB B",
+    9,
+    25,
+    0
+   ],
+   [
+    "BRAVO CAMBRELENG, FERNAN",
+    "VILLA DE SANTA BRIGIDA B, U.D B",
+    18,
+    24,
+    0
+   ],
+   [
+    "CURBELO MARRERO, BUENAVENTURA",
+    "VILLA DE SANTA BRIGIDA B, U.D B",
+    26,
+    24,
+    0
+   ],
+   [
+    "ACOSTA RODRIGUEZ, ALVARO",
+    "SIMUSETTI C. F. B B",
+    17,
+    21,
+    0
+   ],
+   [
+    "",
+    "CORAZON DE MARIA D, C.D. DB",
+    8,
+    19,
+    0
+   ],
+   [
+    "GARCIA BETANCOR, GABRIEL",
+    "SIMUSETTI C. F. B B",
+    20,
+    18,
+    0
+   ],
+   [
+    "YANEZ MORALES, ALEJANDRO",
+    "UNIVERSITARIO C.D. B B",
+    20,
+    18,
+    0
+   ],
+   [
+    "SOLANO PEREZ, DIEGO ALEJANDRO",
+    "SIMUSETTI C. F. B B",
+    11,
+    17,
+    0
+   ],
+   [
+    "RODRIGUEZ NAVARRO, HECTOR",
+    "ARUCAS C.F. B B",
+    12,
+    17,
+    0
+   ],
+   [
+    "GONZALEZ LORENZO, LIONEL",
+    "ARUCAS C.F. B B",
+    18,
+    17,
+    0
+   ],
+   [
+    "ROSA MORA, RAMON",
+    "VETERANOS DEL PILA B, C.D.",
+    10,
+    16,
+    0
+   ],
+   [
+    "NAVARRO PEREZ, ALVARO",
+    "VETERANOS DEL PILA B, C.D.",
+    24,
+    16,
+    0
+   ],
+   [
+    "DIAZ SANTANA, YADRIEL",
+    "ATLETICO G.C.B, C.F. B",
+    8,
+    15,
+    0
+   ],
+   [
+    "HERNANDEZ GIRALDO, ALESSANDRO",
+    "ATLETICO G.C.B, C.F. B",
+    12,
+    15,
+    0
+   ],
+   [
+    "",
+    "GUINIGUADA APOLINARIO B, C.D. B",
+    14,
+    15,
+    0
+   ],
+   [
+    "CRUZ SCHUSTER, LEONARDO GABRIEL",
+    "LOMO BLANCO S.J.A. B, C.D. B",
+    18,
+    15,
+    0
+   ],
+   [
+    "MOLINA OJEDA, ADRIAN",
+    "LOMO BLANCO S.J.A. B, C.D. B",
+    19,
+    15,
+    0
+   ],
+   [
+    "",
+    "DANIEL CARNEVALI B, C.D. B",
+    24,
+    15,
+    0
+   ],
+   [
+    "AYALA GARCIA, ALBERTO",
+    "VICTORIA B, REAL CLUB B",
+    14,
+    14,
+    0
+   ],
+   [
+    "PÉREZ RODRÍGUEZ, DARÍO",
+    "LOMO BLANCO S.J.A. B, C.D. B",
+    18,
+    14,
+    0
+   ],
+   [
+    "BATISTA BETANCOR, ADRIAN",
+    "VICTORIA B, REAL CLUB B",
+    18,
+    14,
+    0
+   ],
+   [
+    "FERRERA GARCIA, DENIS",
+    "SIMUSETTI C. F. B B",
+    21,
+    14,
+    0
+   ],
+   [
+    "GONZALEZ CARDONA, PABLO",
+    "VILLA DE SANTA BRIGIDA B, U.D B",
+    24,
+    14,
+    0
+   ],
+   [
+    "TORRES SUAREZ, LEYRE",
+    "VICTORIA B, REAL CLUB B",
+    9,
+    13,
+    0
+   ],
+   [
+    "RODRIGUEZ GRONDONA, HUGO",
+    "SIMUSETTI C. F. B B",
+    17,
+    13,
+    0
+   ],
+   [
+    "RODRIGUEZ GONZALEZ, JACOB FRANCISCO",
+    "ATLETICO G.C.B, C.F. B",
+    20,
+    13,
+    0
+   ],
+   [
+    "IRIARTE JIMENEZ, ALEJANDRO",
+    "CORAZON DE MARIA D, C.D. DB",
+    9,
+    12,
+    0
+   ],
+   [
+    "VAZQUEZ FLEITAS, MARTIN",
+    "CORAZON DE MARIA D, C.D. DB",
+    16,
+    12,
+    0
+   ],
+   [
+    "ARAÑA ALAMO, CESAR",
+    "ATLETICO G.C.B, C.F. B",
+    18,
+    12,
+    0
+   ],
+   [
+    "ESPINEL BENITEZ, LIONEL JESUS",
+    "PILETAS B, A.D. U.D. B",
+    20,
+    12,
+    0
+   ],
+   [
+    "ARMAS NAVARRO, ARIADNE GERALDINE",
+    "UNION VIERA C, C.F. C",
+    22,
+    12,
+    0
+   ],
+   [
+    "ACEVEDO MORALES, IKER",
+    "ATLETICO G.C.B, C.F. B",
+    7,
+    11,
+    0
+   ],
+   [
+    "SOLBES PEREZ, ARES",
+    "VILLA DE SANTA BRIGIDA B, U.D B",
+    11,
+    11,
+    0
+   ],
+   [
+    "RODRIGUEZ GONZALEZ, ALEJANDRO",
+    "ARUCAS C.F. B B",
+    12,
+    11,
+    0
+   ],
+   [
+    "CEJAS HERNANDEZ, DORIAN",
+    "VICTORIA B, REAL CLUB B",
+    12,
+    11,
+    0
+   ],
+   [
+    "MONTESDEOCA MARTINEZ, ARAY",
+    "SIMUSETTI C. F. B B",
+    15,
+    11,
+    0
+   ],
+   [
+    "BUANANI MALVIDO, BILAL",
+    "VETERANOS DEL PILA B, C.D.",
+    3,
+    10,
+    0
+   ],
+   [
+    "MANRIQUE DE LARA FRAILE, BALTASAR",
+    "UNIVERSITARIO C.D. B B",
+    8,
+    10,
+    0
+   ],
+   [
+    "SYKES PEREZ, WILLIAM DANIEL",
+    "HEIDELBERG B, C.F. B",
+    12,
+    10,
+    0
+   ],
+   [
+    "RODRIGUEZ NAVARRO, ADRIEL",
+    "ARUCAS C.F. B B",
+    13,
+    10,
+    0
+   ],
+   [
+    "JORGE GARCIA, UNAI",
+    "CORAZON DE MARIA D, C.D. DB",
+    18,
+    10,
+    0
+   ],
+   [
+    "PEREZ RODRIGUEZ, OMAR",
+    "ARUCAS C.F. B B",
+    19,
+    10,
+    0
+   ],
+   [
+    "RODRIGUEZ SANTANA, ARODI SAMUEL",
+    "UNIVERSITARIO C.D. B B",
+    19,
+    10,
+    0
+   ],
+   [
+    "RODRIGUEZ BENITEZ, NESTOR",
+    "VETERANOS DEL PILA B, C.D.",
+    23,
+    10,
+    0
+   ],
+   [
+    "GUINDOS MORIN, JUAN CARLOS",
+    "HEIDELBERG B, C.F. B",
+    24,
+    10,
+    0
+   ],
+   [
+    "GONZALEZ MORILLO, RAUL",
+    "GUINIGUADA APOLINARIO B, C.D. B",
+    8,
+    9,
+    0
+   ],
+   [
+    "GRANDE GOZALO, PABLO",
+    "VETERANOS DEL PILA B, C.D.",
+    9,
+    9,
+    0
+   ],
+   [
+    "IZQUIER SANTANA, DAYRON MANUEL",
+    "ATLETICO G.C.B, C.F. B",
+    10,
+    9,
+    0
+   ],
+   [
+    "GALLINAL SOCORRO, CARLOS",
+    "HEIDELBERG B, C.F. B",
+    10,
+    9,
+    0
+   ],
+   [
+    "QUIMPER PERAL, PABLO",
+    "VETERANOS DEL PILA B, C.D.",
+    12,
+    9,
+    0
+   ],
+   [
+    "JIMENEZ SANTANA, JORGE",
+    "VICTORIA B, REAL CLUB B",
+    6,
+    8,
+    0
+   ],
+   [
+    "GONZALEZ SANTANA, ROBERTO DARIEL",
+    "SIMUSETTI C. F. B B",
+    8,
+    8,
+    0
+   ],
+   [
+    "GONZALEZ SANTANA, JUAN ANTONIO",
+    "UNIVERSITARIO C.D. B B",
+    9,
+    8,
+    0
+   ],
+   [
+    "CASTRO DARIAS, VICTOR",
+    "VICTORIA B, REAL CLUB B",
+    10,
+    8,
+    0
+   ],
+   [
+    "ELY BOUNA, AHMED",
+    "VETERANOS DEL PILA B, C.D.",
+    11,
+    8,
+    0
+   ],
+   [
+    "PERAZA SANTIAGO, HUGO",
+    "ARUCAS C.F. B B",
+    14,
+    8,
+    0
+   ],
+   [
+    "RODRIGUEZ URDIALES, JOSE YAZEL",
+    "GUINIGUADA APOLINARIO B, C.D. B",
+    14,
+    8,
+    0
+   ],
+   [
+    "GONZALEZ ALAMO, HUGO",
+    "SIMUSETTI C. F. B B",
+    18,
+    8,
+    0
+   ],
+   [
+    "FANDIÑO FALCON, CAROLINA",
+    "VICTORIA B, REAL CLUB B",
+    18,
+    8,
+    0
+   ],
+   [
+    "TOLEDO FELIPE, GONZALO",
+    "CORAZON DE MARIA D, C.D. DB",
+    18,
+    8,
+    0
+   ],
+   [
+    "HERNANDEZ MIRABAL, GABRIEL",
+    "VETERANOS DEL PILA B, C.D.",
+    6,
+    7,
+    0
+   ],
+   [
+    "RODRIGUEZ MEDINA, SAMUEL",
+    "UNIVERSITARIO C.D. B B",
+    13,
+    7,
+    0
+   ],
+   [
+    "MUEÑA SOSA, ASIER",
+    "SIMUSETTI C. F. B B",
+    13,
+    7,
+    0
+   ],
+   [
+    "",
+    "DANIEL CARNEVALI B, C.D. B",
+    16,
+    7,
+    0
+   ],
+   [
+    "GONZALEZ INFANTES, EDUARDO",
+    "VICTORIA B, REAL CLUB B",
+    18,
+    7,
+    0
+   ],
+   [
+    "PADRON PEREZ, JUAN DIEGO",
+    "UNIVERSITARIO C.D. B B",
+    22,
+    7,
+    0
+   ],
+   [
+    "MORENO GONZALEZ, MIGUEL",
+    "LOMO BLANCO S.J.A. B, C.D. B",
+    22,
+    7,
+    0
+   ],
+   [
+    "BETNAZA ROSALES, BELTRAN MARIA",
+    "UNIVERSITARIO C.D. B B",
+    2,
+    6,
+    0
+   ],
+   [
+    "SOSA RAMOS, DEREK",
+    "SIMUSETTI C. F. B B",
+    8,
+    6,
+    0
+   ],
+   [
+    "NAVARRO ALONSO, YAPCI",
+    "HEIDELBERG B, C.F. B",
+    8,
+    6,
+    0
+   ],
+   [
+    "RODRIGUEZ DIAZ, IKER",
+    "VETERANOS DEL PILA B, C.D.",
+    13,
+    6,
+    0
+   ],
+   [
+    "GONZALEZ RODRIGUEZ, ALEJANDRO",
+    "VICTORIA B, REAL CLUB B",
+    20,
+    6,
+    0
+   ],
+   [
+    "HERAS GOMEZ, DANIEL",
+    "HEIDELBERG B, C.F. B",
+    20,
+    6,
+    0
+   ],
+   [
+    "ACOSTA MEDINA, JUAN ALVARO",
+    "DANIEL CARNEVALI B, C.D. B",
+    22,
+    6,
+    0
+   ],
+   [
+    "RIVERO JIMENEZ, DIEGO",
+    "VILLA DE SANTA BRIGIDA B, U.D B",
+    25,
+    6,
+    0
+   ],
+   [
+    "FERNANDEZ LOPEZ, JORGE",
+    "UNIVERSITARIO C.D. B B",
+    3,
+    5,
+    0
+   ],
+   [
+    "CAMACHO NAVARRO, DANIEL",
+    "ATLETICO G.C.B, C.F. B",
+    4,
+    5,
+    0
+   ],
+   [
+    "RAMOS SANTANA, CARLOS",
+    "UNION VIERA C, C.F. C",
+    6,
+    5,
+    0
+   ],
+   [
+    "HIDALGO VILA, MATEO",
+    "UNIVERSITARIO C.D. B B",
+    8,
+    5,
+    0
+   ],
+   [
+    "RODRIGUEZ GIANNETTINO, LEANDRO",
+    "HEIDELBERG B, C.F. B",
+    8,
+    5,
+    0
+   ],
+   [
+    "LORENZO JIMENEZ, JORGE",
+    "DANIEL CARNEVALI B, C.D. B",
+    12,
+    5,
+    0
+   ],
+   [
+    "CUERVO ARTEAGA, IKER",
+    "DANIEL CARNEVALI B, C.D. B",
+    15,
+    5,
+    0
+   ],
+   [
+    "GARCIA RODRIGUEZ, DANIEL",
+    "UNIVERSITARIO C.D. B B",
+    15,
+    5,
+    0
+   ],
+   [
+    "DIAZ NAYA, PABLO",
+    "VICTORIA B, REAL CLUB B",
+    16,
+    5,
+    0
+   ],
+   [
+    "ZERPA RODRIGUEZ, PABLO GENARO",
+    "ARUCAS C.F. B B",
+    17,
+    5,
+    0
+   ],
+   [
+    "BERMUDEZ SANTANA, EDEY",
+    "LOMO BLANCO S.J.A. B, C.D. B",
+    24,
+    5,
+    0
+   ],
+   [
+    "MARTIN MONZON, ANGEL JADIEL",
+    "ATLETICO G.C.B, C.F. B",
+    3,
+    4,
+    0
+   ],
+   [
+    "MOHAMED MULUD MOHAMED, MOHAMED",
+    "UNIVERSITARIO C.D. B B",
+    4,
+    4,
+    0
+   ],
+   [
+    "JIMENEZ LOPEZ, ALEJANDRO ANDRES",
+    "VILLA DE SANTA BRIGIDA B, U.D B",
+    6,
+    4,
+    0
+   ],
+   [
+    "TRAVIESO SANCHEZ, FELIX MIGUEL",
+    "VETERANOS DEL PILA B, C.D.",
+    7,
+    4,
+    0
+   ],
+   [
+    "OJEDA LOPEZ, MATEO",
+    "HEIDELBERG B, C.F. B",
+    8,
+    4,
+    0
+   ],
+   [
+    "RODRIGUEZ RODRIGUEZ, JORGE ALEJANDRO",
+    "VILLA DE SANTA BRIGIDA B, U.D B",
+    9,
+    4,
+    0
+   ],
+   [
+    "MELIAN VILLARREAL, MARIO",
+    "CORAZON DE MARIA D, C.D. DB",
+    10,
+    4,
+    0
+   ],
+   [
+    "MENDOZA JIMENEZ, RODRIGO",
+    "UNION VIERA C, C.F. C",
+    11,
+    4,
+    0
+   ],
+   [
+    "ALMEIDA RODRIGUEZ, DANIEL",
+    "ARUCAS C.F. B B",
+    12,
+    4,
+    0
+   ],
+   [
+    "OJEDA DEL RIO, AGUSTIN",
+    "VETERANOS DEL PILA B, C.D.",
+    13,
+    4,
+    0
+   ],
+   [
+    "SUAREZ PEÑA, ALBERTO",
+    "SIMUSETTI C. F. B B",
+    15,
+    4,
+    0
+   ],
+   [
+    "ORTEGA PADRON, SIMON",
+    "ATLETICO G.C.B, C.F. B",
+    15,
+    4,
+    0
+   ],
+   [
+    "SUAREZ REYES, SAUL",
+    "ATLETICO G.C.B, C.F. B",
+    19,
+    4,
+    0
+   ],
+   [
+    "CABRERA MARTIN, HUGO",
+    "VETERANOS DEL PILA B, C.D.",
+    20,
+    4,
+    0
+   ],
+   [
+    "SEGURA JIMENEZ, BARBARA",
+    "UNION VIERA C, C.F. C",
+    22,
+    4,
+    0
+   ],
+   [
+    "JIMENEZ JORGE, GADIEL ALEXANDER",
+    "ATLETICO G.C.B, C.F. B",
+    5,
+    3,
+    0
+   ],
+   [
+    "BERMUDEZ MUÑOZ, LEANDRO ANTONIO",
+    "VICTORIA B, REAL CLUB B",
+    8,
+    3,
+    0
+   ],
+   [
+    "SANCHEZ VERDE, IMAR",
+    "PILETAS B, A.D. U.D. B",
+    9,
+    3,
+    0
+   ],
+   [
+    "RODRIGUEZ LOPEZ, BYRON",
+    "LOMO BLANCO S.J.A. B, C.D. B",
+    12,
+    3,
+    0
+   ],
+   [
+    "CRUZ RAMIREZ, DIEGO",
+    "ARUCAS C.F. B B",
+    15,
+    3,
+    0
+   ],
+   [
+    "MENDEZ ALVARADO, IAN",
+    "ARUCAS C.F. B B",
+    16,
+    3,
+    0
+   ],
+   [
+    "CHAVES MIGUENS, ALEJANDRO",
+    "PILETAS B, A.D. U.D. B",
+    16,
+    3,
+    0
+   ],
+   [
+    "",
+    "UNIVERSITARIO C.D. B B",
+    16,
+    3,
+    0
+   ],
+   [
+    "GONZALEZ CABRERA, ALEJANDRO",
+    "UNION VIERA C, C.F. C",
+    19,
+    3,
+    0
+   ],
+   [
+    "NDIONE GUEYE, ABDOU AZIZ",
+    "GUINIGUADA APOLINARIO B, C.D. B",
+    21,
+    3,
+    0
+   ],
+   [
+    "MACCANTI LLINARES, BRUNO",
+    "LOMO BLANCO S.J.A. B, C.D. B",
+    22,
+    3,
+    0
+   ],
+   [
+    "GONZALEZ TALAVERA, GABRIEL",
+    "LOMO BLANCO S.J.A. B, C.D. B",
+    2,
+    2,
+    0
+   ],
+   [
+    "DENIZ NAVARRO, EDUARDO",
+    "UNION VIERA C, C.F. C",
+    3,
+    2,
+    0
+   ],
+   [
+    "LASPRILLA VALENCIA, KEVIN",
+    "GUINIGUADA APOLINARIO B, C.D. B",
+    3,
+    2,
+    0
+   ],
+   [
+    "TRAVIESO SOCORRO, DIEGO JOSE",
+    "LOMO BLANCO S.J.A. B, C.D. B",
+    4,
+    2,
+    0
+   ],
+   [
+    "MONTESDEOCA ALZOLA, LEO",
+    "CORAZON DE MARIA D, C.D. DB",
+    4,
+    2,
+    0
+   ],
+   [
+    "CRUZ LUIS, HUGO ALEXANDER",
+    "DANIEL CARNEVALI B, C.D. B",
+    4,
+    2,
+    0
+   ],
+   [
+    "SOSA TAVIO, YEREMAY RAMON",
+    "GUINIGUADA APOLINARIO B, C.D. B",
+    6,
+    2,
+    0
+   ],
+   [
+    "GIL PEJON, CARLOS",
+    "UNION VIERA C, C.F. C",
+    6,
+    2,
+    0
+   ],
+   [
+    "CABRERA CABADO, SANTIAGO",
+    "ARUCAS C.F. B B",
+    9,
+    2,
+    0
+   ],
+   [
+    "PARRA LANGARA, ENEKO",
+    "GUINIGUADA APOLINARIO B, C.D. B",
+    10,
+    2,
+    0
+   ],
+   [
+    "MACIAS CARDOSO, ALEJANDRO",
+    "CORAZON DE MARIA D, C.D. DB",
+    10,
+    2,
+    0
+   ],
+   [
+    "LOPEZ CARRASCO, OCTAVIO",
+    "HEIDELBERG B, C.F. B",
+    11,
+    2,
+    0
+   ],
+   [
+    "ALEMAN ALMEIDA, AIMAR",
+    "VILLA DE SANTA BRIGIDA B, U.D B",
+    11,
+    2,
+    0
+   ],
+   [
+    "RODRIGUEZ SANCHEZ, NICOLAS",
+    "GUINIGUADA APOLINARIO B, C.D. B",
+    12,
+    2,
+    0
+   ],
+   [
+    "GUERRA MUJICA, CARLOS",
+    "ARUCAS C.F. B B",
+    13,
+    2,
+    0
+   ],
+   [
+    "TEJERA SANCHEZ, PABLO",
+    "SIMUSETTI C. F. B B",
+    13,
+    2,
+    0
+   ],
+   [
+    "BAEZ GARCIA, JOSE",
+    "SIMUSETTI C. F. B B",
+    13,
+    2,
+    0
+   ],
+   [
+    "REYES SANTANA, ADRIEL",
+    "DANIEL CARNEVALI B, C.D. B",
+    13,
+    2,
+    0
+   ],
+   [
+    "SANTANA LOPEZ, JORGE",
+    "UNION VIERA C, C.F. C",
+    13,
+    2,
+    0
+   ],
+   [
+    "GARRIDO DOMINGUEZ, RODRIGO",
+    "HEIDELBERG B, C.F. B",
+    15,
+    2,
+    0
+   ],
+   [
+    "LEON GUIMARE, FABIO",
+    "CORAZON DE MARIA D, C.D. DB",
+    21,
+    2,
+    0
+   ],
+   [
+    "ALMEIDA MONTESDEOCA, NOE",
+    "ARUCAS C.F. B B",
+    22,
+    2,
+    0
+   ],
+   [
+    "GALAN VILLARES, CARLOS",
+    "CORAZON DE MARIA D, C.D. DB",
+    24,
+    2,
+    0
+   ],
+   [
+    "RODRIGUEZ GALBÀN, PABLO",
+    "HEIDELBERG B, C.F. B",
+    0,
+    2,
+    0
+   ],
+   [
+    "AUYANET DOMINGUEZ, IGNACIO",
+    "CORAZON DE MARIA D, C.D. DB",
+    1,
+    1,
+    0
+   ],
+   [
+    "AUYANET DOMINGUEZ, IGNACIO",
+    "CORAZON DE MARIA D, C.D. DB",
+    1,
+    1,
+    0
+   ],
+   [
+    "AUYANET DOMINGUEZ, IGNACIO",
+    "CORAZON DE MARIA D, C.D. DB",
+    2,
+    1,
+    0
+   ],
+   [
+    "RIAÑO OJEDA, FRANCISCO",
+    "VILLA DE SANTA BRIGIDA B, U.D B",
+    4,
+    1,
+    0
+   ],
+   [
+    "ROSARIO HENRIQUEZ, UNAI",
+    "LOMO BLANCO S.J.A. B, C.D. B",
+    4,
+    1,
+    0
+   ],
+   [
+    "HERNANDEZ-REJA GONZALEZ, ALEJANDRO",
+    "VETERANOS DEL PILA B, C.D.",
+    4,
+    1,
+    0
+   ],
+   [
+    "MOLINA SOLAIMAN, MASHHUR",
+    "GUINIGUADA APOLINARIO B, C.D. B",
+    4,
+    1,
+    0
+   ],
+   [
+    "CRUZ ESTEVEZ, NAHOR",
+    "DANIEL CARNEVALI B, C.D. B",
+    6,
+    1,
+    0
+   ],
+   [
+    "OBANDO RAMON, ALEJO EMILIANO",
+    "VETERANOS DEL PILA B, C.D.",
+    7,
+    1,
+    0
+   ],
+   [
+    "ALEMAN VASQUEZ, CARLOS JESUS",
+    "GUINIGUADA APOLINARIO B, C.D. B",
+    8,
+    1,
+    0
+   ],
+   [
+    "OJEDA-DEURVÁN HERNÁNDEZ, ARMANDO FRANCISCO",
+    "CORAZON DE MARIA D, C.D. DB",
+    8,
+    1,
+    0
+   ],
+   [
+    "MEDINA GUEDES, ALVARO",
+    "UNIVERSITARIO C.D. B B",
+    9,
+    1,
+    0
+   ],
+   [
+    "ZAMARBIDE FALCON, DAVID",
+    "GUINIGUADA APOLINARIO B, C.D. B",
+    10,
+    1,
+    0
+   ],
+   [
+    "GARCIA MARRERO, DIEGO",
+    "GUINIGUADA APOLINARIO B, C.D. B",
+    11,
+    1,
+    0
+   ],
+   [
+    "MEJIA SANTANA, ELIZABETH",
+    "UNION VIERA C, C.F. C",
+    11,
+    1,
+    0
+   ],
+   [
+    "PORTILLO VALLESPIN, MARCO",
+    "HEIDELBERG B, C.F. B",
+    12,
+    1,
+    0
+   ],
+   [
+    "GACIMARTIN HENRIQUEZ, AITANA",
+    "CORAZON DE MARIA D, C.D. DB",
+    12,
+    1,
+    0
+   ],
+   [
+    "GONZALEZ GARCIA, YEICO ARIDANE",
+    "ATLETICO G.C.B, C.F. B",
+    13,
+    1,
+    0
+   ],
+   [
+    "GARCIA GONZALEZ, MANUEL",
+    "DANIEL CARNEVALI B, C.D. B",
+    14,
+    1,
+    0
+   ],
+   [
+    "CACERES CRUZ, CARLOS",
+    "HEIDELBERG B, C.F. B",
+    15,
+    1,
+    0
+   ],
+   [
+    "SANTANA FALCON, ASIER",
+    "LOMO BLANCO S.J.A. B, C.D. B",
+    15,
+    1,
+    0
+   ],
+   [
+    "RODRIGUEZ REY, HECTOR",
+    "PILETAS B, A.D. U.D. B",
+    15,
+    1,
+    0
+   ],
+   [
+    "TUSELL DIAZ, CLAUDIA",
+    "UNION VIERA C, C.F. C",
+    16,
+    1,
+    0
+   ],
+   [
+    "SUAREZ GANAIM, FRANCISCO MANUEL",
+    "UNIVERSITARIO C.D. B B",
+    21,
+    1,
+    0
+   ],
+   [
+    "NAVARRO DE LA NUEZ, LUCA",
+    "GUINIGUADA APOLINARIO B, C.D. B",
+    0,
+    1,
+    0
+   ],
+   [
+    "RODRIGUEZ GALBÀN, PABLO",
+    "HEIDELBERG B, C.F. B",
+    0,
+    1,
+    0
+   ],
+   [
+    "RODRIGUEZ GALBÀN, PABLO",
+    "HEIDELBERG B, C.F. B",
+    0,
+    1,
+    0
+   ]
+  ],
+  "standings": [
+   {
+    "df": 139,
+    "e": 1,
+    "form": "GGGEG",
+    "g": 24,
+    "gc": 41,
+    "gf": 180,
+    "j": 26,
+    "p": 1,
+    "pos": 1,
+    "pts": 73,
+    "team": "SIMUSETTI C. F. B \"B\""
+   },
+   {
+    "df": 117,
+    "e": 1,
+    "form": "GGGPG",
+    "g": 22,
+    "gc": 51,
+    "gf": 168,
+    "j": 26,
+    "p": 3,
+    "pos": 2,
+    "pts": 67,
+    "team": "ATLETICO G.C.B, C.F. \"B\""
+   },
+   {
+    "df": 122,
+    "e": 1,
+    "form": "GGGEG",
+    "g": 22,
+    "gc": 44,
+    "gf": 166,
+    "j": 26,
+    "p": 3,
+    "pos": 3,
+    "pts": 67,
+    "team": "VETERANOS DEL PILA B, C.D."
+   },
+   {
+    "df": 117,
+    "e": 2,
+    "form": "GGGGG",
+    "g": 20,
+    "gc": 40,
+    "gf": 157,
+    "j": 26,
+    "p": 4,
+    "pos": 4,
+    "pts": 62,
+    "team": "HEIDELBERG B, C.F. \"B\""
+   },
+   {
+    "df": 91,
+    "e": 1,
+    "form": "GPGGG",
+    "g": 16,
+    "gc": 65,
+    "gf": 156,
+    "j": 26,
+    "p": 9,
+    "pos": 5,
+    "pts": 49,
+    "team": "VICTORIA B, REAL CLUB \"B\""
+   },
+   {
+    "df": 0,
+    "e": 1,
+    "form": "GGPPG",
+    "g": 13,
+    "gc": 79,
+    "gf": 79,
+    "j": 26,
+    "p": 12,
+    "pos": 6,
+    "pts": 40,
+    "team": "CORAZON DE MARIA D, C.D. \"DB\""
+   },
+   {
+    "df": 56,
+    "e": 4,
+    "form": "PPPEG",
+    "g": 12,
+    "gc": 77,
+    "gf": 133,
+    "j": 26,
+    "p": 10,
+    "pos": 7,
+    "pts": 40,
+    "team": "UNIVERSITARIO C.D. B \"B\""
+   },
+   {
+    "df": 30,
+    "e": 3,
+    "form": "PPGEP",
+    "g": 11,
+    "gc": 97,
+    "gf": 127,
+    "j": 26,
+    "p": 12,
+    "pos": 8,
+    "pts": 36,
+    "team": "VILLA DE SANTA BRIGIDA B, U.D \"B\""
+   },
+   {
+    "df": -3,
+    "e": 5,
+    "form": "PEPGP",
+    "g": 8,
+    "gc": 97,
+    "gf": 94,
+    "j": 26,
+    "p": 13,
+    "pos": 9,
+    "pts": 29,
+    "team": "ARUCAS C.F. B \"B\""
+   },
+   {
+    "df": -32,
+    "e": 3,
+    "form": "PPPGP",
+    "g": 7,
+    "gc": 100,
+    "gf": 68,
+    "j": 26,
+    "p": 16,
+    "pos": 10,
+    "pts": 24,
+    "team": "LOMO BLANCO S.J.A. B, C.D. \"B\""
+   },
+   {
+    "df": -65,
+    "e": 4,
+    "form": "PEGGP",
+    "g": 5,
+    "gc": 120,
+    "gf": 55,
+    "j": 26,
+    "p": 17,
+    "pos": 11,
+    "pts": 19,
+    "team": "GUINIGUADA APOLINARIO B, C.D. \"B\""
+   },
+   {
+    "df": -152,
+    "e": 0,
+    "form": "PGPPP",
+    "g": 4,
+    "gc": 197,
+    "gf": 45,
+    "j": 26,
+    "p": 22,
+    "pos": 12,
+    "pts": 12,
+    "team": "DANIEL CARNEVALI B, C.D. \"B\""
+   },
+   {
+    "df": -118,
+    "e": 3,
+    "form": "GPPPP",
+    "g": 3,
+    "gc": 162,
+    "gf": 44,
+    "j": 26,
+    "p": 20,
+    "pos": 13,
+    "pts": 12,
+    "team": "UNION VIERA C, C.F. \"C\""
+   },
+   {
+    "df": -302,
+    "e": 1,
+    "form": "PPPPP",
+    "g": 0,
+    "gc": 324,
+    "gf": 22,
+    "j": 26,
+    "p": 25,
+    "pos": 14,
+    "pts": 1,
+    "team": "PILETAS B, A.D. U.D. \"B\""
+   }
+  ]
+ },
+ "887:124003": {
+  "comp": "887",
+  "comp_name": "LIGA PRIMERA ALEVIN F-8 GRAN CANARIA",
+  "fetched": "2026-11-28",
+  "grupo": "124003",
+  "grupo_name": "GRUPO 5",
+  "ok": true,
+  "scorers": [
+   [
+    "PEREZ PERDOMO, JOSE LUIS",
+    "MOGAN B, C.F. B",
+    26,
+    87,
+    0
+   ],
+   [
+    "SANCHEZ PEREZ, GABRIEL",
+    "DORAMAS B, C.D. B",
+    24,
+    54,
+    0
+   ],
+   [
+    "HERNANDEZ VIERA, GABRIEL",
+    "HUESAS C, U.D. LAS C",
+    2,
+    50,
+    0
+   ],
+   [
+    "LOPEZ ORTEGA, UNAI",
+    "ESTRELLA C.F. B B",
+    17,
+    44,
+    0
+   ],
+   [
+    "HERNANDEZ RODRIGUEZ, ALVARO",
+    "ESTRELLA C.F. B B",
+    18,
+    34,
+    0
+   ],
+   [
+    "SIRAGUSA MONZON, CLAUDIO",
+    "HUESAS C, U.D. LAS C",
+    1,
+    33,
+    0
+   ],
+   [
+    "SANTANA CASTILLA, ADRIAN",
+    "GARITA B, C.F.S. LA B",
+    24,
+    30,
+    0
+   ],
+   [
+    "OLIVARES QUINTANA, XAVIER",
+    "INGENIO B, C.D. B",
+    18,
+    29,
+    0
+   ],
+   [
+    "ORTIZ ROBAINA, EMMA",
+    "GARITA B, C.F.S. LA B",
+    20,
+    25,
+    0
+   ],
+   [
+    "ALAYON FREYER, ALEJANDRO",
+    "GARITA B, C.F.S. LA B",
+    24,
+    24,
+    0
+   ],
+   [
+    "GOMEZ ROSCO, ALBERTO",
+    "HUESAS C, U.D. LAS C",
+    25,
+    24,
+    0
+   ],
+   [
+    "RUMENOV KOSTADINOV, MAKSIMILIYAN",
+    "FOOTBALL PROJECT B, C.D. B",
+    25,
+    22,
+    0
+   ],
+   [
+    "MONZON CABRERA, KIRA",
+    "GARITA B, C.F.S. LA B",
+    16,
+    21,
+    0
+   ],
+   [
+    "DENIZ MARTIN, RUBEN",
+    "MOGAN B, C.F. B",
+    10,
+    20,
+    0
+   ],
+   [
+    "MORATA GIMENEZ, JOSE",
+    "MOGAN B, C.F. B",
+    25,
+    20,
+    0
+   ],
+   [
+    "VERA QUINTANA, HUGO",
+    "DORAMAS B, C.D. B",
+    23,
+    19,
+    0
+   ],
+   [
+    "SUAREZ UMPIERREZ, MIGUEL",
+    "GARITA B, C.F.S. LA B",
+    13,
+    18,
+    0
+   ],
+   [
+    "",
+    "PASEO COMERCIAL DE VECINDARIO B, C.D. B",
+    17,
+    17,
+    0
+   ],
+   [
+    "JORGE RAMIREZ, DAILOS JESUS",
+    "MAJORERAS-GUAYADEQUE B, C.F. LAS B",
+    25,
+    17,
+    0
+   ],
+   [
+    "SUÁREZ ESPINOSA, ALEJANDRO",
+    "HUESAS C, U.D. LAS C",
+    26,
+    17,
+    0
+   ],
+   [
+    "RODRIGUEZ HERRERA, ABIAN",
+    "DORAMAS B, C.D. B",
+    21,
+    16,
+    0
+   ],
+   [
+    "SANTANA PEREZ, AIRAM",
+    "HUESAS C, U.D. LAS C",
+    23,
+    15,
+    0
+   ],
+   [
+    "MEJIAS ARAÑA, DANIEL",
+    "TABLERO B, C.D. B",
+    25,
+    15,
+    0
+   ],
+   [
+    "ROCHA CORREA, PABLO JESUS",
+    "GARITA B, C.F.S. LA B",
+    11,
+    14,
+    0
+   ],
+   [
+    "MONZON SANTANA, PABLO",
+    "HUESAS C, U.D. LAS C",
+    18,
+    14,
+    0
+   ],
+   [
+    "MUNGUIA CHIL, AIRAM JOSE",
+    "PASEO COMERCIAL DE VECINDARIO B, C.D. B",
+    22,
+    14,
+    0
+   ],
+   [
+    "MEDINA LEON, ROBERTO ENRIQUE",
+    "PASEO COMERCIAL DE VECINDARIO B, C.D. B",
+    25,
+    14,
+    0
+   ],
+   [
+    "BOCCATO DIZ, BRYAN VALENTINO",
+    "DORAMAS B, C.D. B",
+    15,
+    13,
+    0
+   ],
+   [
+    "VEGA LORENZO, ADRIAN",
+    "DORAMAS B, C.D. B",
+    23,
+    13,
+    0
+   ],
+   [
+    "SANCHEZ HERNANDEZ, VICTOR LUIS",
+    "AGUIMES C.F. B B",
+    7,
+    12,
+    0
+   ],
+   [
+    "TENA HIDALGO, ALEXANDER",
+    "DORAMAS B, C.D. B",
+    8,
+    12,
+    0
+   ],
+   [
+    "MARTIN RODRIGUEZ, ANTONIO",
+    "HUESAS C, U.D. LAS C",
+    9,
+    12,
+    0
+   ],
+   [
+    "ARBELO QUEVEDO, ACOIDAN",
+    "ESTRELLA C.F. B B",
+    9,
+    12,
+    0
+   ],
+   [
+    "QUINTANA RAMIREZ, JOEL FRANCISCO",
+    "DORAMAS B, C.D. B",
+    15,
+    12,
+    0
+   ],
+   [
+    "CABRERA ESPINO, FEMES",
+    "PASEO COMERCIAL DE VECINDARIO B, C.D. B",
+    17,
+    12,
+    0
+   ],
+   [
+    "RODRIGUEZ SUAREZ, NAYRA",
+    "AGUIMES C.F. B B",
+    21,
+    12,
+    0
+   ],
+   [
+    "KAHL EL AYOUN BARI, WISAM",
+    "TELDE B, U.D. B",
+    19,
+    11,
+    0
+   ],
+   [
+    "SY DIAKHATE, MOUKHAMED BABACAR",
+    "BALOS B, U.D. B",
+    19,
+    11,
+    0
+   ],
+   [
+    "BENHADDOU MAYOR, BRAHIM",
+    "AGUIMES C.F. B B",
+    19,
+    11,
+    0
+   ],
+   [
+    "SAMTANI DOMINGUEZ, PIERO",
+    "TABLERO B, C.D. B",
+    21,
+    11,
+    0
+   ],
+   [
+    "SERAI REWACHANDANI, GARV KIRANKUMAR",
+    "FOOTBALL PROJECT B, C.D. B",
+    22,
+    11,
+    0
+   ],
+   [
+    "PRIYANI AHUJA, RYAN NEERAJ",
+    "FOOTBALL PROJECT B, C.D. B",
+    0,
+    11,
+    0
+   ],
+   [
+    "DELGADO GUTIERREZ, LUIS IKER",
+    "FOOTBALL PROJECT B, C.D. B",
+    1,
+    10,
+    0
+   ],
+   [
+    "PALLES PEREZ, PAULINA MARIA",
+    "TABLERO B, C.D. B",
+    12,
+    10,
+    0
+   ],
+   [
+    "MALLES SUAREZ, TATIANA",
+    "GARITA B, C.F.S. LA B",
+    13,
+    10,
+    0
+   ],
+   [
+    "HORMIGA HERNANDEZ, PABLO",
+    "TELDE B, U.D. B",
+    19,
+    10,
+    0
+   ],
+   [
+    "SANTANA LOPEZ, CARLOS YEREDEI",
+    "FOOTBALL PROJECT B, C.D. B",
+    22,
+    10,
+    0
+   ],
+   [
+    "LOPEZ LOPEZ, ALVARO DEL CRISTO",
+    "TELDE B, U.D. B",
+    15,
+    9,
+    0
+   ],
+   [
+    "LEON NAVAS, JOSE RAMON",
+    "BALOS B, U.D. B",
+    19,
+    9,
+    0
+   ],
+   [
+    "BUENO ORTEGA, ISAAC",
+    "TABLERO B, C.D. B",
+    19,
+    9,
+    0
+   ],
+   [
+    "EL HADDARI TAHRIOU, ABDELRAHMAN",
+    "CERRUDA C, C.D. C",
+    19,
+    9,
+    0
+   ],
+   [
+    "CABRERA ESPINO, IMAR",
+    "PASEO COMERCIAL DE VECINDARIO B, C.D. B",
+    20,
+    9,
+    0
+   ],
+   [
+    "PEREDA CALCINES, AIMAR JOSE",
+    "HUESAS C, U.D. LAS C",
+    22,
+    9,
+    0
+   ],
+   [
+    "BARKAN AOUDI, MOHAMED",
+    "PASEO COMERCIAL DE VECINDARIO B, C.D. B",
+    2,
+    8,
+    0
+   ],
+   [
+    "MONTESDEOCA JORGESSON, GABRIEL",
+    "TABLERO B, C.D. B",
+    5,
+    8,
+    0
+   ],
+   [
+    "AMAKAR MGHIMIMA, MOHAMED",
+    "CERRUDA C, C.D. C",
+    5,
+    8,
+    0
+   ],
+   [
+    "BUCETA CASTRO, ALEJANDRO LUIS",
+    "TELDE B, U.D. B",
+    14,
+    8,
+    0
+   ],
+   [
+    "ARBELO ALVAREZ, CRISTIAN FELIPE",
+    "ESTRELLA C.F. B B",
+    18,
+    8,
+    0
+   ],
+   [
+    "DOMINGUEZ ALVAREZ, IKER",
+    "ESTRELLA C.F. B B",
+    19,
+    8,
+    0
+   ],
+   [
+    "GARCIA LOPEZ, CARLOS",
+    "ESTRELLA C.F. B B",
+    20,
+    8,
+    0
+   ],
+   [
+    "CORUJO GONZALEZ, DARIO",
+    "BALOS B, U.D. B",
+    21,
+    8,
+    0
+   ],
+   [
+    "FERNANDEZ GOMEZ, MARIO",
+    "TABLERO B, C.D. B",
+    22,
+    8,
+    0
+   ],
+   [
+    "LUGO CORONEL, XAVI LIONEL",
+    "CERRUDA C, C.D. C",
+    22,
+    8,
+    0
+   ],
+   [
+    "ABOU-MEDLEJ ACOSTA, ALVARO",
+    "AGUIMES C.F. B B",
+    6,
+    7,
+    0
+   ],
+   [
+    "PEREZ NAVARRO, PABLO",
+    "DORAMAS B, C.D. B",
+    13,
+    7,
+    0
+   ],
+   [
+    "HERNANDEZ PEREZ, IKER",
+    "PASEO COMERCIAL DE VECINDARIO B, C.D. B",
+    13,
+    7,
+    0
+   ],
+   [
+    "TEJERA RODRIGUEZ, HUGO",
+    "AGUIMES C.F. B B",
+    20,
+    7,
+    0
+   ],
+   [
+    "ALVAREZ FRAIETTA, IGNACIO",
+    "FOOTBALL PROJECT B, C.D. B",
+    22,
+    7,
+    0
+   ],
+   [
+    "FLOREZ GARCIA, JUAN CAMILO",
+    "BALOS B, U.D. B",
+    22,
+    7,
+    0
+   ],
+   [
+    "SUAREZ QUINTANA, DAVID",
+    "FOOTBALL PROJECT B, C.D. B",
+    25,
+    7,
+    0
+   ],
+   [
+    "KIZI BOULCHAGA, ADAM",
+    "MAJORERAS-GUAYADEQUE B, C.F. LAS B",
+    26,
+    7,
+    0
+   ],
+   [
+    "SANTANA LEON, ANCOR",
+    "HUESAS C, U.D. LAS C",
+    0,
+    7,
+    0
+   ],
+   [
+    "JESWANI, MEER",
+    "FOOTBALL PROJECT B, C.D. B",
+    2,
+    6,
+    0
+   ],
+   [
+    "RIVAS MEDINA, MATIAS",
+    "FOOTBALL PROJECT B, C.D. B",
+    4,
+    6,
+    0
+   ],
+   [
+    "SUAREZ LEON, VICTOR JOSE",
+    "PASEO COMERCIAL DE VECINDARIO B, C.D. B",
+    5,
+    6,
+    0
+   ],
+   [
+    "ROMERO VALERON, IVAN",
+    "AGUIMES C.F. B B",
+    9,
+    6,
+    0
+   ],
+   [
+    "RODRIGUEZ MEDINA, ADAY",
+    "GARITA B, C.F.S. LA B",
+    12,
+    6,
+    0
+   ],
+   [
+    "VIERA CASTRO, ANCOR",
+    "BALOS B, U.D. B",
+    19,
+    6,
+    0
+   ],
+   [
+    "PEREZ ROMERO, JOSE DOMINGO",
+    "AGUIMES C.F. B B",
+    20,
+    6,
+    0
+   ],
+   [
+    "BRITO MEDINA, DIEGO",
+    "ESTRELLA C.F. B B",
+    23,
+    6,
+    0
+   ],
+   [
+    "NAVARRO CASTELLANO, ELIAN",
+    "MOGAN B, C.F. B",
+    26,
+    6,
+    0
+   ],
+   [
+    "GARCIA MARTIN, JAIME",
+    "DORAMAS B, C.D. B",
+    2,
+    5,
+    0
+   ],
+   [
+    "ALVAREZ BOCEA, PABLO",
+    "DORAMAS B, C.D. B",
+    3,
+    5,
+    0
+   ],
+   [
+    "SUAREZ LUJAN, EDUARDO",
+    "ESTRELLA C.F. B B",
+    9,
+    5,
+    0
+   ],
+   [
+    "SOUISSI JALTI, AYMEN",
+    "FOOTBALL PROJECT B, C.D. B",
+    10,
+    5,
+    0
+   ],
+   [
+    "LEON SANTANA, JOEL",
+    "MAJORERAS-GUAYADEQUE B, C.F. LAS B",
+    25,
+    5,
+    0
+   ],
+   [
+    "TROVATO SZCZYGIEL, HUGO",
+    "PASEO COMERCIAL DE VECINDARIO B, C.D. B",
+    1,
+    4,
+    0
+   ],
+   [
+    "RODRIGUEZ MACHIN, SAMUEL",
+    "GARITA B, C.F.S. LA B",
+    4,
+    4,
+    0
+   ],
+   [
+    "DOMINGUEZ HERNANDEZ, RAUL",
+    "PASEO COMERCIAL DE VECINDARIO B, C.D. B",
+    4,
+    4,
+    0
+   ],
+   [
+    "LANDAETA MORA, DIEGO ALBERTO",
+    "CERRUDA C, C.D. C",
+    5,
+    4,
+    0
+   ],
+   [
+    "EL MANSSOURI EL OUAZGHARI, MOUNIR",
+    "CERRUDA C, C.D. C",
+    9,
+    4,
+    0
+   ],
+   [
+    "HERNANDEZ RODRIGUEZ, MICHAEL",
+    "ESTRELLA C.F. B B",
+    17,
+    4,
+    0
+   ],
+   [
+    "SACRAMENTO GUTIERREZ, GUAYRE",
+    "ESTRELLA C.F. B B",
+    19,
+    4,
+    0
+   ],
+   [
+    "RODRIGUEZ ARBELO, MATEO",
+    "ESTRELLA C.F. B B",
+    21,
+    4,
+    0
+   ],
+   [
+    "HERNANDEZ SANCHEZ, JUAN AITOR",
+    "HUESAS C, U.D. LAS C",
+    23,
+    4,
+    0
+   ],
+   [
+    "HARTLEY, PATRICK KEVIN",
+    "MOGAN B, C.F. B",
+    24,
+    4,
+    0
+   ],
+   [
+    "MORENO PADRON, ALVARO JOSE",
+    "HUESAS C, U.D. LAS C",
+    25,
+    4,
+    0
+   ],
+   [
+    "GONZALEZ OCAMPO, THIAGO LEANDRO",
+    "DORAMAS B, C.D. B",
+    1,
+    3,
+    0
+   ],
+   [
+    "LAARIOUIA ESSEKOUT, YASSER",
+    "FOOTBALL PROJECT B, C.D. B",
+    2,
+    3,
+    0
+   ],
+   [
+    "AZOUAGHE AZZOU, ANAS",
+    "TABLERO B, C.D. B",
+    3,
+    3,
+    0
+   ],
+   [
+    "GUERRA ALEJANDRO, HUGO",
+    "DORAMAS B, C.D. B",
+    4,
+    3,
+    0
+   ],
+   [
+    "FERNANDES FERNANDEZ, THIAGO DARIO",
+    "FOOTBALL PROJECT B, C.D. B",
+    5,
+    3,
+    0
+   ],
+   [
+    "TARIJI AYAKHLEF, MOHAMED",
+    "CERRUDA C, C.D. C",
+    6,
+    3,
+    0
+   ],
+   [
+    "MEDEROS HOYOS, JOSE DANIEL",
+    "PASEO COMERCIAL DE VECINDARIO B, C.D. B",
+    7,
+    3,
+    0
+   ],
+   [
+    "RIVERO MENDOZA, DANIELA",
+    "AGUIMES C.F. B B",
+    7,
+    3,
+    0
+   ],
+   [
+    "MORENO HENRIQUEZ, FERNANDO GABRIEL",
+    "INGENIO B, C.D. B",
+    8,
+    3,
+    0
+   ],
+   [
+    "OJEDA SANTANA, HECTOR",
+    "ESTRELLA C.F. B B",
+    8,
+    3,
+    0
+   ],
+   [
+    "QUEROL RODRIGUEZ, AMANAY",
+    "MOGAN B, C.F. B",
+    10,
+    3,
+    0
+   ],
+   [
+    "BRITO RODRIGUEZ, IVANNA",
+    "BALOS B, U.D. B",
+    10,
+    3,
+    0
+   ],
+   [
+    "BOUCHMID SFART, IMAD",
+    "CERRUDA C, C.D. C",
+    14,
+    3,
+    0
+   ],
+   [
+    "MORAN RODRIGUEZ, LUCAS BERNARDO",
+    "TELDE B, U.D. B",
+    18,
+    3,
+    0
+   ],
+   [
+    "GOMEZ MONZON, IKER",
+    "FOOTBALL PROJECT B, C.D. B",
+    18,
+    3,
+    0
+   ],
+   [
+    "CACERES SANCHEZ, CARLOS DAVID",
+    "MAJORERAS-GUAYADEQUE B, C.F. LAS B",
+    18,
+    3,
+    0
+   ],
+   [
+    "GARCERA RICIO, CARLOTA",
+    "GARITA B, C.F.S. LA B",
+    21,
+    3,
+    0
+   ],
+   [
+    "GUILLI GHILANE, AYMAN",
+    "CERRUDA C, C.D. C",
+    21,
+    3,
+    0
+   ],
+   [
+    "HERRERA GARCIA, JOEL",
+    "DORAMAS B, C.D. B",
+    1,
+    2,
+    0
+   ],
+   [
+    "CRUZ ALFONSO, GABRIEL",
+    "ESTRELLA C.F. B B",
+    6,
+    2,
+    0
+   ],
+   [
+    "SANTANA HERNANDEZ, GABRIEL",
+    "INGENIO B, C.D. B",
+    6,
+    2,
+    0
+   ],
+   [
+    "SUAREZ MORALES, GABRIEL",
+    "INGENIO B, C.D. B",
+    8,
+    2,
+    0
+   ],
+   [
+    "GONZALEZ LOPEZ, ADRIEL JESUS",
+    "PASEO COMERCIAL DE VECINDARIO B, C.D. B",
+    8,
+    2,
+    0
+   ],
+   [
+    "HERNANDEZ BOLAÑOS, JOSE AITOR",
+    "PASEO COMERCIAL DE VECINDARIO B, C.D. B",
+    9,
+    2,
+    0
+   ],
+   [
+    "DIAZ SANCHEZ, PABLO",
+    "TELDE B, U.D. B",
+    9,
+    2,
+    0
+   ],
+   [
+    "MEDINA NAVARRO, ISMAEL",
+    "TELDE B, U.D. B",
+    10,
+    2,
+    0
+   ],
+   [
+    "MARTINEZ MARTINEZ, LUIS MIGUEL",
+    "GARITA B, C.F.S. LA B",
+    10,
+    2,
+    0
+   ],
+   [
+    "GONZALEZ SANTANA, SAMUEL JOSE",
+    "TELDE B, U.D. B",
+    13,
+    2,
+    0
+   ],
+   [
+    "SANTA CRUZ DI SIMONE, SALVATORE DAVIDE",
+    "TABLERO B, C.D. B",
+    14,
+    2,
+    0
+   ],
+   [
+    "MORALES ZERPA, DARIO",
+    "AGUIMES C.F. B B",
+    16,
+    2,
+    0
+   ],
+   [
+    "TIERAN, DARIO ANDREI",
+    "INGENIO B, C.D. B",
+    17,
+    2,
+    0
+   ],
+   [
+    "MARRERO PEÑA, ABIAN",
+    "PASEO COMERCIAL DE VECINDARIO B, C.D. B",
+    18,
+    2,
+    0
+   ],
+   [
+    "SANTANA SANTIAGO, LEYRE",
+    "MAJORERAS-GUAYADEQUE B, C.F. LAS B",
+    18,
+    2,
+    0
+   ],
+   [
+    "POZO SANCHEZ, MANUEL",
+    "TABLERO B, C.D. B",
+    20,
+    2,
+    0
+   ],
+   [
+    "TALAVERA HERNANDEZ, NESTOR",
+    "DORAMAS B, C.D. B",
+    21,
+    2,
+    0
+   ],
+   [
+    "GARCIA GARCIA, MARCO",
+    "INGENIO B, C.D. B",
+    21,
+    2,
+    0
+   ],
+   [
+    "GONZALEZ HERNANDEZ, BREIDY",
+    "GARITA B, C.F.S. LA B",
+    23,
+    2,
+    0
+   ],
+   [
+    "OLIVAREZ JIMENEZ, HIMAR",
+    "HUESAS C, U.D. LAS C",
+    23,
+    2,
+    0
+   ],
+   [
+    "HALLAOUI OUAGHRIDOU, ILYAS",
+    "FOOTBALL PROJECT B, C.D. B",
+    26,
+    2,
+    0
+   ],
+   [
+    "BORDON PEREZ, HUGO",
+    "AGUIMES C.F. B B",
+    0,
+    2,
+    0
+   ],
+   [
+    "GONZALEZ GUERRA, GUAYRE BLAS",
+    "BALOS B, U.D. B",
+    1,
+    1,
+    0
+   ],
+   [
+    "JESWANI, MEER",
+    "FOOTBALL PROJECT B, C.D. B",
+    1,
+    1,
+    0
+   ],
+   [
+    "BARRIE KANU, EUGENE DAVIES",
+    "BALOS B, U.D. B",
+    2,
+    1,
+    0
+   ],
+   [
+    "REINA MENDEZ, KILIAN FERNANDO",
+    "INGENIO B, C.D. B",
+    2,
+    1,
+    0
+   ],
+   [
+    "BENAISA BNIDAR, ADAM",
+    "CERRUDA C, C.D. C",
+    3,
+    1,
+    0
+   ],
+   [
+    "DRUMMOND, LILY MARY ROSE",
+    "MOGAN B, C.F. B",
+    4,
+    1,
+    0
+   ],
+   [
+    "GONZALEZ GIL, AZZAY TANAUSU",
+    "BALOS B, U.D. B",
+    5,
+    1,
+    0
+   ],
+   [
+    "CALVO ANTOÑANZAS, VIOLETA",
+    "CERRUDA C, C.D. C",
+    5,
+    1,
+    0
+   ],
+   [
+    "PADRON FIERRO, UNAI",
+    "TELDE B, U.D. B",
+    6,
+    1,
+    0
+   ],
+   [
+    "ARRAIS SADIK, SIRAJ",
+    "FOOTBALL PROJECT B, C.D. B",
+    6,
+    1,
+    0
+   ],
+   [
+    "CABALLERO ARTILES, DANIEL FRANCISCO",
+    "AGUIMES C.F. B B",
+    7,
+    1,
+    0
+   ],
+   [
+    "SANTANA SANTANA, VICTOR MANUEL",
+    "CERRUDA C, C.D. C",
+    7,
+    1,
+    0
+   ],
+   [
+    "ROMERO VEGA, AYTAMI",
+    "INGENIO B, C.D. B",
+    8,
+    1,
+    0
+   ],
+   [
+    "ALONSO DIAZ, NEIZAN",
+    "MOGAN B, C.F. B",
+    8,
+    1,
+    0
+   ],
+   [
+    "MARTIN OJEDA, JOSE LUIS",
+    "AGUIMES C.F. B B",
+    8,
+    1,
+    0
+   ],
+   [
+    "BETANCOR ROBAINA, KILIAN",
+    "PASEO COMERCIAL DE VECINDARIO B, C.D. B",
+    8,
+    1,
+    0
+   ],
+   [
+    "ANGULO DIAZ, DARIO",
+    "TELDE B, U.D. B",
+    9,
+    1,
+    0
+   ],
+   [
+    "DOMINGUEZ SANTANA, BRYAN MIGUEL",
+    "INGENIO B, C.D. B",
+    11,
+    1,
+    0
+   ],
+   [
+    "SANTANA PULIDO, BRUNO",
+    "TELDE B, U.D. B",
+    12,
+    1,
+    0
+   ],
+   [
+    "PEREZ SANTANA, ENEYDA",
+    "CERRUDA C, C.D. C",
+    13,
+    1,
+    0
+   ],
+   [
+    "QUEVEDO MORALES, EDURNE",
+    "CERRUDA C, C.D. C",
+    19,
+    1,
+    0
+   ],
+   [
+    "ARENCIBIA 0RTEGA, AYTHAMI",
+    "MAJORERAS-GUAYADEQUE B, C.F. LAS B",
+    20,
+    1,
+    0
+   ],
+   [
+    "SANTANA SANCHEZ, IRU",
+    "INGENIO B, C.D. B",
+    21,
+    1,
+    0
+   ],
+   [
+    "GONZALEZ DIAZ, IKER DANIEL",
+    "BALOS B, U.D. B",
+    22,
+    1,
+    0
+   ],
+   [
+    "MONZON QUINTANA, ADRIAN",
+    "INGENIO B, C.D. B",
+    23,
+    1,
+    0
+   ],
+   [
+    "SANCHEZ DORTA, JORGE",
+    "TABLERO B, C.D. B",
+    25,
+    1,
+    0
+   ],
+   [
+    "SANTANA MENDOZA, OSCAR",
+    "MOGAN B, C.F. B",
+    0,
+    1,
+    0
+   ]
+  ],
+  "standings": [
+   {
+    "df": 172,
+    "e": 2,
+    "form": "GGGGE",
+    "g": 24,
+    "gc": 25,
+    "gf": 197,
+    "j": 26,
+    "p": 0,
+    "pos": 1,
+    "pts": 74,
+    "team": "HUESAS C, U.D. LAS \"C\""
+   },
+   {
+    "df": 121,
+    "e": 3,
+    "form": "GEPGG",
+    "g": 20,
+    "gc": 46,
+    "gf": 167,
+    "j": 26,
+    "p": 3,
+    "pos": 2,
+    "pts": 63,
+    "team": "GARITA B, C.F.S. LA \"B\""
+   },
+   {
+    "df": 130,
+    "e": 2,
+    "form": "PEGGE",
+    "g": 20,
+    "gc": 38,
+    "gf": 168,
+    "j": 26,
+    "p": 4,
+    "pos": 3,
+    "pts": 62,
+    "team": "DORAMAS B, C.D. \"B\""
+   },
+   {
+    "df": 97,
+    "e": 1,
+    "form": "GGGGG",
+    "g": 19,
+    "gc": 49,
+    "gf": 146,
+    "j": 26,
+    "p": 6,
+    "pos": 4,
+    "pts": 58,
+    "team": "ESTRELLA C.F. B \"B\""
+   },
+   {
+    "df": 76,
+    "e": 4,
+    "form": "PEGPG",
+    "g": 16,
+    "gc": 46,
+    "gf": 122,
+    "j": 26,
+    "p": 6,
+    "pos": 5,
+    "pts": 52,
+    "team": "FOOTBALL PROJECT B, C.D. \"B\""
+   },
+   {
+    "df": 74,
+    "e": 3,
+    "form": "GEPPP",
+    "g": 15,
+    "gc": 72,
+    "gf": 146,
+    "j": 26,
+    "p": 8,
+    "pos": 6,
+    "pts": 48,
+    "team": "MOGAN B, C.F. \"B\""
+   },
+   {
+    "df": 51,
+    "e": 0,
+    "form": "GGPGG",
+    "g": 15,
+    "gc": 55,
+    "gf": 106,
+    "j": 26,
+    "p": 11,
+    "pos": 7,
+    "pts": 45,
+    "team": "PASEO COMERCIAL DE VECINDARIO B, C.D. \"B\""
+   },
+   {
+    "df": -60,
+    "e": 1,
+    "form": "GGPGG",
+    "g": 9,
+    "gc": 129,
+    "gf": 69,
+    "j": 26,
+    "p": 16,
+    "pos": 8,
+    "pts": 28,
+    "team": "AGUIMES C.F. B \"B\""
+   },
+   {
+    "df": -36,
+    "e": 2,
+    "form": "PGPPG",
+    "g": 8,
+    "gc": 84,
+    "gf": 48,
+    "j": 26,
+    "p": 16,
+    "pos": 9,
+    "pts": 26,
+    "team": "BALOS B, U.D. \"B\""
+   },
+   {
+    "df": -49,
+    "e": 2,
+    "form": "GPGGP",
+    "g": 8,
+    "gc": 103,
+    "gf": 54,
+    "j": 26,
+    "p": 16,
+    "pos": 10,
+    "pts": 26,
+    "team": "TELDE B, U.D. \"B\""
+   },
+   {
+    "df": -100,
+    "e": 2,
+    "form": "PPGPP",
+    "g": 5,
+    "gc": 174,
+    "gf": 74,
+    "j": 26,
+    "p": 19,
+    "pos": 11,
+    "pts": 17,
+    "team": "TABLERO B, C.D. \"B\""
+   },
+   {
+    "df": -136,
+    "e": 1,
+    "form": "PPGPP",
+    "g": 5,
+    "gc": 186,
+    "gf": 50,
+    "j": 26,
+    "p": 20,
+    "pos": 12,
+    "pts": 16,
+    "team": "CERRUDA C, C.D. \"C\""
+   },
+   {
+    "df": -157,
+    "e": 2,
+    "form": "PPPPP",
+    "g": 3,
+    "gc": 208,
+    "gf": 51,
+    "j": 26,
+    "p": 21,
+    "pos": 13,
+    "pts": 11,
+    "team": "INGENIO B, C.D. \"B\""
+   },
+   {
+    "df": -183,
+    "e": 1,
+    "form": "PPPPP",
+    "g": 2,
+    "gc": 222,
+    "gf": 39,
+    "j": 26,
+    "p": 23,
+    "pos": 14,
+    "pts": 7,
+    "team": "MAJORERAS-GUAYADEQUE B, C.F. LAS \"B\""
+   }
+  ]
+ },
+ "887:124185": {
+  "comp": "887",
+  "comp_name": "LIGA PRIMERA ALEVIN F-8 GRAN CANARIA",
+  "fetched": "2026-11-28",
+  "grupo": "124185",
+  "grupo_name": "GRUPO 4",
+  "ok": true,
+  "scorers": [
+   [
+    "CABALLERO CERDEÑA, JOSUE",
+    "VELEZ, U.D. LOS",
+    20,
+    67,
+    0
+   ],
+   [
+    "MONTERDE MENDOZA, AITOR MANUEL",
+    "MAJORERAS-GUAYADEQUE A, C.F. LAS A",
+    15,
+    57,
+    0
+   ],
+   [
+    "MAHUGO MOLERO, YEROBE GABRIEL",
+    "VELEZ, U.D. LOS",
+    11,
+    56,
+    0
+   ],
+   [
+    "COZZA CAPOSAVI, VALERIO",
+    "TABLERO A, C.D. A",
+    25,
+    55,
+    0
+   ],
+   [
+    "MAYOR SANCHEZ, YAEL JOSE",
+    "FOOTBALL PROJECT A, C.D. A",
+    16,
+    54,
+    0
+   ],
+   [
+    "SALANOVA, NICHOLAS",
+    "FOOTBALL PROJECT A, C.D. A",
+    12,
+    50,
+    0
+   ],
+   [
+    "MARTIN DESA, IVAN",
+    "ARINAGA, C.D.",
+    25,
+    39,
+    0
+   ],
+   [
+    "GONZALEZ CABRERA, HUGO",
+    "FOOTBALL PROJECT A, C.D. A",
+    17,
+    35,
+    0
+   ],
+   [
+    "SUAREZ SANTANA, DAYRON",
+    "VELEZ, U.D. LOS",
+    13,
+    32,
+    0
+   ],
+   [
+    "MEDINA RUIZ, CARMELO VENTURA",
+    "UNION MARINA, C.F.",
+    23,
+    29,
+    0
+   ],
+   [
+    "VALENTIN FERREIRO, EIDAN",
+    "VELEZ, U.D. LOS",
+    22,
+    28,
+    0
+   ],
+   [
+    "BENAMAR ABASSI, YOUSSEF",
+    "MAJORERAS-GUAYADEQUE A, C.F. LAS A",
+    15,
+    27,
+    0
+   ],
+   [
+    "SANTANA SANCHEZ, AITOR",
+    "MAJORERAS-GUAYADEQUE A, C.F. LAS A",
+    18,
+    27,
+    0
+   ],
+   [
+    "SALGADO RIVERO, JORGE",
+    "UNION MARINA, C.F.",
+    21,
+    27,
+    0
+   ],
+   [
+    "RODRIGUEZ SUAREZ, AYTHAMI",
+    "FOOTBALL PROJECT A, C.D. A",
+    22,
+    27,
+    0
+   ],
+   [
+    "MARICHAL BAS, CAN LUCAS",
+    "MASPALOMAS B, C.D. B",
+    17,
+    26,
+    0
+   ],
+   [
+    "FERNANDEZ RODRIGUEZ, GUAYRE",
+    "VELEZ, U.D. LOS",
+    14,
+    23,
+    0
+   ],
+   [
+    "NAJERA ALVAREZ, ENRIQUE",
+    "MASPALOMAS B, C.D. B",
+    21,
+    23,
+    0
+   ],
+   [
+    "MELIAN SANTANA, DILAN",
+    "CERRUDA B, C.D. B",
+    16,
+    22,
+    0
+   ],
+   [
+    "LIZARTE REBOLLAR, AIMAR GINES",
+    "FOOTBALL PROJECT A, C.D. A",
+    23,
+    20,
+    0
+   ],
+   [
+    "CLEARY, LIAM THOMAS",
+    "ARGUINEGUIN B, C.D. B",
+    24,
+    20,
+    0
+   ],
+   [
+    "TOLEDO ESTEVEZ, DANIELA MARIA",
+    "ARINAGA, C.D.",
+    24,
+    19,
+    0
+   ],
+   [
+    "GONZALEZ ALMAZAN, NAUZET MANUEL",
+    "POLIGONO DE ARINAGA, C.F.",
+    14,
+    18,
+    0
+   ],
+   [
+    "TRAVE BORDON, JOEL",
+    "MAJORERAS-GUAYADEQUE A, C.F. LAS A",
+    17,
+    18,
+    0
+   ],
+   [
+    "GONZALEZ PULIDO, IMANOL",
+    "VELEZ, U.D. LOS",
+    18,
+    18,
+    0
+   ],
+   [
+    "OJEDA HERNANDEZ, NESTOR",
+    "GARITA C, C.F.S. LA C",
+    2,
+    17,
+    0
+   ],
+   [
+    "HERRERA GONZALEZ, RUBEN",
+    "HUESAS B, U.D. LAS B",
+    11,
+    17,
+    0
+   ],
+   [
+    "TISCHER, PEPE MARCO",
+    "MASPALOMAS B, C.D. B",
+    14,
+    17,
+    0
+   ],
+   [
+    "LOPEZ BETANCOR, ADAY",
+    "MAJORERAS-GUAYADEQUE A, C.F. LAS A",
+    18,
+    17,
+    0
+   ],
+   [
+    "CABALLERO SANTANA, ALVARO",
+    "HUESAS B, U.D. LAS B",
+    13,
+    15,
+    0
+   ],
+   [
+    "HERNANDEZ CRUZ, HUGO",
+    "VELEZ, U.D. LOS",
+    22,
+    15,
+    0
+   ],
+   [
+    "GUERRA GONZALEZ, ARIAN",
+    "ARINAGA, C.D.",
+    22,
+    15,
+    0
+   ],
+   [
+    "MUÑOZ TRUJILLO, JOSE DARIO",
+    "CASTILLO C.F.",
+    27,
+    15,
+    0
+   ],
+   [
+    "PEREZ MONGE, ALAN",
+    "FOOTBALL PROJECT A, C.D. A",
+    7,
+    14,
+    0
+   ],
+   [
+    "ARBELO PLACERES, AITOR",
+    "CARRIZAL B, C.F. UNION B",
+    8,
+    14,
+    0
+   ],
+   [
+    "RODRIGUEZ MARTIN, DANIEL",
+    "MAJORERAS-GUAYADEQUE A, C.F. LAS A",
+    14,
+    14,
+    0
+   ],
+   [
+    "PFULL NUÑEZ, ADAY",
+    "FOOTBALL PROJECT A, C.D. A",
+    14,
+    14,
+    0
+   ],
+   [
+    "RAMOS MARTEL, ADRIAN",
+    "GARITA C, C.F.S. LA C",
+    21,
+    14,
+    0
+   ],
+   [
+    "RODRIGUEZ ORTEGA, OLIVER",
+    "HUESAS B, U.D. LAS B",
+    22,
+    14,
+    0
+   ],
+   [
+    "SUAREZ GONZALEZ, YAREL",
+    "ARGUINEGUIN B, C.D. B",
+    3,
+    13,
+    0
+   ],
+   [
+    "CABRERA MEDINA, DAEL",
+    "VELEZ, U.D. LOS",
+    4,
+    13,
+    0
+   ],
+   [
+    "ESTUPIÑAN MENDEZ, DAMIAN SANTOS",
+    "CARRIZAL B, C.F. UNION B",
+    7,
+    13,
+    0
+   ],
+   [
+    "SUAREZ MEDINA, MATEO",
+    "GARITA C, C.F.S. LA C",
+    8,
+    13,
+    0
+   ],
+   [
+    "RODRIGUEZ DIAZ, ADRIAN",
+    "MASPALOMAS B, C.D. B",
+    8,
+    13,
+    0
+   ],
+   [
+    "RODRIGUEZ LARSSON, OLIVER CRISTOBAL",
+    "MASPALOMAS B, C.D. B",
+    8,
+    13,
+    0
+   ],
+   [
+    "RODRIGUEZ PERDOMO, GABRIEL",
+    "CARRIZAL B, C.F. UNION B",
+    10,
+    12,
+    0
+   ],
+   [
+    "SANTANA ALEMAN, AITOR MANUEL",
+    "MAJORERAS-GUAYADEQUE A, C.F. LAS A",
+    13,
+    12,
+    0
+   ],
+   [
+    "RAMIREZ BOLAÑOS, UNAI",
+    "MAJORERAS-GUAYADEQUE A, C.F. LAS A",
+    13,
+    12,
+    0
+   ],
+   [
+    "MONTESDEOCA JORGESSON, GABRIEL",
+    "MASPALOMAS B, C.D. B",
+    13,
+    12,
+    0
+   ],
+   [
+    "ZARIOH BENAISA, OUTMAN",
+    "CERRUDA B, C.D. B",
+    22,
+    12,
+    0
+   ],
+   [
+    "PEÑATE LEON, MARIA",
+    "GARITA C, C.F.S. LA C",
+    1,
+    11,
+    0
+   ],
+   [
+    "RAMOS RICHNAVSKY, DANTE",
+    "VELEZ, U.D. LOS",
+    15,
+    11,
+    0
+   ],
+   [
+    "OJEDA",
+    "FOOTBALL PROJECT A, C.D. A",
+    15,
+    11,
+    0
+   ],
+   [
+    "NAVARRO DE LA NUEZ, EROS",
+    "VELEZ, U.D. LOS",
+    21,
+    11,
+    0
+   ],
+   [
+    "AZOUAGHE AZZOU, ANAS",
+    "TABLERO A, C.D. A",
+    27,
+    11,
+    0
+   ],
+   [
+    "LEON GARCIA, GUSTAVO",
+    "MASPALOMAS B, C.D. B",
+    10,
+    10,
+    0
+   ],
+   [
+    "REINA ALVAREZ, NARCISO",
+    "VALSEQUILLO B, U.D. B",
+    15,
+    10,
+    0
+   ],
+   [
+    "RAMIREZ PEÑA, ISMAEL DE JESUS",
+    "CARRIZAL B, C.F. UNION B",
+    26,
+    10,
+    0
+   ],
+   [
+    "SANTANA NAVARRO, DIEGO",
+    "GARITA C, C.F.S. LA C",
+    28,
+    10,
+    0
+   ],
+   [
+    "DAVILA DIAZ, PABLO",
+    "GARITA C, C.F.S. LA C",
+    7,
+    9,
+    0
+   ],
+   [
+    "SEGURA PEREZ, EZEQUIEL",
+    "MAJORERAS-GUAYADEQUE A, C.F. LAS A",
+    19,
+    9,
+    0
+   ],
+   [
+    "HERNANDEZ GONZALEZ, GABRIEL JESUS",
+    "UNION MARINA, C.F.",
+    19,
+    9,
+    0
+   ],
+   [
+    "AIDAN NAUZET",
+    "POLIGONO DE ARINAGA, C.F.",
+    23,
+    9,
+    0
+   ],
+   [
+    "GUERRA VEGA, JUAN MANUEL",
+    "CARRIZAL B, C.F. UNION B",
+    24,
+    9,
+    0
+   ],
+   [
+    "SUAREZ CALDERIN, GIOVANNY",
+    "VALSEQUILLO B, U.D. B",
+    25,
+    9,
+    0
+   ],
+   [
+    "DOMINGUEZ SANTANA, ANTONIO",
+    "MAJORERAS-GUAYADEQUE A, C.F. LAS A",
+    11,
+    8,
+    0
+   ],
+   [
+    "RODRIGUEZ MORALES, AMARO",
+    "VELEZ, U.D. LOS",
+    16,
+    8,
+    0
+   ],
+   [
+    "RAMIREZ MEDINA, JOSE MIGUEL",
+    "CARRIZAL B, C.F. UNION B",
+    22,
+    8,
+    0
+   ],
+   [
+    "CORDOBA MENA, DYLAN ANDRES",
+    "ARGUINEGUIN B, C.D. B",
+    7,
+    7,
+    0
+   ],
+   [
+    "BORDON MAYOR, SAMUEL",
+    "ARINAGA, C.D.",
+    8,
+    7,
+    0
+   ],
+   [
+    "GONZALEZ BORDON, DAYRON JESUS",
+    "CERRUDA B, C.D. B",
+    10,
+    7,
+    0
+   ],
+   [
+    "OLMEDO HERNANZ, CARLOS AIRAM",
+    "TABLERO A, C.D. A",
+    16,
+    7,
+    0
+   ],
+   [
+    "VEGA BETANCOR, MANUEL",
+    "MASPALOMAS B, C.D. B",
+    19,
+    7,
+    0
+   ],
+   [
+    "SANTANA FIGUEROA, FABIO",
+    "MAJORERAS-GUAYADEQUE A, C.F. LAS A",
+    26,
+    7,
+    0
+   ],
+   [
+    "VEGA GIL, JOSE DANIEL",
+    "FOOTBALL PROJECT A, C.D. A",
+    2,
+    6,
+    0
+   ],
+   [
+    "SANCHEZ LOPEZ, CARLOS",
+    "GARITA C, C.F.S. LA C",
+    7,
+    6,
+    0
+   ],
+   [
+    "EGGELING HIDALGO, REX",
+    "MASPALOMAS B, C.D. B",
+    16,
+    6,
+    0
+   ],
+   [
+    "GONZALEZ SANTANA, GABRIEL",
+    "ARGUINEGUIN B, C.D. B",
+    20,
+    6,
+    0
+   ],
+   [
+    "CARRILLO MENDEZ, MIGUEL",
+    "POLIGONO DE ARINAGA, C.F.",
+    22,
+    6,
+    0
+   ],
+   [
+    "PEREZ NAVARRO, ALONSO",
+    "FOOTBALL PROJECT A, C.D. A",
+    24,
+    6,
+    0
+   ],
+   [
+    "BRITO SANCHEZ, DAVID",
+    "CARRIZAL B, C.F. UNION B",
+    24,
+    6,
+    0
+   ],
+   [
+    "COLLADO CASTELLANO, ALEJANDRO",
+    "VALSEQUILLO B, U.D. B",
+    24,
+    6,
+    0
+   ],
+   [
+    "HERNANDEZ MIRANDA, CALEB",
+    "VALSEQUILLO B, U.D. B",
+    1,
+    5,
+    0
+   ],
+   [
+    "AFONSO MARTIN, EDGAR YAUSI",
+    "VELEZ, U.D. LOS",
+    2,
+    5,
+    0
+   ],
+   [
+    "SUAREZ SANTOS, MIGUEL YASSIEL",
+    "GARITA C, C.F.S. LA C",
+    4,
+    5,
+    0
+   ],
+   [
+    "JIMENEZ SOSA, HUGO",
+    "HUESAS B, U.D. LAS B",
+    6,
+    5,
+    0
+   ],
+   [
+    "SANTIAGO GONZALEZ, ALEJANDRO",
+    "MASPALOMAS B, C.D. B",
+    10,
+    5,
+    0
+   ],
+   [
+    "SOSA AFONSO, MIGUEL",
+    "HUESAS B, U.D. LAS B",
+    13,
+    5,
+    0
+   ],
+   [
+    "ARTILES GARCIA, ELOY JOSE",
+    "ARINAGA, C.D.",
+    14,
+    5,
+    0
+   ],
+   [
+    "HERNANDEZ PEREZ, HUGO",
+    "VELEZ, U.D. LOS",
+    16,
+    5,
+    0
+   ],
+   [
+    "ILIE ULMEANU, RAUL",
+    "ARINAGA, C.D.",
+    20,
+    5,
+    0
+   ],
+   [
+    "ZAMANI, NADIR",
+    "CERRUDA B, C.D. B",
+    21,
+    5,
+    0
+   ],
+   [
+    "SANTANA MACIAS, YARDLEY",
+    "CASTILLO C.F.",
+    22,
+    5,
+    0
+   ],
+   [
+    "SOTO ARTILES, DARIO",
+    "ARINAGA, C.D.",
+    23,
+    5,
+    0
+   ],
+   [
+    "EL OTHEMANY ABRANTE, KARIM",
+    "ARGUINEGUIN B, C.D. B",
+    24,
+    5,
+    0
+   ],
+   [
+    "RAMOS SANTANA, PIERO",
+    "VALSEQUILLO B, U.D. B",
+    3,
+    4,
+    0
+   ],
+   [
+    "GONZALEZ GUTIERREZ, PABLO",
+    "UNION MARINA, C.F.",
+    3,
+    4,
+    0
+   ],
+   [
+    "SUAREZ CABALLERO, ABIAN",
+    "CARRIZAL B, C.F. UNION B",
+    5,
+    4,
+    0
+   ],
+   [
+    "BERNAL HALVORSEN, BJORN ABEL",
+    "MASPALOMAS B, C.D. B",
+    5,
+    4,
+    0
+   ],
+   [
+    "SANTANA MARTIN, LYONEL JESUS",
+    "HUESAS B, U.D. LAS B",
+    12,
+    4,
+    0
+   ],
+   [
+    "MARRERO SOSA, DANIEL",
+    "MAJORERAS-GUAYADEQUE A, C.F. LAS A",
+    16,
+    4,
+    0
+   ],
+   [
+    "CASTRO KLEMENS, RAUL",
+    "FOOTBALL PROJECT A, C.D. A",
+    16,
+    4,
+    0
+   ],
+   [
+    "RODRIGUEZ REYES, HUGO",
+    "ARGUINEGUIN B, C.D. B",
+    16,
+    4,
+    0
+   ],
+   [
+    "DE LEON DIAZ, AITAMI",
+    "CERRUDA B, C.D. B",
+    22,
+    4,
+    0
+   ],
+   [
+    "OLIVA VIERA, NEYMAR ARIDANE",
+    "POLIGONO DE ARINAGA, C.F.",
+    22,
+    4,
+    0
+   ],
+   [
+    "AMKRAZ MHAOUI, MOHAMED",
+    "POLIGONO DE ARINAGA, C.F.",
+    23,
+    4,
+    0
+   ],
+   [
+    "LOPEZ STAUB, RAUL",
+    "UNION MARINA, C.F.",
+    24,
+    4,
+    0
+   ],
+   [
+    "SANCHEZ SUAREZ, AITOR",
+    "CARRIZAL B, C.F. UNION B",
+    26,
+    4,
+    0
+   ],
+   [
+    "MELIAN DOMINGUEZ, KYLIAN",
+    "GARITA C, C.F.S. LA C",
+    27,
+    4,
+    0
+   ],
+   [
+    "VENTURA BATISTA, EDGAR",
+    "CERRUDA B, C.D. B",
+    2,
+    3,
+    0
+   ],
+   [
+    "OLIVET GONZALEZ, ALEX",
+    "ARINAGA, C.D.",
+    6,
+    3,
+    0
+   ],
+   [
+    "CARDENES PERDOMO, YAHVE",
+    "HUESAS B, U.D. LAS B",
+    7,
+    3,
+    0
+   ],
+   [
+    "MOUJAHAD PEREZ, JUAN NABIL",
+    "POLIGONO DE ARINAGA, C.F.",
+    11,
+    3,
+    0
+   ],
+   [
+    "STEENHOUDT TORRES, KAI",
+    "ARINAGA, C.D.",
+    11,
+    3,
+    0
+   ],
+   [
+    "HERNANDEZ BETANCOR, SERGIO",
+    "MAJORERAS-GUAYADEQUE A, C.F. LAS A",
+    12,
+    3,
+    0
+   ],
+   [
+    "RAVELO MENOSSE, NOLAN",
+    "CERRUDA B, C.D. B",
+    12,
+    3,
+    0
+   ],
+   [
+    "QUESADA MEGGLE, NOAH",
+    "HUESAS B, U.D. LAS B",
+    12,
+    3,
+    0
+   ],
+   [
+    "VERONA SANTANA, BRIAN ARIDANE",
+    "VALSEQUILLO B, U.D. B",
+    13,
+    3,
+    0
+   ],
+   [
+    "SERBASSI GALARZA, GIANLUCA",
+    "ARINAGA, C.D.",
+    13,
+    3,
+    0
+   ],
+   [
+    "MATOS MARRERO, RUBEN",
+    "FOOTBALL PROJECT A, C.D. A",
+    15,
+    3,
+    0
+   ],
+   [
+    "QUEVEDO RODRIGUEZ, JOSE",
+    "VALSEQUILLO B, U.D. B",
+    17,
+    3,
+    0
+   ],
+   [
+    "STOSIC, MATIA",
+    "FOOTBALL PROJECT A, C.D. A",
+    18,
+    3,
+    0
+   ],
+   [
+    "CABRERA LOPEZ, IVAN",
+    "VALSEQUILLO B, U.D. B",
+    18,
+    3,
+    0
+   ],
+   [
+    "VARGAS RINCON, IAN",
+    "CASTILLO C.F.",
+    22,
+    3,
+    0
+   ],
+   [
+    "DEL PINO ROBAINA, JOSE ADAEL",
+    "HUESAS B, U.D. LAS B",
+    23,
+    3,
+    0
+   ],
+   [
+    "GONZALEZ SANCHEZ, JOEL",
+    "UNION MARINA, C.F.",
+    25,
+    3,
+    0
+   ],
+   [
+    "SCHAUB SUAREZ, ANDREAS",
+    "ARGUINEGUIN B, C.D. B",
+    26,
+    3,
+    0
+   ],
+   [
+    "RAMOS DIAZ, MARKOS",
+    "UNION MARINA, C.F.",
+    27,
+    3,
+    0
+   ],
+   [
+    "SUAREZ ESPINA, DANIEL",
+    "VELEZ, U.D. LOS",
+    28,
+    3,
+    0
+   ],
+   [
+    "ATTA CORDERO, ALVARO",
+    "VALSEQUILLO B, U.D. B",
+    4,
+    2,
+    0
+   ],
+   [
+    "MACIAS SUAREZ, MICHAEL",
+    "CARRIZAL B, C.F. UNION B",
+    5,
+    2,
+    0
+   ],
+   [
+    "MARTIN VERA, LUCA",
+    "CERRUDA B, C.D. B",
+    5,
+    2,
+    0
+   ],
+   [
+    "DIAZ SANCHEZ, DANIEL",
+    "ARINAGA, C.D.",
+    6,
+    2,
+    0
+   ],
+   [
+    "BORDON GONZALEZ, HIMAR",
+    "CARRIZAL B, C.F. UNION B",
+    9,
+    2,
+    0
+   ],
+   [
+    "GUEDES GARCIA, ASIER RAFAEL",
+    "CASTILLO C.F.",
+    9,
+    2,
+    0
+   ],
+   [
+    "PEREZ NAVARRO, LUIS ALBERTO",
+    "HUESAS B, U.D. LAS B",
+    11,
+    2,
+    0
+   ],
+   [
+    "FLORES MARTIN, GAEL",
+    "TABLERO A, C.D. A",
+    11,
+    2,
+    0
+   ],
+   [
+    "GUEDES YANEZ, AITOR FRANCO",
+    "ARGUINEGUIN B, C.D. B",
+    14,
+    2,
+    0
+   ],
+   [
+    "ALONSO SANCHEZ, ARAY",
+    "FOOTBALL PROJECT A, C.D. A",
+    14,
+    2,
+    0
+   ],
+   [
+    "HERNANDEZ FERNANDEZ, JEYSON",
+    "POLIGONO DE ARINAGA, C.F.",
+    18,
+    2,
+    0
+   ],
+   [
+    "RAMOS RODRIGUEZ, JUAN NEYMAR",
+    "CERRUDA B, C.D. B",
+    21,
+    2,
+    0
+   ],
+   [
+    "GUEDES TRUJILLO, UNAI",
+    "CASTILLO C.F.",
+    21,
+    2,
+    0
+   ],
+   [
+    "PADRON OJEDA, ANGEL LEON",
+    "TABLERO A, C.D. A",
+    23,
+    2,
+    0
+   ],
+   [
+    "SOSA OLIVA, MAIKEL",
+    "GARITA C, C.F.S. LA C",
+    23,
+    2,
+    0
+   ],
+   [
+    "GARCIA NARANJO, ZENEBE",
+    "VALSEQUILLO B, U.D. B",
+    25,
+    2,
+    0
+   ],
+   [
+    "CAMPOS CRUZ, DAVID JEREMAY",
+    "GARITA C, C.F.S. LA C",
+    25,
+    2,
+    0
+   ],
+   [
+    "FAKHOURI VEGA, ARAGORN AISSEC",
+    "ARINAGA, C.D.",
+    27,
+    2,
+    0
+   ],
+   [
+    "LEÓN MARTÍNEZ, MARCOS",
+    "UNION MARINA, C.F.",
+    1,
+    1,
+    0
+   ],
+   [
+    "ALEMAN BENITEZ, JOEL",
+    "CARRIZAL B, C.F. UNION B",
+    1,
+    1,
+    0
+   ],
+   [
+    "RODRIGUEZ ALMIRON, ALEJANDRO",
+    "CERRUDA B, C.D. B",
+    1,
+    1,
+    0
+   ],
+   [
+    "EL AZMANI EL AAKAOUI, MOHAMED AMIN",
+    "ARGUINEGUIN B, C.D. B",
+    2,
+    1,
+    0
+   ],
+   [
+    "MARASEA, SAMUELE",
+    "CERRUDA B, C.D. B",
+    3,
+    1,
+    0
+   ],
+   [
+    "VELAZQUEZ DIAZ, ELIAS",
+    "VALSEQUILLO B, U.D. B",
+    3,
+    1,
+    0
+   ],
+   [
+    "MARRERO RODRIGUEZ, CARLOS MANUEL",
+    "CASTILLO C.F.",
+    3,
+    1,
+    0
+   ],
+   [
+    "HIDALGO HEREDIA, RAMSES",
+    "CARRIZAL B, C.F. UNION B",
+    5,
+    1,
+    0
+   ],
+   [
+    "SIBON HERNANDEZ, ANDRES",
+    "ARINAGA, C.D.",
+    7,
+    1,
+    0
+   ],
+   [
+    "SUAREZ CHAPKANOV, ELIOS DAVID",
+    "FOOTBALL PROJECT A, C.D. A",
+    9,
+    1,
+    0
+   ],
+   [
+    "COELLO REYES, DAVID CASSIEL",
+    "CERRUDA B, C.D. B",
+    9,
+    1,
+    0
+   ],
+   [
+    "FERNANDEZ RODRIGUEZ, HUGO",
+    "HUESAS B, U.D. LAS B",
+    10,
+    1,
+    0
+   ],
+   [
+    "ESTEVANEZ HERNANDEZ, MANUEL AIMAR",
+    "POLIGONO DE ARINAGA, C.F.",
+    10,
+    1,
+    0
+   ],
+   [
+    "DEL ROSARIO RODRIGUEZ, YOSKAR",
+    "MASPALOMAS B, C.D. B",
+    13,
+    1,
+    0
+   ],
+   [
+    "MILAN MARTIN, ALEJANDRO",
+    "ARGUINEGUIN B, C.D. B",
+    13,
+    1,
+    0
+   ],
+   [
+    "ACUNZO, ANNAMARIA",
+    "TABLERO A, C.D. A",
+    13,
+    1,
+    0
+   ],
+   [
+    "MOHAMED EL MAJIDI, MAICHAN",
+    "HUESAS B, U.D. LAS B",
+    16,
+    1,
+    0
+   ],
+   [
+    "DIAZ MENDOZA, BYRON JESUS",
+    "POLIGONO DE ARINAGA, C.F.",
+    16,
+    1,
+    0
+   ],
+   [
+    "SANTANA HUERTAS, MATEO MAKBEL",
+    "CARRIZAL B, C.F. UNION B",
+    17,
+    1,
+    0
+   ],
+   [
+    "FALCON RODRIGUEZ, ROBERTO",
+    "CARRIZAL B, C.F. UNION B",
+    18,
+    1,
+    0
+   ],
+   [
+    "MUÑOZ MELIAN, MATIAS",
+    "TABLERO A, C.D. A",
+    18,
+    1,
+    0
+   ],
+   [
+    "SANTANA GUERRA, ANA SARA",
+    "CASTILLO C.F.",
+    20,
+    1,
+    0
+   ],
+   [
+    "PEÑATE DIAZ, AARON",
+    "VALSEQUILLO B, U.D. B",
+    22,
+    1,
+    0
+   ],
+   [
+    "CORREIA CABRERA, DAREN DANIEL",
+    "CASTILLO C.F.",
+    24,
+    1,
+    0
+   ],
+   [
+    "MONTECINOS BUSTO, AITOR",
+    "TABLERO A, C.D. A",
+    25,
+    1,
+    0
+   ],
+   [
+    "NAVARRO CAZORLA, OLIVER",
+    "ARGUINEGUIN B, C.D. B",
+    25,
+    1,
+    0
+   ],
+   [
+    "LEON RAMIREZ, DAREK",
+    "ARGUINEGUIN B, C.D. B",
+    0,
+    1,
+    0
+   ],
+   [
+    "QUINTANA SANTANA, KILIAN",
+    "TABLERO A, C.D. A",
+    0,
+    1,
+    0
+   ]
+  ],
+  "standings": [
+   {
+    "df": 283,
+    "e": 1,
+    "form": "GGGGG",
+    "g": 27,
+    "gc": 19,
+    "gf": 302,
+    "j": 28,
+    "p": 0,
+    "pos": 1,
+    "pts": 82,
+    "team": "VELEZ, U.D. LOS"
+   },
+   {
+    "df": 223,
+    "e": 1,
+    "form": "GGGGG",
+    "g": 26,
+    "gc": 29,
+    "gf": 252,
+    "j": 28,
+    "p": 1,
+    "pos": 2,
+    "pts": 79,
+    "team": "FOOTBALL PROJECT A, C.D. \"A\""
+   },
+   {
+    "df": 163,
+    "e": 1,
+    "form": "PGGGP",
+    "g": 23,
+    "gc": 54,
+    "gf": 217,
+    "j": 28,
+    "p": 4,
+    "pos": 3,
+    "pts": 70,
+    "team": "MAJORERAS-GUAYADEQUE A, C.F. LAS \"A\""
+   },
+   {
+    "df": 29,
+    "e": 3,
+    "form": "GGPGG",
+    "g": 19,
+    "gc": 73,
+    "gf": 102,
+    "j": 28,
+    "p": 6,
+    "pos": 4,
+    "pts": 60,
+    "team": "CARRIZAL B, C.F. UNION \"B\""
+   },
+   {
+    "df": 58,
+    "e": 0,
+    "form": "GGPGP",
+    "g": 18,
+    "gc": 82,
+    "gf": 140,
+    "j": 28,
+    "p": 10,
+    "pos": 5,
+    "pts": 54,
+    "team": "MASPALOMAS B, C.D. \"B\""
+   },
+   {
+    "df": 4,
+    "e": 3,
+    "form": "PGPPG",
+    "g": 15,
+    "gc": 92,
+    "gf": 96,
+    "j": 28,
+    "p": 10,
+    "pos": 6,
+    "pts": 48,
+    "team": "GARITA C, C.F.S. LA \"C\""
+   },
+   {
+    "df": -5,
+    "e": 1,
+    "form": "PGPPG",
+    "g": 15,
+    "gc": 116,
+    "gf": 111,
+    "j": 28,
+    "p": 12,
+    "pos": 7,
+    "pts": 46,
+    "team": "ARINAGA, C.D."
+   },
+   {
+    "df": -76,
+    "e": 1,
+    "form": "PGPGP",
+    "g": 11,
+    "gc": 158,
+    "gf": 82,
+    "j": 28,
+    "p": 16,
+    "pos": 8,
+    "pts": 34,
+    "team": "TABLERO A, C.D. \"A\""
+   },
+   {
+    "df": -42,
+    "e": 4,
+    "form": "EPGPE",
+    "g": 8,
+    "gc": 117,
+    "gf": 75,
+    "j": 28,
+    "p": 16,
+    "pos": 9,
+    "pts": 28,
+    "team": "HUESAS B, U.D. LAS \"B\""
+   },
+   {
+    "df": -76,
+    "e": 3,
+    "form": "PEPGE",
+    "g": 8,
+    "gc": 156,
+    "gf": 80,
+    "j": 28,
+    "p": 17,
+    "pos": 10,
+    "pts": 27,
+    "team": "UNION MARINA, C.F."
+   },
+   {
+    "df": -108,
+    "e": 3,
+    "form": "PPEGG",
+    "g": 7,
+    "gc": 171,
+    "gf": 63,
+    "j": 28,
+    "p": 18,
+    "pos": 11,
+    "pts": 24,
+    "team": "CERRUDA B, C.D. \"B\""
+   },
+   {
+    "df": -88,
+    "e": 2,
+    "form": "PPGPE",
+    "g": 6,
+    "gc": 141,
+    "gf": 53,
+    "j": 28,
+    "p": 20,
+    "pos": 12,
+    "pts": 20,
+    "team": "VALSEQUILLO B, U.D. \"B\""
+   },
+   {
+    "df": -112,
+    "e": 4,
+    "form": "EPGPP",
+    "g": 5,
+    "gc": 164,
+    "gf": 52,
+    "j": 28,
+    "p": 19,
+    "pos": 13,
+    "pts": 19,
+    "team": "POLIGONO DE ARINAGA, C.F."
+   },
+   {
+    "df": -109,
+    "e": 3,
+    "form": "GPPPP",
+    "g": 4,
+    "gc": 174,
+    "gf": 65,
+    "j": 28,
+    "p": 21,
+    "pos": 14,
+    "pts": 15,
+    "team": "ARGUINEGUIN B, C.D. \"B\""
+   },
+   {
+    "df": -144,
+    "e": 2,
+    "form": "PPPPE",
+    "g": 2,
+    "gc": 181,
+    "gf": 37,
+    "j": 28,
+    "p": 24,
+    "pos": 15,
+    "pts": 8,
+    "team": "CASTILLO C.F."
+   }
+  ]
+ },
+ "887:124425": {
+  "comp": "887",
+  "comp_name": "LIGA PRIMERA ALEVIN F-8 GRAN CANARIA",
+  "fetched": "2026-11-28",
+  "grupo": "124425",
+  "grupo_name": "GRUPO 1",
+  "ok": true,
+  "scorers": [
+   [
+    "TACORONTE MEDINA, NUHAZET",
+    "BECERRIL, C.D.",
+    18,
+    33,
+    0
+   ],
+   [
+    "IDLAHOUSSAINE RODRIGUEZ, LAHSSN",
+    "SAN ISIDRO ALUMINIOS DANIEL, C.D.",
+    23,
+    31,
+    0
+   ],
+   [
+    "JIMENEZ RODRIGUEZ, YAREL ORENAI",
+    "BARRIAL, U.D.",
+    24,
+    29,
+    0
+   ],
+   [
+    "DEL ROSARIO ORTEGA, YOARID",
+    "CARDONES A, C.D. A",
+    15,
+    26,
+    0
+   ],
+   [
+    "RODRIGUEZ TALAVERA, JAVIER",
+    "FIRGAS, C.D.",
+    15,
+    26,
+    0
+   ],
+   [
+    "GIL MONTESDEOCA, FERNANDO",
+    "VALLESECO, U.D.",
+    19,
+    26,
+    0
+   ],
+   [
+    "MARTÍN MACÍAS, ALEJANDRO",
+    "CARDONES A, C.D. A",
+    22,
+    26,
+    0
+   ],
+   [
+    "RODRIGUEZ MEDEROS, JAVIER",
+    "SARDINA C.F.",
+    26,
+    23,
+    0
+   ],
+   [
+    "PEREZ HENRIQUEZ, GARAI",
+    "GOLETA A, C.D. A",
+    3,
+    22,
+    0
+   ],
+   [
+    "DOMINGUEZ ORTEGA, FRANCISCO MOISES",
+    "MOYA, U.D.",
+    16,
+    22,
+    0
+   ],
+   [
+    "BOLAÑOS ORTEGA, IRINEY",
+    "UNION MORAL DE GALDAR, C.D.",
+    24,
+    22,
+    0
+   ],
+   [
+    "MACIAS PARRILLA, AIRAM",
+    "UNION MORAL DE GALDAR, C.D.",
+    26,
+    22,
+    0
+   ],
+   [
+    "CERPA RODRÍGUEZ, ALVARO",
+    "MOYA, U.D.",
+    11,
+    21,
+    0
+   ],
+   [
+    "CANDELARIA RODRIGUEZ, GORKA",
+    "UNION MORAL DE GALDAR, C.D.",
+    21,
+    21,
+    0
+   ],
+   [
+    "RODRÍGUEZ CASTELLANO, YEIKO MANUEL",
+    "BECERRIL, C.D.",
+    13,
+    20,
+    0
+   ],
+   [
+    "ALMEIDA MARTIN, JOSE ALBERTO",
+    "GUIA, U.D.",
+    19,
+    20,
+    0
+   ],
+   [
+    "MEDINA GONZALEZ, PABLO",
+    "SAN NICOLAS, U.D.",
+    25,
+    20,
+    0
+   ],
+   [
+    "SUAREZ GARCIA, JOSE",
+    "GUIA, U.D.",
+    18,
+    19,
+    0
+   ],
+   [
+    "PEREZ MARRERO, SAMUEL",
+    "SARDINA C.F.",
+    26,
+    19,
+    0
+   ],
+   [
+    "GONZALEZ GRADOS, ALEJANDRO",
+    "GOLETA A, C.D. A",
+    7,
+    18,
+    0
+   ],
+   [
+    "RODRIGUEZ MEDINA, GIOVANNI",
+    "GOLETA A, C.D. A",
+    20,
+    18,
+    0
+   ],
+   [
+    "MEDINA CABRERA, DARIEL",
+    "SAN NICOLAS, U.D.",
+    8,
+    17,
+    0
+   ],
+   [
+    "CASTELLANO SUAREZ, LEANDRO",
+    "BECERRIL, C.D.",
+    17,
+    17,
+    0
+   ],
+   [
+    "GUILLEN SANTANA, JAIR TENEICE",
+    "SAN NICOLAS, U.D.",
+    8,
+    16,
+    0
+   ],
+   [
+    "MARTÍN PÉREZ, YUNAY",
+    "BECERRIL, C.D.",
+    14,
+    16,
+    0
+   ],
+   [
+    "GARCIA MENDOZA, YESEY",
+    "BARRIAL, U.D.",
+    16,
+    16,
+    0
+   ],
+   [
+    "RUFO ESTEVEZ, ALEJANDRO",
+    "TEROR BALOMPIE, U.D.",
+    18,
+    16,
+    0
+   ],
+   [
+    "CRUZ MATEOS, LIONEL",
+    "FIRGAS, C.D.",
+    19,
+    16,
+    0
+   ],
+   [
+    "CARDENES GUERRA, ISMAEL",
+    "MOYA, U.D.",
+    22,
+    16,
+    0
+   ],
+   [
+    "PEREZ PEREZ, GERARD",
+    "TEROR BALOMPIE, U.D.",
+    23,
+    16,
+    0
+   ],
+   [
+    "GUERRA RODRIGUEZ, ACOIDAN",
+    "FIRGAS, C.D.",
+    25,
+    16,
+    0
+   ],
+   [
+    "GONZALEZ GODOY, JOSE YAREY",
+    "SAN NICOLAS, U.D.",
+    21,
+    15,
+    0
+   ],
+   [
+    "MENDEZ JUGUERA, SAMUEL",
+    "CARDONES A, C.D. A",
+    9,
+    14,
+    0
+   ],
+   [
+    "GUERRA LORENZO, GAROE DE JESUS",
+    "CARDONES A, C.D. A",
+    13,
+    14,
+    0
+   ],
+   [
+    "SANTANA RAMOS, CARLOS",
+    "TEROR BALOMPIE, U.D.",
+    21,
+    14,
+    0
+   ],
+   [
+    "RAMIREZ MATIAS, HUGO",
+    "SAN NICOLAS, U.D.",
+    21,
+    13,
+    0
+   ],
+   [
+    "ADRIAN ALAMO",
+    "SAN ISIDRO ALUMINIOS DANIEL, C.D.",
+    25,
+    13,
+    0
+   ],
+   [
+    "MARTEL JIMENEZ, JAVIER",
+    "BECERRIL, C.D.",
+    14,
+    12,
+    0
+   ],
+   [
+    "RODRIGUEZ DIAZ, ELIAN",
+    "SAN NICOLAS, U.D.",
+    16,
+    12,
+    0
+   ],
+   [
+    "ROQUE TACORONTE, UNAI",
+    "SARDINA C.F.",
+    14,
+    10,
+    0
+   ],
+   [
+    "HERRERA OJEDA, ALEJANDRO NUHAZER",
+    "MOYA, U.D.",
+    16,
+    10,
+    0
+   ],
+   [
+    "SUAREZ TORRES, NOAH",
+    "CARDONES A, C.D. A",
+    20,
+    10,
+    0
+   ],
+   [
+    "ALVAREZ ROMO, EMILIO",
+    "GOLETA A, C.D. A",
+    22,
+    10,
+    0
+   ],
+   [
+    "ALEMAN REYES, RAYCO",
+    "UNION MORAL DE GALDAR, C.D.",
+    14,
+    9,
+    0
+   ],
+   [
+    "YANEZ ZERPA, DAVID",
+    "TEROR BALOMPIE, U.D.",
+    16,
+    9,
+    0
+   ],
+   [
+    "PEREIRA MARTEL, DANIEL ANDRES",
+    "SAN ISIDRO ALUMINIOS DANIEL, C.D.",
+    16,
+    9,
+    0
+   ],
+   [
+    "HERRERA DOMINGUEZ, AARON",
+    "VALLESECO, U.D.",
+    18,
+    9,
+    0
+   ],
+   [
+    "DE LA NUEZ ARRAIZ, ACOIDAN",
+    "GOLETA A, C.D. A",
+    25,
+    9,
+    0
+   ],
+   [
+    "MEDINA PEREZ, PABLO",
+    "SARDINA C.F.",
+    26,
+    9,
+    0
+   ],
+   [
+    "RAMOS HERRERA, NAHUEL",
+    "SAN NICOLAS, U.D.",
+    6,
+    8,
+    0
+   ],
+   [
+    "DENIZ BETANCOR, ALBERTO AITOR",
+    "CARDONES A, C.D. A",
+    13,
+    8,
+    0
+   ],
+   [
+    "VEGA TACORONTE, ARITZ",
+    "UNION MORAL DE GALDAR, C.D.",
+    19,
+    8,
+    0
+   ],
+   [
+    "REYES SANTANA, NESTOR",
+    "TEROR BALOMPIE, U.D.",
+    19,
+    8,
+    0
+   ],
+   [
+    "GARCÍA MEDINA, JUAN JEROVER",
+    "SARDINA C.F.",
+    21,
+    8,
+    0
+   ],
+   [
+    "MONTESDEOCA PEREZ, LUIS",
+    "SAN ISIDRO ALUMINIOS DANIEL, C.D.",
+    21,
+    8,
+    0
+   ],
+   [
+    "EXPOSITO VIERA, DANIEL",
+    "GUAYARMINA, C.D.",
+    23,
+    8,
+    0
+   ],
+   [
+    "GONZALEZ DOMINGUEZ, ADRIAN",
+    "VALLESECO, U.D.",
+    14,
+    7,
+    0
+   ],
+   [
+    "MARRERO RAMOS, DARIO",
+    "FIRGAS, C.D.",
+    17,
+    7,
+    0
+   ],
+   [
+    "FALERO GARCIA, DANIEL",
+    "GUAYARMINA, C.D.",
+    18,
+    7,
+    0
+   ],
+   [
+    "RODRIGUEZ JORGE, ADRIAN",
+    "SAN ISIDRO ALUMINIOS DANIEL, C.D.",
+    23,
+    7,
+    0
+   ],
+   [
+    "LEON MARTIN, GUAYRE",
+    "GOLETA A, C.D. A",
+    23,
+    7,
+    0
+   ],
+   [
+    "TALAVERA ROQUE, IVAN JOSE",
+    "GUIA, U.D.",
+    23,
+    7,
+    0
+   ],
+   [
+    "FAUBRICIO QUEVEDO, NEISAN",
+    "GOLETA A, C.D. A",
+    1,
+    6,
+    0
+   ],
+   [
+    "MONTESDEOCA PEREZ, ALVARO",
+    "SAN ISIDRO ALUMINIOS DANIEL, C.D.",
+    2,
+    6,
+    0
+   ],
+   [
+    "MEDINA GUTIERREZ, DYLAN DANIEL",
+    "BARRIAL, U.D.",
+    15,
+    6,
+    0
+   ],
+   [
+    "GARCIA PEÑA, GABRIEL",
+    "UNION MORAL DE GALDAR, C.D.",
+    17,
+    6,
+    0
+   ],
+   [
+    "QUESADA SOSA, YADIEL",
+    "BECERRIL, C.D.",
+    19,
+    6,
+    0
+   ],
+   [
+    "SANTANA GODOY, AIDAM ANTONIO",
+    "GUIA, U.D.",
+    20,
+    6,
+    0
+   ],
+   [
+    "DIAZ DIAZ, JAVIER",
+    "BARRIAL, U.D.",
+    21,
+    6,
+    0
+   ],
+   [
+    "ALONSO SANTANA, EDUARDO",
+    "GOLETA A, C.D. A",
+    26,
+    6,
+    0
+   ],
+   [
+    "GONZALEZ SOSA, ABRAHAM",
+    "TEROR BALOMPIE, U.D.",
+    4,
+    5,
+    0
+   ],
+   [
+    "DEUSTO QUINTANA, ITZAL",
+    "SARDINA C.F.",
+    9,
+    5,
+    0
+   ],
+   [
+    "OJEDA PÉREZ, UBAY FRANCISCO",
+    "CARDONES A, C.D. A",
+    12,
+    5,
+    0
+   ],
+   [
+    "MELIAN CASTILLO, JOSE AITOR",
+    "SAN ISIDRO ALUMINIOS DANIEL, C.D.",
+    13,
+    5,
+    0
+   ],
+   [
+    "CABRERA CASTELLANO, UNAY",
+    "CARDONES A, C.D. A",
+    13,
+    5,
+    0
+   ],
+   [
+    "ROQUE TACORONTE, IZAN",
+    "SARDINA C.F.",
+    14,
+    5,
+    0
+   ],
+   [
+    "FALCÓN SANTANA, DARIO",
+    "MOYA, U.D.",
+    16,
+    5,
+    0
+   ],
+   [
+    "QUEVEDO TEIXEIRA, DORAMAS",
+    "CARDONES A, C.D. A",
+    20,
+    5,
+    0
+   ],
+   [
+    "DOMINGUEZ RUIZ, CARLOS",
+    "FIRGAS, C.D.",
+    22,
+    5,
+    0
+   ],
+   [
+    "PEREZ MONTESDEOCA, AITOR",
+    "SARDINA C.F.",
+    24,
+    5,
+    0
+   ],
+   [
+    "RODRIGUEZ MEDINA, JANEY",
+    "BARRIAL, U.D.",
+    26,
+    5,
+    0
+   ],
+   [
+    "DEL ROSARIO AGHBALOU, NAWFAL",
+    "SAN ISIDRO ALUMINIOS DANIEL, C.D.",
+    1,
+    4,
+    0
+   ],
+   [
+    "RAMOS DOMINGUEZ, MATIAS",
+    "BARRIAL, U.D.",
+    4,
+    4,
+    0
+   ],
+   [
+    "HERNANDEZ SANTANA, ADAY",
+    "MOYA, U.D.",
+    4,
+    4,
+    0
+   ],
+   [
+    "LEON RAMIREZ, AIRAM",
+    "SAN NICOLAS, U.D.",
+    7,
+    4,
+    0
+   ],
+   [
+    "MARTIN MELIAN, ERIC MANUEL",
+    "GUAYARMINA, C.D.",
+    7,
+    4,
+    0
+   ],
+   [
+    "RAMOS SUAREZ, BRYAN",
+    "SAN NICOLAS, U.D.",
+    8,
+    4,
+    0
+   ],
+   [
+    "SUAREZ GARCIA, AMY",
+    "BECERRIL, C.D.",
+    8,
+    4,
+    0
+   ],
+   [
+    "GARCIA GARCIA, EZIO PEDRO",
+    "GUIA, U.D.",
+    11,
+    4,
+    0
+   ],
+   [
+    "EXPOSITO VIERA, ALEJANDRO",
+    "GUAYARMINA, C.D.",
+    14,
+    4,
+    0
+   ],
+   [
+    "CASTELLANO IZQUIERDO, THIAGO",
+    "VALLESECO, U.D.",
+    14,
+    4,
+    0
+   ],
+   [
+    "PADRÓN ALMEIDA, URIEL",
+    "GUAYARMINA, C.D.",
+    20,
+    4,
+    0
+   ],
+   [
+    "DÍAZ MARTÍN, ALEJANDRO",
+    "MOYA, U.D.",
+    21,
+    4,
+    0
+   ],
+   [
+    "HENRIQUEZ MARRERO, DIEGO",
+    "VALLESECO, U.D.",
+    22,
+    4,
+    0
+   ],
+   [
+    "GARCIA GARCIA, ARAY",
+    "FIRGAS, C.D.",
+    27,
+    4,
+    0
+   ],
+   [
+    "MESÍA GREGORIO, FEDERICO LUIS",
+    "SAN ISIDRO ALUMINIOS DANIEL, C.D.",
+    3,
+    3,
+    0
+   ],
+   [
+    "MORENO GARCIA, DIEGO",
+    "UNION MORAL DE GALDAR, C.D.",
+    4,
+    3,
+    0
+   ],
+   [
+    "MELIAN GODOY, MAHY JOSE",
+    "GUAYARMINA, C.D.",
+    4,
+    3,
+    0
+   ],
+   [
+    "GUTIERREZ QUESADA, ONOFRE YARED",
+    "BARRIAL, U.D.",
+    7,
+    3,
+    0
+   ],
+   [
+    "PEREZ SANTIAGO, HUGO",
+    "SAN ISIDRO ALUMINIOS DANIEL, C.D.",
+    7,
+    3,
+    0
+   ],
+   [
+    "ALONSO ONTIVEROS, IAN",
+    "FIRGAS, C.D.",
+    13,
+    3,
+    0
+   ],
+   [
+    "RODRIGUEZ HERNANDEZ, ALVARO",
+    "BECERRIL, C.D.",
+    14,
+    3,
+    0
+   ],
+   [
+    "PEREZ CASTELLANO, AIMAR",
+    "VALLESECO, U.D.",
+    16,
+    3,
+    0
+   ],
+   [
+    "ESSYFAR VEGA, OMAR",
+    "SAN NICOLAS, U.D.",
+    18,
+    3,
+    0
+   ],
+   [
+    "GODOY DÍAZ, ALEJANDRO",
+    "BARRIAL, U.D.",
+    19,
+    3,
+    0
+   ],
+   [
+    "RAMIREZ RODRIGUEZ, EDRIEL JOSEP",
+    "TEROR BALOMPIE, U.D.",
+    20,
+    3,
+    0
+   ],
+   [
+    "SUAREZ VALENCIA, JUAN JOSE",
+    "GUAYARMINA, C.D.",
+    20,
+    3,
+    0
+   ],
+   [
+    "FLORES GONZALEZ, JUAN MANUEL",
+    "BARRIAL, U.D.",
+    22,
+    3,
+    0
+   ],
+   [
+    "NAVARRO AGUADO, GAROE",
+    "VALLESECO, U.D.",
+    26,
+    3,
+    0
+   ],
+   [
+    "GONZALEZ QUINTANA, JUAN JOSE",
+    "MOYA, U.D.",
+    0,
+    3,
+    0
+   ],
+   [
+    "CARRASCO RAMIREZ, CRISTIAN JESUS",
+    "MOYA, U.D.",
+    1,
+    2,
+    0
+   ],
+   [
+    "GONZALEZ MOLINA, FABIO AIMAR",
+    "TEROR BALOMPIE, U.D.",
+    2,
+    2,
+    0
+   ],
+   [
+    "VEGA AROCHA, VICTOR",
+    "SAN NICOLAS, U.D.",
+    2,
+    2,
+    0
+   ],
+   [
+    "MORALES ESPINO, JAVIER",
+    "BARRIAL, U.D.",
+    3,
+    2,
+    0
+   ],
+   [
+    "MARTINEZ GONZALEZ, YEREMAY",
+    "FIRGAS, C.D.",
+    4,
+    2,
+    0
+   ],
+   [
+    "OJEDA MOLINA, CARMELO JESUS",
+    "SARDINA C.F.",
+    4,
+    2,
+    0
+   ],
+   [
+    "TEJERA AFONSO, EMILY MATILDE",
+    "GUIA, U.D.",
+    6,
+    2,
+    0
+   ],
+   [
+    "BATISTA MUJICA, GABRIEL",
+    "GOLETA A, C.D. A",
+    6,
+    2,
+    0
+   ],
+   [
+    "GONZALEZ SOSA, DIEGO",
+    "GUAYARMINA, C.D.",
+    6,
+    2,
+    0
+   ],
+   [
+    "MORALES CASTELLANO, GABRIEL",
+    "BECERRIL, C.D.",
+    7,
+    2,
+    0
+   ],
+   [
+    "SANTANA VEGA, AIMAR",
+    "SARDINA C.F.",
+    8,
+    2,
+    0
+   ],
+   [
+    "CIGALA RODRIGUEZ, ALVARO",
+    "GUAYARMINA, C.D.",
+    9,
+    2,
+    0
+   ],
+   [
+    "SUAREZ UREÑA, JUAN UBAY",
+    "SARDINA C.F.",
+    11,
+    2,
+    0
+   ],
+   [
+    "DIAZ HENRÍQUEZ, DIEGO",
+    "GOLETA A, C.D. A",
+    17,
+    2,
+    0
+   ],
+   [
+    "SOSA OJEDA, PEDRO",
+    "SAN NICOLAS, U.D.",
+    17,
+    2,
+    0
+   ],
+   [
+    "RAMOS ALAMO, ALEJANDRO ANTONIO",
+    "GUIA, U.D.",
+    17,
+    2,
+    0
+   ],
+   [
+    "SANCHEZ FERRER, NESTOR",
+    "GOLETA A, C.D. A",
+    18,
+    2,
+    0
+   ],
+   [
+    "MENDEZ DENIZ, LUIS",
+    "MOYA, U.D.",
+    18,
+    2,
+    0
+   ],
+   [
+    "LUJAN ESTEVEZ, JONATAN JAVIER",
+    "BECERRIL, C.D.",
+    18,
+    2,
+    0
+   ],
+   [
+    "MATEO MENDOZA, JOEL",
+    "UNION MORAL DE GALDAR, C.D.",
+    18,
+    2,
+    0
+   ],
+   [
+    "DIAZ MARTIN, ALESSANDRO",
+    "CARDONES A, C.D. A",
+    19,
+    2,
+    0
+   ],
+   [
+    "DIEPA HERNANDEZ, ADUEN",
+    "GUAYARMINA, C.D.",
+    20,
+    2,
+    0
+   ],
+   [
+    "JIMENEZ MEDEROS, JADEN",
+    "UNION MORAL DE GALDAR, C.D.",
+    21,
+    2,
+    0
+   ],
+   [
+    "PEREZ SANTANA, RAUL",
+    "FIRGAS, C.D.",
+    23,
+    2,
+    0
+   ],
+   [
+    "TACORONTE HERRERA, GABRIEL",
+    "BECERRIL, C.D.",
+    0,
+    2,
+    0
+   ],
+   [
+    "SPINELLI, EDOARDO",
+    "GUIA, U.D.",
+    1,
+    1,
+    0
+   ],
+   [
+    "SOSA ESPINOSA, YARELY",
+    "BARRIAL, U.D.",
+    1,
+    1,
+    0
+   ],
+   [
+    "JORGE GONZALEZ, IRAY",
+    "SAN ISIDRO ALUMINIOS DANIEL, C.D.",
+    1,
+    1,
+    0
+   ],
+   [
+    "CUENCA LOZANO, ADAY",
+    "MOYA, U.D.",
+    1,
+    1,
+    0
+   ],
+   [
+    "SUAREZ GODOY, IAN",
+    "SAN PEDRO ATALAYA, C.D.",
+    1,
+    1,
+    0
+   ],
+   [
+    "VELAZQUEZ HERNANDEZ, GIOVANNI JOSE",
+    "SAN ISIDRO ALUMINIOS DANIEL, C.D.",
+    2,
+    1,
+    0
+   ],
+   [
+    "TACORONTE GARCÍA, IKER",
+    "UNION MORAL DE GALDAR, C.D.",
+    2,
+    1,
+    0
+   ],
+   [
+    "PULIDO SAN GIL, AITOR",
+    "FIRGAS, C.D.",
+    3,
+    1,
+    0
+   ],
+   [
+    "PEREZ GUTIERREZ, AMAIA",
+    "FIRGAS, C.D.",
+    3,
+    1,
+    0
+   ],
+   [
+    "SANCHEZ MONZON, ADRIAN",
+    "BARRIAL, U.D.",
+    4,
+    1,
+    0
+   ],
+   [
+    "SANCHEZ VEGA, IZAN",
+    "GUIA, U.D.",
+    4,
+    1,
+    0
+   ],
+   [
+    "DIAZ MORALES, NEO",
+    "GUIA, U.D.",
+    4,
+    1,
+    0
+   ],
+   [
+    "ALONSO LOPEZ, JOHANNA",
+    "SAN PEDRO ATALAYA, C.D.",
+    5,
+    1,
+    0
+   ],
+   [
+    "SUAREZ GODOY, IAN",
+    "UNION MORAL DE GALDAR, C.D.",
+    5,
+    1,
+    0
+   ],
+   [
+    "ASENCIO SOLANO, OSCAR",
+    "TEROR BALOMPIE, U.D.",
+    7,
+    1,
+    0
+   ],
+   [
+    "CABRERA ALAMO, VALERIA",
+    "GUAYARMINA, C.D.",
+    8,
+    1,
+    0
+   ],
+   [
+    "GARCÍA GARCÍA, ALBERTO",
+    "CARDONES A, C.D. A",
+    12,
+    1,
+    0
+   ],
+   [
+    "GARCIA IGLESIAS, AYTHAMI DANIEL",
+    "MOYA, U.D.",
+    12,
+    1,
+    0
+   ],
+   [
+    "CALERO FARIÑA, ALFONSO",
+    "BECERRIL, C.D.",
+    13,
+    1,
+    0
+   ],
+   [
+    "LEON RAMIREZ, ADAY",
+    "SAN NICOLAS, U.D.",
+    13,
+    1,
+    0
+   ],
+   [
+    "DIAZ HERNANDEZ, RICARDO",
+    "UNION MORAL DE GALDAR, C.D.",
+    14,
+    1,
+    0
+   ],
+   [
+    "SANTANA DIAZ, RAFAEL",
+    "CARDONES A, C.D. A",
+    15,
+    1,
+    0
+   ],
+   [
+    "RUIZ SOSA, SERGIO",
+    "GUAYARMINA, C.D.",
+    16,
+    1,
+    0
+   ],
+   [
+    "CASTELLANO SANTIAGO, ALEJANDRO",
+    "MOYA, U.D.",
+    16,
+    1,
+    0
+   ],
+   [
+    "MORALES MORENO, INDHIRA RAQUEL",
+    "BARRIAL, U.D.",
+    16,
+    1,
+    0
+   ],
+   [
+    "SANTIAGO SANTIAGO, NAIRAN",
+    "MOYA, U.D.",
+    17,
+    1,
+    0
+   ],
+   [
+    "RODRIGUEZ MENDOZA, LUCAS SAMUEL",
+    "GUIA, U.D.",
+    17,
+    1,
+    0
+   ],
+   [
+    "PEREIRA MARTEL, JUAN ANTONIO",
+    "SAN ISIDRO ALUMINIOS DANIEL, C.D.",
+    19,
+    1,
+    0
+   ],
+   [
+    "PEREZ CUBAS, ALEXANDER",
+    "SAN NICOLAS, U.D.",
+    19,
+    1,
+    0
+   ],
+   [
+    "ARENCIBIA QUINTANA, ABIAN",
+    "VALLESECO, U.D.",
+    20,
+    1,
+    0
+   ],
+   [
+    "RODRÍGUEZ GARCÍA, DIEGO",
+    "GOLETA A, C.D. A",
+    22,
+    1,
+    0
+   ],
+   [
+    "ALEMAN RODRIGUEZ, BORJA",
+    "GUIA, U.D.",
+    23,
+    1,
+    0
+   ],
+   [
+    "RODRIGUEZ GONZALEZ, NESTOR",
+    "SAN ISIDRO ALUMINIOS DANIEL, C.D.",
+    23,
+    1,
+    0
+   ],
+   [
+    "BETANCOR GONZÁLEZ, NAUZET ESTEBAN",
+    "CARDONES A, C.D. A",
+    25,
+    1,
+    0
+   ],
+   [
+    "MATEO PEREZ, AITOR FERMIN",
+    "TEROR BALOMPIE, U.D.",
+    0,
+    1,
+    0
+   ],
+   [
+    "DIAZ QUINTANA, ADRIEL",
+    "BARRIAL, U.D.",
+    0,
+    1,
+    0
+   ],
+   [
+    "PARRA RODRIGUEZ, NICOLAS",
+    "GUIA, U.D.",
+    0,
+    1,
+    0
+   ]
+  ],
+  "standings": [
+   {
+    "df": 94,
+    "e": 2,
+    "form": "GGGGG",
+    "g": 24,
+    "gc": 25,
+    "gf": 119,
+    "j": 26,
+    "p": 0,
+    "pos": 1,
+    "pts": 74,
+    "team": "CARDONES A, C.D. \"A\""
+   },
+   {
+    "df": 83,
+    "e": 3,
+    "form": "PGGGE",
+    "g": 19,
+    "gc": 35,
+    "gf": 118,
+    "j": 27,
+    "p": 5,
+    "pos": 2,
+    "pts": 60,
+    "team": "SAN NICOLAS, U.D."
+   },
+   {
+    "df": 57,
+    "e": 6,
+    "form": "GGGGE",
+    "g": 17,
+    "gc": 48,
+    "gf": 105,
+    "j": 26,
+    "p": 3,
+    "pos": 3,
+    "pts": 57,
+    "team": "GOLETA A, C.D. \"A\""
+   },
+   {
+    "df": 44,
+    "e": 2,
+    "form": "GPGGG",
+    "g": 16,
+    "gc": 75,
+    "gf": 119,
+    "j": 27,
+    "p": 9,
+    "pos": 4,
+    "pts": 50,
+    "team": "BECERRIL, C.D."
+   },
+   {
+    "df": 17,
+    "e": 1,
+    "form": "PGPGG",
+    "g": 15,
+    "gc": 60,
+    "gf": 77,
+    "j": 26,
+    "p": 10,
+    "pos": 5,
+    "pts": 46,
+    "team": "TEROR BALOMPIE, U.D."
+   },
+   {
+    "df": 33,
+    "e": 2,
+    "form": "GGPPP",
+    "g": 13,
+    "gc": 66,
+    "gf": 99,
+    "j": 26,
+    "p": 11,
+    "pos": 6,
+    "pts": 41,
+    "team": "UNION MORAL DE GALDAR, C.D."
+   },
+   {
+    "df": 5,
+    "e": 5,
+    "form": "PGEPG",
+    "g": 11,
+    "gc": 86,
+    "gf": 91,
+    "j": 27,
+    "p": 11,
+    "pos": 7,
+    "pts": 38,
+    "team": "SARDINA C.F."
+   },
+   {
+    "df": 14,
+    "e": 3,
+    "form": "PPEPP",
+    "g": 11,
+    "gc": 81,
+    "gf": 95,
+    "j": 27,
+    "p": 13,
+    "pos": 8,
+    "pts": 36,
+    "team": "SAN ISIDRO ALUMINIOS DANIEL, C.D."
+   },
+   {
+    "df": -10,
+    "e": 2,
+    "form": "GPGPG",
+    "g": 11,
+    "gc": 92,
+    "gf": 82,
+    "j": 26,
+    "p": 13,
+    "pos": 9,
+    "pts": 35,
+    "team": "BARRIAL, U.D."
+   },
+   {
+    "df": -21,
+    "e": 5,
+    "form": "PGPEP",
+    "g": 8,
+    "gc": 88,
+    "gf": 67,
+    "j": 27,
+    "p": 14,
+    "pos": 10,
+    "pts": 29,
+    "team": "GUIA, U.D."
+   },
+   {
+    "df": -32,
+    "e": 5,
+    "form": "EGEEP",
+    "g": 7,
+    "gc": 91,
+    "gf": 59,
+    "j": 26,
+    "p": 14,
+    "pos": 11,
+    "pts": 26,
+    "team": "VALLESECO, U.D."
+   },
+   {
+    "df": -23,
+    "e": 4,
+    "form": "PPPPP",
+    "g": 7,
+    "gc": 117,
+    "gf": 94,
+    "j": 27,
+    "p": 16,
+    "pos": 12,
+    "pts": 25,
+    "team": "MOYA, U.D."
+   },
+   {
+    "df": -54,
+    "e": 2,
+    "form": "PEPGP",
+    "g": 5,
+    "gc": 138,
+    "gf": 84,
+    "j": 27,
+    "p": 20,
+    "pos": 13,
+    "pts": 17,
+    "team": "FIRGAS, C.D."
+   },
+   {
+    "df": -86,
+    "e": 3,
+    "form": "PGEEG",
+    "g": 2,
+    "gc": 127,
+    "gf": 41,
+    "j": 26,
+    "p": 21,
+    "pos": 14,
+    "pts": 9,
+    "team": "GUAYARMINA, C.D."
+   },
+   {
+    "df": -121,
+    "e": 1,
+    "form": "PPPPP",
+    "g": 0,
+    "gc": 125,
+    "gf": 4,
+    "j": 7,
+    "p": 6,
+    "pos": 15,
+    "pts": 1,
+    "team": "SAN PEDRO ATALAYA, C.D."
+   }
+  ]
+ },
+ "887:124665": {
+  "comp": "887",
+  "comp_name": "LIGA PRIMERA ALEVIN F-8 GRAN CANARIA",
+  "fetched": "2026-11-28",
+  "grupo": "124665",
+  "grupo_name": "GRUPO 2",
+  "ok": true,
+  "scorers": [
+   [
+    "GONZALEZ SOCORRO, KEVIN PRINCE",
+    "SANTIDAD BANOT, C.D.",
+    21,
+    56,
+    0
+   ],
+   [
+    "COBO JIMENEZ, AARON",
+    "SAN LAZARO, U.D.",
+    25,
+    38,
+    0
+   ],
+   [
+    "SOUMARE CAMARA, DIADIE SALOUM",
+    "INTER DEL PILAR C.F.",
+    22,
+    37,
+    0
+   ],
+   [
+    "PADRON SUAREZ, ALVARO",
+    "UNION VIERA B, C.F. B",
+    22,
+    36,
+    0
+   ],
+   [
+    "GONZALEZ GONZALEZ, DARIO",
+    "SANTIDAD BANOT, C.D.",
+    21,
+    35,
+    0
+   ],
+   [
+    "MARTIN MACIAS, GAIZKA",
+    "SAN ANTONIO A, U.D. A",
+    22,
+    35,
+    0
+   ],
+   [
+    "RODRIGUEZ HERNANDEZ, HECTOR",
+    "PANADERIA PULIDO SAN MATEO, C.F.",
+    14,
+    34,
+    0
+   ],
+   [
+    "RODRIGO RODRIGUEZ, LEO",
+    "MUELLE GRANDE, U.D.",
+    22,
+    33,
+    0
+   ],
+   [
+    "SANCHEZ RODRIGUEZ, DAILOS",
+    "UNION VIERA B, C.F. B",
+    13,
+    32,
+    0
+   ],
+   [
+    "JIMENEZ HERNANDEZ, AIRAM",
+    "COSTA DEL ATLANTICO",
+    23,
+    31,
+    0
+   ],
+   [
+    "DELGADO DOCE, NUHAZET",
+    "COLORADAS, U.D. LAS",
+    14,
+    27,
+    0
+   ],
+   [
+    "DARIAS HERRERA, DARIO",
+    "PANADERIA PULIDO SAN MATEO, C.F.",
+    21,
+    26,
+    0
+   ],
+   [
+    "NIEVES HERNANDEZ, JOEL",
+    "SAN ANTONIO A, U.D. A",
+    15,
+    24,
+    0
+   ],
+   [
+    "ESCALA RAMOS, DIEGO",
+    "DANIEL CARNEVALI A, C.D. A",
+    23,
+    24,
+    0
+   ],
+   [
+    "YANES NASAR, IRIOME JESUS",
+    "COSTA DEL ATLANTICO",
+    24,
+    24,
+    0
+   ],
+   [
+    "CABRERA SANTANA, GAEL",
+    "SANTIDAD BANOT, C.D.",
+    26,
+    24,
+    0
+   ],
+   [
+    "MARTINEZ ALONSO, JONATHAN IRIOME",
+    "UNION VIERA B, C.F. B",
+    17,
+    23,
+    0
+   ],
+   [
+    "MARTIN PEREZ, DIEGO",
+    "SANTIDAD BANOT, C.D.",
+    15,
+    22,
+    0
+   ],
+   [
+    "VENTURA ALONSO, HUGO",
+    "PANADERIA PULIDO SAN MATEO, C.F.",
+    15,
+    21,
+    0
+   ],
+   [
+    "RIVEROS NARDI, AYRTON EMANUEL",
+    "UNION VIERA B, C.F. B",
+    16,
+    21,
+    0
+   ],
+   [
+    "PEREZ JIMENEZ, JAVIER",
+    "BAÑADEROS, C.D. UNION COSTA",
+    20,
+    21,
+    0
+   ],
+   [
+    "RODRIGUEZ MORENO, PABLO",
+    "SAN ANTONIO A, U.D. A",
+    11,
+    19,
+    0
+   ],
+   [
+    "CABRERA MARTIN, LIONEL JESUS",
+    "BARRIO DEL ATLANTICO, C.F.",
+    22,
+    19,
+    0
+   ],
+   [
+    "RAMOS HERNANDEZ, SAULO",
+    "PANADERIA PULIDO SAN MATEO, C.F.",
+    15,
+    18,
+    0
+   ],
+   [
+    "DIAZ PALOMAR, PABLO",
+    "UNION VIERA B, C.F. B",
+    14,
+    17,
+    0
+   ],
+   [
+    "CABRERA ESTRADA, MARCOS DANIEL",
+    "SIETE PALMAS, A.D.",
+    25,
+    17,
+    0
+   ],
+   [
+    "VIDAL CABRERA, GONZALO LEON",
+    "COLORADAS, U.D. LAS",
+    16,
+    16,
+    0
+   ],
+   [
+    "MORALES ORTEGA, YUNEISI PATRICIA",
+    "SAN LAZARO, U.D.",
+    19,
+    16,
+    0
+   ],
+   [
+    "SANTANA SANTANA, YADIEL",
+    "COSTA DEL ATLANTICO",
+    20,
+    16,
+    0
+   ],
+   [
+    "MELIAN GIL, JAVIER",
+    "ROQUE AMAGRO DE GALDAR, C.D.",
+    23,
+    16,
+    0
+   ],
+   [
+    "PONCE SARMIENTO, ALVARO",
+    "SAN ANTONIO A, U.D. A",
+    22,
+    15,
+    0
+   ],
+   [
+    "PEREZ MACIAS, EDRIAN",
+    "DANIEL CARNEVALI A, C.D. A",
+    26,
+    15,
+    0
+   ],
+   [
+    "PICALUA RAMIREZ, IKER ABDON",
+    "SAN LAZARO, U.D.",
+    13,
+    14,
+    0
+   ],
+   [
+    "MOLINA MEDEROS, ADEXE DANIEL",
+    "ROQUE AMAGRO DE GALDAR, C.D.",
+    25,
+    14,
+    0
+   ],
+   [
+    "VIZCAINO GALVÁN, JADIHEL",
+    "SAN LAZARO, U.D.",
+    26,
+    14,
+    0
+   ],
+   [
+    "SANTANA HERNANDEZ, ALEJANDRO LUIS",
+    "SAN ANTONIO A, U.D. A",
+    6,
+    13,
+    0
+   ],
+   [
+    "PEGARIDO LOMMEN, JERION JUNIOR",
+    "UNION VIERA B, C.F. B",
+    7,
+    13,
+    0
+   ],
+   [
+    "SUAREZ SANTANA, ADRIAN",
+    "PANADERIA PULIDO SAN MATEO, C.F.",
+    11,
+    13,
+    0
+   ],
+   [
+    "MENDOZA NIETO, ANDRES ALEJANDRO",
+    "BARRIO DEL ATLANTICO, C.F.",
+    15,
+    13,
+    0
+   ],
+   [
+    "DOMINGUEZ FIDALGO, DAVID",
+    "SANTIDAD BANOT, C.D.",
+    23,
+    13,
+    0
+   ],
+   [
+    "DENIZ GARCIA, MIKEL",
+    "SAN ANTONIO A, U.D. A",
+    23,
+    13,
+    0
+   ],
+   [
+    "ALEMAN RODRIGUEZ, DIEGO A",
+    "PANADERIA PULIDO SAN MATEO, C.F.",
+    24,
+    13,
+    0
+   ],
+   [
+    "SANTANA SANTANA, HUGO",
+    "PANADERIA PULIDO SAN MATEO, C.F.",
+    10,
+    12,
+    0
+   ],
+   [
+    "VALERON DIAZ, JARED DE JESUS",
+    "BARRIO DEL ATLANTICO, C.F.",
+    17,
+    12,
+    0
+   ],
+   [
+    "QUINTANA RAMIREZ, ARAY",
+    "SANTIDAD BANOT, C.D.",
+    21,
+    12,
+    0
+   ],
+   [
+    "JIMENEZ FALCON, YENEDEY",
+    "BARRIO DEL ATLANTICO, C.F.",
+    21,
+    12,
+    0
+   ],
+   [
+    "RODRIGUEZ ALONSO, GABRIEL",
+    "COSTA DEL ATLANTICO",
+    25,
+    12,
+    0
+   ],
+   [
+    "GONZALEZ VIDAL, ALVARO",
+    "UNION VIERA B, C.F. B",
+    7,
+    11,
+    0
+   ],
+   [
+    "SUAREZ GODOY, HECTOR",
+    "MUELLE GRANDE, U.D.",
+    10,
+    11,
+    0
+   ],
+   [
+    "RUIZ CASTRO, JUAN DAVID",
+    "UNION VIERA B, C.F. B",
+    3,
+    10,
+    0
+   ],
+   [
+    "HERNANDEZ HERNANDEZ, NICHEL GABRIEL",
+    "PANADERIA PULIDO SAN MATEO, C.F.",
+    7,
+    10,
+    0
+   ],
+   [
+    "MEJIA SANTANA, ELIZABETH",
+    "INTER DEL PILAR C.F.",
+    7,
+    10,
+    0
+   ],
+   [
+    "SUAREZ SALVADOR, ALEJANDRO",
+    "SIETE PALMAS, A.D.",
+    13,
+    10,
+    0
+   ],
+   [
+    "CARBALLO RAMIREZ, PABLO",
+    "MUELLE GRANDE, U.D.",
+    15,
+    10,
+    0
+   ],
+   [
+    "OTERO TEJERA, BRUNO",
+    "SIETE PALMAS, A.D.",
+    20,
+    10,
+    0
+   ],
+   [
+    "DE AZKUE VAN HAL, KILIAN",
+    "PANADERIA PULIDO SAN MATEO, C.F.",
+    3,
+    9,
+    0
+   ],
+   [
+    "MOHAMAD NARANJO, DANIEL",
+    "SANTIDAD BANOT, C.D.",
+    4,
+    9,
+    0
+   ],
+   [
+    "VELAZQUEZ ACOSTA, ADAEL",
+    "DANIEL CARNEVALI A, C.D. A",
+    10,
+    9,
+    0
+   ],
+   [
+    "SANCHEZ MEDINA, HUGO ABRAHAM",
+    "BAÑADEROS, C.D. UNION COSTA",
+    13,
+    9,
+    0
+   ],
+   [
+    "CARBALLO PEREZ, VICENTE JAVIER",
+    "INTER DEL PILAR C.F.",
+    25,
+    9,
+    0
+   ],
+   [
+    "IGLESIAS GARCIA-BERNALT, HUGO",
+    "DANIEL CARNEVALI A, C.D. A",
+    4,
+    8,
+    0
+   ],
+   [
+    "CASTARNADO GARCIA, BRANDON OSCAR",
+    "MUELLE GRANDE, U.D.",
+    7,
+    8,
+    0
+   ],
+   [
+    "RODRIGUEZ EUGENIO, ETHAN",
+    "MUELLE GRANDE, U.D.",
+    7,
+    8,
+    0
+   ],
+   [
+    "ALVAREZ OBANDO, JHON FREYDER",
+    "UNION VIERA B, C.F. B",
+    8,
+    8,
+    0
+   ],
+   [
+    "EVORA CABALLERO, HUGO",
+    "SAN ANTONIO A, U.D. A",
+    11,
+    8,
+    0
+   ],
+   [
+    "BARCO MARQUEZ, CARLOS",
+    "SIETE PALMAS, A.D.",
+    11,
+    8,
+    0
+   ],
+   [
+    "RODRIGUEZ TOLEDO, BESAY",
+    "UNION VIERA B, C.F. B",
+    15,
+    8,
+    0
+   ],
+   [
+    "SUAREZ MACHADO, ALEJANDRO",
+    "SAN ANTONIO A, U.D. A",
+    22,
+    8,
+    0
+   ],
+   [
+    "DIAZ ALAMO, JAIME",
+    "ROQUE AMAGRO DE GALDAR, C.D.",
+    25,
+    8,
+    0
+   ],
+   [
+    "PERERA SOCORRO, ALVARO",
+    "SANTIDAD BANOT, C.D.",
+    6,
+    7,
+    0
+   ],
+   [
+    "PULIDO SANTANA, ARIANA",
+    "PANADERIA PULIDO SAN MATEO, C.F.",
+    10,
+    7,
+    0
+   ],
+   [
+    "DOMINGUEZ BOLAÑOS, EDUARDO",
+    "SANTIDAD BANOT, C.D.",
+    19,
+    7,
+    0
+   ],
+   [
+    "GONZALEZ ACOSTA, AIMAR YERAY",
+    "DANIEL CARNEVALI A, C.D. A",
+    20,
+    7,
+    0
+   ],
+   [
+    "MEDINA MORALES, DIEGO",
+    "MUELLE GRANDE, U.D.",
+    23,
+    7,
+    0
+   ],
+   [
+    "ARENCIBIA GIL, RICARDO",
+    "SIETE PALMAS, A.D.",
+    4,
+    6,
+    0
+   ],
+   [
+    "VERA ORTEGA, GABRIEL",
+    "SAN ANTONIO A, U.D. A",
+    5,
+    6,
+    0
+   ],
+   [
+    "LEON MONZON, NAGORE",
+    "UNION VIERA B, C.F. B",
+    7,
+    6,
+    0
+   ],
+   [
+    "SANTANA ROSALES, JOAN MANUEL",
+    "BAÑADEROS, C.D. UNION COSTA",
+    14,
+    6,
+    0
+   ],
+   [
+    "MONSERRAT FLORES, GADIEL MIGUEL",
+    "COSTA DEL ATLANTICO",
+    24,
+    6,
+    0
+   ],
+   [
+    "SANTANA PEREZ, HUGO",
+    "SANTIDAD BANOT, C.D.",
+    25,
+    6,
+    0
+   ],
+   [
+    "MOLINA TRUJILLO, RUBEN DARIO",
+    "SANTIDAD BANOT, C.D.",
+    4,
+    5,
+    0
+   ],
+   [
+    "JAGLAOUI BEN ALAYAT, WALID",
+    "COLORADAS, U.D. LAS",
+    9,
+    5,
+    0
+   ],
+   [
+    "VIÑOLY ROMERO, KARIM",
+    "SANTIDAD BANOT, C.D.",
+    10,
+    5,
+    0
+   ],
+   [
+    "SANTAELLA MEDINA, LUCIANO ALESSANDRO",
+    "SAN LAZARO, U.D.",
+    10,
+    5,
+    0
+   ],
+   [
+    "CUTIÑO BATISTA, KEVIN",
+    "BAÑADEROS, C.D. UNION COSTA",
+    12,
+    5,
+    0
+   ],
+   [
+    "JIMENEZ RODRIGUEZ, JERONE DAVID",
+    "INTER DEL PILAR C.F.",
+    13,
+    5,
+    0
+   ],
+   [
+    "SUAREZ ARMAS, NESTOR",
+    "DANIEL CARNEVALI A, C.D. A",
+    15,
+    5,
+    0
+   ],
+   [
+    "FLORENTIN ORTEGA, DENIS RUBEN",
+    "SAN LAZARO, U.D.",
+    15,
+    5,
+    0
+   ],
+   [
+    "RODRIGUEZ GRIMON, LIAM",
+    "INTER DEL PILAR C.F.",
+    24,
+    5,
+    0
+   ],
+   [
+    "IGLESIAS GARCIA-BERNALT, JAVIER",
+    "DANIEL CARNEVALI A, C.D. A",
+    0,
+    5,
+    0
+   ],
+   [
+    "AGUIAR SANTANA, IAN JESUS",
+    "MUELLE GRANDE, U.D.",
+    4,
+    4,
+    0
+   ],
+   [
+    "SANTANA TALAVERA, CARLOS EIDEN",
+    "MUELLE GRANDE, U.D.",
+    8,
+    4,
+    0
+   ],
+   [
+    "HERNANDEZ CABRERA, BRIAN",
+    "BAÑADEROS, C.D. UNION COSTA",
+    9,
+    4,
+    0
+   ],
+   [
+    "JIMENEZ CALDERIN, IRIOME",
+    "PANADERIA PULIDO SAN MATEO, C.F.",
+    13,
+    4,
+    0
+   ],
+   [
+    "BUITRAGO JAMAICA, DYLAN JEFFREY",
+    "UNION VIERA B, C.F. B",
+    13,
+    4,
+    0
+   ],
+   [
+    "RODRIGUEZ CARDONA, FRANCISCO JAVIER",
+    "UNION VIERA B, C.F. B",
+    14,
+    4,
+    0
+   ],
+   [
+    "VILA PEREZ, MARCOS",
+    "BARRIO DEL ATLANTICO, C.F.",
+    15,
+    4,
+    0
+   ],
+   [
+    "DOMINGUEZ QUINTANA, LUCAS",
+    "UNION VIERA B, C.F. B",
+    19,
+    4,
+    0
+   ],
+   [
+    "SANCHEZ ELLINGSON, AITOR",
+    "PANADERIA PULIDO SAN MATEO, C.F.",
+    20,
+    4,
+    0
+   ],
+   [
+    "PULIDO MONTESDEOCA, PABLO",
+    "SIETE PALMAS, A.D.",
+    21,
+    4,
+    0
+   ],
+   [
+    "OJEDA GONZALEZ, HUGO",
+    "MUELLE GRANDE, U.D.",
+    23,
+    4,
+    0
+   ],
+   [
+    "RAMIREZ GOPAR, YAEL",
+    "DANIEL CARNEVALI A, C.D. A",
+    23,
+    4,
+    0
+   ],
+   [
+    "MOLINA BOLAÑOS, ALEJANDRO",
+    "COSTA DEL ATLANTICO",
+    25,
+    4,
+    0
+   ],
+   [
+    "DEL CASTILLO DIAZ, JAVIER",
+    "SIETE PALMAS, A.D.",
+    4,
+    3,
+    0
+   ],
+   [
+    "GONZALEZ CHIRINOS, ENMANUEL JOSE",
+    "SAN ANTONIO A, U.D. A",
+    7,
+    3,
+    0
+   ],
+   [
+    "SANTANA SILVA, JORGE",
+    "PANADERIA PULIDO SAN MATEO, C.F.",
+    9,
+    3,
+    0
+   ],
+   [
+    "PACHECO VIERA, OSCAR ALEXANDER",
+    "BARRIO DEL ATLANTICO, C.F.",
+    9,
+    3,
+    0
+   ],
+   [
+    "CARABALLO SANTANA, ANSITE",
+    "INTER DEL PILAR C.F.",
+    10,
+    3,
+    0
+   ],
+   [
+    "QUINTANA VERONA, ARMANDO RAUL",
+    "UNION VIERA B, C.F. B",
+    13,
+    3,
+    0
+   ],
+   [
+    "SANTANA CABALLERO, ALEJANDRO JESUS",
+    "BAÑADEROS, C.D. UNION COSTA",
+    15,
+    3,
+    0
+   ],
+   [
+    "TORRES ALEMAN, ALTHAY",
+    "SAN ANTONIO A, U.D. A",
+    17,
+    3,
+    0
+   ],
+   [
+    "CABRERA ALEMAN, ENRIQUE",
+    "SIETE PALMAS, A.D.",
+    19,
+    3,
+    0
+   ],
+   [
+    "ARTILES TRUJILLO, SORAYA JOSEFA",
+    "DANIEL CARNEVALI A, C.D. A",
+    23,
+    3,
+    0
+   ],
+   [
+    "ALEMAN RAMIREZ, ADAL",
+    "BARRIO DEL ATLANTICO, C.F.",
+    23,
+    3,
+    0
+   ],
+   [
+    "FERNANDEZ PORCEL, JOSE LUIS",
+    "COLORADAS, U.D. LAS",
+    23,
+    3,
+    0
+   ],
+   [
+    "ALMEIDA CABEZAS, JUSTIN",
+    "SANTIDAD BANOT, C.D.",
+    26,
+    3,
+    0
+   ],
+   [
+    "GODOY ROSALES, JESUS DANIEL",
+    "BAÑADEROS, C.D. UNION COSTA",
+    1,
+    2,
+    0
+   ],
+   [
+    "LOPEZ HERNANDEZ, DIEGO",
+    "DANIEL CARNEVALI A, C.D. A",
+    4,
+    2,
+    0
+   ],
+   [
+    "HERRERA SANTANA, KILIAN",
+    "ROQUE AMAGRO DE GALDAR, C.D.",
+    4,
+    2,
+    0
+   ],
+   [
+    "",
+    "COSTA DEL ATLANTICO",
+    8,
+    2,
+    0
+   ],
+   [
+    "DIAS-DA SILVA AVENDAÑO, MATEO NICOLAS",
+    "SAN ANTONIO A, U.D. A",
+    11,
+    2,
+    0
+   ],
+   [
+    "VALIENTE PASCUAL, ERIC",
+    "COLORADAS, U.D. LAS",
+    12,
+    2,
+    0
+   ],
+   [
+    "DIAZ GIL, GUILLERMO",
+    "ROQUE AMAGRO DE GALDAR, C.D.",
+    13,
+    2,
+    0
+   ],
+   [
+    "DIAZ RAMOS, ARHAMIS",
+    "BAÑADEROS, C.D. UNION COSTA",
+    14,
+    2,
+    0
+   ],
+   [
+    "DUEÑA SORUCO, DARIO",
+    "INTER DEL PILAR C.F.",
+    20,
+    2,
+    0
+   ],
+   [
+    "DELGADO SUAREZ, GABRIEL",
+    "COLORADAS, U.D. LAS",
+    20,
+    2,
+    0
+   ],
+   [
+    "",
+    "BAÑADEROS, C.D. UNION COSTA",
+    21,
+    2,
+    0
+   ],
+   [
+    "GONZALEZ GODOY, ADAN",
+    "BARRIO DEL ATLANTICO, C.F.",
+    21,
+    2,
+    0
+   ],
+   [
+    "DÍAZ GARCÍA, EDUARDO",
+    "ROQUE AMAGRO DE GALDAR, C.D.",
+    24,
+    2,
+    0
+   ],
+   [
+    "GONZALEZ BLANCO, JORGE",
+    "COLORADAS, U.D. LAS",
+    25,
+    2,
+    0
+   ],
+   [
+    "GONZALEZ RIVERO, AITOR JESUS",
+    "PANADERIA PULIDO SAN MATEO, C.F.",
+    1,
+    1,
+    0
+   ],
+   [
+    "MUÑOZ BETANCOURT, DYLAN",
+    "SAN LAZARO, U.D.",
+    1,
+    1,
+    0
+   ],
+   [
+    "VILLANDIEGO GARCIA, JARED",
+    "INTER DEL PILAR C.F.",
+    1,
+    1,
+    0
+   ],
+   [
+    "GONZALEZ MENA, VICTOR MANUEL",
+    "SAN LAZARO, U.D.",
+    1,
+    1,
+    0
+   ],
+   [
+    "NOLASCO ANDUEZA, NEYSAN",
+    "SAN ANTONIO A, U.D. A",
+    2,
+    1,
+    0
+   ],
+   [
+    "",
+    "COSTA DEL ATLANTICO",
+    3,
+    1,
+    0
+   ],
+   [
+    "FAGUNDEZ OLIVERA, LAUTARO EZEQUIEL",
+    "SAN LAZARO, U.D.",
+    4,
+    1,
+    0
+   ],
+   [
+    "RUIZ FLORES, MATIAS",
+    "SAN LAZARO, U.D.",
+    4,
+    1,
+    0
+   ],
+   [
+    "ESPINOSA DURAN, ALVARO",
+    "SIETE PALMAS, A.D.",
+    5,
+    1,
+    0
+   ],
+   [
+    "CUERVO ARTEAGA, IKER",
+    "DANIEL CARNEVALI A, C.D. A",
+    6,
+    1,
+    0
+   ],
+   [
+    "ALMEIDA GARCIA, JOSE DANIEL",
+    "INTER DEL PILAR C.F.",
+    7,
+    1,
+    0
+   ],
+   [
+    "MEDINA PONCE, JOHAN LIONEL",
+    "BAÑADEROS, C.D. UNION COSTA",
+    8,
+    1,
+    0
+   ],
+   [
+    "RODRIGUEZ SUAREZ, HUGO",
+    "PANADERIA PULIDO SAN MATEO, C.F.",
+    8,
+    1,
+    0
+   ],
+   [
+    "ALMEIDA QUEVEDO, PABLO",
+    "SAN LAZARO, U.D.",
+    9,
+    1,
+    0
+   ],
+   [
+    "HENRIQUEZ RODRIGUEZ, MIGUEL",
+    "BAÑADEROS, C.D. UNION COSTA",
+    9,
+    1,
+    0
+   ],
+   [
+    "DOS SANTOS GARCIA, CAROLINA",
+    "INTER DEL PILAR C.F.",
+    9,
+    1,
+    0
+   ],
+   [
+    "HERNANDEZ SAAVEDRA, LUCIO MARTIN",
+    "BARRIO DEL ATLANTICO, C.F.",
+    10,
+    1,
+    0
+   ],
+   [
+    "RAMOS HERNANDEZ, YARED",
+    "ROQUE AMAGRO DE GALDAR, C.D.",
+    10,
+    1,
+    0
+   ],
+   [
+    "ALVAREZ ROSALES, PABLO",
+    "BAÑADEROS, C.D. UNION COSTA",
+    11,
+    1,
+    0
+   ],
+   [
+    "PEREZ RAMIREZ, ALVARO",
+    "MUELLE GRANDE, U.D.",
+    11,
+    1,
+    0
+   ],
+   [
+    "SUISSA DIAZ, MARIA",
+    "COLORADAS, U.D. LAS",
+    12,
+    1,
+    0
+   ],
+   [
+    "IVAN JESUS",
+    "SAN ANTONIO A, U.D. A",
+    14,
+    1,
+    0
+   ],
+   [
+    "CABRERA SUAREZ, FRANCISCO JOSE",
+    "BAÑADEROS, C.D. UNION COSTA",
+    15,
+    1,
+    0
+   ],
+   [
+    "LOPEZ-AZCUTIA ALLO, HUGO",
+    "SIETE PALMAS, A.D.",
+    15,
+    1,
+    0
+   ],
+   [
+    "MARTIN VEGA, PABLO",
+    "SIETE PALMAS, A.D.",
+    16,
+    1,
+    0
+   ],
+   [
+    "GARCIA SANTANA, LUCIA",
+    "MUELLE GRANDE, U.D.",
+    19,
+    1,
+    0
+   ],
+   [
+    "ORTEGA VAZQUEZ, CHRISTIAN ANTONIO",
+    "INTER DEL PILAR C.F.",
+    20,
+    1,
+    0
+   ],
+   [
+    "ALONSO FERNANDEZ-VILLAMIL, MARTA",
+    "DANIEL CARNEVALI A, C.D. A",
+    24,
+    1,
+    0
+   ],
+   [
+    "RODRIGUEZ MENDOZA, HECTOR",
+    "COSTA DEL ATLANTICO",
+    24,
+    1,
+    0
+   ],
+   [
+    "RAMIREZ SANTANA, IZAN",
+    "DANIEL CARNEVALI A, C.D. A",
+    25,
+    1,
+    0
+   ],
+   [
+    "SANCHEZ PEREZ, KEYLER",
+    "BARRIO DEL ATLANTICO, C.F.",
+    0,
+    1,
+    0
+   ],
+   [
+    "AGUIAR SANTANA, IAN JESUS",
+    "MUELLE GRANDE, U.D.",
+    0,
+    1,
+    0
+   ],
+   [
+    "AGUIAR SANTANA, IAN JESUS",
+    "MUELLE GRANDE, U.D.",
+    0,
+    1,
+    0
+   ],
+   [
+    "AGUIAR SANTANA, IAN JESUS",
+    "MUELLE GRANDE, U.D.",
+    0,
+    1,
+    0
+   ]
+  ],
+  "standings": [
+   {
+    "df": 140,
+    "e": 1,
+    "form": "GGGGG",
+    "g": 24,
+    "gc": 44,
+    "gf": 184,
+    "j": 26,
+    "p": 1,
+    "pos": 1,
+    "pts": 73,
+    "team": "PANADERIA PULIDO SAN MATEO, C.F."
+   },
+   {
+    "df": 169,
+    "e": 1,
+    "form": "GGGPG",
+    "g": 22,
+    "gc": 35,
+    "gf": 204,
+    "j": 26,
+    "p": 3,
+    "pos": 2,
+    "pts": 67,
+    "team": "UNION VIERA B, C.F. \"B\""
+   },
+   {
+    "df": 99,
+    "e": 0,
+    "form": "GPGGG",
+    "g": 21,
+    "gc": 62,
+    "gf": 161,
+    "j": 26,
+    "p": 5,
+    "pos": 3,
+    "pts": 63,
+    "team": "SANTIDAD BANOT, C.D."
+   },
+   {
+    "df": 126,
+    "e": 2,
+    "form": "GGPGG",
+    "g": 20,
+    "gc": 60,
+    "gf": 186,
+    "j": 26,
+    "p": 4,
+    "pos": 4,
+    "pts": 62,
+    "team": "SAN ANTONIO A, U.D. \"A\""
+   },
+   {
+    "df": 0,
+    "e": 3,
+    "form": "GGPPP",
+    "g": 13,
+    "gc": 97,
+    "gf": 97,
+    "j": 26,
+    "p": 10,
+    "pos": 5,
+    "pts": 42,
+    "team": "SAN LAZARO, U.D."
+   },
+   {
+    "df": 6,
+    "e": 3,
+    "form": "PPPGG",
+    "g": 12,
+    "gc": 96,
+    "gf": 102,
+    "j": 27,
+    "p": 12,
+    "pos": 6,
+    "pts": 39,
+    "team": "COSTA DEL ATLANTICO"
+   },
+   {
+    "df": -21,
+    "e": 2,
+    "form": "PGPGP",
+    "g": 12,
+    "gc": 120,
+    "gf": 99,
+    "j": 26,
+    "p": 12,
+    "pos": 7,
+    "pts": 38,
+    "team": "BARRIO DEL ATLANTICO, C.F."
+   },
+   {
+    "df": -23,
+    "e": 3,
+    "form": "PPPGG",
+    "g": 10,
+    "gc": 119,
+    "gf": 96,
+    "j": 26,
+    "p": 13,
+    "pos": 8,
+    "pts": 33,
+    "team": "MUELLE GRANDE, U.D."
+   },
+   {
+    "df": -22,
+    "e": 3,
+    "form": "GGGPP",
+    "g": 9,
+    "gc": 102,
+    "gf": 80,
+    "j": 26,
+    "p": 14,
+    "pos": 9,
+    "pts": 30,
+    "team": "DANIEL CARNEVALI A, C.D. \"A\""
+   },
+   {
+    "df": -41,
+    "e": 1,
+    "form": "PPPGP",
+    "g": 8,
+    "gc": 108,
+    "gf": 67,
+    "j": 26,
+    "p": 17,
+    "pos": 10,
+    "pts": 25,
+    "team": "SIETE PALMAS, A.D."
+   },
+   {
+    "df": -92,
+    "e": 4,
+    "form": "PGPPP",
+    "g": 5,
+    "gc": 171,
+    "gf": 79,
+    "j": 26,
+    "p": 17,
+    "pos": 11,
+    "pts": 19,
+    "team": "INTER DEL PILAR C.F."
+   },
+   {
+    "df": -84,
+    "e": 3,
+    "form": "PPGGP",
+    "g": 4,
+    "gc": 145,
+    "gf": 61,
+    "j": 26,
+    "p": 19,
+    "pos": 12,
+    "pts": 15,
+    "team": "BAÑADEROS, C.D. UNION COSTA"
+   },
+   {
+    "df": -130,
+    "e": 2,
+    "form": "EPGPP",
+    "g": 4,
+    "gc": 196,
+    "gf": 66,
+    "j": 26,
+    "p": 20,
+    "pos": 13,
+    "pts": 14,
+    "team": "ROQUE AMAGRO DE GALDAR, C.D."
+   },
+   {
+    "df": -127,
+    "e": 3,
+    "form": "PPGPG",
+    "g": 3,
+    "gc": 187,
+    "gf": 60,
+    "j": 26,
+    "p": 20,
+    "pos": 14,
+    "pts": 12,
+    "team": "COLORADAS, U.D. LAS"
+   },
+   {
+    "df": 0,
+    "e": 1,
+    "form": "PPPPP",
+    "g": 0,
+    "gc": 0,
+    "gf": 0,
+    "j": 1,
+    "p": 0,
+    "pos": 15,
+    "pts": 1,
+    "team": "ISLECLUB, C.D."
+   }
+  ]
+ },
+ "887:124905": {
+  "comp": "887",
+  "comp_name": "LIGA PRIMERA ALEVIN F-8 GRAN CANARIA",
+  "fetched": "2026-11-28",
+  "grupo": "124905",
+  "grupo_name": "GRUPO 7",
+  "ok": true,
+  "scorers": [
+   [
+    "MORALES",
+    "SAGRADO CORAZON UNIVERSITARIO B B",
+    25,
+    50,
+    0
+   ],
+   [
+    "DELGADO SANTANA, PABLO",
+    "VICTORIA C, REAL CLUB C",
+    17,
+    47,
+    0
+   ],
+   [
+    "GARCIA AFONSO, RODRIGO",
+    "GOLETA B, C.D. B",
+    16,
+    39,
+    0
+   ],
+   [
+    "CAÑA SUAREZ, ALVARO",
+    "GUINIGUADA APOLINARIO C, C.D. C",
+    21,
+    39,
+    0
+   ],
+   [
+    "LOPEZ CEJAS, ROBERTO SULLIVAN",
+    "GAREPA VIERA B, C.F. B",
+    23,
+    38,
+    0
+   ],
+   [
+    "DE TORRES SEGURA, JUAN JOSE",
+    "ACODETTI C.F. B B",
+    9,
+    34,
+    0
+   ],
+   [
+    "SAN BRUNO MACHIN, NESTOR",
+    "CORAZON DE MARIA B, C.D. B",
+    14,
+    34,
+    0
+   ],
+   [
+    "QUINTANA GONZALEZ, HUGO",
+    "CARDONES B, C.D. B",
+    20,
+    33,
+    0
+   ],
+   [
+    "DE LA NUEZ SANTANA, YEREMAY",
+    "ARUCAS C.F. C C",
+    13,
+    32,
+    0
+   ],
+   [
+    "BARREIROS OJEDA, ERAN",
+    "ARUCAS C.F. C C",
+    14,
+    31,
+    0
+   ],
+   [
+    "OMOKORO DAVID, BRIAN BRAYE",
+    "GAREPA VIERA B, C.F. B",
+    15,
+    30,
+    0
+   ],
+   [
+    "EUGENIO RODRIGUEZ, LUIS",
+    "CORAZON DE MARIA B, C.D. B",
+    19,
+    29,
+    0
+   ],
+   [
+    "LOPEZ MARRERO, ALVARO",
+    "GUINIGUADA APOLINARIO C, C.D. C",
+    21,
+    29,
+    0
+   ],
+   [
+    "HIDALGO FALCON, HUGO",
+    "CORAZON DE MARIA B, C.D. B",
+    16,
+    27,
+    0
+   ],
+   [
+    "MILLARES RAMOS, GERMAYNE",
+    "VETERANOS DEL PILA.D, C.D. DB",
+    20,
+    27,
+    0
+   ],
+   [
+    "PEREZ GUERRA, IAN JESUS",
+    "ARUCAS C.F. C C",
+    13,
+    26,
+    0
+   ],
+   [
+    "GONZALEZ OSPINA, CAMILO",
+    "VETERANOS DEL PILA.D, C.D. DB",
+    19,
+    26,
+    0
+   ],
+   [
+    "PORRAS OROZCO, NICOLAS",
+    "VILLA DE SANTA BRIGIDA C, U.D. C",
+    23,
+    26,
+    0
+   ],
+   [
+    "MARRERO MARTINEZ, ENZO",
+    "GAREPA VIERA B, C.F. B",
+    10,
+    24,
+    0
+   ],
+   [
+    "PEREZ PEREZ, DARIO",
+    "ARUCAS C.F. C C",
+    15,
+    23,
+    0
+   ],
+   [
+    "GARCIA SANCHEZ, IMAR",
+    "SAGRADO CORAZON UNIVERSITARIO B B",
+    17,
+    23,
+    0
+   ],
+   [
+    "RAMIREZ CARDONA, IZAN",
+    "GAREPA VIERA B, C.F. B",
+    19,
+    23,
+    0
+   ],
+   [
+    "HERRERA RODRIGUEZ, JUAN CARMELO",
+    "ACODETTI C.F. B B",
+    21,
+    22,
+    0
+   ],
+   [
+    "BETHENCOURT ARMAS, DALAI",
+    "AREGRANCA B, C.D. B",
+    23,
+    22,
+    0
+   ],
+   [
+    "HORDT SOSA, MARTINA DEL PINO",
+    "ARUCAS C.F. C C",
+    10,
+    19,
+    0
+   ],
+   [
+    "CORDON VERONA, JORGE",
+    "ARUCAS C.F. C C",
+    11,
+    19,
+    0
+   ],
+   [
+    "FALCON PITTI, AIMAR ALFONSO",
+    "ARUCAS C.F. C C",
+    15,
+    19,
+    0
+   ],
+   [
+    "FIGUEIRAS SOTO, SAMUEL",
+    "GUINIGUADA APOLINARIO C, C.D. C",
+    17,
+    19,
+    0
+   ],
+   [
+    "MARTINEZ OLIVA, ALEJANDRO",
+    "ACODETTI C.F. B B",
+    8,
+    17,
+    0
+   ],
+   [
+    "SAMUEL",
+    "CORAZON DE MARIA B, C.D. B",
+    11,
+    16,
+    0
+   ],
+   [
+    "DEL PINO RODRIGUEZ, ALEJANDRO",
+    "VILLA DE SANTA BRIGIDA C, U.D. C",
+    15,
+    16,
+    0
+   ],
+   [
+    "ALVAREZ RAMIREZ, CARLOS MIGUEL",
+    "VICTORIA C, REAL CLUB C",
+    16,
+    16,
+    0
+   ],
+   [
+    "GONZALEZ GARCIA, LUCAS",
+    "ARUCAS C.F. C C",
+    14,
+    14,
+    0
+   ],
+   [
+    "IMPAGLIATELLI, DIEGO",
+    "VETERANOS DEL PILA.D, C.D. DB",
+    15,
+    14,
+    0
+   ],
+   [
+    "MANRIQUE DE LARA PEREZ, ALVARO",
+    "GUINIGUADA APOLINARIO C, C.D. C",
+    3,
+    12,
+    0
+   ],
+   [
+    "",
+    "AREGRANCA B, C.D. B",
+    4,
+    12,
+    0
+   ],
+   [
+    "PEREZ MARTIN, IRIAM",
+    "AREGRANCA B, C.D. B",
+    5,
+    12,
+    0
+   ],
+   [
+    "",
+    "ACODETTI C.F. B B",
+    9,
+    12,
+    0
+   ],
+   [
+    "ESTEBAN NUÑEZ, DAVID",
+    "SAGRADO CORAZON UNIVERSITARIO B B",
+    10,
+    12,
+    0
+   ],
+   [
+    "GUTIERREZ SANTANA, ADRIAN SAMUEL",
+    "AREGRANCA B, C.D. B",
+    24,
+    12,
+    0
+   ],
+   [
+    "DE LA NUEZ ARMAS, EHEDEY SALVADOR",
+    "GUINIGUADA APOLINARIO C, C.D. C",
+    1,
+    11,
+    0
+   ],
+   [
+    "COUTO FERNANDEZ, TIAGO",
+    "GUINIGUADA APOLINARIO C, C.D. C",
+    9,
+    11,
+    0
+   ],
+   [
+    "DALLIOU HUSSAIN, ISMAEL",
+    "GUINIGUADA APOLINARIO C, C.D. C",
+    13,
+    11,
+    0
+   ],
+   [
+    "MORENO GARCIA, AITOR",
+    "GUINIGUADA APOLINARIO C, C.D. C",
+    14,
+    11,
+    0
+   ],
+   [
+    "BADDOU VEGA, ADEL",
+    "VILLA DE SANTA BRIGIDA C, U.D. C",
+    20,
+    11,
+    0
+   ],
+   [
+    "GÜELL ZORRILLA, ERIK",
+    "VICTORIA C, REAL CLUB C",
+    1,
+    10,
+    0
+   ],
+   [
+    "SANTANA QUINTANA, ENEBIE",
+    "ACODETTI C.F. B B",
+    21,
+    10,
+    0
+   ],
+   [
+    "GONZALEZ PEREZ, HECTOR",
+    "GUINIGUADA APOLINARIO C, C.D. C",
+    23,
+    10,
+    0
+   ],
+   [
+    "RODRIGUEZ PEREZ, DANIEL",
+    "SAGRADO CORAZON UNIVERSITARIO B B",
+    14,
+    9,
+    0
+   ],
+   [
+    "SIDNA MANSOUR, SIDNEE",
+    "VICTORIA C, REAL CLUB C",
+    18,
+    9,
+    0
+   ],
+   [
+    "GONZALEZ ESCAMOCHERO, YAREL",
+    "ACODETTI C.F. B B",
+    21,
+    9,
+    0
+   ],
+   [
+    "MENDOZA BRAVO DE LAGUNA, ALEXIA",
+    "AREGRANCA B, C.D. B",
+    21,
+    9,
+    0
+   ],
+   [
+    "GUEVARA RAMOS, DIEGO JOSE",
+    "GAREPA VIERA B, C.F. B",
+    22,
+    9,
+    0
+   ],
+   [
+    "RODRIGUEZ DEL RIO, ALEJANDRO",
+    "CORAZON DE MARIA B, C.D. B",
+    5,
+    8,
+    0
+   ],
+   [
+    "AYTHAMI",
+    "SAGRADO CORAZON UNIVERSITARIO B B",
+    6,
+    8,
+    0
+   ],
+   [
+    "IPSER SANCHEZ, LUIS",
+    "VILLA DE SANTA BRIGIDA C, U.D. C",
+    11,
+    8,
+    0
+   ],
+   [
+    "CRUZ MATEOS, SAMUEL",
+    "ARUCAS C.F. C C",
+    14,
+    8,
+    0
+   ],
+   [
+    "BAUTISTA AMIGO, AITOR",
+    "GUINIGUADA APOLINARIO C, C.D. C",
+    18,
+    8,
+    0
+   ],
+   [
+    "",
+    "SAGRADO CORAZON UNIVERSITARIO B B",
+    20,
+    8,
+    0
+   ],
+   [
+    "STOYCHEV, DANIEL VASKOV",
+    "SAGRADO CORAZON UNIVERSITARIO B B",
+    4,
+    7,
+    0
+   ],
+   [
+    "RAMOS GARCIA, NEYTHAN",
+    "GOLETA B, C.D. B",
+    6,
+    7,
+    0
+   ],
+   [
+    "ORTEGA DIAZ, ANTONIO",
+    "VETERANOS DEL PILA.D, C.D. DB",
+    6,
+    7,
+    0
+   ],
+   [
+    "LEON AKA, SHEJNA YAVE",
+    "GOLETA B, C.D. B",
+    13,
+    7,
+    0
+   ],
+   [
+    "CUERVO LORENZO, RAUL",
+    "ACODETTI C.F. B B",
+    14,
+    7,
+    0
+   ],
+   [
+    "SAN BRUNO MACHIN, PABLO",
+    "CORAZON DE MARIA B, C.D. B",
+    15,
+    7,
+    0
+   ],
+   [
+    "PADILLA DIAZ, DIEGO",
+    "GAREPA VIERA B, C.F. B",
+    15,
+    7,
+    0
+   ],
+   [
+    "GALVAN FALCON, JAIME",
+    "VICTORIA C, REAL CLUB C",
+    19,
+    7,
+    0
+   ],
+   [
+    "C ABRERA CABRERA, JORGE DARIEN",
+    "ACODETTI C.F. B B",
+    20,
+    7,
+    0
+   ],
+   [
+    "SANCHEZ GARCIA, ALEJANDRO",
+    "ACODETTI C.F. B B",
+    20,
+    7,
+    0
+   ],
+   [
+    "RIVERO GARCIA, ODEY BENJAMIN",
+    "CARDONES B, C.D. B",
+    22,
+    7,
+    0
+   ],
+   [
+    "ZAMORA JORGE, SERGIO",
+    "VICTORIA C, REAL CLUB C",
+    23,
+    7,
+    0
+   ],
+   [
+    "DIAZ MENDOZA, PABLO",
+    "CARDONES B, C.D. B",
+    25,
+    7,
+    0
+   ],
+   [
+    "MEDINA ALFONSO, FERNANDO",
+    "VICTORIA C, REAL CLUB C",
+    4,
+    6,
+    0
+   ],
+   [
+    "ALSÒ MEDINA, DANIEL",
+    "SAGRADO CORAZON UNIVERSITARIO B B",
+    5,
+    6,
+    0
+   ],
+   [
+    "SUAREZ ALARCON, YAREL",
+    "AREGRANCA B, C.D. B",
+    10,
+    6,
+    0
+   ],
+   [
+    "SANTANA CONTRAFATTO, ASIER",
+    "VICTORIA C, REAL CLUB C",
+    11,
+    6,
+    0
+   ],
+   [
+    "PERERA MARTIN, CARLA DEL PILAR",
+    "ARUCAS C.F. C C",
+    12,
+    6,
+    0
+   ],
+   [
+    "MARTIN TENREIRO, LUIS",
+    "CORAZON DE MARIA B, C.D. B",
+    13,
+    6,
+    0
+   ],
+   [
+    "MORALES VIEITES, THIAGO",
+    "ARUCAS C.F. C C",
+    14,
+    6,
+    0
+   ],
+   [
+    "MARTIN GUERRA, FRANCISCO",
+    "GOLETA B, C.D. B",
+    23,
+    6,
+    0
+   ],
+   [
+    "PEDROSA ROBAINA, ALAN CARMELO",
+    "GAREPA VIERA B, C.F. B",
+    1,
+    5,
+    0
+   ],
+   [
+    "CABRERA CASTRO, RUBEN",
+    "VICTORIA C, REAL CLUB C",
+    2,
+    5,
+    0
+   ],
+   [
+    "NARANJO DIAZ, SAMUEL",
+    "SAGRADO CORAZON UNIVERSITARIO B B",
+    6,
+    5,
+    0
+   ],
+   [
+    "SERRANO CAMPOS, DAVID",
+    "CORAZON DE MARIA B, C.D. B",
+    6,
+    5,
+    0
+   ],
+   [
+    "RODRIGUEZ MACIAS, DAVID",
+    "ACODETTI C.F. B B",
+    9,
+    5,
+    0
+   ],
+   [
+    "YANEZ HIDALGO, CARLOS",
+    "GUINIGUADA APOLINARIO C, C.D. C",
+    15,
+    5,
+    0
+   ],
+   [
+    "DIEGUEZ SANTANA, FEDERICO",
+    "VETERANOS DEL PILA.D, C.D. DB",
+    16,
+    5,
+    0
+   ],
+   [
+    "RODRIGUEZ SERNA, DANIEL",
+    "ARUCAS C.F. C C",
+    17,
+    5,
+    0
+   ],
+   [
+    "MENDOZA DE LA FE, DARIO",
+    "SAN ANTONIO B, U.D. B",
+    17,
+    5,
+    0
+   ],
+   [
+    "LUCERO AYALA, THIAGO GABRIEL",
+    "GOLETA B, C.D. B",
+    20,
+    5,
+    0
+   ],
+   [
+    "MENTADO PULIDO, ERIK JOSE",
+    "GOLETA B, C.D. B",
+    22,
+    5,
+    0
+   ],
+   [
+    "ALEMAN BERNAUS, ERIC JAVIER",
+    "CARDONES B, C.D. B",
+    24,
+    5,
+    0
+   ],
+   [
+    "GONZALEZ CUBAS, ROBERTO",
+    "SAGRADO CORAZON UNIVERSITARIO B B",
+    3,
+    4,
+    0
+   ],
+   [
+    "MORENO MEDINA, HUGO",
+    "VETERANOS DEL PILA.D, C.D. DB",
+    6,
+    4,
+    0
+   ],
+   [
+    "CAMAS BERENGUER, GUILLERMO",
+    "SAGRADO CORAZON UNIVERSITARIO B B",
+    6,
+    4,
+    0
+   ],
+   [
+    "VELAZQUEZ GONZALEZ, SAMUEL",
+    "CORAZON DE MARIA B, C.D. B",
+    8,
+    4,
+    0
+   ],
+   [
+    "CABRERA GOMEZ, ALVARO",
+    "SAGRADO CORAZON UNIVERSITARIO B B",
+    16,
+    4,
+    0
+   ],
+   [
+    "GIL CODORNIU, BRUNO",
+    "UNION VIERA D, C.F. DB",
+    17,
+    4,
+    0
+   ],
+   [
+    "MORALES ORTEGA, SERGIO",
+    "VICTORIA C, REAL CLUB C",
+    18,
+    4,
+    0
+   ],
+   [
+    "RIVERO GONZALEZ, HUGO",
+    "CORAZON DE MARIA B, C.D. B",
+    18,
+    4,
+    0
+   ],
+   [
+    "GARCIA VELASCO, JAVIER",
+    "GAREPA VIERA B, C.F. B",
+    19,
+    4,
+    0
+   ],
+   [
+    "DE LA HOZ BEIRA, NESTOR LUIS",
+    "VETERANOS DEL PILA.D, C.D. DB",
+    20,
+    4,
+    0
+   ],
+   [
+    "RANCAÑO DE LA PEÑA, PABLO MIGUEL",
+    "SAN ANTONIO B, U.D. B",
+    21,
+    4,
+    0
+   ],
+   [
+    "GRANADO GARCIA, EDUARDO",
+    "GOLETA B, C.D. B",
+    23,
+    4,
+    0
+   ],
+   [
+    "CASTRO GONZALEZ, CHRISTIAN",
+    "GOLETA B, C.D. B",
+    1,
+    3,
+    0
+   ],
+   [
+    "CANDELARIA SANROMA, DARIO",
+    "VICTORIA C, REAL CLUB C",
+    1,
+    3,
+    0
+   ],
+   [
+    "DIAZ CABRERA, ALEJANDRO",
+    "GOLETA B, C.D. B",
+    1,
+    3,
+    0
+   ],
+   [
+    "SAIZ DOMINGUEZ, EDUARDO",
+    "CORAZON DE MARIA B, C.D. B",
+    1,
+    3,
+    0
+   ],
+   [
+    "GONZALEZ RAMOS, MIGUEL",
+    "GUINIGUADA APOLINARIO C, C.D. C",
+    5,
+    3,
+    0
+   ],
+   [
+    "GOMEZ GONZALEZ, AIRAM",
+    "GAREPA VIERA B, C.F. B",
+    7,
+    3,
+    0
+   ],
+   [
+    "HERNANDEZ PEÑA, JAVIER",
+    "AREGRANCA B, C.D. B",
+    9,
+    3,
+    0
+   ],
+   [
+    "ALONSO SANTANA, JADEN",
+    "ACODETTI C.F. B B",
+    9,
+    3,
+    0
+   ],
+   [
+    "UMPIERREZ PEÑATE, REBECA",
+    "ACODETTI C.F. B B",
+    10,
+    3,
+    0
+   ],
+   [
+    "GORNES CAZORLA, MATEO",
+    "CORAZON DE MARIA B, C.D. B",
+    12,
+    3,
+    0
+   ],
+   [
+    "BENITEZ HERNANDEZ, ALEJANDRO",
+    "CORAZON DE MARIA B, C.D. B",
+    12,
+    3,
+    0
+   ],
+   [
+    "BAEZ LLAMAS, JORGE",
+    "CORAZON DE MARIA B, C.D. B",
+    13,
+    3,
+    0
+   ],
+   [
+    "MEDINA NAVARRO, PEDRO JAVIER",
+    "VETERANOS DEL PILA.D, C.D. DB",
+    14,
+    3,
+    0
+   ],
+   [
+    "GARCIA GALLO, GUILLERMO",
+    "ARUCAS C.F. C C",
+    17,
+    3,
+    0
+   ],
+   [
+    "RAKIB MIRELES, JUAN BRAHIM",
+    "SAN ANTONIO B, U.D. B",
+    18,
+    3,
+    0
+   ],
+   [
+    "CEDRES ACOSTA, IKER",
+    "UNION VIERA D, C.F. DB",
+    22,
+    3,
+    0
+   ],
+   [
+    "CONFORTO VAZQUEZ, GABRIELE",
+    "VICTORIA C, REAL CLUB C",
+    24,
+    3,
+    0
+   ],
+   [
+    "ALVAREZ KACHEGINA, FRANCISCO JAVIER",
+    "GAREPA VIERA B, C.F. B",
+    24,
+    3,
+    0
+   ],
+   [
+    "GARCIA HERNANDEZ, MAVERICK",
+    "CARDONES B, C.D. B",
+    25,
+    3,
+    0
+   ],
+   [
+    "MARTINEZ MARTEL, ARLEN MARIA",
+    "SAN ANTONIO B, U.D. B",
+    26,
+    3,
+    0
+   ],
+   [
+    "SOSA GOPAR, MIGUEL ALEJANDRO",
+    "CORAZON DE MARIA B, C.D. B",
+    1,
+    2,
+    0
+   ],
+   [
+    "SOSA GOPAR, MIGUEL ALEJANDRO",
+    "CORAZON DE MARIA B, C.D. B",
+    1,
+    2,
+    0
+   ],
+   [
+    "DIAZ CABRERA, ALEJANDRO",
+    "GOLETA B, C.D. B",
+    1,
+    2,
+    0
+   ],
+   [
+    "OJEDA TRUJILLO, CLAUDIA",
+    "VICTORIA C, REAL CLUB C",
+    2,
+    2,
+    0
+   ],
+   [
+    "MIGUEL ALEJANDRO",
+    "CORAZON DE MARIA B, C.D. B",
+    4,
+    2,
+    0
+   ],
+   [
+    "NAVARRO TORRES, DANIEL",
+    "VILLA DE SANTA BRIGIDA C, U.D. C",
+    5,
+    2,
+    0
+   ],
+   [
+    "NORDELO RODRIGUEZ, MARCOS DAVID",
+    "AREGRANCA B, C.D. B",
+    6,
+    2,
+    0
+   ],
+   [
+    "RODRIGUEZ ARENCIBIA, PABLO",
+    "VICTORIA C, REAL CLUB C",
+    7,
+    2,
+    0
+   ],
+   [
+    "ALMEIDA BUSTILLO, ADAY",
+    "CARDONES B, C.D. B",
+    9,
+    2,
+    0
+   ],
+   [
+    "DIOP DIOP, ABDOULAYE YOUNOUSS",
+    "AREGRANCA B, C.D. B",
+    9,
+    2,
+    0
+   ],
+   [
+    "SOSA CRUZ, ALEXANDER",
+    "SAN ANTONIO B, U.D. B",
+    13,
+    2,
+    0
+   ],
+   [
+    "SANTANA DIEPPA, PABLO",
+    "UNION VIERA D, C.F. DB",
+    13,
+    2,
+    0
+   ],
+   [
+    "VICTORIO HERRERA, ALEJANDRO MANUEL",
+    "SAN ANTONIO B, U.D. B",
+    13,
+    2,
+    0
+   ],
+   [
+    "PADILLA SANTANA, EIDAN",
+    "UNION VIERA D, C.F. DB",
+    17,
+    2,
+    0
+   ],
+   [
+    "PEREZ LANG-LENTON, MANUEL",
+    "VILLA DE SANTA BRIGIDA C, U.D. C",
+    18,
+    2,
+    0
+   ],
+   [
+    "SANTANA VEGA, JAVIER CLAUDIO",
+    "GOLETA B, C.D. B",
+    22,
+    2,
+    0
+   ],
+   [
+    "BARRABI RODRIGUEZ, ALBERTO",
+    "SAN ANTONIO B, U.D. B",
+    23,
+    2,
+    0
+   ],
+   [
+    "IDOY ACOSTA, PABLO",
+    "VILLA DE SANTA BRIGIDA C, U.D. C",
+    25,
+    2,
+    0
+   ],
+   [
+    "SANTANA MELIAN, ALVARO JESUS",
+    "CARDONES B, C.D. B",
+    26,
+    2,
+    0
+   ],
+   [
+    "SAIZ DOMINGUEZ, EDUARDO",
+    "CORAZON DE MARIA B, C.D. B",
+    0,
+    2,
+    0
+   ],
+   [
+    "SOSA GOPAR, MIGUEL ALEJANDRO",
+    "CORAZON DE MARIA B, C.D. B",
+    0,
+    2,
+    0
+   ],
+   [
+    "",
+    "GUINIGUADA APOLINARIO C, C.D. C",
+    1,
+    1,
+    0
+   ],
+   [
+    "GONZALEZ MORILLO, RAUL",
+    "GUINIGUADA APOLINARIO C, C.D. C",
+    1,
+    1,
+    0
+   ],
+   [
+    "SOSA GOPAR, MIGUEL ALEJANDRO",
+    "CORAZON DE MARIA B, C.D. B",
+    1,
+    1,
+    0
+   ],
+   [
+    "SAIZ DOMINGUEZ, EDUARDO",
+    "CORAZON DE MARIA B, C.D. B",
+    1,
+    1,
+    0
+   ],
+   [
+    "SOSA GOPAR, MIGUEL ALEJANDRO",
+    "CORAZON DE MARIA B, C.D. B",
+    1,
+    1,
+    0
+   ],
+   [
+    "DIAZ CABRERA, ALEJANDRO",
+    "GOLETA B, C.D. B",
+    1,
+    1,
+    0
+   ],
+   [
+    "DIAZ CABRERA, ALEJANDRO",
+    "GOLETA B, C.D. B",
+    1,
+    1,
+    0
+   ],
+   [
+    "MONZON ALAMO, ABEL",
+    "GUINIGUADA APOLINARIO C, C.D. C",
+    3,
+    1,
+    0
+   ],
+   [
+    "HERNANDEZ GONZALEZ, CRISTIAN",
+    "GAREPA VIERA B, C.F. B",
+    3,
+    1,
+    0
+   ],
+   [
+    "OLIVA MARTIN, VICTOR",
+    "AREGRANCA B, C.D. B",
+    3,
+    1,
+    0
+   ],
+   [
+    "TIPAN SALAZAR, ANDREU SEBASTIA",
+    "VILLA DE SANTA BRIGIDA C, U.D. C",
+    3,
+    1,
+    0
+   ],
+   [
+    "GONZALEZ MARTIN, AITOR ACORAN",
+    "SAN ANTONIO B, U.D. B",
+    4,
+    1,
+    0
+   ],
+   [
+    "",
+    "SAGRADO CORAZON UNIVERSITARIO B B",
+    6,
+    1,
+    0
+   ],
+   [
+    "IZU HERNANDEZ, LUIS",
+    "VETERANOS DEL PILA.D, C.D. DB",
+    6,
+    1,
+    0
+   ],
+   [
+    "PICON MACIAS, YESENIA",
+    "UNION VIERA D, C.F. DB",
+    6,
+    1,
+    0
+   ],
+   [
+    "ALAMO MACIAS, DEREK JONATHAN",
+    "SAN ANTONIO B, U.D. B",
+    7,
+    1,
+    0
+   ],
+   [
+    "ROMERO OBAZEE, JUAN ROBINSON",
+    "AREGRANCA B, C.D. B",
+    8,
+    1,
+    0
+   ],
+   [
+    "CRISPIN DOS SANTOS, IAGO AYOZE",
+    "AREGRANCA B, C.D. B",
+    10,
+    1,
+    0
+   ],
+   [
+    "ENRIQUEZ BAUTISTA, ANGEL",
+    "VETERANOS DEL PILA.D, C.D. DB",
+    10,
+    1,
+    0
+   ],
+   [
+    "DIAZ GARCIA, ELLIOT",
+    "ACODETTI C.F. B B",
+    11,
+    1,
+    0
+   ],
+   [
+    "SANTAMARIA CAZORLA, CRISTIAN",
+    "SAN ANTONIO B, U.D. B",
+    12,
+    1,
+    0
+   ],
+   [
+    "PRIETO GONZALEZ, LUIS",
+    "CORAZON DE MARIA B, C.D. B",
+    13,
+    1,
+    0
+   ],
+   [
+    "OSORIO ALVAREZ, JUAN DAVID",
+    "VETERANOS DEL PILA.D, C.D. DB",
+    13,
+    1,
+    0
+   ],
+   [
+    "GONZALEZ BRISSON, AITOR",
+    "GOLETA B, C.D. B",
+    13,
+    1,
+    0
+   ],
+   [
+    "HERNANDEZ RODRIGUEZ, AITOR",
+    "GAREPA VIERA B, C.F. B",
+    15,
+    1,
+    0
+   ],
+   [
+    "LUCEA CABRERA, MANUEL",
+    "VICTORIA C, REAL CLUB C",
+    15,
+    1,
+    0
+   ],
+   [
+    "NUÑEZ GONZALEZ, GABRIEL",
+    "VETERANOS DEL PILA.D, C.D. DB",
+    16,
+    1,
+    0
+   ],
+   [
+    "RUIZ GONZALEZ, JAIRO ANDRES",
+    "GAREPA VIERA B, C.F. B",
+    17,
+    1,
+    0
+   ],
+   [
+    "OJEDA SANCHEZ, GIOVANNI",
+    "VICTORIA C, REAL CLUB C",
+    18,
+    1,
+    0
+   ],
+   [
+    "AROUNI DEL TORO, DIEGO",
+    "VILLA DE SANTA BRIGIDA C, U.D. C",
+    20,
+    1,
+    0
+   ],
+   [
+    "REDONDO GARCIA, AIRAM",
+    "UNION VIERA D, C.F. DB",
+    20,
+    1,
+    0
+   ],
+   [
+    "BRITO SANTANA, IZAN",
+    "VETERANOS DEL PILA.D, C.D. DB",
+    21,
+    1,
+    0
+   ],
+   [
+    "SANTANA SOSA, EDUARDO DAVID",
+    "UNION VIERA D, C.F. DB",
+    21,
+    1,
+    0
+   ],
+   [
+    "MURILLO LOPEZ, HUGO",
+    "AREGRANCA B, C.D. B",
+    23,
+    1,
+    0
+   ],
+   [
+    "SANTANA CABRERA, AITOR",
+    "SAGRADO CORAZON UNIVERSITARIO B B",
+    26,
+    1,
+    0
+   ],
+   [
+    "DIAZ CABRERA, ALEJANDRO",
+    "GOLETA B, C.D. B",
+    0,
+    1,
+    0
+   ],
+   [
+    "SOSA GOPAR, MIGUEL ALEJANDRO",
+    "CORAZON DE MARIA B, C.D. B",
+    0,
+    1,
+    0
+   ],
+   [
+    "DIAZ CABRERA, ALEJANDRO",
+    "GOLETA B, C.D. B",
+    0,
+    1,
+    0
+   ],
+   [
+    "DIAZ CABRERA, ALEJANDRO",
+    "GOLETA B, C.D. B",
+    0,
+    1,
+    0
+   ]
+  ],
+  "standings": [
+   {
+    "df": 178,
+    "e": 3,
+    "form": "GEGGG",
+    "g": 23,
+    "gc": 38,
+    "gf": 216,
+    "j": 26,
+    "p": 0,
+    "pos": 1,
+    "pts": 72,
+    "team": "ARUCAS C.F. C \"C\""
+   },
+   {
+    "df": 177,
+    "e": 3,
+    "form": "GEGGG",
+    "g": 22,
+    "gc": 34,
+    "gf": 211,
+    "j": 26,
+    "p": 1,
+    "pos": 2,
+    "pts": 69,
+    "team": "GUINIGUADA APOLINARIO C, C.D. \"C\""
+   },
+   {
+    "df": 118,
+    "e": 1,
+    "form": "GGPGG",
+    "g": 20,
+    "gc": 50,
+    "gf": 168,
+    "j": 26,
+    "p": 5,
+    "pos": 3,
+    "pts": 61,
+    "team": "CORAZON DE MARIA B, C.D. \"B\""
+   },
+   {
+    "df": 78,
+    "e": 2,
+    "form": "GGGPP",
+    "g": 18,
+    "gc": 51,
+    "gf": 129,
+    "j": 26,
+    "p": 6,
+    "pos": 4,
+    "pts": 56,
+    "team": "VICTORIA C, REAL CLUB \"C\""
+   },
+   {
+    "df": 93,
+    "e": 2,
+    "form": "EGPPG",
+    "g": 18,
+    "gc": 67,
+    "gf": 160,
+    "j": 26,
+    "p": 6,
+    "pos": 5,
+    "pts": 56,
+    "team": "GAREPA VIERA B, C.F. \"B\""
+   },
+   {
+    "df": 69,
+    "e": 0,
+    "form": "PPGGG",
+    "g": 17,
+    "gc": 76,
+    "gf": 145,
+    "j": 26,
+    "p": 9,
+    "pos": 6,
+    "pts": 51,
+    "team": "SAGRADO CORAZON UNIVERSITARIO B \"B\""
+   },
+   {
+    "df": 46,
+    "e": 1,
+    "form": "PGGEG",
+    "g": 13,
+    "gc": 97,
+    "gf": 143,
+    "j": 26,
+    "p": 12,
+    "pos": 7,
+    "pts": 40,
+    "team": "ACODETTI C.F. B \"B\""
+   },
+   {
+    "df": -14,
+    "e": 1,
+    "form": "PEGGP",
+    "g": 10,
+    "gc": 119,
+    "gf": 105,
+    "j": 26,
+    "p": 15,
+    "pos": 8,
+    "pts": 31,
+    "team": "VETERANOS DEL PILA.D, C.D. \"DB\""
+   },
+   {
+    "df": -22,
+    "e": 2,
+    "form": "GEPPP",
+    "g": 8,
+    "gc": 108,
+    "gf": 86,
+    "j": 26,
+    "p": 16,
+    "pos": 9,
+    "pts": 26,
+    "team": "AREGRANCA B, C.D. \"B\""
+   },
+   {
+    "df": -42,
+    "e": 2,
+    "form": "EPGEG",
+    "g": 8,
+    "gc": 131,
+    "gf": 89,
+    "j": 26,
+    "p": 16,
+    "pos": 10,
+    "pts": 26,
+    "team": "GOLETA B, C.D. \"B\""
+   },
+   {
+    "df": -61,
+    "e": 2,
+    "form": "PPPGP",
+    "g": 7,
+    "gc": 134,
+    "gf": 73,
+    "j": 26,
+    "p": 17,
+    "pos": 11,
+    "pts": 23,
+    "team": "VILLA DE SANTA BRIGIDA C, U.D. \"C\""
+   },
+   {
+    "df": -160,
+    "e": 1,
+    "form": "PGPPP",
+    "g": 5,
+    "gc": 221,
+    "gf": 61,
+    "j": 26,
+    "p": 20,
+    "pos": 12,
+    "pts": 16,
+    "team": "CARDONES B, C.D. \"B\""
+   },
+   {
+    "df": -185,
+    "e": 0,
+    "form": "GPPPP",
+    "g": 2,
+    "gc": 216,
+    "gf": 31,
+    "j": 26,
+    "p": 24,
+    "pos": 13,
+    "pts": 6,
+    "team": "SAN ANTONIO B, U.D. \"B\""
+   },
+   {
+    "df": -275,
+    "e": 0,
+    "form": "PPPPP",
+    "g": 1,
+    "gc": 305,
+    "gf": 30,
+    "j": 26,
+    "p": 25,
+    "pos": 14,
+    "pts": 3,
+    "team": "UNION VIERA D, C.F. \"DB\""
+   }
+  ]
+ },
+ "887:125087": {
+  "comp": "887",
+  "comp_name": "LIGA PRIMERA ALEVIN F-8 GRAN CANARIA",
+  "fetched": "2026-11-28",
+  "grupo": "125087",
+  "grupo_name": "GRUPO 3",
+  "ok": true,
+  "scorers": [
+   [
+    "CONDE HERRERA, JOSE FRANCISCO",
+    "VETERANOS DEL PILA C, C.D. C",
+    22,
+    49,
+    0
+   ],
+   [
+    "NUEZ LORENZO, DANIEL",
+    "ATLETICO HURACAN B, A.D. B",
+    15,
+    47,
+    0
+   ],
+   [
+    "MARRERO GONZALEZ, EIDAN YEROVER",
+    "ATLETICO FOMENTO, CLUB",
+    23,
+    36,
+    0
+   ],
+   [
+    "COLLADO JIMENEZ, LUIS MIGUEL",
+    "VALLINAMAR, C.D.",
+    11,
+    33,
+    0
+   ],
+   [
+    "ROQUE GONZALEZ, ANGEL GABRIEL",
+    "PEDRO HIDALGO, C.F. UNION",
+    18,
+    32,
+    0
+   ],
+   [
+    "PARRILLA SABAU, LEO",
+    "CORAZON DE MARIA C, C.D. C",
+    15,
+    29,
+    0
+   ],
+   [
+    "CRUZ SOTO, KYRAN",
+    "VETERANOS DEL PILA C, C.D. C",
+    16,
+    26,
+    0
+   ],
+   [
+    "MORALES SANTANA, ISMAEL CARMELO",
+    "VETERANOS DEL PILA C, C.D. C",
+    1,
+    25,
+    0
+   ],
+   [
+    "OJEDA CABRERA, ENRIQUE",
+    "CORAZON DE MARIA C, C.D. C",
+    14,
+    24,
+    0
+   ],
+   [
+    "GUZMAN MAGO, AARON DAVID",
+    "ATLETICO HURACAN B, A.D. B",
+    10,
+    23,
+    0
+   ],
+   [
+    "GOMEZ MIRALLES, GIAN DEREK",
+    "TALLERES CANARY, C.D.",
+    24,
+    23,
+    0
+   ],
+   [
+    "HERNANDEZ PEREZ, ACHEMENCEY",
+    "VALLINAMAR, C.D.",
+    17,
+    22,
+    0
+   ],
+   [
+    "ESPINOSA PINEDA, CAMILO",
+    "PLAYA DEL HOMBRE, C.D.",
+    24,
+    20,
+    0
+   ],
+   [
+    "WORDEN SANTANA, CHRISTIAN BRIAN",
+    "VETERANOS DEL PILA C, C.D. C",
+    13,
+    19,
+    0
+   ],
+   [
+    "LORENZO QUESADA, PABLO",
+    "ATLETICO HURACAN B, A.D. B",
+    16,
+    19,
+    0
+   ],
+   [
+    "ASCENCION LANZAS, JEYCO ALEJANDRO",
+    "SAN JUAN TRES PALMAS, C.D.",
+    18,
+    19,
+    0
+   ],
+   [
+    "GIL KIIDRON, EIDAN",
+    "VETERANOS DEL PILA C, C.D. C",
+    20,
+    19,
+    0
+   ],
+   [
+    "SAN BLAS MARTIN, KENAI",
+    "LOMO BLANCO S.J.A. A, C.D. A",
+    12,
+    18,
+    0
+   ],
+   [
+    "RODRIGUEZ GONZALEZ, YARET",
+    "MARZASPORT, ATLETICO",
+    16,
+    18,
+    0
+   ],
+   [
+    "PEREZ RODRIGUEZ, FRANCISCO SAMUEL",
+    "LOMO BLANCO S.J.A. A, C.D. A",
+    17,
+    18,
+    0
+   ],
+   [
+    "RAMOS LOPEZ, AYTHAMI",
+    "ATLETICO HURACAN B, A.D. B",
+    19,
+    18,
+    0
+   ],
+   [
+    "CASTELLANO SANTANA, GONZALO",
+    "CORAZON DE MARIA C, C.D. C",
+    4,
+    17,
+    0
+   ],
+   [
+    "RUIZ SOSA, YESSEL",
+    "SAN JOSE, REAL SPORTING",
+    17,
+    17,
+    0
+   ],
+   [
+    "PEREZ ROBLIZO, YADIEL",
+    "ATLETICO HURACAN B, A.D. B",
+    7,
+    16,
+    0
+   ],
+   [
+    "MARTIN NAVARRO, DIEGO",
+    "CORAZON DE MARIA C, C.D. C",
+    16,
+    16,
+    0
+   ],
+   [
+    "CARDENES RODRIGUEZ, ADRIAN",
+    "LOMO BLANCO S.J.A. A, C.D. A",
+    20,
+    16,
+    0
+   ],
+   [
+    "CARMONA SALAZAR, MANUEL",
+    "LOMO BLANCO S.J.A. A, C.D. A",
+    14,
+    15,
+    0
+   ],
+   [
+    "SUAREZ HERNANDEZ, DARIO",
+    "ATLETICO HURACAN B, A.D. B",
+    21,
+    15,
+    0
+   ],
+   [
+    "ROZO SANTIAGO, ANGEL URIEL",
+    "PEDRO HIDALGO, C.F. UNION",
+    22,
+    15,
+    0
+   ],
+   [
+    "IUSAN CAMERO, GABRIEL EDUARDO",
+    "CORAZON DE MARIA C, C.D. C",
+    8,
+    14,
+    0
+   ],
+   [
+    "VILA HERNANDEZ, DHASIEL MIGUEL",
+    "MARZASPORT, ATLETICO",
+    23,
+    14,
+    0
+   ],
+   [
+    "TRUJILLO NOBLE, LUIS MIGUEL",
+    "VALLINAMAR, C.D.",
+    10,
+    13,
+    0
+   ],
+   [
+    "ARTILES RAMOS, LEANDRO JAVIER",
+    "LONGUERAS, C.D. LAS",
+    13,
+    13,
+    0
+   ],
+   [
+    "REYES BATISTA, JORELL JOSE",
+    "VETERANOS DEL PILA C, C.D. C",
+    14,
+    13,
+    0
+   ],
+   [
+    "BRISSON SANCHEZ, GADIEL",
+    "VETERANOS DEL PILA C, C.D. C",
+    22,
+    13,
+    0
+   ],
+   [
+    "CAMPAYO TAYLOR, NEITHAN GADATAMEN",
+    "LOMO BLANCO S.J.A. A, C.D. A",
+    4,
+    12,
+    0
+   ],
+   [
+    "RAMIREZ HERNANDEZ, CHEMIDA",
+    "LOMO BLANCO S.J.A. A, C.D. A",
+    16,
+    12,
+    0
+   ],
+   [
+    "MEDINA GARCIA, DANIEL",
+    "TALLERES CANARY, C.D.",
+    19,
+    12,
+    0
+   ],
+   [
+    "MIRANDA PEREIRA, GIOVANNI",
+    "VETERANOS DEL PILA C, C.D. C",
+    21,
+    12,
+    0
+   ],
+   [
+    "HERNANDEZ TAISMA, ENZO ROBERTO",
+    "MARZASPORT, ATLETICO",
+    11,
+    11,
+    0
+   ],
+   [
+    "CANALES GIRALDO, LUCAS",
+    "ATLETICO FOMENTO, CLUB",
+    19,
+    11,
+    0
+   ],
+   [
+    "SUAREZ TEJERA, ARAISHA",
+    "PEDRO HIDALGO, C.F. UNION",
+    21,
+    11,
+    0
+   ],
+   [
+    "DIAZ DIEPA, ALVARO",
+    "LOMO BLANCO S.J.A. A, C.D. A",
+    14,
+    10,
+    0
+   ],
+   [
+    "DAMASO AUGUSTO, KAI",
+    "ATLETICO HURACAN B, A.D. B",
+    22,
+    10,
+    0
+   ],
+   [
+    "",
+    "CORAZON DE MARIA C, C.D. C",
+    8,
+    9,
+    0
+   ],
+   [
+    "SANTANA CEBALLOS, ABIAN",
+    "CORAZON DE MARIA C, C.D. C",
+    9,
+    9,
+    0
+   ],
+   [
+    "LOPEZ GODOY, LUCAS SAMUEL",
+    "ATLETICO FOMENTO, CLUB",
+    10,
+    9,
+    0
+   ],
+   [
+    "ORTEGA CRUZ, ARIADNA",
+    "VETERANOS DEL PILA C, C.D. C",
+    11,
+    9,
+    0
+   ],
+   [
+    "MIRANDA MESA, PEDRO JERONIMO",
+    "VALLINAMAR, C.D.",
+    13,
+    9,
+    0
+   ],
+   [
+    "PEREZ MARTIN, PABLO",
+    "CORAZON DE MARIA C, C.D. C",
+    13,
+    9,
+    0
+   ],
+   [
+    "TRUJILLO O'SHANAHAN, RAFAEL",
+    "CORAZON DE MARIA C, C.D. C",
+    16,
+    9,
+    0
+   ],
+   [
+    "RODRIGUEZ LOPEZ, ACOIDAN",
+    "PEDRO HIDALGO, C.F. UNION",
+    19,
+    9,
+    0
+   ],
+   [
+    "MCINTOSH ORTEGA, JOEL DESTINY",
+    "LONGUERAS, C.D. LAS",
+    22,
+    9,
+    0
+   ],
+   [
+    "RUIZ SANCHEZ, DARYL DEL CRISTO",
+    "LONGUERAS, C.D. LAS",
+    23,
+    9,
+    0
+   ],
+   [
+    "DIAZ ESPINO, ALVARO",
+    "ATLETICO HURACAN B, A.D. B",
+    3,
+    8,
+    0
+   ],
+   [
+    "TABARES MARQUEZ, JAVIER",
+    "ATLETICO HURACAN B, A.D. B",
+    4,
+    8,
+    0
+   ],
+   [
+    "ORTEGA MARTIN, JOEL",
+    "ATLETICO HURACAN B, A.D. B",
+    8,
+    8,
+    0
+   ],
+   [
+    "CABRERA FALCON, ALVARO",
+    "CORAZON DE MARIA C, C.D. C",
+    13,
+    8,
+    0
+   ],
+   [
+    "DOMINGUEZ ARMAS, FRANCISCO JAIDEN",
+    "MARZASPORT, ATLETICO",
+    10,
+    7,
+    0
+   ],
+   [
+    "SOSA SUAREZ, LIONEL EUTIMIANO",
+    "MARZASPORT, ATLETICO",
+    14,
+    7,
+    0
+   ],
+   [
+    "RODRIGUEZ SANTANA, HECTOR",
+    "LOMO BLANCO S.J.A. A, C.D. A",
+    17,
+    7,
+    0
+   ],
+   [
+    "SANTANA SUAREZ, ISAAC EDUARDO",
+    "SAN JOSE, REAL SPORTING",
+    19,
+    7,
+    0
+   ],
+   [
+    "BENITEZ DELGADO, SIMON",
+    "VALLINAMAR, C.D.",
+    22,
+    7,
+    0
+   ],
+   [
+    "HMETTOU APARICIO, SIDI",
+    "ATLETICO FOMENTO, CLUB",
+    24,
+    7,
+    0
+   ],
+   [
+    "PULIDO SANTANA, LEONEL JESUS",
+    "VALLINAMAR, C.D.",
+    4,
+    6,
+    0
+   ],
+   [
+    "CABRERA PANTA, AITHAMY ECHEDEY",
+    "LOMO BLANCO S.J.A. A, C.D. A",
+    8,
+    6,
+    0
+   ],
+   [
+    "DORTA HERNÁNDEZ, IRIOME DEL CRISTO",
+    "VETERANOS DEL PILA C, C.D. C",
+    12,
+    6,
+    0
+   ],
+   [
+    "PERDOMO TRUJILLO, GABRIEL",
+    "PEDRO HIDALGO, C.F. UNION",
+    15,
+    6,
+    0
+   ],
+   [
+    "AGUIAR APARICIO, CRISTIAN",
+    "ATLETICO FOMENTO, CLUB",
+    17,
+    6,
+    0
+   ],
+   [
+    "LOZANO NOVOA, EMANUEL",
+    "TALLERES CANARY, C.D.",
+    18,
+    6,
+    0
+   ],
+   [
+    "AFONSO ARTILES, LIONEL AARON",
+    "SAN JUAN TRES PALMAS, C.D.",
+    19,
+    6,
+    0
+   ],
+   [
+    "MEDINA CARREÑO, AYOZE",
+    "VETERANOS DEL PILA C, C.D. C",
+    20,
+    6,
+    0
+   ],
+   [
+    "CAÑAS GARCIA, LUIS",
+    "CORAZON DE MARIA C, C.D. C",
+    20,
+    6,
+    0
+   ],
+   [
+    "PELLICER PEREZ, NEYZAN",
+    "ATLETICO HURACAN B, A.D. B",
+    5,
+    5,
+    0
+   ],
+   [
+    "HOUGHTON JORGE, MIKEL",
+    "CORAZON DE MARIA C, C.D. C",
+    8,
+    5,
+    0
+   ],
+   [
+    "CABRERA SUAREZ, MIGUEL BARTOLOME",
+    "PLAYA DEL HOMBRE, C.D.",
+    8,
+    5,
+    0
+   ],
+   [
+    "ROMERO MARTEL, MIGUEL ARIDANE",
+    "LONGUERAS, C.D. LAS",
+    10,
+    5,
+    0
+   ],
+   [
+    "FERNANDEZ SANTANA, LIAM",
+    "MARZASPORT, ATLETICO",
+    12,
+    5,
+    0
+   ],
+   [
+    "DELGADO MACHIN, MARCOS DANIEL",
+    "SAN JOSE, REAL SPORTING",
+    17,
+    5,
+    0
+   ],
+   [
+    "BASTERRA EGUIRON, CARLOS",
+    "PLAYA DEL HOMBRE, C.D.",
+    19,
+    5,
+    0
+   ],
+   [
+    "MURILLO PEREZ, RODRIGO",
+    "CORAZON DE MARIA C, C.D. C",
+    2,
+    4,
+    0
+   ],
+   [
+    "TOLEDO MENDEZ, NAUZET",
+    "VALLINAMAR, C.D.",
+    8,
+    4,
+    0
+   ],
+   [
+    "CACEREÑO SANTANA, MANUEL",
+    "CORAZON DE MARIA C, C.D. C",
+    10,
+    4,
+    0
+   ],
+   [
+    "RODRIGUEZ RUANO, NEYMAR",
+    "PEDRO HIDALGO, C.F. UNION",
+    11,
+    4,
+    0
+   ],
+   [
+    "JIMENEZ SUAREZ, DANIELA",
+    "SAN JUAN TRES PALMAS, C.D.",
+    23,
+    4,
+    0
+   ],
+   [
+    "DOMÍNGUEZ MORENO, GUAYRE JOSÉ",
+    "VETERANOS DEL PILA C, C.D. C",
+    2,
+    3,
+    0
+   ],
+   [
+    "DOMINGUEZ SANCHEZ, EIDEN",
+    "SAN JOSE, REAL SPORTING",
+    6,
+    3,
+    0
+   ],
+   [
+    "SANTANA MORENO, PABLO",
+    "SAN JOSE, REAL SPORTING",
+    6,
+    3,
+    0
+   ],
+   [
+    "PUERTOLLANO TEJERA, JADEN LORENZO",
+    "PEDRO HIDALGO, C.F. UNION",
+    6,
+    3,
+    0
+   ],
+   [
+    "ALVAREZ OLIVARES, CHRISTIAN ACORAN",
+    "LOMO BLANCO S.J.A. A, C.D. A",
+    9,
+    3,
+    0
+   ],
+   [
+    "HENRIQUEZ MIRANDA, GUAYRE",
+    "MARZASPORT, ATLETICO",
+    10,
+    3,
+    0
+   ],
+   [
+    "LEON HERREROS, CIRO",
+    "CORAZON DE MARIA C, C.D. C",
+    14,
+    3,
+    0
+   ],
+   [
+    "ALBERTO PEREZ, NAYELI",
+    "PEDRO HIDALGO, C.F. UNION",
+    16,
+    3,
+    0
+   ],
+   [
+    "LORENZO MACIAS, YEROVE",
+    "SAN JOSE, REAL SPORTING",
+    19,
+    3,
+    0
+   ],
+   [
+    "CABRERA SANTANA, IKER DAVID",
+    "PLAYA DEL HOMBRE, C.D.",
+    25,
+    3,
+    0
+   ],
+   [
+    "TOLEDO QUINTANA, YAISEL IVAN",
+    "VALLINAMAR, C.D.",
+    1,
+    2,
+    0
+   ],
+   [
+    "QUESADA ALAMO, IZAN ANDRES",
+    "ATLETICO FOMENTO, CLUB",
+    1,
+    2,
+    0
+   ],
+   [
+    "PEREZ BENITEZ, NEIZAN",
+    "VETERANOS DEL PILA C, C.D. C",
+    2,
+    2,
+    0
+   ],
+   [
+    "DE LA PEÑA ROQUE, ALEJANDRO",
+    "VETERANOS DEL PILA C, C.D. C",
+    2,
+    2,
+    0
+   ],
+   [
+    "GONZALEZ RAMOS, MIGUEL",
+    "ATLETICO HURACAN B, A.D. B",
+    2,
+    2,
+    0
+   ],
+   [
+    "SUAREZ MEDINA, MATEO",
+    "VETERANOS DEL PILA C, C.D. C",
+    6,
+    2,
+    0
+   ],
+   [
+    "SANCHEZ GARCIA, ADAY",
+    "ATLETICO FOMENTO, CLUB",
+    7,
+    2,
+    0
+   ],
+   [
+    "SUAREZ QUINTANA, DAVID JESUS",
+    "LOMO BLANCO S.J.A. A, C.D. A",
+    8,
+    2,
+    0
+   ],
+   [
+    "VERA MUÑOZ, AXEL",
+    "VALLINAMAR, C.D.",
+    8,
+    2,
+    0
+   ],
+   [
+    "ARBELO HERNANDEZ, ALEJANDRO",
+    "ATLETICO FOMENTO, CLUB",
+    10,
+    2,
+    0
+   ],
+   [
+    "BENITEZ CONCEPCION, JONAY",
+    "VETERANOS DEL PILA C, C.D. C",
+    10,
+    2,
+    0
+   ],
+   [
+    "SANTANA PALACIOS, PABLO",
+    "ATLETICO FOMENTO, CLUB",
+    12,
+    2,
+    0
+   ],
+   [
+    "DIAZ UMPIERREZ, GRETA",
+    "PLAYA DEL HOMBRE, C.D.",
+    13,
+    2,
+    0
+   ],
+   [
+    "DIAZ HERRERA, ANGEL",
+    "ATLETICO HURACAN B, A.D. B",
+    14,
+    2,
+    0
+   ],
+   [
+    "ROQUE GONZALEZ, AITOR DAVID",
+    "PEDRO HIDALGO, C.F. UNION",
+    14,
+    2,
+    0
+   ],
+   [
+    "ROBAINA GONZALEZ, ANGEL JAVIER",
+    "SAN JOSE, REAL SPORTING",
+    14,
+    2,
+    0
+   ],
+   [
+    "BAHAMON PAZ, SAMUEL",
+    "TALLERES CANARY, C.D.",
+    14,
+    2,
+    0
+   ],
+   [
+    "GARCIA JIMENEZ, VALERIA",
+    "MARZASPORT, ATLETICO",
+    15,
+    2,
+    0
+   ],
+   [
+    "SUAREZ ORTEGA, ANDRES",
+    "VALLINAMAR, C.D.",
+    15,
+    2,
+    0
+   ],
+   [
+    "FUENTES OJEDA, YOEL",
+    "TALLERES CANARY, C.D.",
+    16,
+    2,
+    0
+   ],
+   [
+    "LOPEZ HERNANDO, FERNANDO",
+    "CORAZON DE MARIA C, C.D. C",
+    18,
+    2,
+    0
+   ],
+   [
+    "SUAREZ MORENO, AIMAR",
+    "ATLETICO FOMENTO, CLUB",
+    19,
+    2,
+    0
+   ],
+   [
+    "ANTUNEZ TAPIA, NICOLAS",
+    "PLAYA DEL HOMBRE, C.D.",
+    19,
+    2,
+    0
+   ],
+   [
+    "ARRAY SANCHEZ, ADONAI",
+    "TALLERES CANARY, C.D.",
+    21,
+    2,
+    0
+   ],
+   [
+    "",
+    "MARZASPORT, ATLETICO",
+    21,
+    2,
+    0
+   ],
+   [
+    "AGUIAR APARICIO, GABRIEL",
+    "ATLETICO FOMENTO, CLUB",
+    22,
+    2,
+    0
+   ],
+   [
+    "ALAMO RUA, ADRIAN",
+    "VETERANOS DEL PILA C, C.D. C",
+    0,
+    2,
+    0
+   ],
+   [
+    "BAATOUT GONZALEZ, RAYAEN",
+    "VETERANOS DEL PILA C, C.D. C",
+    0,
+    2,
+    0
+   ],
+   [
+    "PEÑA COLLADO, ANTONIO",
+    "VALLINAMAR, C.D.",
+    1,
+    1,
+    0
+   ],
+   [
+    "BENITEZ SANTANA, ANUBIS JOAN",
+    "PEDRO HIDALGO, C.F. UNION",
+    2,
+    1,
+    0
+   ],
+   [
+    "GARCIA GONZALEZ, RAUL",
+    "SAN JOSE, REAL SPORTING",
+    2,
+    1,
+    0
+   ],
+   [
+    "RODRIGUEZ RODRIGUEZ, ALEJANDRO JAVIER",
+    "SAN JOSE, REAL SPORTING",
+    3,
+    1,
+    0
+   ],
+   [
+    "VEGA NUEZ, JAIME",
+    "PLAYA DEL HOMBRE, C.D.",
+    3,
+    1,
+    0
+   ],
+   [
+    "SANTANA PEREZ, MIGUEL",
+    "CORAZON DE MARIA C, C.D. C",
+    3,
+    1,
+    0
+   ],
+   [
+    "RODRIGUEZ GALVAN, JOSE DANIEL",
+    "TALLERES CANARY, C.D.",
+    4,
+    1,
+    0
+   ],
+   [
+    "PARINI FRIAS, JORGE NATANAEL",
+    "TALLERES CANARY, C.D.",
+    5,
+    1,
+    0
+   ],
+   [
+    "DAVILA HERRERA, ALEXANDRE YERARD",
+    "VALLINAMAR, C.D.",
+    5,
+    1,
+    0
+   ],
+   [
+    "SAAVEDRA BONILLA, YOENDI AYTHAMI",
+    "SAN JOSE, REAL SPORTING",
+    5,
+    1,
+    0
+   ],
+   [
+    "MEDINA OJEDA, YADID",
+    "ATLETICO FOMENTO, CLUB",
+    5,
+    1,
+    0
+   ],
+   [
+    "MACIAS HERNANDEZ, JOEL",
+    "PLAYA DEL HOMBRE, C.D.",
+    6,
+    1,
+    0
+   ],
+   [
+    "HERNANDEZ ECHEVARRIA, PABLO",
+    "PLAYA DEL HOMBRE, C.D.",
+    7,
+    1,
+    0
+   ],
+   [
+    "GARCIA DIAZ, MIGUEL",
+    "PLAYA DEL HOMBRE, C.D.",
+    7,
+    1,
+    0
+   ],
+   [
+    "SUAREZ RAMIREZ, IAN",
+    "TALLERES CANARY, C.D.",
+    9,
+    1,
+    0
+   ],
+   [
+    "TRUJILLO GARCIA, CHRISTIAN",
+    "LONGUERAS, C.D. LAS",
+    9,
+    1,
+    0
+   ],
+   [
+    "PEREZ SANCHEZ, YADIR",
+    "LOMO BLANCO S.J.A. A, C.D. A",
+    10,
+    1,
+    0
+   ],
+   [
+    "PERDOMO RODRIGUEZ, TAREK",
+    "TALLERES CANARY, C.D.",
+    12,
+    1,
+    0
+   ],
+   [
+    "RODRIGUEZ SUAREZ, ANTONIO ALEJANDRO",
+    "PLAYA DEL HOMBRE, C.D.",
+    14,
+    1,
+    0
+   ],
+   [
+    "CARDENES GARCIA, ASIER ENRIQUE",
+    "SAN JUAN TRES PALMAS, C.D.",
+    17,
+    1,
+    0
+   ],
+   [
+    "GARCIA SANTANA, DANIJEL GERMAN",
+    "PEDRO HIDALGO, C.F. UNION",
+    17,
+    1,
+    0
+   ],
+   [
+    "SUAREZ LORDA, KALEN JAVIER",
+    "PEDRO HIDALGO, C.F. UNION",
+    19,
+    1,
+    0
+   ],
+   [
+    "SANTANA NARANJO, AGUSTIN",
+    "LOMO BLANCO S.J.A. A, C.D. A",
+    20,
+    1,
+    0
+   ],
+   [
+    "HERNANDEZ LOPEZ, FABIO",
+    "MARZASPORT, ATLETICO",
+    21,
+    1,
+    0
+   ],
+   [
+    "RODRIGUEZ HERNANDEZ, ABIAN",
+    "SAN JOSE, REAL SPORTING",
+    21,
+    1,
+    0
+   ],
+   [
+    "BONILLA GONZALEZ, AIDAN",
+    "SAN JOSE, REAL SPORTING",
+    21,
+    1,
+    0
+   ],
+   [
+    "MONTESDEOCA SANGIL, EDUARDO",
+    "LOMO BLANCO S.J.A. A, C.D. A",
+    21,
+    1,
+    0
+   ],
+   [
+    "MEDINA BETANCOR, YEREMAY",
+    "SAN JUAN TRES PALMAS, C.D.",
+    21,
+    1,
+    0
+   ],
+   [
+    "ROSADO ARRIAGA, HIRAM DANIEL",
+    "ATLETICO HURACAN B, A.D. B",
+    22,
+    1,
+    0
+   ],
+   [
+    "AVILA MATEO, JAIME",
+    "VETERANOS DEL PILA C, C.D. C",
+    23,
+    1,
+    0
+   ],
+   [
+    "SUAREZ ARTILES, ADRIANA",
+    "ATLETICO FOMENTO, CLUB",
+    23,
+    1,
+    0
+   ],
+   [
+    "SICILIA VEGA, LUIS",
+    "VETERANOS DEL PILA C, C.D. C",
+    0,
+    1,
+    0
+   ],
+   [
+    "EIROA NAVAS, BRUNO",
+    "PLAYA DEL HOMBRE, C.D.",
+    0,
+    1,
+    0
+   ]
+  ],
+  "standings": [
+   {
+    "df": 125,
+    "e": 1,
+    "form": "GGEG",
+    "g": 22,
+    "gc": 45,
+    "gf": 170,
+    "j": 24,
+    "p": 1,
+    "pos": 1,
+    "pts": 67,
+    "team": "CORAZON DE MARIA C, C.D. \"C\""
+   },
+   {
+    "df": 150,
+    "e": 1,
+    "form": "GGGEG",
+    "g": 21,
+    "gc": 42,
+    "gf": 192,
+    "j": 23,
+    "p": 1,
+    "pos": 2,
+    "pts": 64,
+    "team": "VETERANOS DEL PILA C, C.D. \"C\""
+   },
+   {
+    "df": 133,
+    "e": 0,
+    "form": "GGPGG",
+    "g": 18,
+    "gc": 53,
+    "gf": 186,
+    "j": 24,
+    "p": 6,
+    "pos": 3,
+    "pts": 54,
+    "team": "ATLETICO HURACAN B, A.D. \"B\""
+   },
+   {
+    "df": 47,
+    "e": 2,
+    "form": "GGGP",
+    "g": 16,
+    "gc": 74,
+    "gf": 121,
+    "j": 24,
+    "p": 6,
+    "pos": 4,
+    "pts": 50,
+    "team": "LOMO BLANCO S.J.A. A, C.D. \"A\""
+   },
+   {
+    "df": 25,
+    "e": 4,
+    "form": "GGGPP",
+    "g": 12,
+    "gc": 76,
+    "gf": 101,
+    "j": 24,
+    "p": 8,
+    "pos": 5,
+    "pts": 40,
+    "team": "VALLINAMAR, C.D."
+   },
+   {
+    "df": 24,
+    "e": 7,
+    "form": "GEEPG",
+    "g": 10,
+    "gc": 62,
+    "gf": 86,
+    "j": 24,
+    "p": 7,
+    "pos": 6,
+    "pts": 37,
+    "team": "ATLETICO FOMENTO, CLUB"
+   },
+   {
+    "df": -3,
+    "e": 3,
+    "form": "GPGP",
+    "g": 11,
+    "gc": 90,
+    "gf": 87,
+    "j": 23,
+    "p": 9,
+    "pos": 7,
+    "pts": 36,
+    "team": "PEDRO HIDALGO, C.F. UNION"
+   },
+   {
+    "df": -51,
+    "e": 5,
+    "form": "PPEEG",
+    "g": 7,
+    "gc": 111,
+    "gf": 60,
+    "j": 24,
+    "p": 12,
+    "pos": 8,
+    "pts": 26,
+    "team": "TALLERES CANARY, C.D."
+   },
+   {
+    "df": -41,
+    "e": 5,
+    "form": "PEPG",
+    "g": 5,
+    "gc": 113,
+    "gf": 72,
+    "j": 24,
+    "p": 14,
+    "pos": 9,
+    "pts": 20,
+    "team": "MARZASPORT, ATLETICO"
+   },
+   {
+    "df": -111,
+    "e": 6,
+    "form": "PEGEE",
+    "g": 3,
+    "gc": 172,
+    "gf": 61,
+    "j": 24,
+    "p": 15,
+    "pos": 10,
+    "pts": 15,
+    "team": "PLAYA DEL HOMBRE, C.D."
+   },
+   {
+    "df": -73,
+    "e": 2,
+    "form": "PEPP",
+    "g": 4,
+    "gc": 118,
+    "gf": 45,
+    "j": 24,
+    "p": 18,
+    "pos": 11,
+    "pts": 14,
+    "team": "SAN JOSE, REAL SPORTING"
+   },
+   {
+    "df": -102,
+    "e": 4,
+    "form": "PPPGE",
+    "g": 3,
+    "gc": 141,
+    "gf": 39,
+    "j": 24,
+    "p": 17,
+    "pos": 12,
+    "pts": 13,
+    "team": "LONGUERAS, C.D. LAS"
+   },
+   {
+    "df": -123,
+    "e": 2,
+    "form": "PPPPP",
+    "g": 2,
+    "gc": 156,
+    "gf": 33,
+    "j": 24,
+    "p": 20,
+    "pos": 13,
+    "pts": 8,
+    "team": "SAN JUAN TRES PALMAS, C.D."
+   }
+  ]
+ },
  "891:125780": {
   "comp": "891",
   "comp_name": "LIGA PREFERENTE BENJAMIN F-8 GRAN CANARIA",
