@@ -1520,6 +1520,17 @@
     "goleadores:2021-2022"
    ],
    "verde": true
+  },
+  {
+   "at": "2026-11-28T02:32:18+00:00",
+   "mb_antes": 58.617,
+   "mb_despues": 59.016,
+   "motivo": "la importación falló (código 1)",
+   "segundos": 3.0,
+   "trabajos": [
+    "goleadores:2020-2021"
+   ],
+   "verde": false
   }
  ],
  "trabajos": {
@@ -1577,11 +1588,14 @@
    "pendientes": 0
   },
   "goleadores:2020-2021": {
-   "actualizado": "2026-11-28T01:56:53+00:00",
+   "actualizado": "2026-11-28T02:32:18+00:00",
    "categorias": [
     "alevin"
    ],
-   "estado": "completo",
+   "estado": "fallo",
+   "huellas": {
+    "fiflp_goleadores_2020-2021_raw.json": "0b1cd9e969603b7e7ffaa6ae04345ad7da942dce"
+   },
    "no_disponible": 0,
    "pendientes": 0
   },
