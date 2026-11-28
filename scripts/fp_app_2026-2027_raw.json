@@ -50,8 +50,8 @@
   "2026-11-24": "2026-11-25T01:39:31",
   "2026-11-25": "2026-11-26T02:05:30",
   "2026-11-26": "2026-11-27T00:23:49",
-  "2026-11-27": "2026-11-28T15:01:12",
-  "2026-11-28": "2026-11-28T15:01:12"
+  "2026-11-27": "2026-11-28T15:21:35",
+  "2026-11-28": "2026-11-28T15:21:35"
  },
  "ligas": {
   "121": {
@@ -85771,7 +85771,7 @@
    "escudo_local": "100x100puertoslaspalmas.png",
    "escudo_visitante": "100x100castillo.png",
    "estadio": "MN Sosa 2",
-   "estado": "en_juego",
+   "estado": "finalizado",
    "fase_eliminatoria": "",
    "fecha_programada": "2026-11-28 13:30:00",
    "goleadores_local": null,
