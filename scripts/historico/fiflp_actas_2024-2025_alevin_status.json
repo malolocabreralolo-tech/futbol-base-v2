@@ -1,0 +1,66 @@
+{
+ "formato": 2,
+ "season": "2024-2025",
+ "enumerated": 0,
+ "in_raw": 0,
+ "fetched": 0,
+ "pending": 11,
+ "actas_por_leer": 0,
+ "jornadas_por_leer": 0,
+ "grupos_por_leer": 0,
+ "unenumerated_comps": 11,
+ "no_disponible": [],
+ "intentos": {},
+ "motivos": {},
+ "enumeracion": {
+  "1698": {
+   "grupos": null,
+   "pendientes": {}
+  },
+  "1699": {
+   "grupos": null,
+   "pendientes": {}
+  },
+  "1700": {
+   "grupos": null,
+   "pendientes": {}
+  },
+  "1701": {
+   "grupos": null,
+   "pendientes": {}
+  },
+  "1702": {
+   "grupos": null,
+   "pendientes": {}
+  },
+  "1570": {
+   "grupos": null,
+   "pendientes": {}
+  },
+  "1722": {
+   "grupos": null,
+   "pendientes": {}
+  },
+  "1720": {
+   "grupos": null,
+   "pendientes": {}
+  },
+  "1721": {
+   "grupos": null,
+   "pendientes": {}
+  },
+  "1723": {
+   "grupos": null,
+   "pendientes": {}
+  },
+  "1724": {
+   "grupos": null,
+   "pendientes": {}
+  }
+ },
+ "paginas": {
+  "pedidas": 2,
+  "servidas": 0
+ },
+ "parada": "runner"
+}
