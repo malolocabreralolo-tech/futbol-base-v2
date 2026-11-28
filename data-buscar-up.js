@@ -1,0 +1,1 @@
+const BUSCAR_UP = [["229071","MENDES UPA DAMETE, GELINIO","Internacional PH","2026-2027",[2008,2009,2010]]];
