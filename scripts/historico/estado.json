@@ -2,7 +2,7 @@
  "dia": {
   "fecha": "2026-11-28",
   "freno": "carril",
-  "paginas": 1054
+  "paginas": 1360
  },
  "dias_frenados": [
   "2026-11-26",
@@ -1493,6 +1493,36 @@
     "20"
    ],
    "trabajo": "actas"
+  },
+  {
+   "accion": "descargar",
+   "esperas": 1,
+   "esperas_s": [
+    300
+   ],
+   "esperas_sirvio": [
+    true
+   ],
+   "fin": "2026-11-28T06:06:11+00:00",
+   "frenos": 2,
+   "frenos_tras": [
+    150,
+    150
+   ],
+   "inicio": "2026-11-28T05:25:54+00:00",
+   "lote": "alevin",
+   "muertas": 0,
+   "nube": "azure",
+   "paginas": 2946,
+   "parada": "freno",
+   "pedidas": 306,
+   "relanzada": false,
+   "runner_rechazado": false,
+   "servidas": 300,
+   "temporadas": [
+    "20"
+   ],
+   "trabajo": "actas"
   }
  ],
  "formato": 1,
@@ -1643,10 +1673,10 @@
  ],
  "trabajos": {
   "actas:2024-2025:alevin": {
-   "actualizado": "2026-11-28T04:40:36+00:00",
+   "actualizado": "2026-11-28T06:06:11+00:00",
    "estado": "pendiente",
    "no_disponible": 0,
-   "pendientes": 20
+   "pendientes": 85
   },
   "actas:2025-2026:alevin": {
    "actualizado": "2026-11-27T01:08:52+00:00",
